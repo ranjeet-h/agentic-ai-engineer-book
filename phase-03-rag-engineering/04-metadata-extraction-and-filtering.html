@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Metadata Extraction and Filtering – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" rel="next">
+<link href="../phase-03-rag-engineering/03-chunking-strategies.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html"><span class="chapter-title">Metadata Extraction and Filtering</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 3 — RAG Engineering</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html"><span class="chapter-title">Metadata Extraction and Filtering</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Metadata Extraction and Filtering</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> Metadata is the structured data attached to every chunk: source, title, section, page, date, author, tags, tenant, and access-control tags. It is how you filter before search, cite sources, isolate tenants, and debug results. Filtering must happen <strong>before</strong> the vector search, because a shared index will otherwise return rows the caller is not allowed to see and too few rows after the fact.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>A vector index answers one question well: <em>which stored vectors are closest to this query vector?</em> It knows nothing else. It does not know who is asking, which company they work for, whether a document is current, or whether a page is confidential.</p>
+<p>That gap causes two distinct failures.</p>
+<p><strong>The correctness failure.</strong> A user asks a question, and the nearest chunk belongs to another tenant or a document they cannot access.</p>
+<pre class="text"><code>Query: "What is our refund policy?"
+Index:  customer_a policy, customer_b policy, internal legal memo, public FAQ
+Top-3 by similarity: customer_b policy, internal memo, customer_a policy
+Result: the model answers with another company's policy</code></pre>
+<p>The vectors were correct. The system was wrong. Similarity has no concept of permission.</p>
+<p><strong>The precision failure.</strong> You need only documents from 2026, or only the security section, or only PDFs. Without metadata there is no way to express that, so the retriever fetches topically similar but ineligible chunks and the model answers from stale or off-topic text.</p>
+<p>There is also a practical failure that hits every team: <strong>you cannot debug without metadata.</strong> When an answer is wrong you need to know which file, which page, which section, and which version produced the chunk. Without that, you are guessing.</p>
+<p>Metadata exists to answer the questions similarity cannot:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>Field that answers it</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Which document is this from?</td>
+<td><code>source</code>, <code>document_id</code></td>
+</tr>
+<tr class="even">
+<td>Where in the document?</td>
+<td><code>page</code>, <code>section</code>, <code>chunk_index</code></td>
+</tr>
+<tr class="odd">
+<td>Who is allowed to see it?</td>
+<td><code>tenant_id</code>, <code>allowed_roles</code></td>
+</tr>
+<tr class="even">
+<td>Is it current?</td>
+<td><code>date</code>, <code>version</code>, <code>ingested_at</code></td>
+</tr>
+<tr class="odd">
+<td>What kind of content is it?</td>
+<td><code>doc_type</code>, <code>tags</code>, <code>language</code></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Metadata</strong></td>
+<td>Structured fields attached to a chunk, stored beside its vector.</td>
+</tr>
+<tr class="even">
+<td><strong>Field</strong></td>
+<td>One named piece of metadata, such as <code>tenant_id</code> or <code>page</code>.</td>
+</tr>
+<tr class="odd">
+<td><strong>Filter</strong></td>
+<td>A condition that keeps only rows matching it, like <code>tenant_id = 'a'</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>Pre-filter</strong></td>
+<td>Apply the filter first, then search the remaining rows.</td>
+</tr>
+<tr class="odd">
+<td><strong>Post-filter</strong></td>
+<td>Search first, then drop results that fail the filter.</td>
+</tr>
+<tr class="even">
+<td><strong>Selectivity</strong></td>
+<td>How much a filter removes. High selectivity keeps few rows.</td>
+</tr>
+<tr class="odd">
+<td><strong>Cardinality</strong></td>
+<td>How many distinct values a field has. Low cardinality means few values.</td>
+</tr>
+<tr class="even">
+<td><strong>ACL</strong></td>
+<td>Access control list: tags naming who may read a chunk.</td>
+</tr>
+<tr class="odd">
+<td><strong>Tenant</strong></td>
+<td>One customer or organisation sharing infrastructure with others.</td>
+</tr>
+<tr class="even">
+<td><strong>JSONB</strong></td>
+<td>A binary JSON column type in PostgreSQL, queryable and indexable.</td>
+</tr>
+<tr class="odd">
+<td><strong>Payload</strong></td>
+<td>The non-vector fields stored with a vector in a vector database.</td>
+</tr>
+<tr class="even">
+<td><strong>GIN index</strong></td>
+<td>A PostgreSQL index type for arrays and JSONB.</td>
+</tr>
+<tr class="odd">
+<td><strong>Partial index</strong></td>
+<td>An index that covers only rows matching a condition.</td>
+</tr>
+<tr class="even">
+<td><strong>Operator class</strong></td>
+<td>The index configuration for a type and distance, such as <code>vector_cosine_ops</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The two words worth pinning down are <strong>pre-filter and post-filter</strong>, because they look equivalent and are not.</p>
+<ul>
+<li><strong>Pre-filter</strong>: “give me the nearest vectors <em>among rows you are allowed to see</em>.”</li>
+<li><strong>Post-filter</strong>: “give me the nearest vectors, <em>then</em> remove rows you are not allowed to see.”</li>
+</ul>
+<p>Only the first one guarantees safety, and it returns the true top-k among the permitted rows — fewer than k only when fewer than k permitted rows exist.</p>
+<p><strong>Selectivity</strong> matters because it determines which approach is cheap. A filter that keeps 1% of rows is highly selective; a filter that keeps 90% is barely selective. The highly selective case is exactly where pre-filtering matters most.</p>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Think of a <strong>library</strong>. The vector index is a librarian who is brilliant at “find me books similar to this question,” but blind to everything else. The catalogue cards are the metadata: shelf, author, year, and who is allowed to borrow.</p>
+<p>You would never let the librarian hand a restricted book to the wrong person and then try to take it back. You tell the librarian the rules first.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    Q["Query vector + filter&lt;br/&gt;tenant_id, roles, date"] --&gt; P{"Which order?"}
+    P --&gt;|"pre-filter"| A["Keep allowed rows"]
+    A --&gt; B["Search nearest vectors&lt;br/&gt;among allowed rows"]
+    B --&gt; C["Return true top-k&lt;br/&gt;among permitted rows"]
+    P --&gt;|"post-filter"| D["Search nearest vectors&lt;br/&gt;across all rows"]
+    D --&gt; E["Drop rows that fail the filter"]
+    E --&gt; F["Fewer than k results&lt;br/&gt;or a leak if done wrong"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>This table is the whole argument:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Pre-filter</th>
+<th>Post-filter</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Safe by construction</td>
+<td>Yes</td>
+<td>Only if you never expose the raw list</td>
+</tr>
+<tr class="even">
+<td>Returns top-k</td>
+<td>Yes, among permitted</td>
+<td>Often fewer</td>
+</tr>
+<tr class="odd">
+<td>Works when filter is selective</td>
+<td>Yes</td>
+<td>Poorly</td>
+</tr>
+<tr class="even">
+<td>Cost</td>
+<td>Filter runs first, may scan many rows</td>
+<td>Vector search over everything, then a cheap drop</td>
+</tr>
+<tr class="odd">
+<td>Good for</td>
+<td>Tenant and ACL isolation, dates</td>
+<td>Broad, low-selectivity tags</td>
+</tr>
+</tbody>
+</table>
+<p>There is a third option that production systems use: <strong>filter inside the database</strong>. The filter and the vector search run in one SQL query, so the planner can combine an index on the filter column with the vector index. That is the pgvector pattern shown below.</p>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>Decide the schema before ingesting.</strong> Every field you might filter on later must be captured at chunk time. Adding a field later means re-embedding the corpus.</li>
+<li><strong>Extract what is derivable.</strong> Source path, filename, title, type, and date often come free from the file path and contents.</li>
+<li><strong>Extract what requires parsing.</strong> Section and page come from the parser; author and tags may come from document properties or a model.</li>
+<li><strong>Assign what comes from the request.</strong> Tenant and ACL tags are not in the document; the upload context supplies them.</li>
+<li><strong>Normalise the values.</strong> Lowercase tags, use ISO dates (YYYY-MM-DD), and keep tenant IDs as exact strings. Inconsistent casing makes filters silently wrong.</li>
+<li><strong>Store metadata beside the vector.</strong> In pgvector that is a mix of typed columns and a <code>JSONB</code> payload; in a vector database it is the payload object.</li>
+<li><strong>Index the filter columns.</strong> A B-tree for equality, a GIN index for arrays and JSONB, and the vector index for distance. Without a filter index, a selective filter forces a scan.</li>
+<li><strong>Filter in the same query as the search.</strong> This lets the planner use both indexes and keeps permissions out of application code.</li>
+<li><strong>Return metadata with the results</strong> so the answer can cite the source and the system can log it.</li>
+<li><strong>Test with an adversarial case.</strong> Ask a question whose best answer belongs to another tenant and confirm it never appears.</li>
+</ol>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>Extract metadata from a path and a document head.</strong> Most fields are free; only normalisation is work.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hashlib</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datetime <span class="im">import</span> datetime</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> extract_metadata(path: <span class="bu">str</span>, text_head: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    name <span class="op">=</span> path.rsplit(<span class="st">"/"</span>, <span class="dv">1</span>)[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    stem <span class="op">=</span> name.rsplit(<span class="st">"."</span>, <span class="dv">1</span>)[<span class="dv">0</span>]</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    year <span class="op">=</span> re.search(<span class="vs">r"</span><span class="kw">(</span><span class="vs">20</span><span class="dv">\d</span><span class="op">{2}</span><span class="kw">)</span><span class="vs">"</span>, stem)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">"source"</span>: path,</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">"filename"</span>: name,</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">"title"</span>: stem.replace(<span class="st">"-"</span>, <span class="st">" "</span>).replace(<span class="st">"_"</span>, <span class="st">" "</span>).title(),</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">"doc_type"</span>: name.rsplit(<span class="st">"."</span>, <span class="dv">1</span>)[<span class="op">-</span><span class="dv">1</span>].lower(),</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">"year"</span>: <span class="bu">int</span>(year.group(<span class="dv">1</span>)) <span class="cf">if</span> year <span class="cf">else</span> <span class="va">None</span>,</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">"ingested_at"</span>: datetime.now().isoformat(timespec<span class="op">=</span><span class="st">"seconds"</span>),</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">"content_hash"</span>: hashlib.sha256(text_head.encode()).hexdigest()[:<span class="dv">16</span>],</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    }</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>A pgvector schema with typed columns plus JSONB.</strong> Typed columns for the fields you always filter on, JSONB for the rest.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> EXTENSION <span class="cf">IF</span> <span class="kw">NOT</span> <span class="kw">EXISTS</span> vector;</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> chunks (</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">id</span>            bigserial <span class="kw">PRIMARY</span> <span class="kw">KEY</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    document_id   text <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    content       text <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    embedding     vector(<span class="dv">1536</span>),</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    tenant_id     text <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    doc_type      text,</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    doc_date      <span class="dt">date</span>,</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    allowed_roles text[] <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="st">'{}'</span>,</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    metadata      jsonb <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="st">'{}'</span>:<span class="ch">:jsonb</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>The filtered search: filter and vector search in one query.</strong> <code>&amp;&amp;</code> is array overlap: it is true when the two arrays share an element.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span>, content, metadata, embedding <span class="op">&lt;=&gt;</span> <span class="ch">:query_vector</span> <span class="kw">AS</span> distance</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> chunks</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> tenant_id <span class="op">=</span> <span class="ch">:tenant_id</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> allowed_roles &amp;&amp; <span class="ch">:roles</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> (doc_date <span class="kw">IS</span> <span class="kw">NULL</span> <span class="kw">OR</span> doc_date <span class="op">&gt;=</span> <span class="ch">:since</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> distance</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">5</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Index what you filter on, or the filter becomes a scan.</strong> B-tree for equality and range, GIN for arrays and JSONB.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> <span class="kw">ON</span> chunks (tenant_id, doc_date);</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> <span class="kw">ON</span> chunks <span class="kw">USING</span> gin (allowed_roles);</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> <span class="kw">ON</span> chunks <span class="kw">USING</span> gin (metadata jsonb_path_ops);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>The vector index for the distance operator.</strong> HNSW is a graph-based approximate index. The operator class must match the operator you query with.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> <span class="kw">ON</span> chunks <span class="kw">USING</span> hnsw (embedding vector_cosine_ops);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Query inside JSONB</strong> when a field lives in the payload rather than a typed column.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span>, content</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> chunks</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> metadata @<span class="op">&gt;</span> <span class="st">'{"language": "en"}'</span>      <span class="co">-- contains this JSON</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> tenant_id <span class="op">=</span> <span class="ch">:tenant_id</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> embedding <span class="op">&lt;=&gt;</span> <span class="ch">:query_vector</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">5</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Enable iterative scans for filtered approximate search.</strong> Documented pgvector behaviour: with an approximate index, the filter is applied <em>after</em> the index is scanned. At 10% selectivity with the default <code>hnsw.ef_search = 40</code>, only about 4 rows match on average.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SET</span> hnsw.iterative_scan <span class="op">=</span> strict_order;   <span class="co">-- pgvector 0.8.0+</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Filter in Python when the store is not SQL.</strong> Keep permission logic in one place so it cannot drift between queries.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> visible(chunk: <span class="bu">dict</span>, tenant: <span class="bu">str</span>, roles: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    same_tenant <span class="op">=</span> chunk[<span class="st">"tenant_id"</span>] <span class="op">==</span> tenant</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    acl_ok <span class="op">=</span> <span class="bu">bool</span>(<span class="bu">set</span>(chunk[<span class="st">"allowed_roles"</span>]) <span class="op">&amp;</span> <span class="bu">set</span>(roles))   <span class="co"># array overlap</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> same_tenant <span class="kw">and</span> acl_ok</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>A pre-filter helper.</strong> Filter first, then rank the permitted rows. This is the shape you want at the application layer too.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pre_filter(rows, scores, tenant, roles, k):</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    allowed <span class="op">=</span> [i <span class="cf">for</span> i, r <span class="kw">in</span> <span class="bu">enumerate</span>(rows)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>               <span class="cf">if</span> r[<span class="st">"tenant_id"</span>] <span class="op">==</span> tenant <span class="kw">and</span> <span class="bu">set</span>(r[<span class="st">"allowed_roles"</span>]) <span class="op">&amp;</span> <span class="bu">set</span>(roles)]</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    allowed.sort(key<span class="op">=</span><span class="kw">lambda</span> i: <span class="op">-</span>scores[i])</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [rows[i] <span class="cf">for</span> i <span class="kw">in</span> allowed[:k]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — extraction is mostly free.</strong> From a file path you get source, title, type, and year in one pass:</p>
+<pre class="text"><code>extract_metadata("/data/policies/leave-policy-2026.pdf", "Leave policy")
+-&gt;
+{'source': '/data/policies/leave-policy-2026.pdf',
+ 'filename': 'leave-policy-2026.pdf',
+ 'title': 'Leave Policy 2026',
+ 'doc_type': 'pdf',
+ 'year': 2026,
+ 'ingested_at': '2026-09-13T17:49:01',
+ 'content_hash': '6d08e18c96240b12'}</code></pre>
+<p>Date extraction from the filename is a heuristic. Prefer document metadata or a dedicated date field when you have one.</p>
+<p><strong>Example 2 — selectivity, not cardinality, decides how you filter.</strong> A field with few distinct values is low cardinality; a field with many is high cardinality.</p>
+<pre class="text"><code>tenant_id  distinct values = 3     low cardinality, always filter on it
+roles      distinct values = 2     low cardinality, array overlap
+doc_id     distinct values = 12    high cardinality, exact lookup
+public     distinct values = 2     very low cardinality, poor filter</code></pre>
+<p>Cardinality (how many distinct values a field has) is not the same as selectivity (how many rows a condition keeps). A low-cardinality field can be a strong filter when one value covers only a small group, such as a single <code>tenant_id</code>, and a weak one when the condition keeps almost everything. The boolean <code>public</code> flag is the classic low-cardinality, low-selectivity case: very few distinct values, but <code>public = true</code> may still match 11 of 12 rows. What matters for performance is selectivity, not cardinality.</p>
+<p><strong>Example 3 — ACL overlap, including the empty case.</strong> Permission checks are set intersection, and the empty cases are the ones that cause incidents.</p>
+<pre class="text"><code>chunk=[employee]  viewer=[employee, finance] -&gt; visible
+chunk=[hr_admin]  viewer=[employee, finance] -&gt; hidden
+chunk=[]          viewer=[employee]          -&gt; hidden
+chunk=[public]    viewer=[]                  -&gt; hidden</code></pre>
+<p>An empty ACL should mean “nobody,” not “everybody.” Getting that default backwards is a classic data leak.</p>
+<p><strong>Example 4 — the post-filter trap, simulated.</strong> Twelve chunks across three tenants, each with its own leave policy, so similarity alone cannot separate them. Ranked by similarity to a leave question:</p>
+<pre class="text"><code>c-leave-2  tenant_c  employee   0.9994
+a-leave-1  tenant_a  employee   0.9949
+b-leave-1  tenant_b  employee   0.9752
+b-leave-2  tenant_b  employee   0.9572
+a-leave-2  tenant_a  employee   0.9436
+a-hr-1     tenant_a  hr_admin   0.9434
+c-leave-1  tenant_c  employee   0.8548
+...</code></pre>
+<p>Now ask as a <strong>tenant_a employee</strong> for the top 3:</p>
+<pre class="text"><code>post-filter: ['a-leave-1']              -&gt; 1 result (asked for 3)
+pre-filter : ['a-leave-1', 'a-leave-2', 'a-exp-1'] -&gt; 3 results</code></pre>
+<p>Post-filtering returned one result instead of three, because the other two in the global top-3 were filtered away. The system silently delivered a worse answer.</p>
+<p><strong>Example 5 — the same trap, worse for restricted roles.</strong> Ask as a <strong>tenant_a hr_admin</strong>:</p>
+<pre class="text"><code>post-filter: []                          -&gt; 0 results (asked for 3)
+pre-filter : ['a-hr-1']                  -&gt; 1 result</code></pre>
+<p>The global top-3 contained no HR-admin chunks at all, so post-filtering returned nothing. This is why selectivity matters:</p>
+<pre class="text"><code>tenant_a / employee : 3/12 = 25% of rows survive
+tenant_a / hr_admin : 1/12 = 8% of rows survive
+tenant_b / employee : 4/12 = 33% of rows survive</code></pre>
+<p>At 8% selectivity, a top-3 from a shared index rarely contains even one eligible row. Pre-filtering searches only the 8% that are allowed, so it returns as many permitted rows as exist, up to k.</p>
+<p><strong>Example 6 — the same thing in SQL.</strong> The pre-filter version is one query, and the filter columns are indexed:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- pre-filter: the database keeps only permitted rows, then ranks them</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span>, content, embedding <span class="op">&lt;=&gt;</span> <span class="ch">:q</span> <span class="kw">AS</span> distance</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> chunks</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> tenant_id <span class="op">=</span> <span class="st">'tenant_a'</span> <span class="kw">AND</span> allowed_roles &amp;&amp; <span class="dt">ARRAY</span>[<span class="st">'employee'</span>]</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> distance</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">3</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>pgvector’s own guidance: with an approximate index, filtering happens after the index scan, so a 10% filter with the default <code>ef_search</code> of 40 matches only about 4 rows on average. Iterative scans (<code>SET hnsw.iterative_scan = strict_order;</code>) let the engine keep scanning until it has enough. For a fixed set of filter values, a partial index or per-tenant partition is even better.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Pre-filter for anything security-related.</strong> Tenant and ACL filters are not performance optimisations; they are correctness and safety requirements. Never rely on the application to drop forbidden rows after the fact.</li>
+<li><strong>Filter in the database, not in a loop.</strong> Pulling top-100 and filtering in Python wastes bandwidth, can leak, and returns fewer than requested. Do it in one query.</li>
+<li><strong>Index every filter column.</strong> A selective filter without an index forces a sequential scan. Use B-tree for equality and range, GIN for arrays and JSONB.</li>
+<li><strong>Know pgvector’s approximate-index behaviour.</strong> With HNSW, filtering is applied after the index scan. Selective filters under-return unless you enable <code>hnsw.iterative_scan</code> or use a partial index or partition.</li>
+<li><strong>Do not share one approximate index across tenants if you can avoid it.</strong> pgvector documents that vectors from one tenant can affect recall for others. Prefer list partitioning by <code>tenant_id</code> or separate tables.</li>
+<li><strong>Use typed columns for hot filters and JSONB for the long tail.</strong> Equality on a typed <code>tenant_id</code> is faster and safer than a JSONB lookup. Keep flexible, low-traffic fields in JSONB.</li>
+<li><strong>Watch cardinality.</strong> A very low-cardinality field such as a boolean public flag barely filters anything; a very high-cardinality field is a lookup, not a filter. Choose fields that slice the corpus usefully.</li>
+<li><strong>Normalise values at write time.</strong> <code>"HR"</code>, <code>"hr"</code>, and <code>"Hr"</code> become three access groups and one of them will be missing from the filter. Lowercase tags and enforce a controlled vocabulary.</li>
+<li><strong>Default-deny ACLs.</strong> An empty or missing <code>allowed_roles</code> must mean no access. Treat a missing tenant as an error, not a wildcard.</li>
+<li><strong>Store provenance for citations.</strong> <code>source</code>, <code>page</code>, and <code>section</code> are what make “the handbook says X on page 12” possible. Without them, grounding is unverifiable.</li>
+<li><strong>Version metadata with the corpus.</strong> A <code>parser_version</code> or <code>schema_version</code> field lets you find and re-process rows written under old rules.</li>
+<li><strong>Test filters adversarially.</strong> Write a test where the globally most similar chunk belongs to another tenant, and assert it is never returned. That single test catches most isolation regressions.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="why-is-metadata-necessary-in-a-rag-system" class="level3">
+<h3 class="anchored" data-anchor-id="why-is-metadata-necessary-in-a-rag-system">1. Why is metadata necessary in a RAG system?</h3>
+<p><strong>Answer.</strong> Vector similarity knows nothing but distance. Metadata supplies everything else: which document and page a chunk came from, when it was written, what type it is, and who may see it. It enables pre-filtering for permissions and freshness, citations for grounding, and provenance for debugging. Without it, a search cannot respect tenancy or dates, and a wrong answer cannot be traced.</p>
+<p><strong>Follow-up: “Could you put all of that in the text instead?”</strong> You could, but the filter then depends on the model reading and respecting it, which is unreliable and unindexable. Structured fields are queryable, cheap, and enforceable.</p>
+<p><strong>Trap.</strong> Treating metadata as nice-to-have. Permissions and citations are impossible to add reliably after the corpus is indexed.</p>
+</section>
+<section id="what-is-the-difference-between-pre-filtering-and-post-filtering" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-pre-filtering-and-post-filtering">2. What is the difference between pre-filtering and post-filtering?</h3>
+<p><strong>Answer.</strong> Pre-filtering restricts the rows before the vector search, so every returned result is allowed and you get the true top-k among permitted rows (fewer only when fewer permitted rows exist). Post-filtering searches everything and then drops disallowed rows, which can return fewer than k results and is unsafe if the raw list is ever exposed. Pre-filtering is the correct default for tenant and ACL isolation.</p>
+<p><strong>Follow-up: “Why would anyone post-filter?”</strong> When the filter is barely selective, post-filtering can be simpler and the loss is small. It is a performance choice on low-selectivity filters, never a security choice.</p>
+<p><strong>Trap.</strong> Thinking they return the same rows. They return different sets whenever the filter removes anything from the global top-k.</p>
+</section>
+<section id="how-does-pgvector-handle-filtering-with-an-approximate-index" class="level3">
+<h3 class="anchored" data-anchor-id="how-does-pgvector-handle-filtering-with-an-approximate-index">3. How does pgvector handle filtering with an approximate index?</h3>
+<p><strong>Answer.</strong> With HNSW or IVFFlat, the filter is applied after the index scan. That means a selective filter can return fewer rows than the limit, because most of the scanned neighbours were filtered out. pgvector documents that a filter matching 10% of rows with the default <code>hnsw.ef_search = 40</code> yields only about 4 matches on average.</p>
+<p><strong>Follow-up: “What are the fixes?”</strong> Enable iterative index scans (<code>SET hnsw.iterative_scan = strict_order;</code>, pgvector 0.8.0+), create a partial index for the common filter value, or partition by tenant. Also index the filter column so exact search stays fast.</p>
+<p><strong>Trap.</strong> Assuming <code>LIMIT 5</code> always returns five rows. With a filtered approximate index, it may return fewer, and the bug looks like missing data rather than a filter problem.</p>
+</section>
+<section id="how-would-you-store-metadata-in-pgvector" class="level3">
+<h3 class="anchored" data-anchor-id="how-would-you-store-metadata-in-pgvector">4. How would you store metadata in pgvector?</h3>
+<p><strong>Answer.</strong> A mix. Typed columns for the fields you always filter on, such as <code>tenant_id</code>, <code>doc_type</code>, and <code>doc_date</code>, plus a <code>jsonb</code> column for flexible payload fields. Index the typed columns with B-tree, the array ACL with GIN, and the JSONB with GIN. Then filter and search in one SQL statement.</p>
+<p><strong>Follow-up: “Why not put everything in JSONB?”</strong> Typed columns are faster, enforce types, and make queries readable. JSONB is for fields that vary by document type and are not hot filters.</p>
+<p><strong>Trap.</strong> Only indexing the vector column. A filtered query without a filter index degrades to a sequential scan.</p>
+</section>
+<section id="how-do-you-model-tenant-isolation" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-model-tenant-isolation">5. How do you model tenant isolation?</h3>
+<p><strong>Answer.</strong> Every chunk carries a <code>tenant_id</code>, the filter includes it in every query, and the vector index is not blindly shared. Partition by tenant or use separate tables, because a shared approximate index lets one tenant’s vectors affect another tenant’s recall. Default-deny on a missing tenant.</p>
+<p><strong>Follow-up: “What about a shared index for many small tenants?”</strong> It can be acceptable if the filter is applied in the database and recall (the fraction of relevant chunks actually returned) is measured per tenant. Still, test adversarially and monitor recall, because cross-tenant interference is a real effect.</p>
+<p><strong>Trap.</strong> Filtering in the application after retrieval. One missed code path leaks one tenant’s data, and the mistake is invisible in normal tests.</p>
+</section>
+<section id="what-is-selectivity-and-why-does-it-matter" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-selectivity-and-why-does-it-matter">6. What is selectivity, and why does it matter?</h3>
+<p><strong>Answer.</strong> Selectivity is the fraction of rows a filter keeps. A filter that keeps 1% is highly selective; one that keeps 90% barely filters. Highly selective filters are exactly where post-filtering fails, because the global top-k contains almost no eligible rows. They are also where a filter index matters most, since a scan of the whole table is expensive.</p>
+<p><strong>Follow-up: “Give an example of a bad filter.”</strong> A boolean <code>is_public</code> flag that is true for 92% of rows removes almost nothing. It is better used as a stored field for display than as the primary retrieval filter.</p>
+<p><strong>Trap.</strong> Confusing selectivity with cardinality. Cardinality is how many distinct values exist; selectivity is how many rows a particular condition keeps. A high-cardinality field can have a low-selectivity condition.</p>
+</section>
+<section id="how-do-you-handle-access-control-lists-per-chunk" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-handle-access-control-lists-per-chunk">7. How do you handle access control lists per chunk?</h3>
+<p><strong>Answer.</strong> Store the allowed roles or groups as an array on each chunk, and filter with array overlap (<code>allowed_roles &amp;&amp; :viewer_roles</code>) in the same query as the vector search. Index the array with GIN. Empty must mean no access, and missing fields should fail closed.</p>
+<p><strong>Follow-up: “What about group hierarchies?”</strong> Flatten the hierarchy at write time: resolve a role to all its inherited groups when the chunk is indexed. Checking a hierarchy at query time adds latency and a place for bugs.</p>
+<p><strong>Trap.</strong> Comparing a single role string instead of intersecting sets. Real access is many-to-many, and a single string cannot express it.</p>
+</section>
+<section id="how-do-you-keep-metadata-accurate-over-time" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-keep-metadata-accurate-over-time">8. How do you keep metadata accurate over time?</h3>
+<p><strong>Answer.</strong> Treat metadata like content: version it, hash it, and re-index when it changes. Give each document a stable ID, store a schema or parser version, and normalise values on write. When permissions change, update the metadata rows rather than re-embedding, because the text has not changed.</p>
+<p><strong>Follow-up: “What happens when a filter field is renamed?”</strong> Old rows keep the old key and silently disappear from filtered queries. A schema version plus a backfill job is the safe path.</p>
+<p><strong>Trap.</strong> Editing metadata by hand in the database. It drifts from the source of truth and is impossible to reproduce on a rebuild.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li><strong>Similarity is not permission.</strong> Every chunk needs <code>tenant_id</code> and ACL fields, filtered in the same query as the search.</li>
+<li><strong>Pre-filter, never post-filter, for security.</strong> Post-filtering can return fewer than k results and can leak.</li>
+<li><strong>Selectivity decides the approach.</strong> The more selective the filter, the more pre-filtering matters.</li>
+<li><strong>pgvector filters after the approximate index scan</strong>, so enable <code>hnsw.iterative_scan</code>, use partial indexes, or partition by tenant.</li>
+<li><strong>Metadata is what makes citations and debugging possible.</strong> Capture it at chunk time and version it.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="pagination-link" aria-label="Chunking Strategies">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Chunking Strategies</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="pagination-link" aria-label="Embedding Models and Dimensions">
+        <span class="nav-page-text"><span class="chapter-title">Embedding Models and Dimensions</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

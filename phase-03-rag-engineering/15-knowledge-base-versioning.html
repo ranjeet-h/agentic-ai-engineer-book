@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Knowledge-Base Versioning – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" rel="next">
+<link href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html"><span class="chapter-title">Knowledge-Base Versioning</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 3 — RAG Engineering</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Knowledge-Base Versioning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html"><span class="chapter-title">Knowledge-Base Versioning</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Knowledge-Base Versioning</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> Knowledge-base versioning is treating your corpus and indexes as versioned artifacts. Each document and chunk gets a content hash; a manifest records what is indexed with which model and chunker. A change produces a diff, and only added or changed chunks are re-embedded and upserted while removed ones are deleted. Big changes, like an embedding-model upgrade, trigger a full reindex into a new snapshot that you validate and then swap in, so serving stays consistent and you can roll back.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>Your corpus is not static. Policies get edited, prices change, PDFs are replaced, people delete documents, and you eventually upgrade the embedding model. Every one of those events can corrupt a RAG system if you have no plan.</p>
+<p>Here is the failure that wakes people up. A customer deletes their account and asks you to remove their support tickets from the knowledge base. You delete the source files. But the chunks are still in the vector index, with no link back to the source. Search still returns them. That is a compliance incident, not a bug.</p>
+<p>Three more failures are equally common:</p>
+<ul>
+<li><strong>Stale answers.</strong> A policy changed from 5 days to 10. The old chunk is still indexed next to the new one, so retrieval returns both and the model picks one at random.</li>
+<li><strong>Partial reindexes that never finish.</strong> You kick off a full re-embed of 2 million chunks, it dies at 80%, and now the index is half old-model and half new-model. Comparing vectors from two different models is meaningless.</li>
+<li><strong>Serving breaks during the rebuild.</strong> You drop and rebuild the index in place. For twenty minutes, search returns nothing. Users see “I could not find this” for every question.</li>
+</ul>
+<p>Versioning solves all four by making the index a <strong>derived, replaceable artifact</strong> with a clear identity.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A["Source documents"] --&gt; B["Hash + manifest&lt;br/&gt;(doc, chunk, model)"]
+    B --&gt; C["Diff old vs new"]
+    C --&gt; D["Incremental:&lt;br/&gt;upsert changed chunks"]
+    C --&gt; E["Full rebuild:&lt;br/&gt;new snapshot index"]
+    D --&gt; F["Validate"]
+    E --&gt; F
+    F --&gt; G["Swap serving pointer&lt;br/&gt;(blue/green)"]
+    G --&gt; H["Keep old snapshot&lt;br/&gt;for rollback"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The serving pointer is the key idea. Users never see “the index.” They see whatever the pointer currently names.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The one-sentence purpose.</strong> Never mutate the live index in place; build a new version, validate it, and swap a pointer you can swap back.</p>
+</div>
+</div>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Corpus</strong></td>
+<td>All the source documents your system can retrieve from.</td>
+</tr>
+<tr class="even">
+<td><strong>Index</strong></td>
+<td>The searchable store of chunks and their vectors. Built from the corpus.</td>
+</tr>
+<tr class="odd">
+<td><strong>Manifest</strong></td>
+<td>A record of exactly what is indexed: chunk ids, hashes, model, and chunker versions.</td>
+</tr>
+<tr class="even">
+<td><strong>Content hash</strong></td>
+<td>A short fingerprint of a piece of text, such as SHA-256. Different text, different hash.</td>
+</tr>
+<tr class="odd">
+<td><strong>Checksum</strong></td>
+<td>Another word for a hash used to detect change.</td>
+</tr>
+<tr class="even">
+<td><strong>Version</strong></td>
+<td>A label that identifies one consistent state of the index.</td>
+</tr>
+<tr class="odd">
+<td><strong>Reindex</strong></td>
+<td>Rebuilding the index from the corpus.</td>
+</tr>
+<tr class="even">
+<td><strong>Full reindex</strong></td>
+<td>Re-embed and rebuild everything.</td>
+</tr>
+<tr class="odd">
+<td><strong>Incremental reindex</strong></td>
+<td>Update only the chunks that changed.</td>
+</tr>
+<tr class="even">
+<td><strong>Upsert</strong></td>
+<td>Insert if new, update if it already exists.</td>
+</tr>
+<tr class="odd">
+<td><strong>Tombstone</strong></td>
+<td>A marker that says “this id is deleted,” kept so the deletion propagates.</td>
+</tr>
+<tr class="even">
+<td><strong>Soft delete</strong></td>
+<td>Mark as deleted but keep the record, often for audit or undo.</td>
+</tr>
+<tr class="odd">
+<td><strong>Hard delete</strong></td>
+<td>Actually remove the record and its vectors.</td>
+</tr>
+<tr class="even">
+<td><strong>Blue/green</strong></td>
+<td>Keep two indexes; serve one while building the other; swap when ready.</td>
+</tr>
+<tr class="odd">
+<td><strong>Snapshot</strong></td>
+<td>A frozen, read-only copy of an index at a point in time.</td>
+</tr>
+<tr class="even">
+<td><strong>Alias / pointer</strong></td>
+<td>A name, such as <code>kb-live</code>, that points at a specific index version.</td>
+</tr>
+<tr class="odd">
+<td><strong>Embedding model version</strong></td>
+<td>Which model produced the vectors. Vectors from different models are not comparable.</td>
+</tr>
+<tr class="even">
+<td><strong>Chunker version</strong></td>
+<td>Which chunking rules produced the chunks. Changing them changes chunk ids.</td>
+</tr>
+<tr class="odd">
+<td><strong>Idempotent</strong></td>
+<td>Running the same operation twice gives the same result as running it once.</td>
+</tr>
+<tr class="even">
+<td><strong>Backfill</strong></td>
+<td>Recomputing data after a change, for example re-embedding old chunks.</td>
+</tr>
+<tr class="odd">
+<td><strong>Compaction / vacuum</strong></td>
+<td>Cleaning up deleted or tombstoned vectors to reclaim space.</td>
+</tr>
+<tr class="even">
+<td><strong>Audit log</strong></td>
+<td>An append-only record of who changed what, when, and from which version.</td>
+</tr>
+<tr class="odd">
+<td><strong>Rollback</strong></td>
+<td>Pointing serving back at a previous, known-good version.</td>
+</tr>
+<tr class="even">
+<td><strong>Eventual consistency</strong></td>
+<td>A brief window where old and new data both exist after a change.</td>
+</tr>
+</tbody>
+</table>
+<p>Two ideas carry the whole topic:</p>
+<ul>
+<li><strong>Identity is content plus versions.</strong> A chunk is identified by its document, its position, its chunker version, and the embedding model. Change any of them and it is a new chunk.</li>
+<li><strong>The index is disposable.</strong> You should be able to delete it and rebuild it from the corpus plus the manifest. If you cannot, you have hidden state.</li>
+</ul>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Think of a library card catalog. The books are the corpus; the catalog is the index. When a book is updated, the librarian does not secretly rewrite the card while people are reading. They:</p>
+<ol type="1">
+<li>note which books changed,</li>
+<li>write a new catalog (or new cards) in the back room,</li>
+<li>check that the new catalog matches the shelves,</li>
+<li>swap the old catalog for the new one in one motion,</li>
+<li>keep the old catalog for a while in case the new one is wrong.</li>
+</ol>
+<p>Versioning is that process. The two serving strategies are genuinely different deployments:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>In-place update</th>
+<th>Blue/green snapshot</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Serving during rebuild</td>
+<td>Degraded or down</td>
+<td>Unaffected</td>
+</tr>
+<tr class="even">
+<td>Rollback</td>
+<td>Hard, state is mixed</td>
+<td>Point back to green</td>
+</tr>
+<tr class="odd">
+<td>Cost</td>
+<td>Lower storage</td>
+<td>Double storage briefly</td>
+</tr>
+<tr class="even">
+<td>Consistency</td>
+<td>Mixed old and new vectors</td>
+<td>One consistent version</td>
+</tr>
+<tr class="odd">
+<td>Use when</td>
+<td>Tiny incremental change</td>
+<td>Model upgrade, chunker change, large corpus</td>
+</tr>
+<tr class="even">
+<td>Risk</td>
+<td>Half-migrated index</td>
+<td>Swap bugs and stale cache</td>
+</tr>
+</tbody>
+</table>
+<p>Use incremental updates for small, additive changes. Use a new snapshot and a pointer swap for anything that changes the meaning of a vector or the shape of the chunks.</p>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>Give every chunk a stable id.</strong> Include the document id and chunk position, for example <code>returns#0</code>. Add the chunker version (<code>returns#c2#0</code>) if chunking can change.</li>
+<li><strong>Hash the chunk text.</strong> SHA-256 is fast and collision-resistant enough for change detection.</li>
+<li><strong>Store a manifest.</strong> Map chunk id to <code>{doc_id, hash, model_version, chunker_version}</code>. This is the source of truth for what is indexed.</li>
+<li><strong>Compute a diff on every change.</strong> Compare the new manifest with the old: new ids are inserts, changed hashes or versions are updates, missing ids are deletes, the rest are unchanged.</li>
+<li><strong>Re-embed only what changed.</strong> Each embed call costs money and time. Skipping unchanged chunks is the whole point of incremental reindexing.</li>
+<li><strong>Upsert inserts and updates.</strong> Upsert is idempotent, so a retry is safe.</li>
+<li><strong>Delete by tombstone first, then compact.</strong> Vector indexes delete imperfectly, so mark the id deleted, stop returning it immediately, and let compaction remove the vector later.</li>
+<li><strong>Bump model and chunker versions deliberately.</strong> A model upgrade changes every vector, so it is a full reindex. A chunker change changes chunk boundaries, so it is also a full reindex for affected documents.</li>
+<li><strong>Build into a new index or namespace.</strong> Never rebuild over the live one.</li>
+<li><strong>Validate before serving.</strong> Run a golden question set against the new version and compare retrieval metrics and answers with the current one.</li>
+<li><strong>Swap the alias.</strong> Point <code>kb-live</code> at the new version. This is the atomic moment; it should take seconds, not hours.</li>
+<li><strong>Keep the previous version.</strong> Retain it for rollback and delete it after a cooling-off period.</li>
+<li><strong>Log the change.</strong> Record the version, the diff summary, who triggered it, and the validation result in an audit log.</li>
+</ol>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Never mix embedding models in one index.</strong> A vector from <code>embed-v1</code> and a vector from <code>embed-v2</code> live in different spaces. Cosine similarity between them is noise. If you cannot finish a migration, roll back or serve the old index — do not serve a mixture.</p>
+</div>
+</div>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>Hash a chunk’s content.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hashlib</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> h(text):</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> hashlib.sha256(text.encode()).hexdigest()</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(h(<span class="st">"Refunds take five days."</span>) <span class="op">==</span> h(<span class="st">"Refunds take five days."</span>))   <span class="co"># True</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(h(<span class="st">"Refunds take five days."</span>) <span class="op">==</span> h(<span class="st">"Refunds take ten days."</span>))    <span class="co"># False</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The hash changes when the content changes, and only then. That is the basis of every diff.</p>
+<p><strong>Build a manifest with model and chunker versions.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> chunk_doc(doc_id, text, size<span class="op">=</span><span class="dv">20</span>, chunker<span class="op">=</span><span class="st">"c1"</span>):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    words <span class="op">=</span> text.split()</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [{<span class="st">"chunk_id"</span>: <span class="ss">f"</span><span class="sc">{</span>doc_id<span class="sc">}</span><span class="ss">#</span><span class="sc">{</span>chunker<span class="sc">}</span><span class="ss">#</span><span class="sc">{</span>i <span class="op">//</span> size<span class="sc">}</span><span class="ss">"</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>             <span class="st">"text"</span>: <span class="st">" "</span>.join(words[i:i <span class="op">+</span> size])}</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, <span class="bu">len</span>(words), size)]</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_manifest(docs, model<span class="op">=</span><span class="st">"embed-v1"</span>, chunk_size<span class="op">=</span><span class="dv">20</span>, chunker<span class="op">=</span><span class="st">"c1"</span>):</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> {}</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> doc_id, text <span class="kw">in</span> docs.items():</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> c <span class="kw">in</span> chunk_doc(doc_id, text, chunk_size, chunker):</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>            m[c[<span class="st">"chunk_id"</span>]] <span class="op">=</span> {<span class="st">"doc_id"</span>: doc_id, <span class="st">"hash"</span>: h(c[<span class="st">"text"</span>]), <span class="st">"model"</span>: model}</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> m</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The chunk id contains the chunker version, so a chunking change cannot silently reuse an old id. The manifest is the diffable state; store it in your database, not in process memory.</p>
+<p><strong>Compute the incremental plan.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plan_incremental(old, new_docs, model<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    new <span class="op">=</span> build_manifest(new_docs, model<span class="op">=</span>model <span class="kw">or</span> <span class="st">"embed-v1"</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    upserts, deletes, unchanged <span class="op">=</span> [], [], []</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> cid, meta <span class="kw">in</span> new.items():</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        old_meta <span class="op">=</span> old.get(cid)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> old_meta <span class="kw">is</span> <span class="va">None</span> <span class="kw">or</span> old_meta[<span class="st">"hash"</span>] <span class="op">!=</span> meta[<span class="st">"hash"</span>] <span class="kw">or</span> old_meta[<span class="st">"model"</span>] <span class="op">!=</span> meta[<span class="st">"model"</span>]:</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>            upserts.append(cid)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>            unchanged.append(cid)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> cid <span class="kw">in</span> old:</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> cid <span class="kw">not</span> <span class="kw">in</span> new:</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>            deletes.append(cid)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> upserts, deletes, unchanged</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This is the heart of versioning: a pure function from two manifests to a list of actions you can log, test, and retry.</p>
+<p><strong>Apply tombstones.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Index:</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, name, manifest, model):</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.name, <span class="va">self</span>.manifest, <span class="va">self</span>.model <span class="op">=</span> name, <span class="bu">dict</span>(manifest), model</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.tombstones <span class="op">=</span> <span class="bu">set</span>()</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> delete(<span class="va">self</span>, chunk_id):</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.tombstones.add(chunk_id)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> search(<span class="va">self</span>, query):</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> [cid <span class="cf">for</span> cid <span class="kw">in</span> <span class="bu">sorted</span>(<span class="va">self</span>.manifest) <span class="cf">if</span> cid <span class="kw">not</span> <span class="kw">in</span> <span class="va">self</span>.tombstones]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Deletion is visible immediately, and the vector can be physically removed later.</p>
+<p><strong>Swap serving with a pointer.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>active <span class="op">=</span> {<span class="st">"name"</span>: <span class="st">"green"</span>, <span class="st">"index"</span>: green}     <span class="co"># serving green</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>active <span class="op">=</span> {<span class="st">"name"</span>: <span class="st">"blue"</span>, <span class="st">"index"</span>: blue}       <span class="co"># atomic swap</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>active <span class="op">=</span> {<span class="st">"name"</span>: <span class="st">"green"</span>, <span class="st">"index"</span>: green}     <span class="co"># rollback</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>In production the pointer is a database row or a vector-store alias such as <code>kb-live</code>. The swap must be one operation.</p>
+<p><strong>Make the apply step idempotent.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="bu">apply</span>(manifest, upserts, deletes):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> <span class="bu">dict</span>(manifest)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> cid <span class="kw">in</span> upserts:</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        m[cid] <span class="op">=</span> <span class="st">"embedded"</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> cid <span class="kw">in</span> deletes:</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        m.pop(cid, <span class="va">None</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> m</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Replaying the same plan yields the same manifest. That is what makes a crashed job safe to retry.</p>
+<p><strong>Record an audit entry.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>audit <span class="op">=</span> {</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"version"</span>: <span class="st">"kb-2026-09-13-002"</span>,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"previous"</span>: <span class="st">"kb-2026-09-13-001"</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"upserts"</span>: <span class="dv">2</span>, <span class="st">"deletes"</span>: <span class="dv">1</span>, <span class="st">"unchanged"</span>: <span class="dv">1</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"model"</span>: <span class="st">"embed-v1"</span>, <span class="st">"triggered_by"</span>: <span class="st">"policy-sync"</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The audit log answers “what changed, when, and by whom” long after the job has run.</p>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — content hashes and a manifest.</strong> Three documents become three chunks, each with a hash.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>DOCS_V1 <span class="op">=</span> {</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"returns"</span>: <span class="st">"Refunds are processed within five business days to the original payment method."</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"shipping"</span>: <span class="st">"Standard shipping is free for orders over fifty dollars and arrives in three to five days."</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"warranty"</span>: <span class="st">"Electronics carry a twelve month warranty covering manufacturing defects only."</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>m1 <span class="op">=</span> build_manifest(DOCS_V1)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"v1 chunks:"</span>, <span class="bu">sorted</span>(m1))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured output:</p>
+<pre class="text"><code>v1 chunks: ['returns#c1#0', 'shipping#c1#0', 'warranty#c1#0']</code></pre>
+<p>This tiny manifest is enough to detect any future change.</p>
+<p><strong>Example 2 — an incremental plan does the minimum work.</strong> The refund policy was edited, the shipping doc was deleted, and a tracking doc was added. The warranty doc is untouched.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>DOCS_V2 <span class="op">=</span> {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"returns"</span>: <span class="st">"Refunds are processed within ten business days to the original payment method."</span>,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"warranty"</span>: <span class="st">"Electronics carry a twelve month warranty covering manufacturing defects only."</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"tracking"</span>: <span class="st">"Track your order with the tracking number in your confirmation email."</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>upserts, deletes, unchanged <span class="op">=</span> plan_incremental(m1, DOCS_V2)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"incremental upserts:"</span>, upserts)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"incremental deletes:"</span>, deletes)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"incremental unchanged:"</span>, unchanged)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured output:</p>
+<pre class="text"><code>incremental upserts: ['returns#c1#0', 'tracking#c1#0']
+incremental deletes: ['shipping#c1#0']
+incremental unchanged: ['warranty#c1#0']</code></pre>
+<p>Two chunks re-embedded, one deleted, one skipped. Re-embedding cost scales with the number of upserts, so on a large corpus the saving is enormous.</p>
+<p><strong>Example 3 — an embedding-model upgrade forces a full reindex.</strong> The documents did not change, but the model version did, so every chunk must be re-embedded.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>u2, d2, same2 <span class="op">=</span> plan_incremental(m1, DOCS_V1, model<span class="op">=</span><span class="st">"embed-v2"</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"model upgrade upserts:"</span>, u2, <span class="st">"deletes:"</span>, d2, <span class="st">"unchanged:"</span>, same2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured output:</p>
+<pre class="text"><code>model upgrade upserts: ['returns#c1#0', 'shipping#c1#0', 'warranty#c1#0'] deletes: [] unchanged: []</code></pre>
+<p>This is the case for blue/green: a long-running job that must not leave the live index half-migrated. Until the new index is fully built and validated, keep serving the old one.</p>
+<p><strong>Example 4 — tombstones stop deleted content from being served.</strong> The shipping chunk was deleted, but the vector may still exist physically.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>green <span class="op">=</span> Index(<span class="st">"green"</span>, m1, <span class="st">"embed-v1"</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>green.delete(<span class="st">"shipping#c1#0"</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"green serving:"</span>, green.search(<span class="st">"q"</span>))</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"green tombstones:"</span>, <span class="bu">sorted</span>(green.tombstones))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured output:</p>
+<pre class="text"><code>green serving: ['returns#c1#0', 'warranty#c1#0']
+green tombstones: ['shipping#c1#0']</code></pre>
+<p>Deleted content disappears from results immediately. Compaction removes the underlying vector later, which avoids a slow delete inside a hot index.</p>
+<p><strong>Example 5 — swap and roll back.</strong> Build blue from the new corpus, then move the pointer, then move it back.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>blue <span class="op">=</span> Index(<span class="st">"blue"</span>, build_manifest(DOCS_V2), <span class="st">"embed-v1"</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>active <span class="op">=</span> {<span class="st">"name"</span>: <span class="st">"green"</span>, <span class="st">"index"</span>: green}</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"active before swap:"</span>, active[<span class="st">"name"</span>], <span class="st">"-&gt;"</span>, active[<span class="st">"index"</span>].search(<span class="st">"q"</span>))</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>active <span class="op">=</span> {<span class="st">"name"</span>: <span class="st">"blue"</span>, <span class="st">"index"</span>: blue}</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"active after swap :"</span>, active[<span class="st">"name"</span>], <span class="st">"-&gt;"</span>, active[<span class="st">"index"</span>].search(<span class="st">"q"</span>))</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>active <span class="op">=</span> {<span class="st">"name"</span>: <span class="st">"green"</span>, <span class="st">"index"</span>: green}</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"after rollback    :"</span>, active[<span class="st">"name"</span>], <span class="st">"-&gt;"</span>, active[<span class="st">"index"</span>].search(<span class="st">"q"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured output:</p>
+<pre class="text"><code>active before swap: green -&gt; ['returns#c1#0', 'warranty#c1#0']
+active after swap : blue -&gt; ['returns#c1#0', 'tracking#c1#0', 'warranty#c1#0']
+after rollback    : green -&gt; ['returns#c1#0', 'warranty#c1#0']</code></pre>
+<p>The swap is instant and reversible. Rolling back is the same operation in reverse, with no data migration.</p>
+<p><strong>Example 6 — a chunker change alters chunk ids and makes old chunks stale.</strong> Changing chunk size from 20 words to 6 produces different ids. Hashing alone would not catch this; the chunker version does.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>DOC <span class="op">=</span> <span class="st">"Refunds are processed within five business days to the original payment method."</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>old <span class="op">=</span> {c[<span class="st">"chunk_id"</span>] <span class="cf">for</span> c <span class="kw">in</span> chunk_doc(<span class="st">"returns"</span>, DOC, size<span class="op">=</span><span class="dv">20</span>, chunker<span class="op">=</span><span class="st">"c1"</span>)}</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>new <span class="op">=</span> {c[<span class="st">"chunk_id"</span>] <span class="cf">for</span> c <span class="kw">in</span> chunk_doc(<span class="st">"returns"</span>, DOC, size<span class="op">=</span><span class="dv">6</span>, chunker<span class="op">=</span><span class="st">"c2"</span>)}</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"upserts:"</span>, <span class="bu">sorted</span>(new))</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"deletes:"</span>, <span class="bu">sorted</span>(old <span class="op">-</span> new))</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"overlap (stale reused):"</span>, <span class="bu">sorted</span>(old <span class="op">&amp;</span> new))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured output:</p>
+<pre class="text"><code>upserts: ['returns#c2#0', 'returns#c2#1']
+deletes: ['returns#c1#0']
+overlap (stale reused): []</code></pre>
+<p>Because the chunker version is in the id, the old chunks cannot be silently reused. Without it, <code>returns#0</code> would mean one thing before the change and another after — a subtle, dangerous bug. Applying the same plan twice is idempotent:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>m0 <span class="op">=</span> {<span class="st">"returns#c1#0"</span>: <span class="st">"embedded"</span>}</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>once <span class="op">=</span> <span class="bu">apply</span>(m0, <span class="bu">sorted</span>(new), <span class="bu">sorted</span>(old <span class="op">-</span> new))</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>twice <span class="op">=</span> <span class="bu">apply</span>(once, <span class="bu">sorted</span>(new), <span class="bu">sorted</span>(old <span class="op">-</span> new))</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"idempotent:"</span>, once <span class="op">==</span> twice, <span class="st">"| keys:"</span>, <span class="bu">sorted</span>(twice))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured output:</p>
+<pre class="text"><code>idempotent: True | keys: ['returns#c2#0', 'returns#c2#1']</code></pre>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Treat the index as derived, disposable state.</strong> If you cannot rebuild it from the corpus plus the manifest, you have hidden state and cannot recover from corruption.</li>
+<li><strong>Hash chunks, not just documents.</strong> One paragraph edit should not force re-embedding a whole 200-page PDF.</li>
+<li><strong>Put model and chunker versions in the chunk id or manifest.</strong> Without them, a config change silently reuses stale chunks and produces incomparable vectors.</li>
+<li><strong>Never mix embedding models in one index.</strong> Vectors from different models are not comparable. A half-finished migration is worse than a slow one.</li>
+<li><strong>Tombstone deletes, then compact.</strong> Index deletes can be slow or imperfect; a tombstone removes content from results immediately and lets cleanup happen off the hot path.</li>
+<li><strong>Make every apply step idempotent.</strong> Jobs crash. Replaying a plan must not double-insert or corrupt counts.</li>
+<li><strong>Validate before you swap.</strong> Run a golden question set against the new version and compare retrieval and answer metrics. A green build that answers worse is still a failure.</li>
+<li><strong>Swap a pointer, not data.</strong> The atomic part of blue/green is a single alias change. Everything expensive happens before it.</li>
+<li><strong>Keep the last known-good version.</strong> Rollback should be a pointer change, not a rebuild. Delete old versions only after a cooling-off period.</li>
+<li><strong>Handle the deletion-and-readd race.</strong> If a document is deleted and re-added while a job runs, the diff must be computed from a consistent snapshot, or use a version number per document to order operations.</li>
+<li><strong>Expect a short eventual-consistency window.</strong> Search replicas and caches may serve the old index for seconds after the swap. Decide whether that is acceptable and document it.</li>
+<li><strong>Log every version change.</strong> The audit log is what lets you answer “why did the answer change last Tuesday,” and it is what compliance will ask for.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="why-does-a-rag-system-need-knowledge-base-versioning" class="level3">
+<h3 class="anchored" data-anchor-id="why-does-a-rag-system-need-knowledge-base-versioning">1. Why does a RAG system need knowledge-base versioning?</h3>
+<p><strong>Answer.</strong> Because the corpus changes independently of the code. Documents are edited, deleted, added, and re-embedded when the model changes. Without versioning, the index drifts from the corpus: stale chunks stay searchable, deletions never propagate, and a failed migration leaves the index half-updated. Versioning makes the index a labeled, replaceable artifact with a known state and a rollback path.</p>
+<p><strong>Follow-up: “What is the simplest version of it?”</strong> A manifest of chunk ids and content hashes, an incremental diff, and a version label on the index. That alone lets you detect drift and reindex precisely.</p>
+<p><strong>Trap.</strong> Assuming that because the source file changed, the index changed. Nothing propagates unless a job does it.</p>
+</section>
+<section id="how-does-incremental-reindexing-work" class="level3">
+<h3 class="anchored" data-anchor-id="how-does-incremental-reindexing-work">2. How does incremental reindexing work?</h3>
+<p><strong>Answer.</strong> Keep a manifest mapping each chunk id to its content hash and versions. On a change, recompute the manifest, diff it against the old one, and act: new or changed hashes are upserts, missing ids are deletes, and the rest are unchanged. Only upserts are embedded. The diff is a pure function, so it can be logged, tested, and retried.</p>
+<p><strong>Follow-up: “What limits incremental wins?”</strong> Chunk ids must be stable. If the chunker or id scheme changes, almost everything looks new, and you are back to a full reindex.</p>
+<p><strong>Trap.</strong> Hashing whole documents. One small edit then forces a full re-embed of a large document.</p>
+</section>
+<section id="what-is-a-tombstone-and-why-not-just-delete" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-a-tombstone-and-why-not-just-delete">3. What is a tombstone, and why not just delete?</h3>
+<p><strong>Answer.</strong> A tombstone is a marker that an id is deleted. You add it immediately so search never returns the content, then physically remove the vector later during compaction. Vector indexes can make hard deletes slow or leave gaps, and deletes inside a hot index hurt performance. Tombstones also preserve an audit trail.</p>
+<p><strong>Follow-up: “What is the risk of tombstones?”</strong> They accumulate and can waste memory if compaction never runs. Monitor tombstone count and compact on a schedule.</p>
+<p><strong>Trap.</strong> Marking the vector deleted but leaving the text searchable in a keyword index. Every index — dense and sparse — needs the same deletion applied.</p>
+</section>
+<section id="when-is-a-full-reindex-required" class="level3">
+<h3 class="anchored" data-anchor-id="when-is-a-full-reindex-required">4. When is a full reindex required?</h3>
+<p><strong>Answer.</strong> When the meaning or identity of every chunk changes: an embedding-model upgrade, a chunker or chunk-size change, a change to text normalization or metadata schema, or a migration between vector databases. Incremental updates are for content and metadata changes that leave the vectors comparable.</p>
+<p><strong>Follow-up: “How do you avoid downtime during a full reindex?”</strong> Build the new index as a second snapshot, validate it, and swap a serving alias. Keep the old snapshot for rollback.</p>
+<p><strong>Trap.</strong> Converting the index in place. If the job fails halfway, you have mixed models and no clean state.</p>
+</section>
+<section id="explain-bluegreen-deployment-for-indexes." class="level3">
+<h3 class="anchored" data-anchor-id="explain-bluegreen-deployment-for-indexes.">5. Explain blue/green deployment for indexes.</h3>
+<p><strong>Answer.</strong> Keep two indexes. Green is live. Build blue from the new corpus in the background, validate it with a golden set, then point the serving alias at blue. If anything is wrong, point it back at green. The expensive work happens before the swap, so the swap is atomic and fast.</p>
+<p><strong>Follow-up: “What does it cost?”</strong> Double storage during the build and the compute to embed everything again. For large corpora, that is a real budget line, so schedule upgrades deliberately.</p>
+<p><strong>Trap.</strong> Serving traffic to both indexes at once and merging results. That reintroduces model mixing and makes ranking incomparable.</p>
+</section>
+<section id="how-do-you-handle-document-deletion-and-compliance" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-handle-document-deletion-and-compliance">6. How do you handle document deletion and compliance?</h3>
+<p><strong>Answer.</strong> Deletion must propagate to every derived store: dense vectors, sparse index, caches, and any summaries. Tombstone the ids first so they stop being served, record the deletion in the audit log, then hard-delete and compact. Verify by searching for a phrase from the deleted document and confirming zero hits.</p>
+<p><strong>Follow-up: “How do you prove it worked?”</strong> Keep an audit record with timestamps, and run a deletion check as part of the job. Compliance wants evidence, not intent.</p>
+<p><strong>Trap.</strong> Deleting the source file and assuming the index follows. It does not.</p>
+</section>
+<section id="how-do-you-keep-serving-consistent-during-a-large-rebuild" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-keep-serving-consistent-during-a-large-rebuild">7. How do you keep serving consistent during a large rebuild?</h3>
+<p><strong>Answer.</strong> Never rebuild over the live index. Build a separate snapshot, keep serving the current version, and swap an alias when validation passes. Warm the new index’s caches, pre-load it, and swap in one operation. Accept and document a short eventual-consistency window for replicas.</p>
+<p><strong>Follow-up: “What if a document changes during the build?”</strong> Snapshot the corpus at the start of the build, and queue changes that arrive during the build to replay after the swap, or run a small incremental catch-up before swapping.</p>
+<p><strong>Trap.</strong> Forgetting caches. A response cache keyed by query can keep returning old answers after the swap.</p>
+</section>
+<section id="how-does-versioning-give-you-rollback-and-auditability" class="level3">
+<h3 class="anchored" data-anchor-id="how-does-versioning-give-you-rollback-and-auditability">8. How does versioning give you rollback and auditability?</h3>
+<p><strong>Answer.</strong> Every index version is labeled and immutable, and the manifest plus audit log record exactly what went into it. Rollback points serving at the previous version, which still exists. Auditability means you can answer who changed what, when, and which model and chunker produced the current results.</p>
+<p><strong>Follow-up: “How long do you keep old versions?”</strong> Long enough to cover a bad release and a business cycle, then delete to control storage. Keep the audit log longer than the index.</p>
+<p><strong>Trap.</strong> Keeping only the latest version. Then rollback means rebuilding under pressure, exactly when you can least afford it.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li>The index is <strong>derived state</strong>. Corpus plus manifest must be enough to rebuild it.</li>
+<li><strong>Hash chunks and diff manifests</strong> to re-embed only what changed. Idempotent apply steps make retries safe.</li>
+<li><strong>Model and chunker versions are part of a chunk’s identity.</strong> Never mix embedding models in one index.</li>
+<li><strong>Tombstone first, compact later</strong>, and apply deletions to every index and cache.</li>
+<li><strong>Blue/green plus a pointer swap</strong> keeps serving consistent and makes rollback a single reversible operation.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="pagination-link" aria-label="Citations and Grounded Generation">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Citations and Grounded Generation</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="pagination-link" aria-label="RAG Caching and Latency">
+        <span class="nav-page-text"><span class="chapter-title">RAG Caching and Latency</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Document Ingestion and Parsing – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-03-rag-engineering/03-chunking-strategies.html" rel="next">
+<link href="../phase-03-rag-engineering/01-rag-architecture.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html"><span class="chapter-title">Document Ingestion and Parsing</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 3 — RAG Engineering</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Document Ingestion and Parsing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html"><span class="chapter-title">Document Ingestion and Parsing</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Document Ingestion and Parsing</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> Ingestion is the offline pipeline that turns raw files into clean text plus metadata. A PDF is not text, a DOCX is a zip of XML, and an HTML page is mostly navigation and ads. If parsing is wrong, every later stage is wrong, because retrieval can only find text that was actually extracted.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>A RAG system has one rule that survives every design choice: <strong>you cannot retrieve what you never indexed.</strong></p>
+<p>Consider a realistic first attempt. Someone points the pipeline at a folder of PDFs, runs <code>PdfReader(path).pages[i].extract_text()</code> on each page, and stores the result. Then a user asks a question whose answer is on page 40 of a scanned contract. The retrieval returns nothing useful, so the model hallucinates. The team spends a week tuning the embedding model and rewriting the prompt. The real bug was three stages earlier: the PDF had no text layer, and the parser returned an empty string.</p>
+<p>Parsing failures are common and quiet:</p>
+<pre class="text"><code>Source: contract-scan.pdf
+pypdf extraction: ''            # not an error, just empty text
+Indexed chunks:    0
+Answer quality:    the model invents terms from the contract</code></pre>
+<p>Now a different file, where the parse succeeds but the text is quietly damaged:</p>
+<pre class="text"><code>Raw PDF line:      "The vendor shall indem-
+                    nify the client for all claims."
+Naive extraction:  "The vendor shall indem-\nnify the client for all claims."
+Chunk boundary:    "...shall indem-" | "nify the client..."
+Problem:           the word "indemnify" exists in no chunk</code></pre>
+<p>The bytes were extracted. The meaning was destroyed. This is why ingestion is a real engineering stage and not a helper function.</p>
+<p>Ingestion exists to convert a messy, format-specific file into a uniform record:</p>
+<pre class="text"><code>clean text + metadata + a stable identity</code></pre>
+<p>Everything after it — chunking, embedding, retrieval, generation — assumes that record is correct.</p>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Ingestion</strong></td>
+<td>The full offline path from raw file to indexed chunks.</td>
+</tr>
+<tr class="even">
+<td><strong>Parser</strong></td>
+<td>Code that reads a file format and returns text (and sometimes structure).</td>
+</tr>
+<tr class="odd">
+<td><strong>Text layer</strong></td>
+<td>Real, selectable text stored inside a PDF. A scanned PDF has none.</td>
+</tr>
+<tr class="even">
+<td><strong>OCR</strong></td>
+<td>Optical character recognition: guessing text from an image of text.</td>
+</tr>
+<tr class="odd">
+<td><strong>Boilerplate</strong></td>
+<td>Repeated page furniture: navigation, headers, footers, cookie banners.</td>
+</tr>
+<tr class="even">
+<td><strong>Normalisation</strong></td>
+<td>Rewriting text into one consistent form (unicode, whitespace, line breaks).</td>
+</tr>
+<tr class="odd">
+<td><strong>Unicode normalisation</strong></td>
+<td>Two strings that look identical often have different code points. NFKC makes them comparable.</td>
+</tr>
+<tr class="even">
+<td><strong>Hyphenation</strong></td>
+<td>A word split across lines with a hyphen, common in PDFs and newspapers.</td>
+</tr>
+<tr class="odd">
+<td><strong>Deduplication</strong></td>
+<td>Removing identical or near-identical documents and chunks.</td>
+</tr>
+<tr class="even">
+<td><strong>Content hash</strong></td>
+<td>A short fingerprint of a document’s normalised text, used to detect change.</td>
+</tr>
+<tr class="odd">
+<td><strong>Metadata</strong></td>
+<td>Data about the chunk: source, title, section, page, date, tenant, permissions.</td>
+</tr>
+<tr class="even">
+<td><strong>Idempotent</strong></td>
+<td>Running it twice has the same effect as running it once. Ingestion must be idempotent.</td>
+</tr>
+<tr class="odd">
+<td><strong>Incremental update</strong></td>
+<td>Re-indexing only the documents that changed, not the whole corpus.</td>
+</tr>
+<tr class="even">
+<td><strong>Poison document</strong></td>
+<td>A document that breaks the pipeline or pollutes retrieval, such as a huge dump or a template.</td>
+</tr>
+</tbody>
+</table>
+<p>Three words are worth separating now:</p>
+<ul>
+<li><strong>Extraction vs normalisation.</strong> Extraction gets the characters out. Normalisation makes them consistent. A parser can extract perfectly and still leave text that chunks badly.</li>
+<li><strong>Structure vs text.</strong> A DOCX table or a PDF heading is structure. Flattening everything to one string loses it, and structure is often what makes a good chunk.</li>
+<li><strong>Change vs identity.</strong> You need a stable ID per document and a content hash per version, so you know what to update and when.</li>
+</ul>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Think of a <strong>photocopying room</strong> in a library. An operator receives boxes of material: printed books, handwritten notes, web printouts, spreadsheets. For each box, they choose the right machine, copy the pages, straighten the images, remove the library’s own stamps, and file the result under a stable catalogue number. If the operator copies a page upside down, the catalogue is wrong forever.</p>
+<p>Ingestion is that room. The pipeline is a set of format-specific extractors feeding one shared normaliser:</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    A["Raw files&lt;br/&gt;PDF, DOCX, HTML, TXT, MD"] --&gt; B["Detect type"]
+    B --&gt;|PDF| C1["pypdf / pdfplumber"]
+    B --&gt;|DOCX| C2["python-docx"]
+    B --&gt;|HTML| C3["BeautifulSoup / readability"]
+    B --&gt;|TXT / MD| C4["read bytes, decode"]
+    C1 --&gt; D["Text + structure"]
+    C2 --&gt; D
+    C3 --&gt; D
+    C4 --&gt; D
+    D --&gt; E["Normalise&lt;br/&gt;unicode, whitespace, hyphenation, headers"]
+    E --&gt; F["Deduplicate&lt;br/&gt;hash and near-duplicate check"]
+    F --&gt; G["Attach metadata&lt;br/&gt;source, title, page, date, tenant, ACL"]
+    G --&gt; H["Chunk and index"]
+    C1 -.-&gt;|"empty text"| X["Needs OCR"]
+    X --&gt; D
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>Each format has one dominant failure mode. Knowing this table is most of the interview:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Format</th>
+<th>Primary parser</th>
+<th>What usually goes wrong</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>PDF with a text layer</td>
+<td><code>pypdf</code>, <code>pdfplumber</code></td>
+<td>Reading order, hyphenation, columns merged</td>
+</tr>
+<tr class="even">
+<td>Scanned PDF / image</td>
+<td>OCR engine</td>
+<td>Slow, noisy, expensive; needs a detector first</td>
+</tr>
+<tr class="odd">
+<td>DOCX</td>
+<td><code>python-docx</code></td>
+<td>Tables, headers, footers, and text boxes are separate from paragraphs</td>
+</tr>
+<tr class="even">
+<td>HTML</td>
+<td><code>BeautifulSoup</code> + <code>readability</code></td>
+<td>Navigation and ads dominate the text</td>
+</tr>
+<tr class="odd">
+<td>Plain text / Markdown</td>
+<td>bytes + decode</td>
+<td>Wrong encoding, no structure</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>Detect the format.</strong> Never trust the extension alone. Check the magic bytes, the few signature bytes at the start of a file: PDF starts with <code>%PDF</code>, DOCX is a ZIP archive (<code>PK</code>), and HTML usually starts with <code>&lt;</code>. A file named <code>.pdf</code> can be a text file, and a scanned PDF is still a PDF.</li>
+<li><strong>Route to a format-specific extractor.</strong> One function per format, all returning the same <code>Document</code> shape: text, structure hints, and per-page boundaries.</li>
+<li><strong>Detect whether a PDF has a text layer.</strong> Extract page one, strip whitespace, and check if the result is empty. If it is empty, the PDF is almost certainly a scan and needs OCR.</li>
+<li><strong>Extract text page by page.</strong> Keep page numbers as you go, because page is valuable metadata for citations and debugging.</li>
+<li><strong>Preserve structure where it exists.</strong> DOCX headings and tables, HTML headings, and Markdown <code>#</code> levels become metadata that later stages can chunk on.</li>
+<li><strong>Join the pieces carefully.</strong> PDF text arrives in visual lines. Join hyphenated line breaks, join lines that are one paragraph, and keep real paragraph breaks.</li>
+<li><strong>Normalise unicode.</strong> Apply NFKC so that full-width characters, ligatures, and compatibility forms become one canonical form.</li>
+<li><strong>Normalise whitespace.</strong> Collapse runs of spaces, tabs, and newlines; strip leading and trailing space; remove zero-width characters.</li>
+<li><strong>Remove boilerplate.</strong> Detect repeated headers and footers by comparing lines across pages, and strip HTML navigation, scripts, and styles before reading text.</li>
+<li><strong>Deduplicate.</strong> Compute a content hash of the normalised text. Skip exact duplicates; flag near-duplicates for review.</li>
+<li><strong>Attach metadata and a stable ID.</strong> Source path, title, section, page, author, date, tenant, and access-control tags travel with the text.</li>
+<li><strong>Write to the index idempotently.</strong> Upsert by a deterministic chunk ID so that re-running ingestion replaces rows instead of duplicating them.</li>
+<li><strong>Handle failure explicitly.</strong> Log which files failed and why, quarantine poison documents, and never let one bad file abort the whole batch.</li>
+</ol>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>Extract a PDF page by page with pypdf.</strong> <code>extract_text()</code> returns a string per page; keep the page number.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pypdf <span class="im">import</span> PdfReader</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>reader <span class="op">=</span> PdfReader(<span class="st">"report.pdf"</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>pages <span class="op">=</span> [(i, page.extract_text() <span class="kw">or</span> <span class="st">""</span>) <span class="cf">for</span> i, page <span class="kw">in</span> <span class="bu">enumerate</span>(reader.pages)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Extract with pdfplumber when layout matters.</strong> pdfplumber exposes words, tables, and coordinates, which pypdf does not.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pdfplumber</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> pdfplumber.<span class="bu">open</span>(<span class="st">"report.pdf"</span>) <span class="im">as</span> pdf:</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, page <span class="kw">in</span> <span class="bu">enumerate</span>(pdf.pages):</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        text <span class="op">=</span> page.extract_text(layout<span class="op">=</span><span class="va">True</span>)   <span class="co"># keeps columns roughly in place</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        tables <span class="op">=</span> page.extract_tables()           <span class="co"># rows and cells, if rules exist</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Detect a scanned PDF.</strong> Empty text is the signal that you need OCR, not a retry.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> needs_ocr(reader: PdfReader) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    first <span class="op">=</span> reader.pages[<span class="dv">0</span>].extract_text() <span class="kw">or</span> <span class="st">""</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">len</span>(first.strip()) <span class="op">&lt;</span> <span class="dv">20</span>          <span class="co"># a scan extracts almost nothing</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>OCR fallback (needs an external engine).</strong> The Python library only wraps a binary such as <code>tesseract</code>. Render the page to an image, then read it.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pdf2image <span class="im">import</span> convert_from_path</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pytesseract</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ocr_pdf(path: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">str</span>]:</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    images <span class="op">=</span> convert_from_path(path, dpi<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [pytesseract.image_to_string(img) <span class="cf">for</span> img <span class="kw">in</span> images]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>OCR is a last resort: it is slow, costs money if hosted, and introduces character errors.</p>
+<p><strong>Extract DOCX paragraphs, styles, and tables.</strong> <code>python-docx</code> keeps headings and tables as separate objects, so you must walk both.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> docx <span class="im">import</span> Document</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>doc <span class="op">=</span> Document(<span class="st">"handbook.docx"</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> p <span class="kw">in</span> doc.paragraphs:</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(p.style.name, p.text)        <span class="co"># "Heading 1", "Normal", ...</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> table <span class="kw">in</span> doc.tables:</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> row <span class="kw">in</span> table.rows:</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>([cell.text <span class="cf">for</span> cell <span class="kw">in</span> row.cells])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Paragraphs alone are not enough: a table is not a paragraph, and <code>doc.paragraphs</code> never sees it.</p>
+<p><strong>Read HTML and strip boilerplate first.</strong> Removing <code>script</code>, <code>style</code>, <code>nav</code>, <code>header</code>, and <code>footer</code> before reading text removes most junk.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> bs4 <span class="im">import</span> BeautifulSoup</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>soup <span class="op">=</span> BeautifulSoup(html, <span class="st">"html.parser"</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tag <span class="kw">in</span> soup([<span class="st">"script"</span>, <span class="st">"style"</span>, <span class="st">"nav"</span>, <span class="st">"footer"</span>, <span class="st">"header"</span>]):</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    tag.decompose()</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> soup.get_text(<span class="st">" "</span>, strip<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Extract the main article with readability.</strong> When the boilerplate is unpredictable, readability scores blocks and returns the main content region.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> readability <span class="im">import</span> Document <span class="im">as</span> ReadabilityDocument</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> bs4 <span class="im">import</span> BeautifulSoup</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>article <span class="op">=</span> ReadabilityDocument(html)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>main_text <span class="op">=</span> BeautifulSoup(article.summary(), <span class="st">"html.parser"</span>).get_text(<span class="st">" "</span>, strip<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Normalise unicode with NFKC.</strong> This turns full-width letters, ligatures, and compatibility characters into one canonical form.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> unicodedata</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> unicodedata.normalize(<span class="st">"NFKC"</span>, raw_text)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Collapse whitespace and remove zero-width characters.</strong> One regex handles spaces, tabs, and newlines.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> re.sub(<span class="vs">r"</span><span class="pp">[</span><span class="ch">\u00ad\u200b</span><span class="pp">-</span><span class="ch">\u200d\ufeff</span><span class="pp">]</span><span class="vs">"</span>, <span class="st">""</span>, text)   <span class="co"># soft hyphen, zero-width and BOM</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> re.sub(<span class="vs">r"</span><span class="dv">\s</span><span class="op">+</span><span class="vs">"</span>, <span class="st">" "</span>, text).strip()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Repair hyphenated line breaks.</strong> Join a hyphen at the end of a line to the word that follows.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> re.sub(<span class="vs">r"</span><span class="kw">(</span><span class="dv">\w</span><span class="kw">)</span><span class="vs">-</span><span class="ch">\n</span><span class="kw">(</span><span class="dv">\w</span><span class="kw">)</span><span class="vs">"</span>, <span class="vs">r"</span><span class="ch">\1\2</span><span class="vs">"</span>, text)   <span class="co"># "indem-\nnify" -&gt; "indemnify"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This rule cannot tell a soft hyphen from a real one, so it also rejoins legitimately hyphenated compounds that happen to break at a line wrap: <code>"well-\nknown"</code> becomes <code>"wellknown"</code>. Only apply it when the token after the break starts lowercase, or check the result against a dictionary.</p>
+<p><strong>Detect repeated headers and footers.</strong> Count identical short lines across pages; the frequent ones are page furniture, not content.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> Counter</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> strip_repeated_lines(pages: <span class="bu">list</span>[<span class="bu">str</span>], min_pages: <span class="bu">int</span> <span class="op">=</span> <span class="dv">3</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">str</span>]:</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    counts <span class="op">=</span> Counter(line.strip() <span class="cf">for</span> p <span class="kw">in</span> pages <span class="cf">for</span> line <span class="kw">in</span> p.splitlines() <span class="cf">if</span> line.strip())</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    repeated <span class="op">=</span> {line <span class="cf">for</span> line, n <span class="kw">in</span> counts.items() <span class="cf">if</span> n <span class="op">&gt;=</span> min_pages <span class="kw">and</span> <span class="bu">len</span>(line) <span class="op">&lt;</span> <span class="dv">120</span>}</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>.join(l <span class="cf">for</span> l <span class="kw">in</span> p.splitlines() <span class="cf">if</span> l.strip() <span class="kw">not</span> <span class="kw">in</span> repeated) <span class="cf">for</span> p <span class="kw">in</span> pages]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Fingerprint a document for deduplication.</strong> Hash the normalised text, so cosmetic changes do not count as new content.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hashlib</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fingerprint(text: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    normalised <span class="op">=</span> re.sub(<span class="vs">r"</span><span class="dv">\s</span><span class="op">+</span><span class="vs">"</span>, <span class="st">" "</span>, text.lower()).strip()</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> hashlib.sha256(normalised.encode(<span class="st">"utf-8"</span>)).hexdigest()[:<span class="dv">16</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Decide what to do on re-ingestion.</strong> Compare the stored hash with the new one.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> reindex_action(old_hash: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span>, new_hash: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> old_hash <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"insert"</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="st">"skip"</span> <span class="cf">if</span> old_hash <span class="op">==</span> new_hash <span class="cf">else</span> <span class="st">"reindex"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — a PDF with a text layer extracts cleanly.</strong> Build a two-page PDF and read it back. Page boundaries are preserved.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pypdf <span class="im">import</span> PdfReader</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>reader <span class="op">=</span> PdfReader(<span class="st">"report.pdf"</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>(reader.pages))                       <span class="co"># 2</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(reader.pages[<span class="dv">0</span>].extract_text())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre class="text"><code>Quarterly Report 2026
+Revenue grew by 14 percent in the second quarter. The main driver was new enterprise contracts.
+Churn stayed flat at 2.1 percent.</code></pre>
+<p>pdfplumber returns the same text for this simple file, which is why either library is a fine start. The difference appears with columns, tables, and coordinates.</p>
+<p><strong>Example 2 — a scanned PDF extracts as empty.</strong> The same code on an image-only PDF returns nothing. No exception is raised, which is the danger.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>reader <span class="op">=</span> PdfReader(<span class="st">"scan.pdf"</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">repr</span>(reader.pages[<span class="dv">0</span>].extract_text()))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre class="text"><code>''</code></pre>
+<p>This is the single most useful detection signal in ingestion. <code>needs_ocr()</code> exists precisely to catch it, because silence here becomes a hallucination later.</p>
+<p><strong>Example 3 — tables need a table-aware parser.</strong> Build a ruled table, then compare plain text with <code>extract_tables()</code>.</p>
+<pre class="text"><code>extract_text()   -&gt; 'Quarter Revenue\nQ1 1200\nQ2 1370'
+extract_tables() -&gt; [['Quarter', 'Revenue'], ['Q1', '1200'], ['Q2', '1370']]</code></pre>
+<p>The plain text is flattened and loses the column relationship. If you need to answer “what was Q2 revenue?”, the table form is what lets you keep <code>Quarter=Q2</code> with <code>Revenue=1370</code> as metadata.</p>
+<p><strong>Example 4 — HTML boilerplate changes the meaning.</strong> The naive text includes navigation and a cookie-style footer; the cleaned text is the article.</p>
+<pre class="text"><code>naive: 'Pricing Home Pricing Pricing Pro plan The Pro plan costs $49 per seat per month.
+        It includes SSO and audit logs. Copyright 2026 Example Inc. All rights reserved.'
+clean: 'Pricing Pro plan The Pro plan costs $49 per seat per month.
+        It includes SSO and audit logs.'</code></pre>
+<p>If the footer repeats on every page, a naive ingestion adds it to hundreds of chunks, and “Copyright 2026 Example Inc.” starts to look like relevant content. readability isolates the main content region here, but it does not guarantee boilerplate removal — it can still keep footers — and it is more useful when the page structure is messier.</p>
+<p><strong>Example 5 — normalisation in action.</strong> These are real NFKC transformations:</p>
+<pre class="text"><code>'ＡＢＣ'      -&gt; 'ABC'        full-width letters
+'ofﬁce'      -&gt; 'office'      ﬁ ligature
+'Volume Ⅻ'   -&gt; 'Volume XII'  Roman numeral
+'x²'         -&gt; 'x2'          superscript
+'①'          -&gt; '1'           circled digit
+'5 µg'       -&gt; '5 μg'        micro sign to Greek mu
+'a\u202fb'   -&gt; 'a b'         narrow no-break space</code></pre>
+<p>Two important non-changes: NFKC does <strong>not</strong> remove a soft hyphen (<code>co\u00adoperate</code> stays as is), and it does <strong>not</strong> convert curly apostrophes or en dashes. Strip soft hyphens and normalise quotes yourself if your corpus has them.</p>
+<p><strong>Example 6 — a full normalisation pass.</strong> Start with a messy page and end with clean, comparable text.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>messy <span class="op">=</span> <span class="st">"The na</span><span class="ch">\u00ef</span><span class="st">ve caf</span><span class="ch">\u00e9</span><span class="st"> menu </span><span class="ch">\u2013</span><span class="st"> costs </span><span class="ch">\u20ac</span><span class="st">5."</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>unicodedata.normalize(<span class="st">"NFKC"</span>, messy)          <span class="co"># unchanged for this string</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>soft <span class="op">=</span> <span class="st">"pricing</span><span class="ch">\u00a0</span><span class="st">policy</span><span class="ch">\t</span><span class="st">with   odd</span><span class="ch">\n\n</span><span class="st">whitespace"</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>re.sub(<span class="vs">r"</span><span class="dv">\s</span><span class="op">+</span><span class="vs">"</span>, <span class="st">" "</span>, soft).strip()              <span class="co"># 'pricing policy with odd whitespace'</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>hyphen <span class="op">=</span> <span class="st">"This informa-</span><span class="ch">\n</span><span class="st">tion was split across a line break."</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>re.sub(<span class="vs">r"</span><span class="kw">(</span><span class="dv">\w</span><span class="kw">)</span><span class="vs">-</span><span class="ch">\n</span><span class="kw">(</span><span class="dv">\w</span><span class="kw">)</span><span class="vs">"</span>, <span class="vs">r"</span><span class="ch">\1\2</span><span class="vs">"</span>, hyphen)        <span class="co"># 'This information was split across a line break.'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Example 7 — deduplication and incremental updates.</strong> Two cosmetically different strings produce the same fingerprint, and the update rule is a pure function.</p>
+<pre class="text"><code>fingerprint("The Pro plan costs $49 per seat per month.")  -&gt; 5c67ae5661291d49
+fingerprint("the   pro plan costs $49 per seat   per month.\n") -&gt; 5c67ae5661291d49
+duplicates? True
+
+reindex_action(None,  "abc") -&gt; "insert"
+reindex_action("abc", "abc") -&gt; "skip"
+reindex_action("abc", "def") -&gt; "reindex"</code></pre>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Never trust the file extension.</strong> Check magic bytes. A renamed file, a CSV saved as <code>.xls</code>, or a ZIP-based DOCX will all route to the wrong parser and fail in a confusing way.</li>
+<li><strong>Always run the empty-text check on PDFs.</strong> A scan and a text PDF both parse without error. Only the empty result tells you which is which. Log the fraction of empty pages as a pipeline health metric.</li>
+<li><strong>Prefer pdfplumber when layout or tables matter.</strong> pypdf is fast and simple; pdfplumber gives words, coordinates, and tables. Use both: pypdf for a quick pass, pdfplumber where structure is needed.</li>
+<li><strong>Keep page numbers.</strong> They cost nothing at ingest time and are the difference between “this is in the handbook” and “this is on page 12.” Citations and debugging both depend on them.</li>
+<li><strong>Preserve structure as metadata.</strong> A heading level, a section title, and a table row are inputs to chunking. Flattening to one string throws away the best chunk boundaries.</li>
+<li><strong>Treat OCR as a separate, expensive lane.</strong> Detect it, route it, and measure it. Do not let a slow scanned document hold up a batch of clean text files. Watch OCR cost and character error rate.</li>
+<li><strong>Fix hyphenation before chunking.</strong> A hyphenated break inside a chunk boundary destroys the word. This is one of the most common silent quality bugs in PDF pipelines.</li>
+<li><strong>Remove boilerplate globally, not per page.</strong> A footer appears once per page; you can only identify it by comparing pages. Per-page regexes will miss it.</li>
+<li><strong>Hash the normalised text, not the raw bytes.</strong> Raw-byte hashes change on metadata-only differences and cause pointless re-embedding. A normalised content hash catches real changes.</li>
+<li><strong>Make ingestion idempotent with deterministic IDs.</strong> Use <code>document_id:chunk_index</code> or a hash of the chunk text. Re-running a batch must overwrite, not duplicate, or your index slowly fills with copies.</li>
+<li><strong>Quarantine poison documents.</strong> Huge log dumps, spreadsheets with a million rows, and templates full of placeholders can flood the index. Cap document size, cap chunks per document, and review outliers.</li>
+<li><strong>Log extraction quality, not just success.</strong> Record extracted characters per page, empty-page ratio, table count, and OCR usage. “Success” with 0 characters is a failure that reports itself as a success.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="why-is-ingestion-a-critical-stage-in-rag" class="level3">
+<h3 class="anchored" data-anchor-id="why-is-ingestion-a-critical-stage-in-rag">1. Why is ingestion a critical stage in RAG?</h3>
+<p><strong>Answer.</strong> Because retrieval can only find text that was extracted. Parsing errors are permanent: a missing page, a flattened table, or a broken word never reaches the index, so no chunking or embedding fix can recover it. Ingestion also decides the metadata that enables citations, filtering, and permissions.</p>
+<p><strong>Follow-up: “How do you measure it?”</strong> Track extracted characters per page, empty-page ratio, table counts, OCR rate, and chunk counts per document. A sudden drop in characters per page usually points to a parser or format change.</p>
+<p><strong>Trap.</strong> Treating ingestion as plumbing. It is the stage with the highest ratio of silent, permanent damage to code written.</p>
+</section>
+<section id="how-do-you-handle-a-scanned-pdf" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-handle-a-scanned-pdf">2. How do you handle a scanned PDF?</h3>
+<p><strong>Answer.</strong> First detect it: extract text from page one and check whether the result is empty. If it is, route the file to OCR. Render pages at around 300 DPI (dots per inch, which here means image resolution), run an OCR engine such as Tesseract, then normalise the output and treat it as lower-confidence text. Keep the original PDF path as the source and record that OCR was used.</p>
+<p><strong>Follow-up: “What are the trade-offs?”</strong> OCR is slow and costly, introduces character errors, and struggles with tables and handwriting. Prefer a native text layer whenever one exists, and only OCR the pages that need it.</p>
+<p><strong>Trap.</strong> Assuming <code>extract_text()</code> raising means failure. It usually returns an empty string instead, so a pipeline that only catches exceptions indexes empty documents.</p>
+</section>
+<section id="what-is-the-difference-between-pypdf-and-pdfplumber" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-pypdf-and-pdfplumber">3. What is the difference between pypdf and pdfplumber?</h3>
+<p><strong>Answer.</strong> pypdf is a general PDF library with fast, simple text extraction. pdfplumber exposes the layout: words with coordinates, lines, rectangles, and table extraction. Use pypdf for a quick text pass and pdfplumber when you need tables, columns, or layout-aware reading order.</p>
+<p><strong>Follow-up: “Why does reading order matter?”</strong> PDFs store placed glyphs, not paragraphs. Two-column pages can interleave lines from different columns, so the extracted text mixes unrelated sentences. A layout-aware parser reconstructs columns better.</p>
+<p><strong>Trap.</strong> Believing text extraction is exact. Both libraries guess from glyph positions; neither is a perfect conversion of a visual page to a linear document.</p>
+</section>
+<section id="how-do-you-parse-docx-correctly" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-parse-docx-correctly">4. How do you parse DOCX correctly?</h3>
+<p><strong>Answer.</strong> Use <code>python-docx</code>. Walk <code>document.paragraphs</code> for text and <code>paragraph.style.name</code> for headings, and walk <code>document.tables</code> separately, because tables are not paragraphs. Also check section headers and footers, and remember that text boxes and images are not included.</p>
+<p><strong>Follow-up: “Why not run it through a PDF converter?”</strong> You lose the structure that makes DOCX useful. Keeping headings and tables as metadata gives chunking natural boundaries and lets a table stay intact.</p>
+<p><strong>Trap.</strong> Reading only <code>doc.paragraphs</code>. Any content in a table or a header silently disappears.</p>
+</section>
+<section id="what-normalisation-does-a-text-corpus-need" class="level3">
+<h3 class="anchored" data-anchor-id="what-normalisation-does-a-text-corpus-need">5. What normalisation does a text corpus need?</h3>
+<p><strong>Answer.</strong> Four kinds. Unicode normalisation (NFKC) so visually identical text compares equal. Whitespace normalisation so line-wrapping differences disappear. Hyphenation repair so words split across lines are rejoined. Boilerplate removal so repeated headers, footers, and navigation do not pollute chunks.</p>
+<p><strong>Follow-up: “What does NFKC not fix?”</strong> It does not remove soft hyphens, does not convert curly quotes or en dashes, and does not fix OCR errors. Those need explicit handling or a spell-check pass.</p>
+<p><strong>Trap.</strong> Over-normalising. Lowercasing everything, stripping all punctuation, or removing all newlines destroys identifiers, code, and sentence boundaries that retrieval depends on.</p>
+</section>
+<section id="how-do-you-keep-ingestion-incremental" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-keep-ingestion-incremental">6. How do you keep ingestion incremental?</h3>
+<p><strong>Answer.</strong> Give each document a stable ID and store a content hash of its normalised text. On the next run, compare hashes: if the hash is unchanged, skip; if it changed, delete and re-index that document’s chunks; if the document is new, insert. That turns a full rebuild into work proportional to what changed.</p>
+<p><strong>Follow-up: “What if only the metadata changed?”</strong> Metadata-only changes still require an update, but not re-embedding, because the text is unchanged. Separate the text hash from the metadata version so you can update one without the other.</p>
+<p><strong>Trap.</strong> Hashing raw bytes. A file re-saved with a new timestamp looks changed and triggers a full re-embed for no reason.</p>
+</section>
+<section id="how-do-you-handle-tables-in-a-document" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-handle-tables-in-a-document">7. How do you handle tables in a document?</h3>
+<p><strong>Answer.</strong> Detect them with a table-aware parser (<code>pdfplumber.extract_tables()</code> for PDFs, <code>document.tables</code> for DOCX), then convert each row to a self-contained text record. Repeat the header in every row, or serialise the row as key-value pairs, so a chunk never loses the column meaning.</p>
+<p><strong>Follow-up: “Why not keep the table as an image?”</strong> Some systems summarise tables with a model at ingest time. That is useful for complex tables but adds cost and a model dependency. The safer default is text serialisation with repeated headers.</p>
+<p><strong>Trap.</strong> Flattening a table to plain text. <code>Q1 1200</code> loses which number is the quarter and which is the revenue, and retrieval cannot recover the pairing.</p>
+</section>
+<section id="how-do-you-handle-a-document-that-fails-to-parse" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-handle-a-document-that-fails-to-parse">8. How do you handle a document that fails to parse?</h3>
+<p><strong>Answer.</strong> Catch the error per document, log the file, format, and reason, and quarantine the file instead of aborting the batch. Emit a metric so someone notices. Never index partial garbage silently: a half-parsed document is worse than a missing one because it looks valid.</p>
+<p><strong>Follow-up: “What do you do about a file that is huge?”</strong> Cap document size and chunks per document, and route oversized files for review. A million-row CSV or a log dump can dominate the index and drown out real content.</p>
+<p><strong>Trap.</strong> Retrying a parse failure blindly. A malformed file usually stays malformed; retries burn budget and hide the real signal.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li><strong>You cannot retrieve what you never extracted.</strong> Parsing quality is a permanent ceiling on RAG quality.</li>
+<li><strong>PDFs are text <em>or</em> images.</strong> Empty extraction means a scan, and a scan needs OCR detection and routing.</li>
+<li><strong>DOCX needs paragraphs <em>and</em> tables</strong>, and HTML needs boilerplate removal before text extraction.</li>
+<li><strong>Normalise before you hash or chunk:</strong> NFKC, whitespace, hyphenation, and repeated headers.</li>
+<li><strong>Idempotent ingestion:</strong> stable IDs, normalised content hashes, and skip/reindex decisions.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="pagination-link" aria-label="RAG Architecture">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">RAG Architecture</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="pagination-link" aria-label="Chunking Strategies">
+        <span class="nav-page-text"><span class="chapter-title">Chunking Strategies</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>RAG Architecture – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" rel="next">
+<link href="../phase-03-rag-engineering/index.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/01-rag-architecture.html"><span class="chapter-title">RAG Architecture</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 3 — RAG Engineering</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">RAG Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/01-rag-architecture.html"><span class="chapter-title">RAG Architecture</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">RAG Architecture</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> Retrieval-augmented generation (RAG) is a pattern that gives a language model knowledge it was never trained on. You retrieve the most relevant text from your own corpus and place it in the prompt, so the model answers from the text in front of it instead of from its parameters. The model is rarely the weak link; retrieval is.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>A language model has three hard limits, and they are all about knowledge, not intelligence.</p>
+<ol type="1">
+<li><strong>It does not know your private data.</strong> It was trained on public text. Your contracts, tickets, handbooks, and code were never in that text.</li>
+<li><strong>It is frozen at its training cutoff.</strong> Anything that changed after training is invisible to it.</li>
+<li><strong>It will still answer.</strong> When a model does not know, it often produces a fluent, confident, wrong answer. That is a <strong>hallucination</strong>.</li>
+</ol>
+<p>Here is the failure in one example:</p>
+<pre class="text"><code>Employee:  How many days of annual leave do I get?
+Model:     You get 25 days per year.
+Truth:     The handbook says 20 days. The model invented 25.</code></pre>
+<p>The model did not lie on purpose. It has no access to the handbook, so it produced the most plausible-sounding number. Prompting it to “be accurate” does not give it the handbook.</p>
+<p>There are three common reactions, and two of them are traps:</p>
+<ul>
+<li><strong>Fine-tune the model on the handbook.</strong> Possible, but slow and expensive. The facts go stale the moment the handbook changes, and fine-tuning teaches style and format far better than it teaches recall of specific facts.</li>
+<li><strong>Paste the whole handbook into the prompt.</strong> Works for one small document. Breaks as the corpus grows: 200 pages is already about 130,000 tokens, which does not fit in many context windows, and you pay for every token on every question.</li>
+<li><strong>Retrieve only the relevant passage and paste that.</strong> This is RAG. It is cheap, fresh, and selective, and it does not change the model at all.</li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The one-sentence purpose.</strong> RAG moves a fact from your corpus into the model’s context at question time, so the model reasons over text instead of guessing.</p>
+</div>
+</div>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<p>Assume you have never built a search system. Here are the words this page keeps using.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>LLM</strong></td>
+<td>Large language model. A model that predicts the next token, used here to write the answer.</td>
+</tr>
+<tr class="even">
+<td><strong>Token</strong></td>
+<td>A small piece of text, roughly ¾ of an English word. Models read and bill in tokens.</td>
+</tr>
+<tr class="odd">
+<td><strong>Context window</strong></td>
+<td>The maximum number of tokens a model can read at once: prompt plus answer.</td>
+</tr>
+<tr class="even">
+<td><strong>Prompt</strong></td>
+<td>The text you send to the model.</td>
+</tr>
+<tr class="odd">
+<td><strong>Corpus</strong></td>
+<td>Your whole collection of documents.</td>
+</tr>
+<tr class="even">
+<td><strong>Retrieval</strong></td>
+<td>Finding the most relevant pieces of the corpus for a question.</td>
+</tr>
+<tr class="odd">
+<td><strong>Embedding</strong></td>
+<td>A list of numbers that represents the meaning of text, so similar text has similar numbers.</td>
+</tr>
+<tr class="even">
+<td><strong>Vector</strong></td>
+<td>A list of numbers. An embedding is a vector.</td>
+</tr>
+<tr class="odd">
+<td><strong>Chunk</strong></td>
+<td>A small piece of a document, short enough to embed and to fit in a prompt.</td>
+</tr>
+<tr class="even">
+<td><strong>Index</strong></td>
+<td>A data structure that makes “find the nearest vectors” fast.</td>
+</tr>
+<tr class="odd">
+<td><strong>Vector database</strong></td>
+<td>A database that stores vectors and answers nearest-neighbour queries, such as pgvector.</td>
+</tr>
+<tr class="even">
+<td><strong>Ingestion</strong></td>
+<td>Reading raw files, extracting text, cleaning it, and cutting it into chunks.</td>
+</tr>
+<tr class="odd">
+<td><strong>Top-k</strong></td>
+<td>The k best results returned by a search. “k” is just a count.</td>
+</tr>
+<tr class="even">
+<td><strong>Reranker</strong></td>
+<td>A slower, more accurate model that re-sorts the top results from a first search.</td>
+</tr>
+<tr class="odd">
+<td><strong>Grounding</strong></td>
+<td>Forcing the answer to be based on supplied text, usually with citations.</td>
+</tr>
+<tr class="even">
+<td><strong>Hallucination</strong></td>
+<td>Text that sounds true but is not supported by any source.</td>
+</tr>
+<tr class="odd">
+<td><strong>Offline indexing</strong></td>
+<td>All the work done before a user asks anything: parse, chunk, embed, store.</td>
+</tr>
+<tr class="even">
+<td><strong>Online serving</strong></td>
+<td>All the work done per user question: retrieve, rerank, generate.</td>
+</tr>
+<tr class="odd">
+<td><strong>ANN</strong></td>
+<td>Approximate nearest neighbour. A fast search that usually, not always, finds the true nearest vectors.</td>
+</tr>
+<tr class="even">
+<td><strong>Recall@k</strong></td>
+<td>Of the truly relevant chunks, the fraction that appear in the top k results.</td>
+</tr>
+</tbody>
+</table>
+<p>Two of these words carry most of the topic, so pin them down now:</p>
+<ul>
+<li><strong>Offline vs online</strong> is about <em>when</em> work happens. Offline happens once per document; online happens once per question.</li>
+<li><strong>Retrieve vs generate</strong> is about <em>who</em> provides the knowledge. Retrieval supplies facts; generation supplies language and reasoning.</li>
+</ul>
+<p>Most RAG bugs are in one of those two splits, and the first debugging question is always: <strong>is this an indexing problem or a serving problem?</strong></p>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Think of an <strong>open-book exam</strong>. A closed-book exam tests memory. An open-book exam tests reasoning: the student may look up the right page, then must read it and answer. An LLM is a brilliant student with no memory of your specific book, so RAG simply lets it open the book.</p>
+<p>The mental model is a librarian with a perfect index:</p>
+<ol type="1">
+<li>Before opening, the librarian files every page by topic (<strong>offline indexing</strong>).</li>
+<li>A visitor asks a question (<strong>the query</strong>).</li>
+<li>The librarian finds the few most relevant pages (<strong>retrieval</strong>).</li>
+<li>The visitor reads those pages and answers (<strong>generation</strong>).</li>
+</ol>
+<p>If the librarian brings the wrong pages, even a perfect reader gives a wrong answer. That is why retrieval quality decides most of RAG’s quality.</p>
+<p>The full pipeline, with the offline/online boundary drawn in the middle:</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    subgraph OFFLINE["Offline indexing (once per document)"]
+        A["Documents&lt;br/&gt;PDF, DOCX, HTML"] --&gt; B["Parse and clean text"]
+        B --&gt; C["Chunk"]
+        C --&gt; D["Embed each chunk"]
+        D --&gt; E["Store vectors&lt;br/&gt;+ metadata + text"]
+    end
+    subgraph ONLINE["Online serving (once per question)"]
+        Q["User question"] --&gt; F["Embed the question"]
+        F --&gt; G["Retrieve top-k&lt;br/&gt;vector search + filters"]
+        E --&gt; G
+        G --&gt; H["Rerank"]
+        H --&gt; I["Assemble prompt&lt;br/&gt;chunks + question"]
+        I --&gt; J["Generate grounded answer&lt;br/&gt;with citations"]
+    end
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>A first RAG system is called <strong>naive RAG</strong>: embed, search, paste the top-k, generate. It works surprisingly well on small clean corpora and fails in predictable ways at scale. <strong>Advanced RAG</strong> adds a stage wherever naive RAG fails.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Stage</th>
+<th>Naive RAG</th>
+<th>Advanced RAG</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Ingest</td>
+<td>Dump raw text</td>
+<td>Parse by format, OCR scans, normalise</td>
+</tr>
+<tr class="even">
+<td>Chunk</td>
+<td>Fixed size</td>
+<td>Structure-aware, recursive, parent-child</td>
+</tr>
+<tr class="odd">
+<td>Embed</td>
+<td>One general model</td>
+<td>Domain-tuned model, multiple representations</td>
+</tr>
+<tr class="even">
+<td>Index</td>
+<td>One flat vector list</td>
+<td>ANN index plus keyword index, filters</td>
+</tr>
+<tr class="odd">
+<td>Retrieve</td>
+<td>Top-k by cosine</td>
+<td>Hybrid dense + sparse, metadata filters, query rewriting</td>
+</tr>
+<tr class="even">
+<td>Rank</td>
+<td>Trust the vector score</td>
+<td>Cross-encoder reranker, diversity, dedup</td>
+</tr>
+<tr class="odd">
+<td>Context</td>
+<td>Paste everything</td>
+<td>Compress, select, order, budget tokens</td>
+</tr>
+<tr class="even">
+<td>Generate</td>
+<td>“Answer the question”</td>
+<td>Grounded prompt, citations, refuse when unsupported</td>
+</tr>
+<tr class="odd">
+<td>Measure</td>
+<td>None</td>
+<td>Recall@k, MRR, NDCG (ranking metrics), faithfulness (answer supported by context)</td>
+</tr>
+</tbody>
+</table>
+<p>Now the comparison everyone asks about in interviews. RAG, fine-tuning, and long context solve different problems:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>RAG</th>
+<th>Fine-tuning</th>
+<th>Long context</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>What it changes</td>
+<td>The prompt (context)</td>
+<td>The model’s weights</td>
+<td>The prompt (context)</td>
+</tr>
+<tr class="even">
+<td>Best for</td>
+<td>Facts that change, private data</td>
+<td>Style, format, narrow skills</td>
+<td>A few large documents at once</td>
+</tr>
+<tr class="odd">
+<td>Freshness</td>
+<td>Minutes (re-index)</td>
+<td>Days (retrain)</td>
+<td>Minutes (re-read)</td>
+</tr>
+<tr class="even">
+<td>Cost per query</td>
+<td>Low: only retrieved tokens</td>
+<td>Low after training, high to train</td>
+<td>High: every token every query</td>
+</tr>
+<tr class="odd">
+<td>Cost to update</td>
+<td>Re-embed the changed docs</td>
+<td>Retrain the model</td>
+<td>Nothing</td>
+</tr>
+<tr class="even">
+<td>Handles 200-page corpus</td>
+<td>Yes, selectively</td>
+<td>Yes, but stale</td>
+<td>Only if it fits, and you pay for all of it</td>
+</tr>
+<tr class="odd">
+<td>Main risk</td>
+<td>Retrieval misses the answer</td>
+<td>Forgetting, overfitting, staleness</td>
+<td>Cost, latency, “lost in the middle”</td>
+</tr>
+</tbody>
+</table>
+<p>They combine. A common production answer is: fine-tune for format and tone, retrieve for facts, and use a long context only when a task genuinely needs several full documents at once.</p>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<p><strong>Offline indexing</strong></p>
+<ol type="1">
+<li><strong>Collect documents.</strong> Point the pipeline at a folder, a bucket, a wiki, or a database.</li>
+<li><strong>Parse each document into text.</strong> PDFs may have a text layer or be scans; DOCX and HTML need their own parsers. This stage is covered in the next page.</li>
+<li><strong>Normalise the text.</strong> Fix unicode, collapse whitespace, drop repeated headers and footers, join hyphenated line breaks.</li>
+<li><strong>Chunk the text.</strong> Split into pieces of a target size with some overlap, preferably on natural boundaries. This is covered in the chunking page.</li>
+<li><strong>Attach metadata to each chunk.</strong> Source file, title, section, page, date, tenant, and access-control tags. This is covered in the metadata page.</li>
+<li><strong>Embed each chunk.</strong> Run every chunk through an embedding model to get one vector.</li>
+<li><strong>Store vectors, text, and metadata.</strong> A vector database holds the vector; the row also holds the chunk text and its metadata so retrieval can return them.</li>
+<li><strong>Build an index.</strong> An ANN index (for example HNSW, a graph-based index that links nearby vectors) makes nearest-neighbour search fast without comparing to every vector.</li>
+</ol>
+<p><strong>Online serving</strong></p>
+<ol start="9" type="1">
+<li><strong>Embed the question</strong> with the <em>same</em> embedding model used for the chunks.</li>
+<li><strong>Retrieve the top-k.</strong> Ask the index for the nearest chunk vectors, after applying metadata filters.</li>
+<li><strong>Rerank.</strong> A cross-encoder reads the question and each candidate together and re-sorts them. It is accurate but too slow to run over the whole corpus, so it only touches the short candidate list.</li>
+<li><strong>Assemble the prompt.</strong> Put the best chunks and the question into a template, with a token budget.</li>
+<li><strong>Generate a grounded answer.</strong> The model answers from the supplied text and cites the sources. If the text does not support an answer, the system should say so.</li>
+</ol>
+<p>Every stage has a characteristic failure. Learn this table; it is the fastest way to debug:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Stage</th>
+<th>Typical failure</th>
+<th>Symptom</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Parse</td>
+<td>OCR errors, lost tables, boilerplate kept</td>
+<td>Correct answer is not in the corpus at all</td>
+</tr>
+<tr class="even">
+<td>Chunk</td>
+<td>Cut through the sentence that held the answer</td>
+<td>Retrieved chunk is close but incomplete</td>
+</tr>
+<tr class="odd">
+<td>Embed</td>
+<td>Wrong model, or query and docs differ</td>
+<td>Neighbours are topical but not useful</td>
+</tr>
+<tr class="even">
+<td>Index</td>
+<td>Approximate search misses a true neighbour</td>
+<td>The right chunk exists but is never returned</td>
+</tr>
+<tr class="odd">
+<td>Retrieve</td>
+<td>Top-k too small, no keyword search, filters wrong</td>
+<td>An easy answer is missed</td>
+</tr>
+<tr class="even">
+<td>Rerank</td>
+<td>Reranker unfiltered and too slow</td>
+<td>Latency spikes, or good results get demoted</td>
+</tr>
+<tr class="odd">
+<td>Assemble</td>
+<td>Answer chunk placed in the middle of a long prompt</td>
+<td>“Lost in the middle”: the model ignores it</td>
+</tr>
+<tr class="even">
+<td>Generate</td>
+<td>Prompt invites outside knowledge</td>
+<td>Fluent answer that cites nothing</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p>The pieces below are the shapes you will see in real code. They are framework-neutral: the same steps appear in every RAG library.</p>
+<p><strong>A configuration object.</strong> Everything that affects retrieval is a decision you should name in one place.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dataclasses <span class="im">import</span> dataclass</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> RagConfig:</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    chunk_size: <span class="bu">int</span> <span class="op">=</span> <span class="dv">512</span>        <span class="co"># tokens per chunk</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    chunk_overlap: <span class="bu">int</span> <span class="op">=</span> <span class="dv">64</span>      <span class="co"># tokens shared by neighbours</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    top_k: <span class="bu">int</span> <span class="op">=</span> <span class="dv">20</span>              <span class="co"># candidates from vector search</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    rerank_top_n: <span class="bu">int</span> <span class="op">=</span> <span class="dv">5</span>        <span class="co"># chunks kept after reranking</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    embedding_model: <span class="bu">str</span> <span class="op">=</span> <span class="st">"text-embedding-3-small"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Keeping these in one object means you can change retrieval quality without hunting through the code.</p>
+<p><strong>The indexing loop.</strong> This is the whole offline half in five lines. It is idempotent because storing by a deterministic chunk id overwrites instead of duplicating.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> index_document(doc: <span class="bu">dict</span>, store, embedder, config: RagConfig) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, chunk <span class="kw">in</span> <span class="bu">enumerate</span>(chunk_text(doc[<span class="st">"text"</span>], config)):</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        record <span class="op">=</span> {</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>            <span class="st">"id"</span>: <span class="ss">f'</span><span class="sc">{</span>doc[<span class="st">"id"</span>]<span class="sc">}</span><span class="ss">:</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">'</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">"text"</span>: chunk,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>            <span class="st">"vector"</span>: embedder.embed(chunk),</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>            <span class="st">"metadata"</span>: {<span class="op">**</span>doc[<span class="st">"metadata"</span>], <span class="st">"chunk_index"</span>: i},</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        store.upsert(record)          <span class="co"># replace by id, so re-runs are safe</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>The query path.</strong> Retrieval, rerank, and prompt assembly are separate functions so you can measure each one.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> answer(question: <span class="bu">str</span>, store, embedder, reranker, llm, config: RagConfig) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    q <span class="op">=</span> embedder.embed(question)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    candidates <span class="op">=</span> store.search(q, top_k<span class="op">=</span>config.top_k)          <span class="co"># first stage</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    best <span class="op">=</span> reranker.rerank(question, candidates)[:config.rerank_top_n]</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    prompt <span class="op">=</span> build_prompt(question, best)                      <span class="co"># includes sources</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> llm.generate(prompt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>A vector search in SQL.</strong> <code>&lt;=&gt;</code> is pgvector’s cosine-distance operator; smaller distance means more similar.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span>, text, metadata, embedding <span class="op">&lt;=&gt;</span> <span class="ch">:query_vector</span> <span class="kw">AS</span> distance</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> chunks</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> distance</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">20</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Metadata filters in the same query.</strong> Never retrieve chunks the caller is not allowed to see.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span>, text, metadata, embedding <span class="op">&lt;=&gt;</span> <span class="ch">:query_vector</span> <span class="kw">AS</span> distance</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> chunks</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> tenant_id <span class="op">=</span> <span class="ch">:tenant</span> <span class="kw">AND</span> allowed_roles &amp;&amp; <span class="ch">:roles</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> distance</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">20</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>A grounded prompt with citations.</strong> Numbering the sources is what makes citations possible.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>PROMPT <span class="op">=</span> <span class="st">"""Answer the question using only the sources below.</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="st">If the sources do not contain the answer, say you do not know.</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="st">Cite each claim as [1], [2], and so on.</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="st">Sources:</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="sc">{context}</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="st">Question: </span><span class="sc">{question}</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_prompt(question, chunks):</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    context <span class="op">=</span> <span class="st">"</span><span class="ch">\n\n</span><span class="st">"</span>.join(<span class="ss">f"[</span><span class="sc">{</span>i<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">] </span><span class="sc">{</span>c<span class="sc">.</span>text<span class="sc">}</span><span class="ss">"</span> <span class="cf">for</span> i, c <span class="kw">in</span> <span class="bu">enumerate</span>(chunks))</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> PROMPT.<span class="bu">format</span>(context<span class="op">=</span>context, question<span class="op">=</span>question)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>A retrieval metric you can run offline.</strong> Recall@k answers “did we even fetch the right chunk?”</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> recall_at_k(retrieved_ids: <span class="bu">list</span>[<span class="bu">str</span>], relevant_ids: <span class="bu">set</span>[<span class="bu">str</span>], k: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> relevant_ids:</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fl">1.0</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    hits <span class="op">=</span> <span class="bu">set</span>(retrieved_ids[:k]) <span class="op">&amp;</span> relevant_ids</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">len</span>(hits) <span class="op">/</span> <span class="bu">len</span>(relevant_ids)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>A fake embedder for tests.</strong> Real provider calls are slow and cost money, so production code injects the embedder and tests use a deterministic stand-in.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FakeEmbedder:</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> embed(<span class="va">self</span>, text: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">float</span>]:</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> [text.count(c) <span class="cf">for</span> c <span class="kw">in</span> <span class="st">"abcdefghij"</span>]   <span class="co"># deterministic, no network</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — the model cannot answer without context.</strong> This is the problem, not the solution.</p>
+<pre class="text"><code>Question: How many days of annual leave do I get?
+Without retrieval:  "You get 25 days per year."     # invented
+With this chunk:    "Employees get 20 days of annual leave. Up to 5 days may carry over."
+Correct answer:     "20 days, with up to 5 days of carryover."</code></pre>
+<p>The model did not get smarter between the two lines. It got the fact.</p>
+<p><strong>Example 2 — the pipeline with no model at all.</strong> To see retrieval clearly, build it with deterministic toy vectors. No API key is needed.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hashlib</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>docs <span class="op">=</span> {</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"leave.pdf"</span>: <span class="st">"Employees get 20 days of annual leave. Up to 5 days may carry over."</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"expenses.pdf"</span>: <span class="st">"Submit receipts within 30 days. Meals are capped at 75 dollars."</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"security.pdf"</span>: <span class="st">"Your password length must be at least 12 characters."</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"travel.pdf"</span>: <span class="st">"Book flights 14 days ahead. Economy class is the default."</span>,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>STOP <span class="op">=</span> {<span class="st">"what"</span>, <span class="st">"is"</span>, <span class="st">"the"</span>, <span class="st">"do"</span>, <span class="st">"i"</span>, <span class="st">"a"</span>, <span class="st">"of"</span>, <span class="st">"to"</span>, <span class="st">"get"</span>, <span class="st">"how"</span>, <span class="st">"many"</span>}</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> embed(text: <span class="bu">str</span>, dim: <span class="bu">int</span> <span class="op">=</span> <span class="dv">256</span>) <span class="op">-&gt;</span> np.ndarray:</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    vec <span class="op">=</span> np.zeros(dim)</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    tokens <span class="op">=</span> [t <span class="cf">for</span> t <span class="kw">in</span> text.lower().replace(<span class="st">"."</span>, <span class="st">" "</span>).split() <span class="cf">if</span> t <span class="kw">not</span> <span class="kw">in</span> STOP]</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> token <span class="kw">in</span> tokens:</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>        vec[<span class="bu">int</span>(hashlib.sha256(token.encode()).hexdigest(), <span class="dv">16</span>) <span class="op">%</span> dim] <span class="op">+=</span> <span class="fl">1.0</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    norm <span class="op">=</span> np.linalg.norm(vec)</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> vec <span class="op">/</span> norm <span class="cf">if</span> norm <span class="cf">else</span> vec</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>matrix <span class="op">=</span> np.vstack([embed(t) <span class="cf">for</span> t <span class="kw">in</span> docs.values()])</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>names <span class="op">=</span> <span class="bu">list</span>(docs)</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> retrieve(query: <span class="bu">str</span>, k: <span class="bu">int</span> <span class="op">=</span> <span class="dv">2</span>):</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>    sims <span class="op">=</span> matrix <span class="op">@</span> embed(query)                 <span class="co"># cosine: vectors are normalised</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [(names[i], <span class="bu">round</span>(<span class="bu">float</span>(sims[i]), <span class="dv">4</span>)) <span class="cf">for</span> i <span class="kw">in</span> np.argsort(<span class="op">-</span>sims)[:k]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Run it and the correct document wins for each question:</p>
+<pre class="text"><code>&gt;&gt;&gt; retrieve("How many annual leave days do I get?")
+[('leave.pdf', 0.5547), ('travel.pdf', 0.1768)]
+
+&gt;&gt;&gt; retrieve("What is the minimum password length?")
+[('security.pdf', 0.1925), ('leave.pdf', 0.0)]</code></pre>
+<p>The correct document ranks first in both cases. The runner-up in the first query only shares the word “days”, which shows how fragile a raw score threshold can be.</p>
+<p>This is a bag-of-words stand-in, not a real embedding model. It shows the mechanic: turn text into vectors, compare, take the top k. A real system swaps <code>embed()</code> for a sentence embedding model.</p>
+<p><strong>Example 3 — why selectivity matters.</strong> A 200-page handbook is about 130,000 tokens (200 pages × 500 words × ~1.3 tokens per word). Retrieve only five 512-token chunks instead and you send about 2,560 tokens:</p>
+<pre class="text"><code>whole corpus in prompt: 130,000 tokens   ~ $0.0195 per query
+top-5 chunks:             2,560 tokens   ~ $0.00038 per query
+reduction: 50.8x
+cost per 1,000 queries:  $19.50  vs  $0.38     (at an example $0.15 / 1M input tokens)</code></pre>
+<p>The same arithmetic applies to context limits: 130,000 tokens cannot fit in an 8k or 32k window, and even in a 128k window (131,072 tokens) it leaves no room for the answer, while the top-5 always fits. Bigger context windows reduce the pressure, not the argument.</p>
+<p><strong>Example 4 — chunk count and vector storage.</strong> The same corpus at three chunk settings, and what the vectors cost:</p>
+<pre class="text"><code>256 tokens / 32 overlap   -&gt; 581 chunks
+512 tokens / 64 overlap   -&gt; 291 chunks
+1024 tokens / 128 overlap -&gt; 146 chunks
+
+291 chunks x 1536 dims -&gt; 1.71 MB as float32, 873 KB as float16
+1,000,000 chunks x 1536 dims -&gt; 5.72 GB as float32, 2.86 GB as float16</code></pre>
+<p>A small corpus is tiny. At a million chunks you start making real decisions about half precision and index type.</p>
+<p><strong>Example 5 — the latency budget.</strong> A p50 estimate per stage for one question, with a 400-token answer:</p>
+<pre class="text"><code>embed query                 8 ms
+vector search (ANN)         5 ms
+metadata filter             2 ms
+rerank 20 candidates       40 ms
+assemble prompt             1 ms
+LLM generation            600 ms
+------------------------------
+p50 total                 656 ms    (retrieval is 56 ms, about 8.5%)</code></pre>
+<p>Generation dominates. Reranking is the largest retrieval-side cost, and it is usually worth it. Optimising the vector search before the reranker is optimising the wrong 8%.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Measure retrieval before blaming the model.</strong> If the answer is wrong, first check whether the correct chunk was in the top-k. If it was not, no prompt change helps. If it was, the failure is in generation.</li>
+<li><strong>Keep offline and online strictly separate.</strong> Indexing is a batch job; serving is a request path. Mixing them (embedding documents during a request) creates latency spikes and inconsistent indexes.</li>
+<li><strong>Chunking dominates retrieval quality.</strong> A badly cut chunk embeds into a vague vector and can never be retrieved well. This is the highest-leverage stage and the one most teams rush.</li>
+<li><strong>Use the same embedding model on both sides.</strong> Query and documents must share one vector space. A mismatch returns plausible but wrong neighbours with no error.</li>
+<li><strong>Retrieve wide, then rank narrow.</strong> Fetch 20–100 candidates cheaply, then let a cross-encoder reranker choose the best 3–5. Reranking fixes many recall-to-precision problems.</li>
+<li><strong>Give the model an escape hatch.</strong> The prompt must allow “the sources do not say.” Without it, the model fills gaps from its own weights, which is exactly the hallucination RAG was meant to stop.</li>
+<li><strong>Grounding is not correctness.</strong> RAG reduces hallucination when the right text is retrieved; it does not remove the model’s tendency to overreach. Citations and supported-claim checks are separate defences.</li>
+<li><strong>Version the index with the corpus.</strong> Store the embedding model name, chunk config, and parser version next to the index. Changing any of them means re-indexing, and without versioning you will not know why old vectors behave differently.</li>
+<li><strong>Budget context deliberately.</strong> Order matters: models attend best to the start and end of a long prompt. Put the strongest evidence first and never bury the answer in the middle of 20 chunks.</li>
+<li><strong>Plan for freshness.</strong> Index lag is a product decision. A nightly job means answers can be a day stale; streaming ingestion means minutes. Say which one you have.</li>
+<li><strong>Filter before you search, not after.</strong> Post-filtering a top-k list can return fewer results than requested, or leak forbidden rows if done in application code. Pre-filtering is also what makes multi-tenant RAG safe.</li>
+<li><strong>Long context is not a RAG replacement for a large corpus.</strong> It is a replacement for retrieval only when the whole corpus fits, changes rarely, and is worth paying for on every single query.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="what-is-rag-and-why-is-it-used" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-rag-and-why-is-it-used">1. What is RAG, and why is it used?</h3>
+<p><strong>Answer.</strong> RAG retrieves relevant passages from a corpus and places them in the model’s prompt, so the model answers from supplied text rather than from its parameters. It is used to give a model private, fresh, or niche knowledge without retraining it. It is cheap per query, updates in minutes by re-indexing, and keeps the facts auditable through citations.</p>
+<p><strong>Follow-up: “Why not just fine-tune?”</strong> Fine-tuning changes behaviour and style well, and fact recall poorly. Facts also go stale. RAG keeps facts outside the model, where they can be updated and cited. Most production systems use retrieval for facts and fine-tuning, if at all, for format and tone.</p>
+<p><strong>Trap.</strong> Calling RAG “a way to make the model smarter.” It changes the context, not the model’s abilities. It can only help if retrieval finds the right passage.</p>
+</section>
+<section id="explain-the-rag-pipeline-end-to-end." class="level3">
+<h3 class="anchored" data-anchor-id="explain-the-rag-pipeline-end-to-end.">2. Explain the RAG pipeline end to end.</h3>
+<p><strong>Answer.</strong> Offline, you ingest documents, parse and clean them, chunk them, embed each chunk, and store the vectors with text and metadata in an index. Online, you embed the question with the same model, retrieve the top-k nearest chunks with filters, rerank them, assemble a prompt, and generate a grounded answer with citations.</p>
+<p><strong>Follow-up: “Which half causes most bugs?”</strong> Retrieval. Models are strong enough to answer from a good passage; the common failure is that the passage was never fetched, or was fetched but cut badly.</p>
+<p><strong>Trap.</strong> Listing only the generation step. An answer that names “embed, search, generate” but skips parsing, chunking, and metadata cannot explain why retrieval fails.</p>
+</section>
+<section id="what-is-the-difference-between-naive-and-advanced-rag" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-naive-and-advanced-rag">3. What is the difference between naive and advanced RAG?</h3>
+<p><strong>Answer.</strong> Naive RAG is embed-search-paste: fixed chunks, one vector search, top-k straight into the prompt. Advanced RAG adds a fix at each weak stage: better parsing and chunking, hybrid dense plus keyword retrieval, metadata filters, query rewriting, cross-encoder reranking, context compression, and citations. Each addition should be justified by a measured failure.</p>
+<p><strong>Follow-up: “Would you start with advanced RAG?”</strong> No.&nbsp;Start naive, measure recall on a labelled set, then add the smallest fix for the biggest failure. Adding every technique at once makes it impossible to know what helped.</p>
+<p><strong>Trap.</strong> Believing advanced equals better. Every extra stage adds latency, cost, and a new way to fail.</p>
+</section>
+<section id="rag-versus-fine-tuning-versus-long-context" class="level3">
+<h3 class="anchored" data-anchor-id="rag-versus-fine-tuning-versus-long-context">4. RAG versus fine-tuning versus long context?</h3>
+<p><strong>Answer.</strong> RAG supplies facts at query time from an external corpus, so it is fresh, cheap to update, and citeable. Fine-tuning bakes behaviour and style into weights, so it is good for format and narrow skills but a poor way to store changing facts. Long context skips retrieval and reads whole documents, which is simple but costs every token on every query and degrades when the answer is buried in the middle.</p>
+<p><strong>Follow-up: “Can you combine them?”</strong> Yes, and that is common: fine-tune for behaviour, retrieve for facts, and use long context for the few tasks that need several complete documents.</p>
+<p><strong>Trap.</strong> Saying “long context makes RAG obsolete.” A corpus of 10 million tokens still does not fit, cost and latency still scale with tokens, and retrieval is what makes permissions and citations possible.</p>
+</section>
+<section id="where-does-rag-fail" class="level3">
+<h3 class="anchored" data-anchor-id="where-does-rag-fail">5. Where does RAG fail?</h3>
+<p><strong>Answer.</strong> At every stage, and each has a signature. Parsing loses text; chunking cuts the answer in half; embedding puts the right chunk far from the question; the ANN index misses a true neighbour; retrieval returns the wrong top-k; reranking demotes a good chunk; prompt assembly buries it; generation ignores the context. Debug in that order, from the corpus forward.</p>
+<p><strong>Follow-up: “How do you tell a retrieval failure from a generation failure?”</strong> Look at the retrieved chunks. If the answer is not in them, it is retrieval. If it is there but the answer is wrong, it is generation.</p>
+<p><strong>Trap.</strong> Jumping to the model or the prompt. Most “the LLM is bad at RAG” reports are retrieval failures wearing a disguise.</p>
+</section>
+<section id="why-split-the-system-into-offline-indexing-and-online-serving" class="level3">
+<h3 class="anchored" data-anchor-id="why-split-the-system-into-offline-indexing-and-online-serving">6. Why split the system into offline indexing and online serving?</h3>
+<p><strong>Answer.</strong> They have different cost profiles and different failure modes. Indexing is a batch job: throughput matters, latency does not, and it runs once per document. Serving is a request path: latency and cost per query matter, and it runs on every question. Splitting them lets you scale, cache, monitor, and debug each half independently.</p>
+<p><strong>Follow-up: “What can go wrong in the split?”</strong> The two halves drift: someone changes the embedding model or chunker on one side and the index no longer matches the query path. Versioning the embedding model and chunk config next to the index prevents that.</p>
+<p><strong>Trap.</strong> Embedding documents inside the request path. It looks simpler, but it makes the first request after an upload slow and the index state unpredictable.</p>
+</section>
+<section id="how-would-you-debug-a-rag-system-that-gives-a-wrong-answer" class="level3">
+<h3 class="anchored" data-anchor-id="how-would-you-debug-a-rag-system-that-gives-a-wrong-answer">7. How would you debug a RAG system that gives a wrong answer?</h3>
+<p><strong>Answer.</strong> Reproduce the query, then inspect the retrieved chunks. If the answer chunk is absent, work backwards: was it in the index, was it parsed correctly, was it chunked at a sensible boundary, is the query embedded in the same space? If the answer chunk is present, the problem is in generation: the prompt, the context order, or the model ignoring instructions.</p>
+<p><strong>Follow-up: “What do you measure to catch this early?”</strong> A labelled question set with recall@k, MRR, or NDCG for retrieval, plus faithfulness for generation. Run it in CI so a chunking or model change cannot silently regress.</p>
+<p><strong>Trap.</strong> Retrying the query and declaring it fixed. Flaky retrieval is a signal, not noise; a nondeterministic index setting or an overloaded reranker may be the cause.</p>
+</section>
+<section id="how-do-you-control-rag-cost-and-latency" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-control-rag-cost-and-latency">8. How do you control RAG cost and latency?</h3>
+<p><strong>Answer.</strong> Reduce tokens and stages. Retrieve fewer, better chunks with a reranker; cache embeddings by content hash; cache answers for repeated questions; use a smaller embedding model or lower dimension; use half precision for vectors; and stream the answer so the first token arrives early. Measure the budget: generation usually dominates, retrieval is a small fraction.</p>
+<p><strong>Follow-up: “Where is the first place you would look?”</strong> The context size sent to the model. Top-k of 20 chunks is 10,000 tokens on every query; reranking down to 5 cuts that by 75% and often improves quality.</p>
+<p><strong>Trap.</strong> Optimising the vector search first. If retrieval is about 8% of p50 latency, halving it saves little; the reranker and the model are where the time goes.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li>RAG moves <strong>facts into the prompt at question time</strong>. It does not change the model.</li>
+<li><strong>Offline indexing</strong> is parse → chunk → embed → store. <strong>Online serving</strong> is embed → retrieve → rerank → generate.</li>
+<li><strong>Retrieval is the usual weak link.</strong> Check whether the right chunk was fetched before changing the prompt.</li>
+<li><strong>RAG, fine-tuning, and long context solve different problems</strong> and are often combined.</li>
+<li><strong>Retrieve wide, rank narrow, and budget context.</strong> Put the best evidence first and let the model say “I do not know.”</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-03-rag-engineering/index.html" class="pagination-link" aria-label="Phase 3 — RAG Engineering">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Phase 3 — RAG Engineering</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="pagination-link" aria-label="Document Ingestion and Parsing">
+        <span class="nav-page-text"><span class="chapter-title">Document Ingestion and Parsing</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

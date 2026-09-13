@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Similarity Metrics – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" rel="next">
+<link href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/06-similarity-metrics.html"><span class="chapter-title">Similarity Metrics</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 3 — RAG Engineering</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Similarity Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/06-similarity-metrics.html"><span class="chapter-title">Similarity Metrics</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Similarity Metrics</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> The three metrics you need are <strong>dot product</strong>, <strong>cosine similarity</strong>, and <strong>Euclidean (L2) distance</strong>. Cosine similarity compares direction only; dot product mixes direction and length; Euclidean distance measures straight-line separation. If every vector is normalised to length 1, all three produce the <strong>same ranking</strong>, so most text systems normalise once and then use whichever is fastest. pgvector exposes them as <code>&lt;-&gt;</code> (L2), <code>&lt;=&gt;</code> (cosine distance), and <code>&lt;#&gt;</code> (negative inner product).</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>Once text is a vector, retrieval becomes a ranking problem: given a query vector, order the stored vectors from most to least relevant. To order them you need a number that says “how close”.</p>
+<p>Different numbers answer different questions:</p>
+<ul>
+<li><strong>Are they pointing the same way?</strong> Cosine similarity.</li>
+<li><strong>Are they aligned, and how strong is each?</strong> Dot product.</li>
+<li><strong>How far apart are the points?</strong> Euclidean distance.</li>
+</ul>
+<p>Pick the wrong one and ranking misbehaves in a specific, predictable way. A concrete failure: two chunks point in the same direction, but one is a short sentence and the other is a long repeated passage. With an unnormalised dot product, the long vector wins even when the short one is the better answer. The system retrieves the wrong chunk, and the query still looks like it worked.</p>
+<p>The reverse mistake is just as common: a team normalises vectors when writing them but forgets to normalise the query, or switches the index operator without re-normalising, and every score is subtly off. Nobody gets an exception; recall just drops.</p>
+<p>This page pins down the three metrics, the exact algebra that connects them, and the pgvector operators that implement them.</p>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Vector</strong></td>
+<td>An ordered list of numbers: <code>[0.2, -0.5, 1.1]</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>Dimension</strong></td>
+<td>How many numbers are in the vector.</td>
+</tr>
+<tr class="odd">
+<td><strong>Dot product</strong></td>
+<td>Multiply matching entries and add them: <code>sum(a[i] * b[i])</code>. Also called <strong>inner product</strong>.</td>
+</tr>
+<tr class="even">
+<td><strong>Norm / magnitude</strong></td>
+<td>The length of a vector: <code>sqrt(sum(x[i] ** 2))</code>. Written <code>‖x‖</code>.</td>
+</tr>
+<tr class="odd">
+<td><strong>Unit vector</strong></td>
+<td>A vector whose norm is exactly 1.</td>
+</tr>
+<tr class="even">
+<td><strong>Normalisation</strong></td>
+<td>Dividing a vector by its norm to make it a unit vector.</td>
+</tr>
+<tr class="odd">
+<td><strong>Cosine similarity</strong></td>
+<td>Dot product divided by both norms: <code>a·b / (‖a‖‖b‖)</code>. Measures the angle between vectors and ignores length.</td>
+</tr>
+<tr class="even">
+<td><strong>Cosine distance</strong></td>
+<td><code>1 - cosine similarity</code>. Zero means identical direction, 2 means opposite.</td>
+</tr>
+<tr class="odd">
+<td><strong>Euclidean / L2 distance</strong></td>
+<td>Straight-line distance: <code>sqrt(sum((a[i] - b[i]) ** 2))</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>Squared L2</strong></td>
+<td>L2 distance without the final square root. Same ranking, cheaper to compute.</td>
+</tr>
+<tr class="odd">
+<td><strong>Ranking</strong></td>
+<td>The order of stored vectors from most to least similar.</td>
+</tr>
+<tr class="even">
+<td><strong>Monotonic transform</strong></td>
+<td>A function that preserves or reverses order, like <code>f(x) = -x</code> or <code>f(x) = 1 - x</code>. Two metrics give the same ranking when one is a monotonic transform of the other; if the transform reverses order, sort in the opposite direction (distance ascending vs similarity descending).</td>
+</tr>
+<tr class="odd">
+<td><strong>Zero vector</strong></td>
+<td>A vector whose norm is 0. Cosine similarity is undefined for it.</td>
+</tr>
+<tr class="even">
+<td><strong>Angular distance</strong></td>
+<td>The angle itself, <code>arccos(cosine)</code>. Rarely needed; cosine is easier.</td>
+</tr>
+<tr class="odd">
+<td><strong>Inner-product space</strong></td>
+<td>An index configured to rank by dot product instead of cosine or L2.</td>
+</tr>
+<tr class="even">
+<td><strong>Operator class</strong></td>
+<td>pgvector’s name for the index flavour that matches an operator: <code>vector_cosine_ops</code>, <code>vector_l2_ops</code>, <code>vector_ip_ops</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Three definitions do most of the work:</p>
+<ul>
+<li><strong>Similarity means bigger is better; distance means smaller is better.</strong> Cosine similarity and dot product are similarities. L2 and cosine <em>distance</em> are distances. pgvector’s <code>&lt;#&gt;</code> is a negation, so it stays a distance-like operator.</li>
+<li><strong>Normalisation removes magnitude.</strong> Once vectors are unit length, direction is all that remains, and the metrics collapse into each other.</li>
+<li><strong>Ranking, not raw score, is what retrieval uses.</strong> You only need the top <code>k</code>, so any monotonic transform of a metric is as good as the metric itself.</li>
+</ul>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Imagine standing on a field. Two people are the same as each other if they face the <strong>same compass direction</strong>, even if one is one metre away and the other is a kilometre away. That is cosine similarity: it cares only about the angle.</p>
+<p>Now imagine you also care about how far each person walked. The dot product rewards both facing the same way <em>and</em> walking far. Euclidean distance asks the completely different question of how far apart two people are on the ground.</p>
+<p>The formulas make the relationship exact:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Metric</th>
+<th>Formula</th>
+<th>Range</th>
+<th>Bigger means</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Dot product</td>
+<td><code>Σ a[i]·b[i]</code></td>
+<td>unbounded</td>
+<td>More aligned and longer</td>
+</tr>
+<tr class="even">
+<td>Cosine similarity</td>
+<td><code>a·b / (‖a‖·‖b‖)</code></td>
+<td><code>[-1, 1]</code></td>
+<td>Same direction</td>
+</tr>
+<tr class="odd">
+<td>Cosine distance</td>
+<td><code>1 - cosine</code></td>
+<td><code>[0, 2]</code></td>
+<td>Different direction</td>
+</tr>
+<tr class="even">
+<td>Euclidean (L2)</td>
+<td><code>sqrt(Σ (a[i]-b[i])²)</code></td>
+<td><code>[0, ∞)</code></td>
+<td>Further apart</td>
+</tr>
+</tbody>
+</table>
+<p>The bridge between them is the <strong>law of cosines</strong>:</p>
+<pre class="text"><code>‖a - b‖²  =  ‖a‖² + ‖b‖² - 2·(a·b)</code></pre>
+<p>If both vectors are unit length, <code>‖a‖² = ‖b‖² = 1</code>, so it collapses to:</p>
+<pre class="text"><code>‖a - b‖²  =  2 - 2·cos(a, b)          for unit vectors</code></pre>
+<p>That single line explains why normalisation is so common: for unit vectors, L2 distance is a <strong>monotonic transform of cosine similarity</strong>, and ranking by one is identical to ranking by the other.</p>
+<p>Choosing a metric is then a short decision:</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    A["Do you control the embedding model?"] --&gt;|Yes, text| B["Normalise to unit length"]
+    A --&gt;|No, scores matter as given| C["Trust the model card"]
+    B --&gt; D["Dot product = cosine&lt;br/&gt;pick the fastest index"]
+    C --&gt; E{"Was the model trained&lt;br/&gt;for dot product?"}
+    E --&gt;|Yes, e.g. some retrieval models| F["Use inner product"]
+    E --&gt;|No| G["Use cosine distance"]
+    H["Non-text: pictures, coordinates, counts"] --&gt; I["L2 distance&lt;br/&gt;if magnitude is meaningful"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The rest of the page is detail about that picture.</p>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>Get two vectors of the same dimension.</strong> Query <code>q</code> and stored chunk <code>d</code>. If dimensions differ, the comparison is invalid.</li>
+<li><strong>Compute the dot product.</strong> Multiply entry by entry and sum: <code>q·d = Σ q[i]·d[i]</code>. This is one pass over the vectors.</li>
+<li><strong>Compute each norm if needed.</strong> <code>‖q‖ = sqrt(Σ q[i]²)</code>. Cosine divides by both norms.</li>
+<li><strong>Average for large N.</strong> One dot product is <code>D</code> multiplications. Comparing against <code>N</code> vectors is <code>N·D</code> operations — the cost that vector indexes exist to reduce.</li>
+<li><strong>Normalise before storing (common practice).</strong> Divide each vector by its norm at write time and at query time. Now <code>q·d</code> already equals cosine, and the norm is never recomputed.</li>
+<li><strong>Rank.</strong> Sort by descending similarity, or ascending distance. Lower L2 is better; higher cosine is better; for pgvector <code>&lt;#&gt;</code>, lower (more negative) is better.</li>
+<li><strong>Take the top <code>k</code>.</strong> Only the order matters, which is why monotonic transforms are interchangeable.</li>
+<li><strong>Keep the choice consistent.</strong> The metric used to build the index must match the operator used to query it, or the index is bypassed or wrong.</li>
+</ol>
+<p>Two subtleties follow from the algebra:</p>
+<ul>
+<li><strong>Cosine is undefined for the zero vector.</strong> Dividing by a zero norm is invalid. pgvector simply does not index zero vectors for cosine distance.</li>
+<li><strong>Floating-point ties break down.</strong> In high dimensions, many pairs have very close cosine values. Small precision loss from fp16 or int8 quantisation can flip near-ties, which is why re-ranking on full-precision vectors is common.</li>
+</ul>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>Dot product, norm, and cosine with numpy.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> np.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> np.array([<span class="fl">2.0</span>, <span class="fl">4.0</span>, <span class="fl">6.0</span>])</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>dot <span class="op">=</span> <span class="bu">float</span>(a <span class="op">@</span> b)                                    <span class="co"># 28.0</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>cos <span class="op">=</span> <span class="bu">float</span>(a <span class="op">@</span> b <span class="op">/</span> (np.linalg.norm(a) <span class="op">*</span> np.linalg.norm(b)))   <span class="co"># 1.0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>@</code> is matrix multiplication; for 1-D arrays it is the dot product.</p>
+<p><strong>Euclidean distance.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>l2 <span class="op">=</span> <span class="bu">float</span>(np.linalg.norm(a <span class="op">-</span> b))     <span class="co"># 3.7416573867739413</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Subtract, then take the norm of the difference.</p>
+<p><strong>Normalise a batch of vectors.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> normalise(x: np.ndarray) <span class="op">-&gt;</span> np.ndarray:</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> x <span class="op">/</span> np.linalg.norm(x, axis<span class="op">=-</span><span class="dv">1</span>, keepdims<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>unit <span class="op">=</span> normalise(np.array([<span class="fl">3.0</span>, <span class="fl">4.0</span>]))    <span class="co"># [0.6, 0.8], norm 1.0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>After this, <code>unit_a @ unit_b</code> is exactly the cosine similarity.</p>
+<p><strong>Rank stored vectors against a query.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>sims <span class="op">=</span> matrix <span class="op">@</span> q            <span class="co"># matrix shape (N, D), q shape (D,)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>top_k <span class="op">=</span> np.argsort(<span class="op">-</span>sims)[:<span class="dv">5</span>]   <span class="co"># indices of the 5 best matches</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>argsort(-sims)</code> sorts descending. This is brute-force search; an ANN index replaces it later.</p>
+<p><strong>pgvector’s three operators.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- L2 distance: smaller is closer</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span> <span class="kw">FROM</span> chunks <span class="kw">ORDER</span> <span class="kw">BY</span> embedding <span class="op">&lt;-&gt;</span> <span class="ch">:q</span> <span class="kw">LIMIT</span> <span class="dv">5</span>;</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- cosine distance: smaller is closer</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span> <span class="kw">FROM</span> chunks <span class="kw">ORDER</span> <span class="kw">BY</span> embedding <span class="op">&lt;=&gt;</span> <span class="ch">:q</span> <span class="kw">LIMIT</span> <span class="dv">5</span>;</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- negative inner product: smaller (more negative) is higher dot product</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span> <span class="kw">FROM</span> chunks <span class="kw">ORDER</span> <span class="kw">BY</span> embedding <span class="op">&lt;</span>#<span class="op">&gt;</span> <span class="ch">:q</span> <span class="kw">LIMIT</span> <span class="dv">5</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>&lt;#&gt;</code> returns the <strong>negative</strong> inner product because Postgres index scans only support ascending order. Sorting ascending on the negation gives you the largest inner products first.</p>
+<p><strong>Recover a similarity from a distance.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="dv">1</span> <span class="op">-</span> (embedding <span class="op">&lt;=&gt;</span> <span class="ch">:q</span>) <span class="kw">AS</span> cosine_similarity <span class="kw">FROM</span> chunks;</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> (embedding <span class="op">&lt;</span>#<span class="op">&gt;</span> <span class="ch">:q</span>) <span class="op">*</span> <span class="op">-</span><span class="dv">1</span> <span class="kw">AS</span> inner_product <span class="kw">FROM</span> chunks;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>These conversions are useful for thresholds and for logging, but keep the bare operator in <code>ORDER BY</code> so the index can be used.</p>
+<p><strong>Match the index to the operator.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> <span class="kw">ON</span> chunks <span class="kw">USING</span> hnsw (embedding vector_cosine_ops);  <span class="co">-- for &lt;=&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> <span class="kw">ON</span> chunks <span class="kw">USING</span> hnsw (embedding vector_l2_ops);      <span class="co">-- for &lt;-&gt;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> <span class="kw">ON</span> chunks <span class="kw">USING</span> hnsw (embedding vector_ip_ops);      <span class="co">-- for &lt;#&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>One index per distance function. An index built for cosine does not serve an L2 query.</p>
+<p><strong>Normalise inside Postgres.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">UPDATE</span> chunks <span class="kw">SET</span> embedding <span class="op">=</span> l2_normalize(embedding);</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> l2_normalize(embedding) <span class="op">&lt;</span>#<span class="op">&gt;</span> <span class="ch">:q</span> <span class="kw">FROM</span> chunks;   <span class="co">-- inner product of unit vectors</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>l2_normalize</code> is a pgvector function; use it if you decide to normalise at the database layer.</p>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — the three metrics on simple vectors.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> np.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> np.array([<span class="fl">2.0</span>, <span class="fl">4.0</span>, <span class="fl">6.0</span>])   <span class="co"># b is exactly 2x a</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>c <span class="op">=</span> np.array([<span class="op">-</span><span class="fl">1.0</span>, <span class="op">-</span><span class="fl">2.0</span>, <span class="op">-</span><span class="fl">3.0</span>])  <span class="co"># c is exactly -1x a</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> np.array([<span class="fl">1.0</span>, <span class="fl">0.0</span>, <span class="fl">0.0</span>])</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>e <span class="op">=</span> np.array([<span class="fl">0.0</span>, <span class="fl">1.0</span>, <span class="fl">0.0</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre class="text"><code>a·b = 28.0      cos(a,b) =  1.0     L2(a,b) = 3.7417
+a·c = -14.0     cos(a,c) = -1.0     L2(a,c) = 7.4833
+d·e =  0.0      cos(d,e) =  0.0     L2(d,e) = 1.4142</code></pre>
+<p><code>a</code> and <code>b</code> point the same way, so cosine is 1. <code>a</code> and <code>c</code> point opposite ways, so cosine is -1. <code>d</code> and <code>e</code> are perpendicular, so cosine is 0 and the dot product is 0.</p>
+<p><strong>Example 2 — same direction, different length.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> np.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>q2 <span class="op">=</span> p <span class="op">*</span> <span class="dv">10</span>          <span class="co"># same direction, 10x longer</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="bu">float</span>(p <span class="op">@</span> q2)                                  <span class="co"># 140.0  — grows with length</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="bu">float</span>(p <span class="op">@</span> q2 <span class="op">/</span> (np.linalg.norm(p) <span class="op">*</span> np.linalg.norm(q2)))   <span class="co"># 1.0 — length removed</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The dot product changed by 100×; the cosine did not move. This is exactly the difference between the two metrics.</p>
+<p><strong>Example 3 — the unit-vector identity.</strong> For any two unit vectors, <code>‖u - v‖² = 2 - 2·cos(u, v)</code>:</p>
+<pre class="text"><code>pair 0: ‖u-v‖² = 2.075396   2 - 2·cos = 2.075396   cos = -0.037698
+pair 1: ‖u-v‖² = 3.063657   2 - 2·cos = 3.063657   cos = -0.531829
+pair 2: ‖u-v‖² = 2.664080   2 - 2·cos = 2.664080   cos = -0.332040
+pair 3: ‖u-v‖² = 1.447914   2 - 2·cos = 1.447914   cos =  0.276043
+pair 4: ‖u-v‖² = 0.324101   2 - 2·cos = 0.324101   cos =  0.837950</code></pre>
+<p>The two columns match to six decimals. The algebra is not an approximation; it is an identity for unit vectors.</p>
+<p><strong>Example 4 — ranking is identical on normalised vectors.</strong> For six unit vectors scored against one unit query:</p>
+<pre class="text"><code>dot order        [2 4 1 3 5 0]
+cosine order     [2 4 1 3 5 0]
+neg L2 order     [2 4 1 3 5 0]</code></pre>
+<p>All three give exactly the same neighbour list. So on normalised vectors you can pick the metric by what your index computes fastest, not by what it means.</p>
+<p><strong>Example 5 — the magnitude trap, with a clear disagreement.</strong> A query is compared against <code>aligned</code> (short, exactly the same direction) and <code>longoff</code> (50× longer, but a little off-direction):</p>
+<pre class="text"><code>dot(q, aligned) =  1.8547     cos(q, aligned) = 1.0000     L2(q, aligned) =  1.0726
+dot(q, longoff) = 43.9626     cos(q, longoff) = 0.9481     L2(q, longoff) = 49.1216</code></pre>
+<p>Dot product picks <code>longoff</code>. Cosine and L2 both pick <code>aligned</code>. The metrics disagree because <code>longoff</code> is long enough to dominate the unnormalised dot product despite pointing slightly away. This is the single most important reason text systems normalise: it makes the three metrics agree so this ranking bug cannot happen.</p>
+<p><strong>Example 6 — translating pgvector operators into the math.</strong> For one query and one stored unit vector:</p>
+<pre class="text"><code>&lt;-&gt;  L2 distance       = 0.0
+&lt;=&gt;  cosine distance   = 0.0     (1 - cosine similarity = 1 - 1.0)
+&lt;#&gt;  negative inner product = -1.0    (so inner product = 1.0)</code></pre>
+<p>All three agree that the vectors are identical. <code>&lt;=&gt;</code> is always <code>1 - cosine</code>. <code>&lt;#&gt;</code> is always <code>-dot</code>. And for unit vectors, <code>&lt;-&gt;</code> is <code>sqrt(2 - 2·cos)</code>, so it ranks the same as <code>&lt;=&gt;</code>.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Normalise once, then use inner product for speed.</strong> Unit-length vectors make <code>&lt;#&gt;</code> and <code>&lt;=&gt;</code> rank identically, and inner-product scans avoid the per-row norm computation.</li>
+<li><strong>Normalise at both write and query time.</strong> Normalising only one side reintroduces magnitude into every score. A common bug is a backfill that normalised old rows but a query path that does not.</li>
+<li><strong>Keep the metric consistent with the index.</strong> <code>vector_cosine_ops</code> will not serve an <code>&lt;-&gt;</code> query. Mixing them silently drops you back to a sequential scan.</li>
+<li><strong>Beware zero vectors.</strong> Cosine distance divides by the norm, so a zero vector is undefined. pgvector does not index zero vectors for cosine.</li>
+<li><strong>Thresholds need the right scale.</strong> A cosine similarity of 0.8 means something different per model. Calibrate thresholds on labelled data instead of copying a number from a blog post.</li>
+<li><strong>Do not compare scores across models.</strong> Dot products especially are not comparable between embedding models, and even cosine scales differ.</li>
+<li><strong>Precision changes near-ties.</strong> High-dimensional vectors have many close scores. fp16 or int8 quantisation can change the top <code>k</code> slightly; re-rank the shortlist in full precision when it matters.</li>
+<li><strong>Use squared L2 when you only rank.</strong> The square root is monotonic, so skipping it saves a <code>sqrt</code> per comparison. Only compute the true distance if you display or threshold it.</li>
+<li><strong>L2 and cosine are not the same for unnormalised vectors.</strong> For unnormalised vectors, L2 cares about magnitude and cosine does not. Pick deliberately.</li>
+<li><strong><code>&lt;#&gt;</code> looks negative and that is correct.</strong> Order ascending on the negative inner product to get the largest inner products. Multiplying by <code>-1</code> in <code>ORDER BY</code> is a common bug that disables the index.</li>
+<li><strong>Similarity is not relevance.</strong> A high cosine score means “same direction in this space”, not “true answer”. Combine metric choice with good chunking and, often, a re-ranker.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="what-is-the-difference-between-dot-product-and-cosine-similarity" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-dot-product-and-cosine-similarity">1. What is the difference between dot product and cosine similarity?</h3>
+<p><strong>Answer.</strong> The dot product is <code>Σ a[i]·b[i]</code> and reflects both direction and magnitude. Cosine similarity divides the dot product by both vector norms, removing length and leaving only the angle; it always lies in <code>[-1, 1]</code>. For text, cosine is the usual default because length often carries no meaning. For unit vectors the two are numerically identical.</p>
+<p><strong>Follow-up: “When is dot product better?”</strong> When the model was trained for it, or when vectors are pre-normalised and you want the cheaper inner-product index path.</p>
+<p><strong>Trap.</strong> Assuming a larger dot product always means more similar. A long vector can beat a shorter, better-aligned one.</p>
+</section>
+<section id="how-do-euclidean-distance-and-cosine-similarity-relate" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-euclidean-distance-and-cosine-similarity-relate">2. How do Euclidean distance and cosine similarity relate?</h3>
+<p><strong>Answer.</strong> The law of cosines gives <code>‖a - b‖² = ‖a‖² + ‖b‖² - 2·(a·b)</code>. For unit vectors this becomes <code>‖a - b‖² = 2 - 2·cos(a, b)</code>. So on normalised vectors, L2 distance is a monotonic transform of cosine similarity, and sorting by one gives exactly the same order as the other.</p>
+<p><strong>Follow-up: “Then why does pgvector offer both?”</strong> Because the index operator classes are different and one may be faster for your data; also, for unnormalised vectors the two metrics genuinely differ, and L2 is the natural choice when magnitude is meaningful.</p>
+<p><strong>Trap.</strong> Treating <code>&lt;-&gt;</code> and <code>&lt;=&gt;</code> as interchangeable on unnormalised vectors. They are only equivalent after normalisation.</p>
+</section>
+<section id="why-does-normalisation-make-ranking-equivalent-across-metrics" class="level3">
+<h3 class="anchored" data-anchor-id="why-does-normalisation-make-ranking-equivalent-across-metrics">3. Why does normalisation make ranking equivalent across metrics?</h3>
+<p><strong>Answer.</strong> Normalisation removes magnitude, leaving only direction. On the unit sphere, cosine is just the dot product, and L2 distance is <code>sqrt(2 - 2·dot)</code>. Both depend monotonically on the same dot product, so they order candidates identically. You can therefore choose the metric the index computes fastest.</p>
+<p><strong>Follow-up: “What is lost by normalising?”</strong> Magnitude information. For text embeddings that is usually noise; for image or behavioural vectors it may be signal.</p>
+<p><strong>Trap.</strong> Normalising the documents but not the query during a migration, which makes scores inconsistent between old and new rows.</p>
+</section>
+<section id="what-does-each-pgvector-operator-return" class="level3">
+<h3 class="anchored" data-anchor-id="what-does-each-pgvector-operator-return">4. What does each pgvector operator return?</h3>
+<p><strong>Answer.</strong> <code>&lt;-&gt;</code> returns L2 (Euclidean) distance. <code>&lt;=&gt;</code> returns cosine distance, which is <code>1 - cosine similarity</code>. <code>&lt;#&gt;</code> returns the negative inner product. There are also <code>&lt;+&gt;</code> for L1 (taxicab), and <code>&lt;~&gt;</code>/<code>&lt;%&gt;</code> for Hamming and Jaccard on binary vectors. All of them are used in ascending <code>ORDER BY</code> because Postgres only supports ascending index scans on operators.</p>
+<p><strong>Follow-up: “How do you get the actual similarity?”</strong> <code>1 - (embedding &lt;=&gt; q)</code> for cosine, and <code>(embedding &lt;#&gt; q) * -1</code> for inner product. Compute the conversion outside <code>ORDER BY</code> so the index still gets used.</p>
+<p><strong>Trap.</strong> Writing <code>ORDER BY (embedding &lt;#&gt; q) * -1 DESC</code>. That is an expression, not a distance operator, so the planner cannot use the index.</p>
+</section>
+<section id="what-happens-with-a-zero-vector" class="level3">
+<h3 class="anchored" data-anchor-id="what-happens-with-a-zero-vector">5. What happens with a zero vector?</h3>
+<p><strong>Answer.</strong> Its norm is zero, so cosine similarity divides by zero and is undefined. Euclidean distance is still defined. pgvector avoids the problem by not indexing zero vectors for cosine distance, so they simply never appear in cosine results.</p>
+<p><strong>Follow-up: “How would a zero vector appear?”</strong> A failed embedding call that returned zeros, or an empty chunk embedded with a model that maps empty input to the zero vector. Validate embeddings before writing them.</p>
+<p><strong>Trap.</strong> Assuming a zero vector will match everything at distance 0. It will not match at all in a cosine index.</p>
+</section>
+<section id="why-can-two-systems-use-cosine-and-still-disagree-on-results" class="level3">
+<h3 class="anchored" data-anchor-id="why-can-two-systems-use-cosine-and-still-disagree-on-results">6. Why can two systems use “cosine” and still disagree on results?</h3>
+<p><strong>Answer.</strong> Because cosine is only shape, not content: the vectors came from different embedding models, or different versions, or one side was normalised and the other not, or the stored vectors were quantised. The metric is identical; the vectors in the space are not.</p>
+<p><strong>Follow-up: “How do you debug that?”</strong> Check the model name on the rows, check norms on both query and document vectors, and compare exact-search results with index results to see whether the discrepancy is the index or the vectors.</p>
+<p><strong>Trap.</strong> Blaming the metric. The metric is arithmetic; almost all disagreements come from the vectors or from inconsistent preprocessing.</p>
+</section>
+<section id="when-would-you-choose-l2-over-cosine-for-embeddings" class="level3">
+<h3 class="anchored" data-anchor-id="when-would-you-choose-l2-over-cosine-for-embeddings">7. When would you choose L2 over cosine for embeddings?</h3>
+<p><strong>Answer.</strong> When magnitude is meaningful — image features, sensor readings, or any vector where “how much” carries information. Also when the model is trained with an L2 objective. For normalised text embeddings the choice rarely matters, and cosine or inner product is the usual default.</p>
+<p><strong>Follow-up: “And what about the index?”</strong> L2 uses <code>vector_l2_ops</code>. On normalised data it ranks the same as cosine, so choose based on which index you already have or which is measurably faster on your hardware.</p>
+<p><strong>Trap.</strong> Saying L2 is “worse for text” without qualification. On unnormalised text vectors it is a different metric, not a broken one.</p>
+</section>
+<section id="how-do-you-handle-near-ties-and-quantisation-when-ranking" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-handle-near-ties-and-quantisation-when-ranking">8. How do you handle near-ties and quantisation when ranking?</h3>
+<p><strong>Answer.</strong> Retrieve a larger candidate set with the approximate index — for example <code>ef_search</code> well above <code>k</code> — and then re-rank those candidates using full-precision vectors. This recovers most of the accuracy lost to fp16 or int8 quantisation while keeping the index small and fast.</p>
+<p><strong>Follow-up: “How much does quantisation hurt cosine?”</strong> It depends on the data. Measure it: compare recall from the quantised index against exact search on a labelled sample rather than assuming a number.</p>
+<p><strong>Trap.</strong> Re-ranking with the same quantised vectors. Re-ranking only helps if the second pass uses more precision than the index did.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li><strong>Dot product = direction and length; cosine = direction only; L2 = straight-line distance.</strong></li>
+<li>On <strong>unit vectors</strong>, <code>‖a-b‖² = 2 - 2·cos</code>, so all three metrics rank identically.</li>
+<li><strong>Normalise at write and at query time</strong>, then inner product equals cosine and is cheaper.</li>
+<li>pgvector operators: <code>&lt;-&gt;</code> L2, <code>&lt;=&gt;</code> cosine distance, <code>&lt;#&gt;</code> negative inner product — all ascending, and each needs its matching operator class.</li>
+<li><strong>Magnitude is the silent bug.</strong> Unnormalised dot product ranks long vectors higher regardless of topic.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="pagination-link" aria-label="Embedding Models and Dimensions">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Embedding Models and Dimensions</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="pagination-link" aria-label="Vector Databases and ANN Indexes">
+        <span class="nav-page-text"><span class="chapter-title">Vector Databases and ANN Indexes</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Vector Databases and ANN Indexes – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-03-rag-engineering/08-postgresql-pgvector.html" rel="next">
+<link href="../phase-03-rag-engineering/06-similarity-metrics.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html"><span class="chapter-title">Vector Databases and ANN Indexes</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 3 — RAG Engineering</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html"><span class="chapter-title">Vector Databases and ANN Indexes</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Vector Databases and ANN Indexes</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> Exact search compares the query to every stored vector and gives perfect recall, but it costs <code>O(N · D)</code> per query and does not scale. <strong>Approximate nearest neighbour (ANN)</strong> indexes trade a little recall for a large speed gain. The three shapes you must know are <strong>flat</strong> (exact, no index), <strong>IVF</strong> (cluster the vectors into lists and probe only the closest few), and <strong>HNSW</strong> (a multi-layer graph you navigate greedily). IVF is tuned with <code>lists</code>/<code>probes</code>; HNSW with <code>M</code>, <code>ef_construction</code>, and <code>ef_search</code>.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>Suppose you have ten million chunks, each embedded at 1536 dimensions. A single query compares against every vector:</p>
+<pre class="text"><code>10,000,000 vectors × 1536 dimensions ≈ 15.4 billion multiply-adds per query</code></pre>
+<p>On a modern CPU that is roughly a second or more per query, before any network or LLM time. At 20 queries per second it is impossible. The same math in fp32 also holds about 61 GB of vectors in memory.</p>
+<p>You cannot make the arithmetic disappear. You can avoid doing all of it. That is the entire job of a <strong>vector index</strong>: find most of the true nearest neighbours while looking at a small fraction of the data.</p>
+<p>There is a second, sneakier problem: <strong>recall</strong>. An approximate index sometimes misses a true neighbour. If the missed neighbour was the one chunk containing the answer, the LLM never sees it and the answer is wrong — but the system reported success. So ANN is not a pure optimisation; it is an accuracy trade you must measure.</p>
+<p>Concrete failure: a team enables an HNSW index, sees query latency drop from 900 ms to 8 ms, and ships. They never measure recall. Their labelled evaluation set later shows that 15% of the time the correct chunk is no longer in the top 5, purely from the index’s default <code>ef_search</code>.</p>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Exact search / brute force</strong></td>
+<td>Compare the query to every vector. Perfect recall, linear cost.</td>
+</tr>
+<tr class="even">
+<td><strong>ANN</strong></td>
+<td>Approximate nearest neighbour: look at a subset and accept a small chance of missing a true neighbour.</td>
+</tr>
+<tr class="odd">
+<td><strong>Recall@k</strong></td>
+<td>Of the true top <code>k</code>, what fraction did the index return? <code>0.95</code> means it found 95%.</td>
+</tr>
+<tr class="even">
+<td><strong>Latency</strong></td>
+<td>Wall-clock time for one query. The number users feel.</td>
+</tr>
+<tr class="odd">
+<td><strong>Throughput</strong></td>
+<td>Queries per second the system can serve.</td>
+</tr>
+<tr class="even">
+<td><strong>Index</strong></td>
+<td>A data structure that avoids scanning every vector.</td>
+</tr>
+<tr class="odd">
+<td><strong>Flat index</strong></td>
+<td>No approximation; stores vectors for a fast vectorised scan. Exact but linear.</td>
+</tr>
+<tr class="even">
+<td><strong>IVF</strong></td>
+<td>Inverted file: cluster vectors into <code>lists</code>; at query time scan only the nearest <code>probes</code>.</td>
+</tr>
+<tr class="odd">
+<td><strong>Centroid</strong></td>
+<td>The centre of a cluster.</td>
+</tr>
+<tr class="even">
+<td><strong>Probe</strong></td>
+<td>One of the closest lists that IVF reads during a search.</td>
+</tr>
+<tr class="odd">
+<td><strong>HNSW</strong></td>
+<td>Hierarchical Navigable Small World: a multi-layer graph searched greedily.</td>
+</tr>
+<tr class="even">
+<td><strong>M</strong></td>
+<td>Max graph connections per node in HNSW. Controls memory and connectivity.</td>
+</tr>
+<tr class="odd">
+<td><strong>ef_construction</strong></td>
+<td>Candidate-list size while building the HNSW graph. Higher is better and slower to build.</td>
+</tr>
+<tr class="even">
+<td><strong>ef_search</strong></td>
+<td>Candidate-list size while querying HNSW. Higher is better recall and slower.</td>
+</tr>
+<tr class="odd">
+<td><strong>Quantisation</strong></td>
+<td>Storing vectors in fewer bits (fp16, int8, binary) or as compressed codes (PQ).</td>
+</tr>
+<tr class="even">
+<td><strong>PQ</strong></td>
+<td>Product quantisation: split the vector into sub-vectors and store a short code for each.</td>
+</tr>
+<tr class="odd">
+<td><strong>Build time</strong></td>
+<td>Time to construct or train the index. It scales with <code>N</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>Tombstone</strong></td>
+<td>A deleted marker. Many ANN indexes cannot truly remove a node, so they mark and skip it.</td>
+</tr>
+<tr class="odd">
+<td><strong>Rebuild</strong></td>
+<td>Reconstructing the index from current data to remove tombstones and re-cluster.</td>
+</tr>
+<tr class="even">
+<td><strong>Pre-filter / post-filter</strong></td>
+<td>Apply metadata filters before or after the vector search. Both have failure modes.</td>
+</tr>
+<tr class="odd">
+<td><strong>Recall/latency/memory trade-off</strong></td>
+<td>Improving one usually costs another. The core ANN conversation.</td>
+</tr>
+</tbody>
+</table>
+<p>Three facts to internalise:</p>
+<ul>
+<li><strong>Exact search is the ground truth.</strong> Every recall number is measured against it.</li>
+<li><strong>The index changes the answer.</strong> Results with and without an ANN index can legitimately differ.</li>
+<li><strong>Every ANN parameter moves a three-way dial:</strong> recall, latency, memory.</li>
+</ul>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Imagine a library. Exact search is walking every shelf and reading every book. A vector index is the card catalog: it tells you which shelf to visit, so you read a handful of books instead of all of them.</p>
+<p><strong>IVF</strong> builds that catalog by clustering. Ten thousand books become fifty sections. A query first finds the closest few section centres, then reads only those sections. Fewer sections read means faster but more risk of missing a relevant book that was filed next door.</p>
+<p><strong>HNSW</strong> builds a different structure: a graph with shortcuts. The top layer is a highway with a few stops. The middle layer has more. The bottom layer connects every node to its nearest neighbours. Search starts at the top, moves to a close-enough node, drops a layer, and repeats. It is the same trick as a skip list, applied to nearest-neighbour search.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    subgraph HNSW["HNSW: layered graph"]
+      L2["Layer 2 (sparse highway)"] --&gt; L1["Layer 1"]
+      L1 --&gt; L0["Layer 0 (all vectors, dense links)"]
+    end
+    Q["Query vector"] --&gt; E["Enter at top layer"]
+    E --&gt; G["Greedy walk toward closer nodes"]
+    G --&gt; D["Drop a layer, repeat"]
+    D --&gt; K["Collect top-k from layer 0"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>Here is the comparison that matters in interviews:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Flat (exact)</th>
+<th>IVF</th>
+<th>HNSW</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Recall</td>
+<td>100%</td>
+<td>Tunable (<code>probes</code>)</td>
+<td>Tunable (<code>ef_search</code>)</td>
+</tr>
+<tr class="even">
+<td>Query speed</td>
+<td>Slowest, linear</td>
+<td>Fast</td>
+<td>Fastest for a given recall</td>
+</tr>
+<tr class="odd">
+<td>Build</td>
+<td>Instant</td>
+<td>Fast, needs training data</td>
+<td>Slow, high memory</td>
+</tr>
+<tr class="even">
+<td>Memory</td>
+<td>Vectors only</td>
+<td>Vectors + small centroids</td>
+<td>Vectors + graph links</td>
+</tr>
+<tr class="odd">
+<td>Insert/update</td>
+<td>Trivial</td>
+<td>Easy</td>
+<td>Incremental, but costly at scale</td>
+</tr>
+<tr class="even">
+<td>Delete</td>
+<td>Trivial</td>
+<td>Trivial</td>
+<td>Tombstone, needs rebuild to reclaim</td>
+</tr>
+<tr class="odd">
+<td>Best for</td>
+<td>Small corpora, ground truth</td>
+<td>Huge, memory-limited, batch-built</td>
+<td>Low-latency production search</td>
+</tr>
+<tr class="even">
+<td>Filters</td>
+<td>Easy and exact</td>
+<td>Pre-filter can break the index</td>
+<td>Post-filter can lose results</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>Fix the metric and dimension.</strong> The index is built for one distance function and one dimension. Changing either means rebuilding.</li>
+<li><strong>Flat search.</strong> Compute the distance from the query to every vector, keep the best <code>k</code>. Perfect recall, <code>O(N·D)</code> cost. Vectorised libraries still make this usable up to roughly a million vectors.</li>
+<li><strong>IVF training.</strong> Run k-means on a sample of the data to produce <code>lists</code> centroids.</li>
+<li><strong>IVF assignment.</strong> Assign every vector to its nearest centroid. The inverted lists store the vector IDs in each cluster.</li>
+<li><strong>IVF search.</strong> Compute distance to all centroids, pick the <code>nprobe</code> nearest, and scan only those lists. More probes means more recall and more work.</li>
+<li><strong>HNSW build.</strong> Insert vectors one at a time. For each new node, descend the layers greedily to find an entry point, then connect the node to its <code>M</code> nearest neighbours, keeping a candidate list of size <code>ef_construction</code> while choosing those neighbours.</li>
+<li><strong>HNSW search.</strong> Start at the top layer’s entry point, greedily move to any neighbour closer to the query, drop to the next layer, and repeat. At layer 0, keep a candidate list of size <code>ef_search</code> and return its best <code>k</code>. Larger <code>ef_search</code> means more recall and more distance computations.</li>
+<li><strong>Quantise for memory.</strong> Store fp16 instead of fp32, or compress with product quantisation, or reduce to binary and re-rank. The index shrinks; recall drops slightly unless you re-rank with full-precision vectors.</li>
+<li><strong>Update.</strong> HNSW inserts are incremental but expensive (they rewire links). IVF inserts are cheap but degrade as the data drifts from the original centroids.</li>
+<li><strong>Delete.</strong> Many implementations tombstone the node: mark it deleted and skip it at query time. The graph still holds the dead node, so memory is not reclaimed until a rebuild.</li>
+<li><strong>Rebuild on a schedule.</strong> Re-training IVF after distribution drift, and rebuilding HNSW to purge tombstones, keeps recall from silently decaying.</li>
+</ol>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>Ground-truth search with numpy.</strong> Always keep this as the reference implementation.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> queries <span class="op">@</span> matrix.T                  <span class="co"># (n_queries, N)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>truth <span class="op">=</span> np.argsort(<span class="op">-</span>scores, axis<span class="op">=</span><span class="dv">1</span>)[:, :k]   <span class="co"># exact top-k</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Build and query an HNSW index with <code>hnswlib</code>.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hnswlib</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>index <span class="op">=</span> hnswlib.Index(space<span class="op">=</span><span class="st">"cosine"</span>, dim<span class="op">=</span><span class="dv">64</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>index.init_index(max_elements<span class="op">=</span><span class="dv">20_000</span>, ef_construction<span class="op">=</span><span class="dv">200</span>, M<span class="op">=</span><span class="dv">32</span>, random_seed<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>index.add_items(vectors)          <span class="co"># build the graph</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>index.set_ef(<span class="dv">50</span>)                  <span class="co"># search-time candidate list</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>labels, distances <span class="op">=</span> index.knn_query(query, k<span class="op">=</span><span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>M</code> and <code>ef_construction</code> are fixed at build; <code>ef_search</code> is set per query.</p>
+<p><strong>Delete and replace a point.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>index.mark_deleted(<span class="dv">3</span>)                           <span class="co"># tombstone</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>index.add_items(new_vector, ids<span class="op">=</span>np.array([<span class="dv">3</span>]))  <span class="co"># re-add with the same id replaces it</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Some stores let you overwrite by re-inserting the same id; others require a delete first. Check the store.</p>
+<p><strong>IVF with FAISS.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> faiss</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>quantizer <span class="op">=</span> faiss.IndexFlatIP(<span class="dv">64</span>)               <span class="co"># centroid store</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>index <span class="op">=</span> faiss.IndexIVFFlat(quantizer, <span class="dv">64</span>, <span class="dv">100</span>, faiss.METRIC_INNER_PRODUCT)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>index.cp.seed <span class="op">=</span> <span class="dv">0</span>                               <span class="co"># make the k-means split reproducible</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>index.train(vectors)                            <span class="co"># learn 100 centroids</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>index.add(vectors)                              <span class="co"># assign to lists</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>index.nprobe <span class="op">=</span> <span class="dv">10</span>                               <span class="co"># scan 10 nearest lists</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>distances, ids <span class="op">=</span> index.search(queries, <span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Training needs enough data to learn the centroids; FAISS warns if you give it too little.</p>
+<p><strong>A self-contained brute-force benchmark.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> recall_at_k(truth, got, k: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    hits <span class="op">=</span> [<span class="bu">len</span>(<span class="bu">set</span>(got[i]) <span class="op">&amp;</span> <span class="bu">set</span>(truth[i])) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(truth))]</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(h <span class="op">/</span> k <span class="cf">for</span> h <span class="kw">in</span> hits) <span class="op">/</span> <span class="bu">len</span>(truth)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Use this against exact search to produce a real recall number for any index.</p>
+<p><strong>Tune HNSW by rebuilding with different constants.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> M, ef_construction <span class="kw">in</span> [(<span class="dv">8</span>, <span class="dv">64</span>), (<span class="dv">16</span>, <span class="dv">200</span>), (<span class="dv">32</span>, <span class="dv">200</span>)]:</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> hnswlib.Index(space<span class="op">=</span><span class="st">"cosine"</span>, dim<span class="op">=</span><span class="dv">64</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    idx.init_index(max_elements<span class="op">=</span>N, M<span class="op">=</span>M, ef_construction<span class="op">=</span>ef_construction)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    idx.add_items(vectors)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>M</code> and <code>ef_construction</code> cannot be changed after the build; changing them means rebuilding.</p>
+<p><strong>Choosing a store.</strong> The API differs, but the trade-offs are stable:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Store</th>
+<th>Shape</th>
+<th>Strong when</th>
+<th>Watch out for</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>pgvector</td>
+<td>Postgres extension</td>
+<td>You already run Postgres and need joins, filters, ACID</td>
+<td>Index dimension limits; very large corpora</td>
+</tr>
+<tr class="even">
+<td>FAISS</td>
+<td>In-process library</td>
+<td>Batch search, embedded apps, full control</td>
+<td>You own persistence, replication, serving</td>
+</tr>
+<tr class="odd">
+<td>Qdrant / Weaviate / Milvus</td>
+<td>Dedicated service</td>
+<td>Distributed scale, rich filtering, managed ops</td>
+<td>Another system to run and keep in sync</td>
+</tr>
+<tr class="even">
+<td>Managed cloud (Pinecone and similar)</td>
+<td>Hosted service</td>
+<td>No ops team, elastic scale</td>
+<td>Cost, data residency, vendor lock-in</td>
+</tr>
+</tbody>
+</table>
+<p>The index concepts are the same in all of them: lists and probes, or <code>M</code> and <code>ef</code>.</p>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p>The numbers below come from small runs. The IVF-from-scratch demo uses 5,000 random 32-dimensional unit vectors and 100 queries; the HNSW and FAISS demos use 20,000 random 64-dimensional unit vectors and 200 queries. All use <code>k = 10</code>. The HNSW and FAISS demos fix <code>random_seed = 0</code>, so those numbers reproduce; Example 2’s IVF-from-scratch run did not fix a seed, so its numbers are illustrative. Random vectors are easier to separate than real embeddings, so treat the exact percentages as illustrative and the <strong>pattern</strong> as the lesson.</p>
+<p><strong>Example 1 — exact search is the ground truth.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> queries <span class="op">@</span> data.T</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>truth <span class="op">=</span> np.argsort(<span class="op">-</span>scores, axis<span class="op">=</span><span class="dv">1</span>)[:, :k]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>By definition, brute force has recall 1.0. Every approximate index below is scored against this list. Without this reference you cannot say whether an index is “good”.</p>
+<p><strong>Example 2 — IVF from scratch, and the cost of fewer probes.</strong> Build 10 or 50 clusters with k-means, then scan only the nearest <code>nprobe</code> lists:</p>
+<pre class="text"><code>nlist=10 nprobe= 1  avg_scanned=  499/5000  recall@10=0.289
+nlist=10 nprobe= 3  avg_scanned= 1498/5000  recall@10=0.634
+nlist=10 nprobe=10  avg_scanned= 5000/5000  recall@10=1.000
+
+nlist=50 nprobe= 1  avg_scanned=  101/5000  recall@10=0.176
+nlist=50 nprobe= 3  avg_scanned=  301/5000  recall@10=0.387
+nlist=50 nprobe=10  avg_scanned= 1003/5000  recall@10=0.702
+nlist=50 nprobe=50  avg_scanned= 5000/5000  recall@10=1.000</code></pre>
+<p>More lists means each list is smaller, so a single probe scans fewer vectors but risks missing the true neighbour. Probing all lists is exhaustive and defeats the purpose. The knob is <code>nprobe</code>.</p>
+<p><strong>Example 3 — the same idea with FAISS.</strong> Here 20,000 vectors are trained into 100 lists with a fixed seed, and <code>nprobe</code> is swept:</p>
+<pre class="text"><code>nlist=100 nprobe=  1  recall@10=0.100
+nlist=100 nprobe=  5  recall@10=0.310
+nlist=100 nprobe= 10  recall@10=0.458
+nlist=100 nprobe=100  recall@10=1.000</code></pre>
+<p>A single probe returns almost nothing on random data; probing all 100 lists equals exact search. Production sits somewhere in between, chosen by measuring.</p>
+<p><strong>Example 4 — HNSW build parameters.</strong> Build time and recall (at <code>ef_search=50</code>) as <code>M</code> and <code>ef_construction</code> change:</p>
+<pre class="text"><code>M= 8 ef_construction= 64   build=0.88s   recall@10=0.367
+M= 8 ef_construction=200   build=2.46s   recall@10=0.400
+M=16 ef_construction= 64   build=1.52s   recall@10=0.637
+M=16 ef_construction=200   build=2.96s   recall@10=0.679
+M=32 ef_construction= 64   build=1.62s   recall@10=0.825
+M=32 ef_construction=200   build=3.66s   recall@10=0.850</code></pre>
+<p><code>M</code> matters far more than <code>ef_construction</code> here. Doubling <code>M</code> from 8 to 32 roughly doubled recall; raising <code>ef_construction</code> from 64 to 200 added a few points but tripled build time. Build once, search forever, so spend on <code>M</code> first.</p>
+<p><strong>Example 5 — HNSW search parameters.</strong> With <code>M=16</code> and <code>ef_construction=200</code>, sweep <code>ef_search</code>:</p>
+<pre class="text"><code>ef_search= 10  recall@10=0.270  latency=0.0092 ms/query
+ef_search= 20  recall@10=0.417  latency=0.0236 ms/query
+ef_search= 40  recall@10=0.620  latency=0.0334 ms/query
+ef_search= 80  recall@10=0.787  latency=0.0621 ms/query
+ef_search=160  recall@10=0.929  latency=0.1301 ms/query
+ef_search=320  recall@10=0.988  latency=0.2125 ms/query</code></pre>
+<p>Recall rises steadily; latency rises too, but from microseconds. On this tiny dataset the whole cost is noise, but the shape is real: pick <code>ef_search</code> from a measured recall target, not from a default.</p>
+<p><strong>Example 6 — deletes, updates, and memory.</strong> Tombstoning removes a point from results while leaving it in the graph:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>index.mark_deleted(<span class="dv">3</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>labels, _ <span class="op">=</span> index.knn_query(query, k<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="bu">any</span>(<span class="dv">3</span> <span class="kw">in</span> row <span class="cf">for</span> row <span class="kw">in</span> labels)     <span class="co"># False — id 3 no longer returned</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>index.add_items(new_vector, ids<span class="op">=</span>np.array([<span class="dv">3</span>]))   <span class="co"># replace by re-adding id 3</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>index.get_current_count()           <span class="co"># 20000 — the id is reused, not duplicated</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Memory follows the graph size, not just the vector size. For one million vectors, the layer-0 links alone (<code>2 · M · 4</code> bytes per node) cost:</p>
+<pre class="text"><code>M= 8 -&gt; 0.06 GB      M=16 -&gt; 0.13 GB      M=32 -&gt; 0.26 GB      M=64 -&gt; 0.51 GB
+(plus raw vectors: 1.54 GB at dim 384 fp32, 6.14 GB at dim 1536 fp32)</code></pre>
+<p><code>M=64</code> makes the links alone approach the size of fp16 vectors at dim 384. Quantisation is how large deployments pay for it.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Measure recall against exact search.</strong> Build a labelled query set, run both, and report recall@k. An index without a recall number is a guess.</li>
+<li><strong>Tune <code>ef_search</code> before rebuilding <code>M</code>.</strong> <code>ef_search</code> is per-query and free to change; <code>M</code> requires a full rebuild. Exhaust the cheap knob first.</li>
+<li><strong>Stale IVF centroids decay quietly.</strong> Vectors inserted long after training drift away from the centroids and land in the wrong lists. Retrain on a schedule or when recall drops.</li>
+<li><strong>Tombstones leak memory and slow scans.</strong> HNSW deletes are markers. Rebuild periodically to reclaim space; vacuuming a large HNSW index can be slow.</li>
+<li><strong>Filtering is the hardest part.</strong> Post-filtering a top-100 ANN result can leave you with two rows if your filter matches 2% of data. Pre-filtering can break the graph traversal. Check what your store does and test with realistic filters.</li>
+<li><strong>The index changes results.</strong> Users who test before and after an index may see different answers. Document the switch and keep exact search available as a fallback for validation.</li>
+<li><strong>A flat index is right more often than people think.</strong> Up to a few hundred thousand vectors, a vectorised exact scan can be fast enough, simpler, and perfectly accurate.</li>
+<li><strong>Quantisation needs re-ranking.</strong> Binary or product-quantised vectors lose precision; retrieve a larger candidate set and re-score it with full vectors before returning.</li>
+<li><strong>Dimensions and metrics are baked in.</strong> A cosine HNSW index cannot answer an L2 query. Decide the metric once, at design time.</li>
+<li><strong>Build cost is real and can surprise you.</strong> HNSW builds scale with <code>N</code> and <code>M</code>, may need large <code>maintenance_work_mem</code>, and can block writes unless built concurrently.</li>
+<li><strong>Do not benchmark on random data and ship the defaults.</strong> Random vectors separate cleanly; real embeddings cluster. Recall on your data will usually be worse, so calibrate there.</li>
+<li><strong>Throughput ≠ latency.</strong> A single fast query does not mean the server survives a burst. Test concurrency, not just single-query timing.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="what-is-the-difference-between-exact-search-and-ann" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-exact-search-and-ann">1. What is the difference between exact search and ANN?</h3>
+<p><strong>Answer.</strong> Exact search compares the query to every stored vector and returns the true top <code>k</code> with recall 1.0, at <code>O(N·D)</code> cost. ANN builds an index that examines a small fraction of vectors, giving much lower latency at the cost of occasionally missing a true neighbour. The size of that miss is measured as recall@k.</p>
+<p><strong>Follow-up: “When is exact search acceptable?”</strong> For small corpora — roughly up to a few hundred thousand vectors — or when correctness matters more than milliseconds, such as an offline evaluation job.</p>
+<p><strong>Trap.</strong> Calling ANN “the same but faster”. Different results are the point of the trade; you must measure and accept them.</p>
+</section>
+<section id="explain-ivf.-what-do-lists-and-probes-control" class="level3">
+<h3 class="anchored" data-anchor-id="explain-ivf.-what-do-lists-and-probes-control">2. Explain IVF. What do <code>lists</code> and <code>probes</code> control?</h3>
+<p><strong>Answer.</strong> IVF runs k-means to split vectors into <code>lists</code> clusters. Each vector is assigned to its nearest centroid. At query time, the system finds the nearest <code>nprobe</code> centroids and scans only those lists. More lists means smaller lists and less work per probe; more probes means more recall and more work.</p>
+<p><strong>Follow-up: “How do you choose them?”</strong> Start around <code>lists ≈ rows / 1000</code> up to a million rows and <code>sqrt(rows)</code> above that, then set <code>probes</code> by measuring recall. Both are empirical.</p>
+<p><strong>Trap.</strong> Creating an IVF index before the table has data. The centroids are trained from existing rows; too little data gives poor clusters and bad recall.</p>
+</section>
+<section id="explain-hnsw.-what-do-m-ef_construction-and-ef_search-control" class="level3">
+<h3 class="anchored" data-anchor-id="explain-hnsw.-what-do-m-ef_construction-and-ef_search-control">3. Explain HNSW. What do <code>M</code>, <code>ef_construction</code>, and <code>ef_search</code> control?</h3>
+<p><strong>Answer.</strong> HNSW is a multi-layer graph. Layer 0 contains every vector; upper layers are sparser shortcuts. A query descends greedily, layer by layer. <code>M</code> is the maximum connections per node and controls graph connectivity, memory, and recall. <code>ef_construction</code> is the candidate-list size during build, trading build time for graph quality. <code>ef_search</code> is the candidate-list size during a query, trading latency for recall.</p>
+<p><strong>Follow-up: “Which do you tune first?”</strong> <code>ef_search</code>, because it is per-query and needs no rebuild. Change <code>M</code> only if you cannot reach your recall target, since it requires rebuilding.</p>
+<p><strong>Trap.</strong> Confusing <code>ef_construction</code> with <code>ef_search</code>. One is build-time and permanent; the other is query-time and adjustable.</p>
+</section>
+<section id="why-does-a-vector-index-sometimes-return-fewer-than-k-results" class="level3">
+<h3 class="anchored" data-anchor-id="why-does-a-vector-index-sometimes-return-fewer-than-k-results">4. Why does a vector index sometimes return fewer than <code>k</code> results?</h3>
+<p><strong>Answer.</strong> Several reasons. The candidate list (<code>ef_search</code> for HNSW, <code>probes</code> for IVF) may be too small. Filtering is applied after the index scan, so rows that fail the filter are discarded. Deleted rows may still occupy candidate slots. And zero or null vectors are not indexed for cosine distance.</p>
+<p><strong>Follow-up: “How do you fix it?”</strong> Increase <code>ef_search</code> or <code>probes</code>, enable iterative index scans if the store supports them, use partial or partitioned indexes for common filters, and keep the index free of tombstones via rebuilds.</p>
+<p><strong>Trap.</strong> Assuming the index is broken. Fewer results is often the documented interaction between a small candidate list and a selective filter.</p>
+</section>
+<section id="how-does-an-ann-index-handle-deletes-and-updates" class="level3">
+<h3 class="anchored" data-anchor-id="how-does-an-ann-index-handle-deletes-and-updates">5. How does an ANN index handle deletes and updates?</h3>
+<p><strong>Answer.</strong> Flat and IVF stores can usually remove or update a vector directly. HNSW typically cannot remove a node cleanly, because other nodes link to it, so it tombstones the node: mark it deleted and skip it during traversal. Updates are often delete-plus-insert. Over time tombstones waste memory and slow scans, so production systems rebuild the index periodically.</p>
+<p><strong>Follow-up: “What does a rebuild cost?”</strong> Time proportional to the corpus and expensive for HNSW. Schedule it during low traffic, build the new index alongside the old, and switch when it is ready.</p>
+<p><strong>Trap.</strong> Assuming deletes free memory immediately. They often do not until a rebuild.</p>
+</section>
+<section id="how-do-metadata-filters-interact-with-vector-search" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-metadata-filters-interact-with-vector-search">6. How do metadata filters interact with vector search?</h3>
+<p><strong>Answer.</strong> Post-filtering runs the ANN search first and then applies the filter, which can leave far fewer than <code>k</code> rows when the filter is selective. Pre-filtering applies the filter first and then searches, which is accurate but can be slow and may prevent the index from being used. Many stores offer a middle path with iterative scans that keep pulling candidates until enough pass the filter.</p>
+<p><strong>Follow-up: “What is the practical fix?”</strong> Use a B-tree index on the filter column for highly selective filters, partial indexes for common filter values, and partitioning when there are many tenants. Then measure.</p>
+<p><strong>Trap.</strong> Assuming the vector index alone is enough. A <code>WHERE tenant_id = 7</code> on a shared index can destroy both recall and latency.</p>
+</section>
+<section id="what-is-quantisation-and-when-do-you-use-it" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-quantisation-and-when-do-you-use-it">7. What is quantisation, and when do you use it?</h3>
+<p><strong>Answer.</strong> Quantisation stores vectors with less precision: fp16 halves the bytes, int8 cuts them to a quarter, and product quantisation or binary codes compress much further. It shrinks memory and can speed up distance calculations. The price is accuracy, so you usually retrieve a larger candidate list and re-rank it with full-precision vectors.</p>
+<p><strong>Follow-up: “Which quantisation should I pick?”</strong> Start with fp16, which is nearly free in quality. Move to int8 or binary only when memory forces it, and measure recall at each step.</p>
+<p><strong>Trap.</strong> Quantising aggressively and re-ranking with the same quantised vectors. Re-ranking only recovers accuracy when the second pass uses higher precision.</p>
+</section>
+<section id="how-do-you-choose-between-pgvector-faiss-and-a-dedicated-vector-database" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-choose-between-pgvector-faiss-and-a-dedicated-vector-database">8. How do you choose between pgvector, FAISS, and a dedicated vector database?</h3>
+<p><strong>Answer.</strong> pgvector keeps vectors next to relational data, so filtering, joins, and transactions come for free; it is the right default when you already run Postgres and your scale is moderate. FAISS is a library, not a service: excellent for batch or embedded search, but you own persistence, replication, and serving. Dedicated vector databases add distributed sharding, advanced filtering, and operational tooling, at the cost of another system to run and keep consistent.</p>
+<p><strong>Follow-up: “What tips the decision?”</strong> Whether you need transactional consistency with relational data, how many vectors you have, whether you need distributed scale, and how much operational budget you have.</p>
+<p><strong>Trap.</strong> Choosing a dedicated vector database by default and then rebuilding joins and consistency in the application layer. Also the reverse: forcing tens of billions of vectors into one Postgres instance.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li><strong>Exact search is the ground truth</strong>; ANN trades recall for speed, and recall must be measured.</li>
+<li><strong>IVF = cluster and probe</strong> (<code>lists</code>, <code>probes</code>); <strong>HNSW = layered graph</strong> (<code>M</code>, <code>ef_construction</code>, <code>ef_search</code>).</li>
+<li><strong><code>M</code> and <code>ef_construction</code> need a rebuild; <code>ef_search</code> is per-query.</strong> Tune <code>ef_search</code> first.</li>
+<li><strong>Deletes are often tombstones</strong> that leak memory until a rebuild.</li>
+<li><strong>Filtering is the hard part</strong> — post-filtering loses results, pre-filtering can break traversal.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="pagination-link" aria-label="Similarity Metrics">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Similarity Metrics</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="pagination-link" aria-label="PostgreSQL pgvector">
+        <span class="nav-page-text"><span class="chapter-title">PostgreSQL pgvector</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

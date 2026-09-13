@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Embedding Models and Dimensions – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-03-rag-engineering/06-similarity-metrics.html" rel="next">
+<link href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html"><span class="chapter-title">Embedding Models and Dimensions</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 3 — RAG Engineering</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Embedding Models and Dimensions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html"><span class="chapter-title">Embedding Models and Dimensions</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Embedding Models and Dimensions</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> An embedding model is a <strong>bi-encoder</strong>: it reads one piece of text on its own and returns a single fixed-length dense vector. The <strong>dimension</strong> is the number of floats in that vector, and it fixes the size, cost, and speed of the whole vector index. Every model has its own vector space and its own maximum input length, so a query and the documents must always be embedded by the same model, and long text is silently truncated.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>RAG needs to answer one question over and over: <em>which stored chunk is most related to this user question?</em> You cannot compare two pieces of text directly, so you convert each into a vector of numbers and compare the numbers.</p>
+<p>That conversion is the job of an <strong>embedding model</strong>. It is a separate model from the chat LLM. It is usually small, cheap, and runs once at indexing time plus once per query.</p>
+<p>Two teams get burned by the same mistakes:</p>
+<ul>
+<li><strong>Model swap without re-indexing.</strong> A team changes from <code>all-MiniLM-L6-v2</code> to <code>bge-base-en-v1.5</code> for “better quality” and only changes the query side. Both models return 384- and 768-number vectors that look fine, but they live in unrelated coordinate systems. Retrieval now returns plausible-looking garbage, and nothing raises an error.</li>
+<li><strong>Silent truncation.</strong> <code>all-MiniLM-L6-v2</code> reads at most <strong>256 tokens</strong>. A team feeds it a 2,000-token chunk. The model does not complain — it embeds only the first part, and the rest of the chunk is invisible to search.</li>
+</ul>
+<p>There is also a budget problem. Storing one vector is cheap; storing ten million is not. The dimension decides the bill:</p>
+<pre class="text"><code>1,000,000 chunks, single-precision (4 bytes per float)
+  dim= 384 -&gt;  1.54 GB
+  dim=1536 -&gt;  6.14 GB
+  dim=3072 -&gt; 12.29 GB</code></pre>
+<p>Choosing an embedding model is therefore a design decision with a price tag, not a detail.</p>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Embedding model</strong></td>
+<td>A model that turns text into a dense numeric vector for search and clustering.</td>
+</tr>
+<tr class="even">
+<td><strong>Bi-encoder</strong></td>
+<td>An encoder that reads each text <strong>alone</strong> and produces its vector. Fast enough to run over a whole corpus.</td>
+</tr>
+<tr class="odd">
+<td><strong>Cross-encoder</strong></td>
+<td>A model that reads a query and a document <strong>together</strong> and scores the pair. More accurate, far slower; used only to re-rank a short list.</td>
+</tr>
+<tr class="even">
+<td><strong>Encoder</strong></td>
+<td>The transformer half that reads text and produces hidden states, which are then pooled into one vector.</td>
+</tr>
+<tr class="odd">
+<td><strong>Dimension</strong></td>
+<td>How many floats are in the vector. <code>384</code>, <code>768</code>, <code>1536</code>, <code>3072</code>. Written <code>D</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>Pooling</strong></td>
+<td>Turning many token vectors into one sentence vector. Common ways: mean pooling, CLS-token pooling, max pooling.</td>
+</tr>
+<tr class="odd">
+<td><strong>Normalisation</strong></td>
+<td>Scaling a vector to length 1 so that only direction matters. Length is called the <strong>norm</strong>.</td>
+</tr>
+<tr class="even">
+<td><strong>Norm</strong></td>
+<td><code>sqrt(sum(x[i]**2))</code>. The length of the vector.</td>
+</tr>
+<tr class="odd">
+<td><strong>Max sequence length</strong></td>
+<td>The largest number of tokens the model will read. Extra tokens are dropped without warning.</td>
+</tr>
+<tr class="even">
+<td><strong>Token</strong></td>
+<td>A chunk of text, roughly a word piece. <code>"embedding"</code> might be 2–3 tokens.</td>
+</tr>
+<tr class="odd">
+<td><strong>Truncation</strong></td>
+<td>Cutting input down to the max sequence length. Usually silent.</td>
+</tr>
+<tr class="even">
+<td><strong>Multilingual model</strong></td>
+<td>A model trained on many languages, so one index can serve them all.</td>
+</tr>
+<tr class="odd">
+<td><strong>Instruction-prefixed model</strong></td>
+<td>A model that expects a task prefix such as <code>"query: "</code> or <code>"passage: "</code> before the text.</td>
+</tr>
+<tr class="even">
+<td><strong>Matryoshka / MRL</strong></td>
+<td>A model trained so that the first <code>k</code> dimensions are themselves a usable embedding, letting you store fewer floats.</td>
+</tr>
+<tr class="odd">
+<td><strong>Quantisation</strong></td>
+<td>Storing each float in fewer bits (fp16, int8, binary) to shrink the index.</td>
+</tr>
+<tr class="even">
+<td><strong>Vector space</strong></td>
+<td>The coordinate system a model’s vectors live in. Two models have different spaces.</td>
+</tr>
+<tr class="odd">
+<td><strong>Latency</strong></td>
+<td>How long one embedding call takes. At query time this is on the critical path.</td>
+</tr>
+<tr class="even">
+<td><strong>Throughput</strong></td>
+<td>How many texts per second the model can embed. It drives indexing time.</td>
+</tr>
+</tbody>
+</table>
+<p>Two ideas cause most mistakes, so pin them down now:</p>
+<ul>
+<li><strong>A model defines its own space.</strong> Vectors from two models are not comparable, even if both have the same dimension.</li>
+<li><strong>A model defines its own limit.</strong> Text beyond the max sequence length is dropped, not rejected.</li>
+</ul>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Think of each embedding model as a <strong>language</strong>. English and French both have words, but an English sentence and a French sentence do not line up word for word. Two embedding models are the same: <code>all-MiniLM-L6-v2</code> vectors and <code>bge-base</code> vectors both look like lists of floats, but they are different languages. You may only compare within one language.</p>
+<p>Now think of the dimension as the <strong>size of the fingerprint</strong>. A 384-number fingerprint can still tell cats from markets, but two very similar documents get fingerprints that overlap. A 3072-number fingerprint can separate them more finely — at four to eight times the storage.</p>
+<p>A bi-encoder works like this:</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    Q["Query text"] --&gt; T1["Tokenizer"]
+    D["Document chunk"] --&gt; T2["Tokenizer"]
+    T1 --&gt; E1["Same encoder&lt;br/&gt;transformer layers"]
+    T2 --&gt; E2["Same encoder&lt;br/&gt;transformer layers"]
+    E1 --&gt; P1["Pool to one vector"]
+    E2 --&gt; P2["Pool to one vector"]
+    P1 --&gt; N1["Normalise (optional)"]
+    P2 --&gt; N2["Normalise (optional)"]
+    N1 --&gt; S["Same vector space&lt;br/&gt;compare with cosine / dot"]
+    N2 --&gt; S
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The two sides never meet until comparison time. That is what makes a bi-encoder cheap: every document is embedded <strong>once</strong>, offline, and a query only needs one forward pass.</p>
+<p>Here is a comparison of common retrieval models. Dimension and max length are from each model’s published config:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Model</th>
+<th>Dimension</th>
+<th>Max tokens</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>sentence-transformers/all-MiniLM-L6-v2</code></td>
+<td>384</td>
+<td>256</td>
+<td>Small, fast, great prototype default. Already normalises its output.</td>
+</tr>
+<tr class="even">
+<td><code>sentence-transformers/all-mpnet-base-v2</code></td>
+<td>768</td>
+<td>384</td>
+<td>Stronger general English sentence model.</td>
+</tr>
+<tr class="odd">
+<td><code>BAAI/bge-small-en-v1.5</code></td>
+<td>384</td>
+<td>512</td>
+<td>Retrieval-trained, instruction prefix optional.</td>
+</tr>
+<tr class="even">
+<td><code>BAAI/bge-base-en-v1.5</code></td>
+<td>768</td>
+<td>512</td>
+<td>Common production middle ground.</td>
+</tr>
+<tr class="odd">
+<td><code>BAAI/bge-large-en-v1.5</code></td>
+<td>1024</td>
+<td>512</td>
+<td>Higher quality, larger index.</td>
+</tr>
+<tr class="even">
+<td><code>intfloat/e5-base-v2</code></td>
+<td>768</td>
+<td>512</td>
+<td>Needs <code>"query: "</code> / <code>"passage: "</code> prefixes.</td>
+</tr>
+<tr class="odd">
+<td><code>intfloat/e5-large-v2</code></td>
+<td>1024</td>
+<td>512</td>
+<td>Same, larger.</td>
+</tr>
+<tr class="even">
+<td><code>mixedbread-ai/mxbai-embed-large-v1</code></td>
+<td>1024</td>
+<td>512</td>
+<td>Strong open retrieval model.</td>
+</tr>
+<tr class="odd">
+<td><code>nomic-ai/nomic-embed-text-v1.5</code></td>
+<td>768</td>
+<td>8192</td>
+<td>Matryoshka: truncatable to fewer dimensions.</td>
+</tr>
+<tr class="even">
+<td>OpenAI <code>text-embedding-3-small</code></td>
+<td>1536</td>
+<td>8191</td>
+<td>Hosted, cheap, supports the <code>dimensions</code> parameter.</td>
+</tr>
+<tr class="odd">
+<td>OpenAI <code>text-embedding-3-large</code></td>
+<td>3072</td>
+<td>8191</td>
+<td>Hosted, highest quality; supports shortening.</td>
+</tr>
+<tr class="even">
+<td>Cohere <code>embed-english-v3.0</code></td>
+<td>1024</td>
+<td>512</td>
+<td>Hosted; uses <code>input_type</code> instead of text prefixes.</td>
+</tr>
+</tbody>
+</table>
+<p>Bigger is not automatically better. A small model on a small, clean corpus often beats a large model plus bad chunking.</p>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>Tokenise.</strong> A tokeniser splits the text into sub-word tokens and maps each to an integer ID. This is the same tokeniser the encoder was trained with.</li>
+<li><strong>Add special tokens.</strong> Encoder models wrap the input with markers such as <code>[CLS]</code> and <code>[SEP]</code>, which the pooling step may use.</li>
+<li><strong>Cut to the limit.</strong> If the token count exceeds the max sequence length, extra tokens are dropped. This is truncation, and it is silent.</li>
+<li><strong>Run the encoder.</strong> A stack of transformer layers mixes the tokens with self-attention. The output is one vector <em>per token</em>, not per sentence.</li>
+<li><strong>Pool.</strong> Pooling reduces <code>[tokens, hidden]</code> to one <code>[hidden]</code> vector. Mean pooling averages the token vectors; CLS pooling takes the first token’s vector.</li>
+<li><strong>Normalise (optional).</strong> Divide by the norm so the vector has length 1. Then dot product equals cosine similarity and the index can be faster.</li>
+<li><strong>Return one vector.</strong> Its length is the model’s dimension, e.g.&nbsp;384 or 1536. That number is fixed by the model, not by your input.</li>
+<li><strong>Store it.</strong> The vector goes into a vector column or index, together with the model name and version that produced it.</li>
+<li><strong>Repeat for the query.</strong> At query time the same model embeds the user question into the same space.</li>
+<li><strong>Compare.</strong> A similarity metric ranks stored vectors against the query vector. Because scores are comparable, the top <code>k</code> are retrieved and put into the prompt.</li>
+</ol>
+<p>Two optional refinements sit inside this loop:</p>
+<ul>
+<li><strong>Instruction prefixes.</strong> Some models were trained with a fixed prefix such as <code>"query: "</code> or <code>"passage: "</code>. Adding it at the right time shifts the vector into the task-specific region the model expects.</li>
+<li><strong>Matryoshka truncation.</strong> Matryoshka Representation Learning trains the model so the first <code>k</code> dimensions carry a usable embedding. You may store <code>k</code> floats instead of <code>D</code>. You must re-normalise after truncating.</li>
+</ul>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>Encode text with a local model.</strong> One call returns one vector per input.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sentence_transformers <span class="im">import</span> SentenceTransformer</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> SentenceTransformer(<span class="st">"sentence-transformers/all-MiniLM-L6-v2"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>vectors <span class="op">=</span> model.encode([<span class="st">"a cat sat on the mat"</span>, <span class="st">"a dog slept on the rug"</span>])</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># shape (2, 384) — one 384-float vector per sentence</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Read the model’s fixed facts.</strong> Dimension and max length are properties you must know.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>model.get_embedding_dimension()   <span class="co"># 384</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>model.max_seq_length              <span class="co"># 256</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Normalise embeddings.</strong> Normalisation is what lets you use dot product as cosine.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>vecs <span class="op">=</span> model.encode(sentences, normalize_embeddings<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>norms <span class="op">=</span> np.linalg.norm(vecs, axis<span class="op">=</span><span class="dv">1</span>)   <span class="co"># [1.0, 1.0, ...]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Add an instruction prefix when the model expects one.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>query_vec <span class="op">=</span> model.encode(<span class="st">"query: how do refunds work?"</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>doc_vecs <span class="op">=</span> model.encode([<span class="st">"passage: "</span> <span class="op">+</span> c <span class="cf">for</span> c <span class="kw">in</span> chunks])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>E5 was trained with these exact prefixes. Omitting them costs accuracy without raising an error. <code>nomic-embed-text-v1.5</code> also expects task prefixes — <code>search_query:</code> for queries and <code>search_document:</code> for documents — and if you truncate it to a Matryoshka dimension you must layer-normalise first, then truncate, then normalise again.</p>
+<p><strong>Shorten a hosted embedding with the <code>dimensions</code> parameter.</strong> OpenAI’s <code>text-embedding-3</code> models support this.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>resp <span class="op">=</span> client.embeddings.create(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">"text-embedding-3-large"</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">input</span><span class="op">=</span><span class="st">"a cat sat on the mat"</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    dimensions<span class="op">=</span><span class="dv">1024</span>,          <span class="co"># the model's trained shortening, 3072 -&gt; 1024</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>These models were trained with Matryoshka Representation Learning, so <code>dimensions</code> performs the model’s own trained shortening and the vector that comes back is already unit length. Slicing <code>v[:k]</code> yourself is the client-side equivalent, and that manual step does need re-normalisation.</p>
+<p><strong>Do the dimension arithmetic yourself.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> index_bytes(n_vectors: <span class="bu">int</span>, dim: <span class="bu">int</span>, bytes_per_float: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> n_vectors <span class="op">*</span> dim <span class="op">*</span> bytes_per_float <span class="op">/</span> <span class="fl">1e9</span>   <span class="co"># GB</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>index_bytes(<span class="dv">1_000_000</span>, <span class="dv">384</span>, <span class="dv">4</span>)     <span class="co"># 1.536 GB</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>index_bytes(<span class="dv">1_000_000</span>, <span class="dv">3072</span>, <span class="dv">4</span>)    <span class="co"># 12.288 GB</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>index_bytes(<span class="dv">1_000_000</span>, <span class="dv">3072</span>, <span class="dv">2</span>)    <span class="co"># 6.144 GB in fp16</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Declare the dimension in the database.</strong> The column pins the dimension so a wrong-size vector is rejected.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> chunks (</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">id</span>          bigserial <span class="kw">PRIMARY</span> <span class="kw">KEY</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    content     text <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    embedding   vector(<span class="dv">384</span>) <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    model_name  text <span class="kw">NOT</span> <span class="kw">NULL</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Record which model made each vector.</strong> Without this, mixes are invisible.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">INSERT</span> <span class="kw">INTO</span> chunks (content, embedding, model_name)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">VALUES</span> (<span class="ch">:content</span>, <span class="ch">:vector</span>, <span class="st">'all-MiniLM-L6-v2@1.0'</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Truncate to a Matryoshka dimension, then re-normalise.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> truncate_and_normalise(v: np.ndarray, k: <span class="bu">int</span>) <span class="op">-&gt;</span> np.ndarray:</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> v[:k]</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> t <span class="op">/</span> np.linalg.norm(t)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — the output shape is fixed by the model, not the text.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sentence_transformers <span class="im">import</span> SentenceTransformer</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> SentenceTransformer(<span class="st">"sentence-transformers/all-MiniLM-L6-v2"</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> model.encode([<span class="st">"a cat sat on the mat"</span>, <span class="st">"a dog slept on the rug"</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"the stock market fell sharply"</span>, <span class="st">"the S&amp;P 500 dropped today"</span>])</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>v.shape                 <span class="co"># (4, 384)</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>model.max_seq_length    <span class="co"># 256</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Four sentences of different lengths all become 384 numbers. A five-word sentence and a fifty-word sentence produce the same dimension.</p>
+<p><strong>Example 2 — some models normalise for you.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>sentences <span class="op">=</span> [<span class="st">"a cat sat on the mat"</span>, <span class="st">"a dog slept on the rug"</span>,</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>             <span class="st">"the stock market fell sharply"</span>, <span class="st">"the S&amp;P 500 dropped today"</span>]</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>raw <span class="op">=</span> model.encode(sentences, normalize_embeddings<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>np.linalg.norm(raw, axis<span class="op">=</span><span class="dv">1</span>)     <span class="co"># [1. 1. 1. 1.] still unit length</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>all-MiniLM-L6-v2</code> ships with a <code>Normalize</code> step inside its pipeline (<code>Transformer → Pooling → Normalize</code>). So its output is already unit length, and <code>normalize_embeddings=True</code> is harmless. Check <code>model</code> rather than assuming; models that do not normalise will show norms above 1.</p>
+<p><strong>Example 3 — truncation is silent.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>long_text <span class="op">=</span> <span class="st">"alpha "</span> <span class="op">*</span> <span class="dv">400</span>          <span class="co"># far more than 256 tokens</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> model.encode([long_text], normalize_embeddings<span class="op">=</span><span class="va">True</span>)[<span class="dv">0</span>]</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> model.encode([<span class="st">"alpha"</span>], normalize_embeddings<span class="op">=</span><span class="va">True</span>)[<span class="dv">0</span>]</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="bu">float</span>(a <span class="op">@</span> b)                        <span class="co"># 0.371</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The call succeeds. There is no error and no warning. The vector describes only the beginning of the text, so the tail of a long chunk can never match a query.</p>
+<p><strong>Example 4 — dimension drives the storage bill.</strong> One million chunks, measured in gigabytes:</p>
+<pre class="text"><code>dim= 384, int8  0.38 GB     dim=1536, int8  1.54 GB     dim=3072, int8  3.07 GB
+dim= 384, fp16  0.77 GB     dim=1536, fp16  3.07 GB     dim=3072, fp16  6.14 GB
+dim= 384, fp32  1.54 GB     dim=1536, fp32  6.14 GB     dim=3072, fp32 12.29 GB</code></pre>
+<p>Moving from 384 to 3072 multiplies storage by eight. That is the real cost of “just use a bigger model.”</p>
+<p><strong>Example 5 — truncating dimensions without re-normalising changes the score.</strong> Using real vectors for <code>"a cat sat on the mat"</code> and <code>"a dog slept on the rug"</code>:</p>
+<pre class="text"><code>full 384 dims:  cosine = 0.4794
+keep  64 dims:  raw dot = 0.0971   cosine after re-normalising = 0.5065
+keep 128 dims:  raw dot = 0.1523   cosine after re-normalising = 0.4764
+keep 192 dims:  raw dot = 0.2264   cosine after re-normalising = 0.4729</code></pre>
+<p>If you keep a prefix and forget to re-normalise, the dot product shrinks with the prefix length. The score stops being comparable across documents of different stored dimensions.</p>
+<p><strong>Example 6 — choosing a model is a small decision tree.</strong></p>
+<pre class="text"><code>Prototype or small corpus (&lt; 100k chunks)?      -&gt; all-MiniLM-L6-v2 (384, fast, free)
+English production, self-hosted?                -&gt; bge-base-en-v1.5 (768, 512 tokens)
+Long documents or many languages, self-hosted?  -&gt; nomic-embed-text-v1.5 (768, 8192)
+No ops burden, budget available?                -&gt; text-embedding-3-small (1536)
+Need the best hosted quality?                   -&gt; text-embedding-3-large (3072)
+Multilingual at scale with a vendor contract?   -&gt; Cohere embed (1024)</code></pre>
+<p>Whichever you pick, write the name and version next to the index and never mix two models in one column.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Version the embedding model with the index.</strong> Store <code>model_name</code> and a version on every row. A model change means a full re-embed; without the label, you cannot tell when that happened.</li>
+<li><strong>Never mix models in one search.</strong> Two models can share a dimension and still have unrelated spaces. The failure is silent: you get plausible neighbours that are simply wrong.</li>
+<li><strong>Budget for the dimension.</strong> 384 dims is 1.54 GB per million chunks in fp32; 3072 is 12.29 GB. Half-precision or int8 cuts that by 2–4× and is often nearly free in quality.</li>
+<li><strong>Set chunk size below the max tokens.</strong> <code>all-MiniLM-L6-v2</code> reads 256 tokens, so 512-token chunks lose half their content silently. Either chunk smaller or pick a model with a larger limit.</li>
+<li><strong>Count tokens, not characters.</strong> A rough English rule is one token per four characters, but code, URLs, and non-Latin scripts differ. Measure with the model’s own tokeniser.</li>
+<li><strong>Re-normalise after any truncation.</strong> Matryoshka prefix vectors are not unit length. Skipping normalisation makes scores incomparable across dimensions.</li>
+<li><strong>Respect instruction prefixes.</strong> E5-style models expect <code>"query: "</code> and <code>"passage: "</code>; BGE models may expect <code>"Represent this sentence for searching relevant passages: "</code>. Wrong or missing prefixes quietly lower recall.</li>
+<li><strong>Query latency is on the critical path.</strong> A 3072-dim model may add tens of milliseconds per query versus a 384-dim model. Index size and query cost both grow with dimension.</li>
+<li><strong>Re-embedding is expensive and disruptive.</strong> Plan for a parallel index: build the new one, validate it, then switch traffic. Do not overwrite the live vectors in place.</li>
+<li><strong>Do not embed empty or whitespace-only chunks.</strong> Zero vectors are not useful and some stores refuse to index them for cosine search.</li>
+<li><strong>Evaluate the model on your data, not a leaderboard.</strong> A benchmark win does not guarantee a win on your documents. Measure Recall@K on a labelled sample before switching.</li>
+<li><strong>The chat LLM and the embedding model are independent choices.</strong> A better generator cannot fix retrieval that never found the right chunk.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="what-is-a-bi-encoder-and-how-does-it-differ-from-a-cross-encoder" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-a-bi-encoder-and-how-does-it-differ-from-a-cross-encoder">1. What is a bi-encoder, and how does it differ from a cross-encoder?</h3>
+<p><strong>Answer.</strong> A bi-encoder reads each text separately and returns one vector per text. Because documents are embedded once, a bi-encoder can serve a corpus of millions at low latency. A cross-encoder reads a query and a document together and outputs a relevance score. It sees both sides at once and is usually more accurate, but it must run once per candidate pair, so it is used only to re-rank a shortlist. RAG uses a bi-encoder for retrieval and often a cross-encoder for re-ranking.</p>
+<p><strong>Follow-up: “Why not use a cross-encoder for everything?”</strong> Cost. Scoring a million documents per query is a million forward passes. A bi-encoder reduces that to one lookup over precomputed vectors.</p>
+<p><strong>Trap.</strong> Saying a bi-encoder is “less accurate, so avoid it.” It is the only option that scales to a full corpus; the cross-encoder is a second stage, not a replacement.</p>
+</section>
+<section id="what-does-the-dimension-of-an-embedding-actually-control" class="level3">
+<h3 class="anchored" data-anchor-id="what-does-the-dimension-of-an-embedding-actually-control">2. What does the dimension of an embedding actually control?</h3>
+<p><strong>Answer.</strong> The dimension is how many floats represent each text. It controls how much detail the vector can encode, how much memory the index uses, and how much compute each comparison costs. Four hundred and upward is typical; 384 for small models, 1536 to 3072 for large hosted models. The dimension is fixed by the model and must match the database column exactly.</p>
+<p><strong>Follow-up: “Does a larger dimension always retrieve better?”</strong> No.&nbsp;It costs more and can add noise if the model is small or the data is thin. Model quality and chunking matter more than dimension alone.</p>
+<p><strong>Trap.</strong> Assuming dimension and quality are the same axis. They are related but separate; a well-trained 384-dim model can beat a poorly used 1536-dim one.</p>
+</section>
+<section id="why-can-you-not-compare-vectors-from-two-different-embedding-models" class="level3">
+<h3 class="anchored" data-anchor-id="why-can-you-not-compare-vectors-from-two-different-embedding-models">3. Why can you not compare vectors from two different embedding models?</h3>
+<p><strong>Answer.</strong> Each model learns its own coordinate system during training. The same direction means different things in different spaces, so a vector from model A has no defined relationship to a vector from model B. Comparing them returns near-random neighbours with no error. Dimension does not help — two 768-dim models are still incompatible.</p>
+<p><strong>Follow-up: “What if we re-embed only new documents?”</strong> Then old and new vectors come from different models and the index is poisoned. You must re-embed the entire corpus or keep two separate columns and two separate indexes.</p>
+<p><strong>Trap.</strong> Believing matching dimensions make vectors comparable. Dimensions are sizes, not namespaces.</p>
+</section>
+<section id="what-happens-when-the-input-is-longer-than-the-models-max-sequence-length" class="level3">
+<h3 class="anchored" data-anchor-id="what-happens-when-the-input-is-longer-than-the-models-max-sequence-length">4. What happens when the input is longer than the model’s max sequence length?</h3>
+<p><strong>Answer.</strong> The tokeniser truncates it to the limit and the model embeds only that part. There is no error and usually no warning. The tail of the text is invisible to retrieval, so a query about content near the end of a long chunk will never match it.</p>
+<p><strong>Follow-up: “How do you handle long documents?”</strong> Chunk below the limit so no content is dropped, or choose a model with a larger limit such as <code>nomic-embed-text-v1.5</code> at 8192 tokens. Either way, verify with the model’s own tokeniser.</p>
+<p><strong>Trap.</strong> Trusting a character count. One token is roughly four characters in English, but much less for code or some languages.</p>
+</section>
+<section id="what-does-normalisation-change-and-when-does-it-matter" class="level3">
+<h3 class="anchored" data-anchor-id="what-does-normalisation-change-and-when-does-it-matter">5. What does normalisation change, and when does it matter?</h3>
+<p><strong>Answer.</strong> Normalisation divides a vector by its norm so it has length 1. It leaves direction unchanged but removes magnitude. Once vectors are unit length, the dot product equals cosine similarity, and Euclidean ranking becomes equivalent to cosine ranking. That makes scores consistent and lets the index use the faster inner-product path.</p>
+<p><strong>Follow-up: “Can normalising hurt?”</strong> Only if magnitude genuinely carried information, which is rare for text embeddings. For most retrieval models, normalising is safe and usually beneficial.</p>
+<p><strong>Trap.</strong> Normalising at index time but not at query time. One query vector with a large norm then distorts every dot-product score.</p>
+</section>
+<section id="what-is-a-matryoshka-embedding" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-a-matryoshka-embedding">6. What is a Matryoshka embedding?</h3>
+<p><strong>Answer.</strong> Matryoshka Representation Learning trains a model so that a prefix of the vector — the first 64, 128, or 256 dimensions — is itself a usable embedding. You can store fewer dimensions and get a smaller index with only a small quality loss, and you can re-normalise the prefix for search. Nomic’s <code>nomic-embed-text-v1.5</code> is a common example.</p>
+<p><strong>Follow-up: “How is that different from just cutting the vector?”</strong> A normal model was never trained for prefixes, so cutting it damages quality unpredictably. Matryoshka models are explicitly optimised for prefixes, so the loss is deliberate and measured.</p>
+<p><strong>Trap.</strong> Forgetting to re-normalise the prefix. Prefix vectors are shorter, so raw dot products are not comparable to full-length ones.</p>
+</section>
+<section id="how-do-you-choose-an-embedding-model" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-choose-an-embedding-model">7. How do you choose an embedding model?</h3>
+<p><strong>Answer.</strong> Start from constraints: language coverage, document length, whether data can leave your infrastructure, and budget. Then shortlist two or three models, embed a labelled sample, and compare Recall@K and MRR. Only then factor in dimension, index size, and latency. Never switch on benchmark reputation alone.</p>
+<p><strong>Follow-up: “What are the strongest defaults?”</strong> For a quick prototype, <code>all-MiniLM-L6-v2</code>; for self-hosted English retrieval, a BGE base model; for zero ops, a hosted API model.</p>
+<p><strong>Trap.</strong> Choosing only on dimension or price. A model that is cheap but misses your language or truncates your documents costs more later.</p>
+</section>
+<section id="how-would-you-migrate-a-live-index-to-a-new-embedding-model" class="level3">
+<h3 class="anchored" data-anchor-id="how-would-you-migrate-a-live-index-to-a-new-embedding-model">8. How would you migrate a live index to a new embedding model?</h3>
+<p><strong>Answer.</strong> Build a second index in parallel with the new model, backfill the corpus while the old index serves traffic, evaluate the new index on a labelled query set, then cut over and keep the old one for rollback. Do not overwrite vectors in place, because a half-migrated index is worse than either endpoint.</p>
+<p><strong>Follow-up: “How much does re-embedding cost?”</strong> Time and money proportional to corpus size. Rate-limit API models and batch local models; for ten million chunks, embedding throughput, not query latency, becomes the bottleneck.</p>
+<p><strong>Trap.</strong> Migrating in place and discovering the mix only when recall drops. Version and label every vector so the mix can never happen silently.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li>An embedding model is a <strong>bi-encoder</strong>: text goes in alone, one fixed-length vector comes out.</li>
+<li><strong>Dimension</strong> fixes index size, cost, and comparison speed; 1M chunks at 384 dims is 1.54 GB in fp32, at 3072 dims it is 12.29 GB.</li>
+<li><strong>Every model has its own space</strong> — never compare vectors from two models, even if dimensions match.</li>
+<li><strong>Max sequence length is silent</strong>: text past the limit is dropped, not rejected.</li>
+<li><strong>Normalise before comparing</strong>, and re-normalise after any Matryoshka truncation.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="pagination-link" aria-label="Metadata Extraction and Filtering">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Metadata Extraction and Filtering</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="pagination-link" aria-label="Similarity Metrics">
+        <span class="nav-page-text"><span class="chapter-title">Similarity Metrics</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
