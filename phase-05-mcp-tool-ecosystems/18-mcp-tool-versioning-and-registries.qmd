@@ -1,0 +1,404 @@
+---
+title: "MCP Tool Versioning and Registries"
+---
+
+> **Interview answer (say this first).** Tools change, but clients and stored prompts do not. Make changes additive: add an optional field, never remove a field, rename a tool, change a type, or turn an optional field into a required one. Version the change, mark the old tool deprecated with a sunset date, and run both versions through a migration window. Publish tools to a registry so a client can resolve a capability to a concrete server and version, and pin the version it uses. Roll out behind the gateway with a canary and a rollback path, and test compatibility by replaying recorded requests against the new schema. Remember that MCP's `Tool` object has no version field, so the version lives in the tool name, in `_meta`, or in the registry.
+
+::: {.callout-note}
+**Verified.** Every runnable pure-Python example on this page was executed on Python 3.14. MCP type fields and notification names were introspected from the official `mcp` SDK version `2.2.0` on Python 3.12. Verify against the SDK version you ship; MCP is still evolving.
+:::
+
+## Why this exists
+
+A tool is a contract. The model reads the tool's name, description, and parameter schema, and the client stores those names in prompts and code. When the contract changes, something breaks.
+
+Here is the failure in miniature. A server renames a tool:
+
+```text
+v1: refund.create         <- prompts, evals, and clients reference this name
+v2: process_refund        <- the server now exposes only this
+```
+
+Nothing in the old client knows `process_refund`. The call returns "unknown tool", the agent retries the old name, and the run fails. The code looks fine. The contract broke silently.
+
+Three more shapes of the same problem:
+
+- **A field becomes required.** `amount` was optional. The new schema requires it. Every recorded client request that omitted `amount` now fails validation.
+- **A type changes.** `order_id` was a string; the new schema wants an integer. Old callers send strings and get rejected.
+- **A value is removed from an enum.** `priority` loses `"urgent"`. Old prompts still emit it, and the call is rejected.
+
+The opposite mistake is refusing to ever change anything. Tools rot. A field stays misspelled, a parameter stays vague, and the agent keeps making the same error. Versioning is the discipline that lets a tool improve **without** breaking the callers already using it.
+
+::: {.callout-tip}
+**The one-sentence purpose.** Versioning is a promise about compatibility: old callers keep working while new callers get the improvement, and every caller can tell which version it is talking to.
+:::
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Contract** | The agreed interface: tool name, parameters, types, and behavior. |
+| **Schema** | The machine-readable description of parameters, usually JSON Schema. |
+| **Breaking change** | A change that makes an existing valid caller fail or behave differently. |
+| **Additive change** | A change that only adds new optional surface; old callers still work. |
+| **Backward compatible** | New code accepts old inputs. |
+| **Forward compatible** | Old code tolerates new inputs, often by ignoring unknown fields. |
+| **Version** | A named point in the tool's history, such as `1.2.0`. |
+| **Semantic versioning** | `MAJOR.MINOR.PATCH`: major breaks, minor adds, patch fixes. |
+| **Deprecation** | A formal warning that a tool or field will be removed. |
+| **Sunset date** | The date after which the deprecated surface stops working. |
+| **Migration window** | The period when old and new versions both run. |
+| **Registry** | A catalog that maps a capability to the servers and versions that provide it. |
+| **Discovery** | Finding what tools exist and where they live. |
+| **Resolution** | Turning "refund.create, any 1.x" into one concrete server and version. |
+| **Pinning** | Locking a client to an exact version instead of floating. |
+| **Alias** | A second name that points at the same tool, kept for old callers. |
+| **Canary** | Rolling a change out to a small share of traffic first. |
+| **Rollback** | Reverting to the previous version quickly. |
+| **Compatibility test** | Replaying recorded requests against the changed schema. |
+| **EOL** | End of life: the version is no longer supported. |
+
+Two distinctions matter:
+
+- **Additive versus breaking.** Additive changes are safe by default. Breaking changes need a version bump, a deprecation, and a migration window.
+- **Discovery versus pinning.** Discovery finds the latest version. Pinning decides which version a given client actually uses. You want both, for different callers.
+
+## The core idea
+
+Think of a public web API or a phone number.
+
+- A **new optional field** is like accepting a new area code: old callers are unaffected.
+- **Removing a field** is disconnecting a phone number people still dial.
+- **Renaming a tool** is the same as changing the number without a forwarding message.
+- A **deprecation notice** is the "this number changes on 1 June" announcement.
+- A **registry** is the phone book: capability in, address out.
+
+The compatibility rule is simple enough to state in one sentence:
+
+> **Add optional surface; never remove or narrow.** If you must remove, rename, retype, or require, that is a new major version and a new name that people migrate to.
+
+```{mermaid}
+flowchart TD
+    C["Client asks for<br/>capability: refund.create<br/>constraint: >=1.2.0,<2.0.0"] --> R{"Registry<br/>resolve capability"}
+    R -->|"1.2.0"| S2["billing-v2 server<br/>refund.create v1.2"]
+    R -->|"1.0.0"| S1["billing-v1 server<br/>refund.create v1.0"]
+    A["Additive change<br/>new optional field"] -.->|"same major"| S2
+    B["Breaking change<br/>remove or require"] -.->|"new major"| S3["billing-v3 server<br/>refund.create v2.0"]
+    S1 -.->|"deprecated, sunset 2026-12-31"| S2
+```
+
+Notice the two axes on the right. An additive change lands in the same major version. A breaking change gets a new major and a migration window from the old one.
+
+| Change | Kind | What a client must do |
+| --- | --- | --- |
+| Add an optional parameter | Additive | Nothing |
+| Add a new tool | Additive | Nothing |
+| Widen an enum | Additive | Nothing |
+| Improve a description | Compatible | Nothing |
+| Add a new required parameter | Breaking | Start sending the field |
+| Remove a parameter | Breaking | Stop sending it |
+| Rename a tool | Breaking | Point at the new name |
+| Change a parameter type | Breaking | Convert values |
+| Narrow an enum | Breaking | Stop sending removed values |
+| Turn `additionalProperties` off | Breaking | Stop sending extra fields |
+
+## How it works
+
+1. **Diff the old and new schema before shipping.** Classify every change as additive or breaking. A diff is a decision, not a feeling.
+2. **Keep additive changes in the same major version.** Bump the minor version. Old clients keep working because the new field is optional and any new behavior has a safe default.
+3. **Put breaking changes behind a new major version and a new tool name.** `refund.create.v2` is clearer than a silent mutation of `refund.create`. Both names are auditable.
+4. **Deprecate the old surface explicitly.** Attach `deprecated: true`, a `sunset` date, and a `replacement` name. Return the warning in the tool result or the tool metadata so callers see it in their own logs.
+5. **Run both versions during the migration window.** The gateway routes old-name calls to the old implementation and new-name calls to the new one. Nothing is removed until the sunset date passes.
+6. **Publish versions to a registry.** Each entry maps a capability to a server, a URL, a version, and a deprecation status. The registry is the single place clients look.
+7. **Resolve capability to a concrete version.** The client states a constraint (`>=1.2.0,<2.0.0`). The registry returns the highest version that satisfies it. Floats are resolved at build or connect time, not at call time.
+8. **Pin for reproducibility.** Production clients pin an exact version so a registry update cannot change behavior mid-run. Floating is for exploration and tests.
+9. **Discover new versions without surprise.** A server can notify clients when its tool list changes (`notifications/tools/list_changed`), but clients should only adopt a version that passes their own compatibility test. Through `2025-11-25` the server may send that notification spontaneously once it advertises `tools.listChanged`; on `2026-07-28` it is opt-in — the client must open a `subscriptions/listen` stream requesting `toolsListChanged`, and the server sends nothing unsolicited.
+10. **Roll out gradually.** Send a small share of traffic to the new version, watch error rate and latency, and keep the old version warm for rollback.
+11. **Test compatibility by replay.** Store real requests (with arguments redacted or hashed). Replay them against the new schema. Every old request must still validate and produce an equivalent result.
+12. **Announce the sunset.** Give callers a date, a replacement, and a reminder. A deprecation with no date is a wish.
+
+## The syntax you will use
+
+**Classify a schema change.** Compare properties, required lists, types, enums, and `additionalProperties`.
+
+```python
+def classify_change(old, new):
+    changes = []
+    old_props, new_props = old.get("properties", {}), new.get("properties", {})
+    old_req, new_req = set(old.get("required", [])), set(new.get("required", []))
+
+    for name in old_props:
+        if name not in new_props:
+            changes.append(("breaking", f"property '{name}' was removed"))
+            continue
+        old_prop, new_prop = old_props[name], new_props[name]
+        if old_prop.get("type") != new_prop.get("type"):
+            changes.append(("breaking", f"property '{name}' changed type"))
+        old_enum, new_enum = old_prop.get("enum"), new_prop.get("enum")
+        if old_enum != new_enum:
+            if old_enum is None:
+                changes.append(("breaking", f"property '{name}' enum constrained"))
+            elif new_enum is None:
+                changes.append(("additive", f"property '{name}' enum unconstrained"))
+            elif set(old_enum) - set(new_enum):
+                changes.append(("breaking", f"property '{name}' enum narrowed"))
+            elif set(new_enum) - set(old_enum):
+                changes.append(("additive", f"property '{name}' enum widened"))
+    for name in new_props:
+        if name not in old_props:
+            kind = "breaking" if name in new_req else "additive"
+            changes.append((kind, f"new {'required' if kind == 'breaking' else 'optional'} "
+                                  f"property '{name}'"))
+    for name in new_req - old_req:
+        if name in old_props:                 # only existing fields can "become required"
+            changes.append(("breaking", f"property '{name}' became required"))
+    if old.get("additionalProperties", True) is not False and \
+            new.get("additionalProperties", True) is False:
+        changes.append(("breaking", "additionalProperties turned off"))
+    elif old.get("additionalProperties", True) is False and \
+            new.get("additionalProperties", True) is not False:
+        changes.append(("additive", "additionalProperties turned on"))
+    return changes
+```
+
+Every returned pair is a decision you can review in a pull request.
+
+**Semantic version ordering.** Parse `MAJOR.MINOR.PATCH` and compare numerically, so `1.10.0` sorts above `1.2.0`.
+
+```python
+from dataclasses import dataclass
+from functools import total_ordering
+
+@total_ordering
+@dataclass(frozen=True)
+class Version:
+    major: int
+    minor: int
+    patch: int
+
+    @classmethod
+    def parse(cls, text):
+        core = text.split("-", 1)[0].split("+", 1)[0]
+        a, b, c = (int(x) for x in core.split("."))
+        return cls(a, b, c)
+
+    def __str__(self):
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    def _key(self):
+        return (self.major, self.minor, self.patch)
+
+    def __lt__(self, other):
+        return self._key() < other._key()
+```
+
+String comparison would put `1.10.0` below `1.2.0`. Numeric comparison fixes that.
+
+**A version constraint and a registry lookup.** The constraint is a comma-separated list of comparators.
+
+```python
+def satisfies(version, constraint):
+    for clause in constraint.split(","):
+        clause = clause.strip()
+        for op in (">=", "<=", "==", ">", "<"):
+            if clause.startswith(op):
+                target = Version.parse(clause[len(op):])
+                if not {">=": version >= target, "<=": version <= target,
+                        "==": version == target, ">": version > target,
+                        "<": version < target}[op]:
+                    return False
+                break
+    return True
+
+def resolve(registry, capability, constraint="*"):
+    candidates = [c for c in registry.get(capability, [])
+                  if constraint == "*" or satisfies(Version.parse(c["version"]), constraint)]
+    return max(candidates, key=lambda c: Version.parse(c["version"])) if candidates else None
+```
+
+Resolution returns the newest acceptable version, or `None`, which the caller must treat as a real "no provider" answer.
+
+**Deprecation with a sunset window.** Turn metadata into an operator-readable report.
+
+```python
+from datetime import date
+
+def deprecation_report(meta, today):
+    if not meta["deprecated"]:
+        return "active"
+    days = (date.fromisoformat(meta["sunset"]) - today).days
+    if days < 0:
+        return f"REMOVED ({abs(days)} days past sunset) -> {meta['replacement']}"
+    return f"deprecated, {days} days left -> {meta['replacement']}"
+```
+
+This is the line you page on when a sunset is close and traffic has not migrated.
+
+**MCP's tool list and change notification.** Clients list tools over the protocol. The change notification has a fixed method name.
+
+```python
+from mcp.types import Tool, ToolListChangedNotification
+
+# A client asks the server for its tools:
+result = await session.list_tools()          # result.tools: list[Tool]
+
+# A server tells clients the list changed:
+ToolListChangedNotification().method         # "notifications/tools/list_changed"
+```
+
+The method name is the same across revisions, but the delivery rules changed. Through `2025-11-25` a server that advertises `tools.listChanged` may send `notifications/tools/list_changed` spontaneously on the session. On `2026-07-28` the client must opt in first: it opens a `subscriptions/listen` request whose filter sets `toolsListChanged: true`, and the server delivers the notification only on that stream. A client that never subscribes hears nothing.
+
+`Tool` carries `name`, `title`, `description`, `input_schema`, `output_schema`, `annotations`, `icons`, and `meta`. There is no `version` field on `Tool` in `mcp` `2.2.0`, so version is not part of the tool object itself.
+
+## Examples: simple to real
+
+**Example 1 — the same edit, classified two ways.** Adding `reason` as optional is additive. Adding it as required is breaking.
+
+```text
+v1 -> additive: [('additive', "new optional property 'reason'")]
+v1 -> breaking: [('breaking', "new required property 'reason'")]
+```
+
+Same field, same diff tool, two very different release decisions.
+
+**Example 2 — validate and replay recorded requests.** Old payloads pass the additive schema and fail the breaking one.
+
+```text
+old payload vs additive schema: []
+old payload vs breaking schema: ["missing required 'reason'"]
+
+additive: {'total': 3, 'failed': 0, 'failures': []}
+breaking: {'total': 3, 'failed': 3, 'failures': [...]}
+```
+
+Three recorded requests, zero failures for the additive change, three failures for the breaking one. That is the compatibility test that should run in CI before a schema ships.
+
+**Example 3 — numeric version ordering.**
+
+```text
+1.2.0 < 1.10.0: True
+sorted: ['1.2.0', '1.2.1', '1.10.0', '2.0.0']
+1.4.0 in '>=1.2.0,<2.0.0': True
+2.1.0 in '>=1.2.0,<2.0.0': False
+```
+
+The `1.10.0` line is the one that catches people. String sort gets it wrong.
+
+**Example 4 — the registry picks the version for the caller.**
+
+```text
+resolve refund.create '*': billing-v3
+resolve refund.create '>=1.2.0,<2.0.0': billing-v2
+resolve missing: None
+```
+
+A loose constraint gets the newest. A pinned range gets the newest inside the range. A missing capability returns `None`, and the agent should report "no provider", not silently fall back to a random tool.
+
+**Example 5 — the deprecation window reports days remaining.**
+
+```text
+refund.create.v1: deprecated, 29 days left -> refund.create.v2
+refund.create.v1: REMOVED (sunset passed 15 days ago) -> refund.create.v2
+refund.create.v2: active
+```
+
+The same tool, three states over time. The "29 days left" line is an alert; the "REMOVED" line means the migration already failed and callers are broken.
+
+**Example 6 — what MCP actually exposes for versioning.**
+
+```text
+Tool fields: ['annotations', 'description', 'execution', 'icons', 'input_schema', 'meta', 'name', 'output_schema', 'title']
+has version field: False
+list-changed method: notifications/tools/list_changed
+```
+
+This is the key practical fact: the tool object does not version itself. Put the version in the tool name, in `meta`, or in the registry, and take responsibility for compatibility. A server does report its own `name` and `version` at initialize through `Implementation`, but that versions the server, not the individual tool.
+
+## In production
+
+- **Treat tool names as permanent public identifiers.** Once a prompt or an eval stores a name, renaming is a breaking change. Add an alias for the old name and keep both for the migration window.
+- **Never turn an optional field into a required one inside a major version.** It breaks callers you cannot see. If you must require it, make a new major version.
+- **Do not trust a caller to send only known fields.** Set `additionalProperties: false` deliberately and know that switching from `true` to `false` is a breaking change for callers that already send extras.
+- **Version behavior, not just schema.** A tool that still accepts the same arguments but now refunds to a different account is a breaking change even though the schema is identical. Change no behavior silently.
+- **Pin production, float development.** A pinned client is reproducible. A floating client discovers new versions but can change behavior between runs, which is poison for an eval baseline.
+- **Resolution must fail loudly.** A missing capability is `None`, not the closest tool. Silent fallback hides a routing bug and can send sensitive data to the wrong server.
+- **Keep the registry authoritative.** If clients also hardcode server URLs, you now have two sources of truth that drift. Route through the gateway.
+- **Canary the new version and watch the four signals.** Error rate, latency, call volume, and denied calls. Roll back on any of them, not only on errors.
+- **Record the resolved version in every audit line.** After an incident, "which version did this call hit?" must be answerable. Without it, you cannot tell a client bug from a server regression.
+- **Test the whole matrix, not one pair.** Old client plus new server, new client plus old server, and each pinned version. Compatibility is a grid.
+- **Give deprecations a real owner and date.** A deprecation with no owner never completes. Track migrated traffic as a metric and alert when the sunset approaches.
+- **Do not version everything at once.** Version the server, the tool, and the schema are three different things. Decide which one changed, and version the smallest surface that covers it.
+
+## Interview questions
+
+### 1. What makes a tool change breaking?
+
+**Answer.** Any change that makes an existing valid caller fail or behave differently. Removing a field, renaming a tool, changing a type, adding a required field, narrowing an enum, or turning on `additionalProperties: false`. Also any silent behavior change, even without a schema change. The test is simple: would a request that worked yesterday still work today and mean the same thing?
+
+**Follow-up: "What changes are safe?"** Adding a new optional field with a safe default, adding a new tool, widening an enum, and improving a description. Keep those in the same major version.
+
+**Trap.** Assuming a schema diff is the whole story. Behavior changes that leave the schema untouched are still breaking.
+
+### 2. How do you evolve a tool without breaking clients?
+
+**Answer.** Add optional surface. Version additively within the major version. For a real break, publish a new major name, deprecate the old one with a sunset date and a replacement, run both through a migration window, and only remove the old one after traffic reaches zero. Route both through the gateway so the choice is centralized.
+
+**Follow-up: "How do you know traffic reached zero?"** Instrument the old tool name. Migration is a metric, not an email. You can only retire the old version when its call count stays at zero for the full window.
+
+**Trap.** Announcing the change in documentation only. Stored prompts and offline evals do not read your documentation.
+
+### 3. Why does MCP need a registry if servers already list their tools?
+
+**Answer.** A server's `tools/list` tells you what one server offers. A registry tells you which servers offer a capability, at which versions, and which are deprecated. It gives clients one place to resolve a capability to an endpoint, and it lets you enforce allowlists and versions centrally. Discovery per server does not scale once there are dozens of servers.
+
+**Follow-up: "Who owns the registry?"** Usually the platform or gateway team. It should be treated as production infrastructure, with an owner, a schema, and an audit trail of changes.
+
+**Trap.** Letting every client fetch every server's tool list directly. You lose a single control point for allowlists, versions, and auditing.
+
+### 4. How does version resolution work?
+
+**Answer.** The client states a capability and a constraint, such as `refund.create` with `>=1.2.0,<2.0.0`. The registry filters to versions that satisfy the constraint and returns the highest one. If none match, it returns nothing, and the caller handles that explicitly. Production clients then pin the resolved exact version for the duration of the run.
+
+**Follow-up: "Why not always take the latest?"** Because latest can change under you. A floating dependency is fine in development and dangerous in production, where reproducibility matters for evals and incident review.
+
+**Trap.** Resolving at every call. Resolution should happen once when the client connects or builds, so a registry change cannot alter behavior mid-run.
+
+### 5. What is semantic versioning, and where does it mislead?
+
+**Answer.** `MAJOR.MINOR.PATCH`: major for breaking changes, minor for additive features, patch for fixes. It misleads when a "minor" release quietly changes behavior, or when the schema is compatible but semantics are not. Semver is a communication convention, not a guarantee. Pair it with a compatibility test that replays real requests.
+
+**Follow-up: "How does that apply to tools?"** Same idea, with one twist: a tool's name is part of the contract. A rename is a major change even if the parameters are identical.
+
+**Trap.** Bumping the version and assuming clients will notice. Clients only benefit if they pin, resolve, and read deprecation warnings.
+
+### 6. How do you discover a new version without breaking a running agent?
+
+**Answer.** The server can notify clients that its tool list changed via `notifications/tools/list_changed`. Through `2025-11-25` the server may send that notification spontaneously; on `2026-07-28` the client must opt in by opening a `subscriptions/listen` stream with `toolsListChanged: true`, and nothing arrives unsolicited. A well-behaved client re-lists, resolves the new version against its own constraint, runs its compatibility test, and adopts only if the test passes. Running work stays on its pinned version until it finishes. Adoption is a deliberate release step, not an automatic reaction.
+
+**Follow-up: "What about long-running tasks?"** Let them finish on the version they started. Mid-task upgrades make traces and results impossible to interpret.
+
+**Trap.** Reacting to the notification by immediately calling the newest tool. A list change is a signal to evaluate, not an instruction to upgrade.
+
+### 7. How do you test tool compatibility?
+
+**Answer.** Keep a corpus of recorded real requests, with arguments redacted or hashed. Replay each against the new schema and check that it still validates and produces an equivalent result. Run it in CI on every schema change. Add a diff classifier so a breaking change cannot merge without a version bump and a deprecation entry.
+
+**Follow-up: "What makes a good corpus?"** Real traffic, not hand-written examples. Include the edge cases: omitted optional fields, unusual enum values, and the largest payloads you have seen.
+
+**Trap.** Testing only that new inputs work. The whole question is whether **old** inputs still work.
+
+### 8. What is the rollback plan for a bad tool version?
+
+**Answer.** The gateway keeps the previous version deployed and addressable. Rollback is a routing change, not a rebuild: point the capability back at the old version, and let the registry show it. Because clients pinned a version, a rollback affects only callers that adopted the new one, which is exactly the canary group. Record which calls hit which version so the blast radius is measurable.
+
+**Follow-up: "What if the new version already wrote data?"** Rollback fixes routing, not effects. For side-effecting tools, require idempotency keys so a retried or rolled-back call does not duplicate the write. Reconcile the data the new version touched.
+
+**Trap.** Rolling back without a versioned tool. If the server only exposes one name, there is nothing to roll back to.
+
+## Remember this
+
+- **Add optional surface; never remove or narrow.** Removing, renaming, retyping, or requiring is a major change.
+- **Breaking changes get a new name, a deprecation, a sunset date, and a migration window.**
+- **Resolve capability to version through a registry, then pin in production.** Missing capability fails loudly.
+- **MCP's `Tool` has no version field** in `mcp` 2.2.0 — version the name, `meta`, or the registry.
+- **Compatibility is proven by replaying recorded requests, not by reading the diff.**
