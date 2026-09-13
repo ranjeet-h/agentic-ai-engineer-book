@@ -1,1397 +1,467 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
-
-<meta charset="utf-8">
-<meta name="generator" content="quarto-1.10.18">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-
-
-<title>Multi-Tenant RAG – Agentic AI Engineering Study Book</title>
-<style>
-/* Default styles provided by pandoc.
-** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
-*/
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: 1.5em;}
-div.column{flex: auto;}
-@media screen {
-div.columns{gap: min(4vw, 1.5em);}
-div.column{overflow-x: auto;}
-}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-ul.task-list{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-  width: 0.8em;
-  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
-  vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-</style>
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Multi-Tenant RAG - Agentic AI Engineering Study Book</title>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<link href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" rel="next">
-<link href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" rel="prev">
-<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-012e79344040a4a328ea85a5b0a60384.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-d84a0d611e1de1507791ffd4dad004b1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
-<script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
-  "copy-button": false,
-  "collapse-after": 3,
-  "panel-placement": "start",
-  "type": "textbox",
-  "limit": 50,
-  "keyboard-shortcut": [
-    "f",
-    "/",
-    "s"
-  ],
-  "show-item-context": false,
-  "language": {
-    "search-no-results-text": "No results",
-    "search-matching-documents-text": "matching documents",
-    "search-copy-link-title": "Copy link to search",
-    "search-hide-matches-text": "Hide additional matches",
-    "search-more-match-text": "more match in this document",
-    "search-more-matches-text": "more matches in this document",
-    "search-clear-button-title": "Clear",
-    "search-text-placeholder": "",
-    "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit",
-    "search-label": "Search"
-  }
-}</script>
-<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
-<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
-<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../assets/fonts/fonts.css">
+        <link rel="stylesheet" href="../theme/custom.css">
 
 
-<link rel="stylesheet" href="../assets/fonts/fonts.css">
-<link rel="stylesheet" href="../styles/custom.css">
-</head>
-
-<body class="nav-sidebar floating quarto-light"><script id="quarto-html-before-body" type="application/javascript">
-    const toggleBodyColorMode = (bsSheetEl) => {
-      const mode = bsSheetEl.getAttribute("data-mode");
-      const bodyEl = window.document.querySelector("body");
-      if (mode === "dark") {
-        bodyEl.classList.add("quarto-dark");
-        bodyEl.classList.remove("quarto-light");
-      } else {
-        bodyEl.classList.add("quarto-light");
-        bodyEl.classList.remove("quarto-dark");
-      }
-    }
-    const toggleBodyColorPrimary = () => {
-      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
-      if (bsSheetEl) {
-        toggleBodyColorMode(bsSheetEl);
-      }
-    }
-    const setColorSchemeToggle = (alternate) => {
-      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
-      for (let i=0; i < toggles.length; i++) {
-        const toggle = toggles[i];
-        if (toggle) {
-          if (alternate) {
-            toggle.classList.add("alternate");
-          } else {
-            toggle.classList.remove("alternate");
-          }
-        }
-      }
-    };
-    const toggleColorMode = (alternate) => {
-      // Switch the stylesheets
-      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
-      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
-      manageTransitions('#quarto-margin-sidebar .nav-link', false);
-      if (alternate) {
-        // note: dark is layered on light, we don't disable primary!
-        enableStylesheet(alternateStylesheets);
-        for (const sheetNode of alternateStylesheets) {
-          if (sheetNode.id === "quarto-bootstrap") {
-            toggleBodyColorMode(sheetNode);
-          }
-        }
-      } else {
-        disableStylesheet(alternateStylesheets);
-        enableStylesheet(primaryStylesheets)
-        toggleBodyColorPrimary();
-      }
-      manageTransitions('#quarto-margin-sidebar .nav-link', true);
-      // Switch the toggles
-      setColorSchemeToggle(alternate)
-      // Hack to workaround the fact that safari doesn't
-      // properly recolor the scrollbar when toggling (#1455)
-      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
-        manageTransitions("body", false);
-        window.scrollTo(0, 1);
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          manageTransitions("body", true);
-        }, 40);
-      }
-    }
-    const disableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        stylesheet.rel = 'disabled-stylesheet';
-      }
-    }
-    const enableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
-          stylesheet.rel = 'stylesheet';
-        }
-      }
-    }
-    const manageTransitions = (selector, allowTransitions) => {
-      const els = window.document.querySelectorAll(selector);
-      for (let i=0; i < els.length; i++) {
-        const el = els[i];
-        if (allowTransitions) {
-          el.classList.remove('notransition');
-        } else {
-          el.classList.add('notransition');
-        }
-      }
-    }
-    const isFileUrl = () => {
-      return window.location.protocol === 'file:';
-    }
-    const hasAlternateSentinel = () => {
-      let styleSentinel = getColorSchemeSentinel();
-      if (styleSentinel !== null) {
-        return styleSentinel === "alternate";
-      } else {
-        return false;
-      }
-    }
-    const setStyleSentinel = (alternate) => {
-      const value = alternate ? "alternate" : "default";
-      if (!isFileUrl()) {
-        window.localStorage.setItem("quarto-color-scheme", value);
-      } else {
-        localAlternateSentinel = value;
-      }
-    }
-    const getColorSchemeSentinel = () => {
-      if (!isFileUrl()) {
-        const storageValue = window.localStorage.getItem("quarto-color-scheme");
-        return storageValue != null ? storageValue : localAlternateSentinel;
-      } else {
-        return localAlternateSentinel;
-      }
-    }
-    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
-      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
-      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
-      let newTheme = '';
-      if(authorPrefersDark) {
-        newTheme = isAlternate ? baseTheme : alternateTheme;
-      } else {
-        newTheme = isAlternate ? alternateTheme : baseTheme;
-      }
-      const changeGiscusTheme = () => {
-        // From: https://github.com/giscus/giscus/issues/336
-        const sendMessage = (message) => {
-          const iframe = document.querySelector('iframe.giscus-frame');
-          if (!iframe) return;
-          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
-        }
-        sendMessage({
-          setConfig: {
-            theme: newTheme
-          }
-        });
-      }
-      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
-      if (isGiscussLoaded) {
-        changeGiscusTheme();
-      }
-    };
-    const authorPrefersDark = false;
-    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    const darkModeDefault = queryPrefersDark.matches;
-      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
-    // Dark / light mode switch
-    window.quartoToggleColorScheme = () => {
-      // Read the current dark / light value
-      let toAlternate = !hasAlternateSentinel();
-      toggleColorMode(toAlternate);
-      setStyleSentinel(toAlternate);
-      toggleGiscusIfUsed(toAlternate, darkModeDefault);
-      window.dispatchEvent(new Event('resize'));
-    };
-    queryPrefersDark.addEventListener("change", e => {
-      if(window.localStorage.getItem("quarto-color-scheme") !== null)
-        return;
-      const alternate = e.matches
-      toggleColorMode(alternate);
-      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
-      toggleGiscusIfUsed(alternate, darkModeDefault);
-    });
-    // Switch to dark mode if need be
-    if (hasAlternateSentinel()) {
-      toggleColorMode(true);
-    } else {
-      toggleColorMode(false);
-    }
-  </script>
-
-<div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
-  <nav class="quarto-secondary-nav">
-    <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
-        <i class="bi bi-layout-text-sidebar-reverse"></i>
-      </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/20-multi-tenant-rag.html"><span class="chapter-title">Multi-Tenant RAG</span></a></li></ol></nav>
-        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-        </a>
-      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
-        <i class="bi bi-search"></i>
-      </button>
-    </div>
-  </nav>
-</header>
-<!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
-<!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header">
-    <div class="sidebar-title mb-0 py-0">
-      <a href="../">Agentic AI Engineering Study Book</a> 
-        <div class="sidebar-tools-main">
-  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
-</div>
-    </div>
-      </div>
-        <div class="mt-2 flex-shrink-0 align-items-center">
-        <div class="sidebar-search">
-        <div id="quarto-search" class="" title="Search"></div>
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
         </div>
-        </div>
-    <div class="sidebar-menu-container"> 
-    <ul class="list-unstyled mt-1">
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
-  </div>
-</li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 1 — Production Python</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 3 — RAG Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Multi-Tenant RAG</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-04-agentic-ai-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 4 — Agentic AI Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/01-what-an-ai-agent-is.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">What an AI Agent Is</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/02-the-agent-loop.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Agent Loop</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/03-tool-execution-and-result-validation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Execution and Result Validation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/04-agent-memory-short-term-and-working.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Short-Term and Working</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/05-agent-memory-long-term-episodic-semantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Long-Term, Episodic, and Semantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/06-planning-decomposition-and-routing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Planning, Decomposition, and Routing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/07-reflection-and-self-correction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reflection and Self-Correction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/08-retries-termination-and-loop-detection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retries, Termination, and Loop Detection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/09-state-management-and-persistence.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">State Management and Persistence</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/10-checkpointing-and-durable-execution.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Checkpointing and Durable Execution</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/11-human-in-the-loop-and-approvals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Human-in-the-Loop and Approvals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/12-guardrails.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Guardrails</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/13-structured-agent-outputs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Agent Outputs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/14-tool-schemas-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Schemas and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/15-tool-permissions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Permissions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/16-parallel-and-conditional-workflows.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parallel and Conditional Workflows</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/17-long-running-and-background-agents.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Long-Running and Background Agents</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/18-langgraph-graphs-and-state.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Graphs and State</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/19-langgraph-checkpoints-interrupts-subgraphs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Checkpoints, Interrupts, and Subgraphs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/20-openai-agents-sdk.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">OpenAI Agents SDK</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/21-agent-orchestration-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Orchestration Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/22-agent-reliability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Reliability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-05-mcp-tool-ecosystems/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 5 — MCP and Tool Ecosystems</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/01-mcp-fundamentals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Fundamentals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/02-mcp-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/03-mcp-transports.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Transports</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/04-mcp-tools-resources-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tools, Resources, and Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/05-tool-and-capability-discovery.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool and Capability Discovery</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/06-mcp-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/07-sessions-and-stateful-stateless-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sessions and Stateful vs Stateless Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/08-building-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/09-building-mcp-clients.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Clients</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/10-database-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Database MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/11-github-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">GitHub MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/12-filesystem-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Filesystem MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/13-browser-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Browser MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/14-internal-api-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Internal API MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/15-enterprise-mcp-gateways.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Enterprise MCP Gateways</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/16-mcp-security-and-permission-boundaries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Security and Permission Boundaries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/17-mcp-observability-and-audit-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Observability and Audit Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/18-mcp-tool-versioning-and-registries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tool Versioning and Registries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/19-agent-to-agent-communication-and-a2a.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent-to-Agent Communication and A2A</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/20-agent-capability-discovery-and-interoperability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Capability Discovery and Interoperability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-    </ul>
     </div>
-</nav>
-<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
-<!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">Table of contents</h2>
-   
-  <ul class="collapse">
-  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
-  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
-  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
-  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
-  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
-  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
-  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
-  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
-  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
-  </ul>
-</nav>
-    </div>
-<!-- main -->
-<main class="content" id="quarto-document-content">
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/20-multi-tenant-rag.html"><span class="chapter-title">Multi-Tenant RAG</span></a></li></ol></nav>
-<div class="quarto-title">
-<h1 class="title"><span class="chapter-title">Multi-Tenant RAG</span></h1>
-</div>
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
 
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
 
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
-<div class="quarto-title-meta">
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
 
-    
-  
-    
-  </div>
-  
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
 
+        <div id="page-wrapper" class="page-wrapper">
 
-</header>
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
 
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
 
-<blockquote class="blockquote">
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="multi-tenant-rag"><a class="header" href="#multi-tenant-rag">Multi-Tenant RAG</a></h1>
+<blockquote>
 <p><strong>Interview answer (say this first).</strong> Multi-tenant RAG serves many customers (<em>tenants</em>) from one system. The central design choice is <strong>isolation</strong>: either share one index and filter every query by <code>tenant_id</code>, or give each tenant its own index, namespace, schema, or database. Shared storage is cheaper but relies on the filter never being forgotten; isolated storage is safer but costs more. You pick a point between the two, enforce it in the data layer (for example PostgreSQL row-level security), and prove it with cross-tenant tests.</p>
 </blockquote>
-<section id="why-this-exists" class="level2">
-<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
 <p>A single-tenant RAG system serves one organisation. Everything in the index belongs to that organisation, so any query may see anything. Life is simple.</p>
 <p>A <strong>multi-tenant</strong> system serves many organisations from the same code, the same model, and often the same database. Now every query must answer a hidden second question: <strong>“Which tenant is asking, and which rows are they allowed to see?”</strong></p>
 <p>Miss that question and you get the worst class of production bug: <strong>cross-tenant leakage</strong>. One customer’s private document appears in another customer’s answer. This is not a small embarrassment. It is a breach, a contract violation, and sometimes a regulatory event.</p>
 <p>Here is the failure in its most common form. A retrieval function searches the whole index and forgets the tenant filter:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> search(query_embedding, k<span class="op">=</span><span class="dv">3</span>):</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># </span><span class="al">BUG</span><span class="co">: no tenant filter</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> index.search(query_embedding, k<span class="op">=</span>k)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def search(query_embedding, k=3):
+    # BUG: no tenant filter
+    return index.search(query_embedding, k=k)
+</code></pre>
 <p>The function works perfectly in development, because the developer’s test data has one tenant. In production it returns whatever is closest — including another tenant’s text. The model then summarises it, cites it, and emails it to the wrong customer.</p>
 <p>This happens because multi-tenancy is a <strong>property of every layer</strong>, not one feature you add. Identity, indexes, queries, caches, logs, quotas, and cost accounting all carry a tenant dimension. This page shows how to keep that dimension from the request to the vector.</p>
-</section>
-<section id="start-from-zero" class="level2">
-<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Word</th>
-<th>Plain meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Tenant</strong></td>
-<td>One customer or organisation using your system. One tenant may contain many users.</td>
-</tr>
-<tr class="even">
-<td><strong>Multi-tenancy</strong></td>
-<td>Serving many tenants from one shared deployment.</td>
-</tr>
-<tr class="odd">
-<td><strong>Isolation</strong></td>
-<td>Making sure one tenant cannot see or affect another tenant’s data.</td>
-</tr>
-<tr class="even">
-<td><strong>Shared index</strong></td>
-<td>One vector index holds all tenants’ chunks, each tagged with <code>tenant_id</code>.</td>
-</tr>
-<tr class="odd">
-<td><strong>Isolated index</strong></td>
-<td>A separate index (or namespace, collection, schema, or database) per tenant.</td>
-</tr>
-<tr class="even">
-<td><strong>Namespace / collection</strong></td>
-<td>A named partition inside one vector database. Same server, separate data.</td>
-</tr>
-<tr class="odd">
-<td><strong>Metadata filter</strong></td>
-<td>An extra condition on a search, such as <code>tenant_id = "acme"</code>.</td>
-</tr>
-<tr class="even">
-<td><strong>Pre-filter</strong></td>
-<td>Filter first, then rank. Restricted rows are never scored.</td>
-</tr>
-<tr class="odd">
-<td><strong>Post-filter</strong></td>
-<td>Rank first, then filter the top results. Restricted rows were already fetched.</td>
-</tr>
-<tr class="even">
-<td><strong>Row-level security (RLS)</strong></td>
-<td>A PostgreSQL feature. The database itself hides rows that fail a policy, even if the query forgets a <code>WHERE</code> clause.</td>
-</tr>
-<tr class="odd">
-<td><strong>tenant_id</strong></td>
-<td>The column or field that records which tenant owns a row.</td>
-</tr>
-<tr class="even">
-<td><strong>Noisy neighbour</strong></td>
-<td>One tenant’s heavy use slows or starves other tenants sharing the same resource.</td>
-</tr>
-<tr class="odd">
-<td><strong>Quota</strong></td>
-<td>A per-tenant limit: requests per minute, tokens per month, storage, spend.</td>
-</tr>
-<tr class="even">
-<td><strong>Cost allocation</strong></td>
-<td>Attributing each request’s cost to the tenant that caused it. Also called showback or chargeback.</td>
-</tr>
-<tr class="odd">
-<td><strong>Partition</strong></td>
-<td>Splitting one big table into smaller physical pieces, usually by a key such as tenant.</td>
-</tr>
-<tr class="even">
-<td><strong>Canary</strong></td>
-<td>A unique, harmless test document planted so a leak becomes visible immediately.</td>
-</tr>
-<tr class="odd">
-<td><strong>Data residency</strong></td>
-<td>A rule that some tenants’ data must stay in a specific country or region.</td>
-</tr>
-</tbody>
-</table>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Tenant</strong></td><td>One customer or organisation using your system. One tenant may contain many users.</td></tr>
+<tr><td><strong>Multi-tenancy</strong></td><td>Serving many tenants from one shared deployment.</td></tr>
+<tr><td><strong>Isolation</strong></td><td>Making sure one tenant cannot see or affect another tenant’s data.</td></tr>
+<tr><td><strong>Shared index</strong></td><td>One vector index holds all tenants’ chunks, each tagged with <code>tenant_id</code>.</td></tr>
+<tr><td><strong>Isolated index</strong></td><td>A separate index (or namespace, collection, schema, or database) per tenant.</td></tr>
+<tr><td><strong>Namespace / collection</strong></td><td>A named partition inside one vector database. Same server, separate data.</td></tr>
+<tr><td><strong>Metadata filter</strong></td><td>An extra condition on a search, such as <code>tenant_id = "acme"</code>.</td></tr>
+<tr><td><strong>Pre-filter</strong></td><td>Filter first, then rank. Restricted rows are never scored.</td></tr>
+<tr><td><strong>Post-filter</strong></td><td>Rank first, then filter the top results. Restricted rows were already fetched.</td></tr>
+<tr><td><strong>Row-level security (RLS)</strong></td><td>A PostgreSQL feature. The database itself hides rows that fail a policy, even if the query forgets a <code>WHERE</code> clause.</td></tr>
+<tr><td><strong>tenant_id</strong></td><td>The column or field that records which tenant owns a row.</td></tr>
+<tr><td><strong>Noisy neighbour</strong></td><td>One tenant’s heavy use slows or starves other tenants sharing the same resource.</td></tr>
+<tr><td><strong>Quota</strong></td><td>A per-tenant limit: requests per minute, tokens per month, storage, spend.</td></tr>
+<tr><td><strong>Cost allocation</strong></td><td>Attributing each request’s cost to the tenant that caused it. Also called showback or chargeback.</td></tr>
+<tr><td><strong>Partition</strong></td><td>Splitting one big table into smaller physical pieces, usually by a key such as tenant.</td></tr>
+<tr><td><strong>Canary</strong></td><td>A unique, harmless test document planted so a leak becomes visible immediately.</td></tr>
+<tr><td><strong>Data residency</strong></td><td>A rule that some tenants’ data must stay in a specific country or region.</td></tr>
+</tbody></table>
+</div>
 <p>Three pairs are easy to mix up:</p>
 <ul>
 <li><strong>Shared vs isolated</strong> is about <em>where the data lives</em>. Shared = one index plus a filter. Isolated = separate stores.</li>
 <li><strong>Pre-filter vs post-filter</strong> is about <em>when the tenant check happens</em>. Pre = before ranking. Post = after. Only pre-filter is safe.</li>
 <li><strong>Isolation vs access control</strong> is related but not the same. Isolation keeps tenants apart. Access control (next page) also keeps <em>users inside one tenant</em> apart. You need both.</li>
 </ul>
-</section>
-<section id="the-core-idea" class="level2">
-<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Picture a large office building. Every company rents a floor. Some buildings give each company its own locked floor with its own elevator (<strong>isolated</strong>). Others share one open-plan floor, and every desk has a nameplate; you are trusted to only read desks with your name (<strong>shared with a filter</strong>).</p>
 <p>The open-plan building is cheaper and easier to run. But if the nameplate rule is forgotten, one company reads another’s mail. The locked-floor building is safer, but empty floors cost money even when the tenant is small.</p>
 <p>That is the whole trade-off. Now the technical version:</p>
-<div class="cell" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart TD
-    R["Request arrives"] --&gt; A["Authenticate&lt;br/&gt;who + which tenant"]
-    A --&gt; C["Load tenant context&lt;br/&gt;tenant_id in a ContextVar"]
-    C --&gt; D{"Sharing model"}
-    D --&gt;|"Shared index"| E["Query with tenant_id filter&lt;br/&gt;enforced by RLS or the app"]
-    D --&gt;|"Namespace per tenant"| F["Query that tenant's namespace only"]
-    D --&gt;|"Database per tenant"| G["Connect to that tenant's database"]
-    E --&gt; H["Ranked allowed chunks"]
+<pre class="mermaid">flowchart TD
+    R[&quot;Request arrives&quot;] --&gt; A[&quot;Authenticate&lt;br/&gt;who + which tenant&quot;]
+    A --&gt; C[&quot;Load tenant context&lt;br/&gt;tenant_id in a ContextVar&quot;]
+    C --&gt; D{&quot;Sharing model&quot;}
+    D --&gt;|&quot;Shared index&quot;| E[&quot;Query with tenant_id filter&lt;br/&gt;enforced by RLS or the app&quot;]
+    D --&gt;|&quot;Namespace per tenant&quot;| F[&quot;Query that tenant's namespace only&quot;]
+    D --&gt;|&quot;Database per tenant&quot;| G[&quot;Connect to that tenant's database&quot;]
+    E --&gt; H[&quot;Ranked allowed chunks&quot;]
     F --&gt; H
     G --&gt; H
-    H --&gt; I["Generate answer with citations"]
-    I --&gt; J["Meter usage, log audit event"]
-    J --&gt; K["Charge back to tenant"]
+    H --&gt; I[&quot;Generate answer with citations&quot;]
+    I --&gt; J[&quot;Meter usage, log audit event&quot;]
+    J --&gt; K[&quot;Charge back to tenant&quot;]
 </pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
 <p>The important detail is that the tenant identity enters at the top and must survive every step. A filter added only at the end (post-filter) is too late, because the restricted data already left the store.</p>
 <p>Here are the three common sharing models, from cheapest to safest:</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Model</th>
-<th>How it stores</th>
-<th>Isolation strength</th>
-<th>Cost</th>
-<th>Best for</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Shared table + <code>tenant_id</code> filter</td>
-<td>One table, one index, <code>tenant_id</code> column</td>
-<td>Weak unless enforced in the database (RLS)</td>
-<td>Lowest</td>
-<td>Many small tenants, low sensitivity</td>
-</tr>
-<tr class="even">
-<td>Namespace / schema / partition per tenant</td>
-<td>Shared server, separate logical store</td>
-<td>Medium</td>
-<td>Medium</td>
-<td>Mid-size tenants, clearer boundaries</td>
-</tr>
-<tr class="odd">
-<td>Database or cluster per tenant</td>
-<td>Fully separate store</td>
-<td>Strong</td>
-<td>Highest</td>
-<td>Regulated, large, or high-risk tenants</td>
-</tr>
-</tbody>
-</table>
+<div class="table-wrapper"><table><thead><tr><th>Model</th><th>How it stores</th><th>Isolation strength</th><th>Cost</th><th>Best for</th></tr></thead><tbody>
+<tr><td>Shared table + <code>tenant_id</code> filter</td><td>One table, one index, <code>tenant_id</code> column</td><td>Weak unless enforced in the database (RLS)</td><td>Lowest</td><td>Many small tenants, low sensitivity</td></tr>
+<tr><td>Namespace / schema / partition per tenant</td><td>Shared server, separate logical store</td><td>Medium</td><td>Medium</td><td>Mid-size tenants, clearer boundaries</td></tr>
+<tr><td>Database or cluster per tenant</td><td>Fully separate store</td><td>Strong</td><td>Highest</td><td>Regulated, large, or high-risk tenants</td></tr>
+</tbody></table>
+</div>
 <p>Most real systems are <strong>hybrid</strong>: shared by default, dedicated namespaces for paying tiers, and a dedicated database for a customer with strict compliance needs.</p>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
+<blockquote>
+<p><strong>Note:</strong></p>
 <p><strong>The one-sentence rule.</strong> Filtering by tenant is not an optimisation you add later — it is a correctness requirement, and it belongs in the data layer where a buggy caller cannot skip it.</p>
-</div>
-</div>
-</section>
-<section id="how-it-works" class="level2">
-<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
-<ol type="1">
-<li><p><strong>Authenticate and resolve the tenant.</strong> The request carries a credential (token, session, API key). A verified token maps to exactly one tenant. Never let the client send an arbitrary <code>tenant_id</code>; derive it from the credential.</p></li>
-<li><p><strong>Put the tenant in request context.</strong> Store it once, in a <code>ContextVar</code> in Python or an equivalent request-scoped value. Every function reads it from there. This removes the chance that one code path forgets to pass it down.</p></li>
-<li><p><strong>Tag every chunk at index time.</strong> When you ingest a document, write <code>tenant_id</code> onto the document, every chunk, and every vector. If the tag is missing, the chunk must be rejected, not stored with a default.</p></li>
-<li><p><strong>Enforce the filter in the data layer.</strong> Prefer enforcement a buggy query cannot silently skip: a per-tenant namespace, a separate database, or PostgreSQL row-level security, whose policy still applies when a query forgets its <code>WHERE</code> clause. That is defence in depth, not a boundary the application cannot influence: the <code>app.tenant_id</code> value RLS reads is an app-supplied, trusted custom GUC, and any role that can execute SQL can change it with <code>SET</code> or <code>set_config</code>. A SQL-execution path — especially one that interpolates values — can therefore defeat the policy, so never build SQL by string interpolation. An app-level <code>WHERE</code> clause is a fallback, not the only defence.</p></li>
-<li><p><strong>Pre-filter, never post-filter.</strong> Apply the tenant condition in the query that ranks the vectors. Fetching global top-K and filtering afterwards both loses results and risks exposing the unfiltered set to later code.</p></li>
-<li><p><strong>Keep per-tenant indexing settings when quality demands it.</strong> Different tenants may need different chunk sizes, normalisation rules, or even embedding models. Embeddings from different models live in <strong>different vector spaces</strong> and cannot share one index.</p></li>
-<li><p><strong>Absorb noisy neighbours.</strong> One tenant can dominate CPU, memory, and index traffic. Use per-tenant namespaces, rate limits, request queues, and (for the largest tenants) dedicated indexes or read replicas.</p></li>
-<li><p><strong>Meter and allocate cost.</strong> Every model call, embedding call, and storage byte is tagged with <code>tenant_id</code>. Aggregate into per-tenant usage, apply quotas, and produce a chargeback report.</p></li>
-<li><p><strong>Prove isolation with tests.</strong> Insert canary documents, run queries as each tenant, and assert that no response ever contains another tenant’s canary. Run this in CI and after every change to the retrieval path.</p></li>
+</blockquote>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
+<li>
+<p><strong>Authenticate and resolve the tenant.</strong> The request carries a credential (token, session, API key). A verified token maps to exactly one tenant. Never let the client send an arbitrary <code>tenant_id</code>; derive it from the credential.</p>
+</li>
+<li>
+<p><strong>Put the tenant in request context.</strong> Store it once, in a <code>ContextVar</code> in Python or an equivalent request-scoped value. Every function reads it from there. This removes the chance that one code path forgets to pass it down.</p>
+</li>
+<li>
+<p><strong>Tag every chunk at index time.</strong> When you ingest a document, write <code>tenant_id</code> onto the document, every chunk, and every vector. If the tag is missing, the chunk must be rejected, not stored with a default.</p>
+</li>
+<li>
+<p><strong>Enforce the filter in the data layer.</strong> Prefer enforcement a buggy query cannot silently skip: a per-tenant namespace, a separate database, or PostgreSQL row-level security, whose policy still applies when a query forgets its <code>WHERE</code> clause. That is defence in depth, not a boundary the application cannot influence: the <code>app.tenant_id</code> value RLS reads is an app-supplied, trusted custom GUC, and any role that can execute SQL can change it with <code>SET</code> or <code>set_config</code>. A SQL-execution path — especially one that interpolates values — can therefore defeat the policy, so never build SQL by string interpolation. An app-level <code>WHERE</code> clause is a fallback, not the only defence.</p>
+</li>
+<li>
+<p><strong>Pre-filter, never post-filter.</strong> Apply the tenant condition in the query that ranks the vectors. Fetching global top-K and filtering afterwards both loses results and risks exposing the unfiltered set to later code.</p>
+</li>
+<li>
+<p><strong>Keep per-tenant indexing settings when quality demands it.</strong> Different tenants may need different chunk sizes, normalisation rules, or even embedding models. Embeddings from different models live in <strong>different vector spaces</strong> and cannot share one index.</p>
+</li>
+<li>
+<p><strong>Absorb noisy neighbours.</strong> One tenant can dominate CPU, memory, and index traffic. Use per-tenant namespaces, rate limits, request queues, and (for the largest tenants) dedicated indexes or read replicas.</p>
+</li>
+<li>
+<p><strong>Meter and allocate cost.</strong> Every model call, embedding call, and storage byte is tagged with <code>tenant_id</code>. Aggregate into per-tenant usage, apply quotas, and produce a chargeback report.</p>
+</li>
+<li>
+<p><strong>Prove isolation with tests.</strong> Insert canary documents, run queries as each tenant, and assert that no response ever contains another tenant’s canary. Run this in CI and after every change to the retrieval path.</p>
+</li>
 </ol>
-</section>
-<section id="the-syntax-you-will-use" class="level2">
-<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
 <p>These are the real production forms, smallest to largest. The SQL is PostgreSQL with pgvector; the Python is plain standard library.</p>
 <p><strong>1. The tenant column and a filtered vector query.</strong> The <code>WHERE</code> clause is the safety line.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span>, content, <span class="dv">1</span> <span class="op">-</span> (embedding <span class="op">&lt;=&gt;</span> $<span class="dv">1</span>) <span class="kw">AS</span> score</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> chunks</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> tenant_id <span class="op">=</span> $<span class="dv">2</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> embedding <span class="op">&lt;=&gt;</span> $<span class="dv">1</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> $<span class="dv">3</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-sql">SELECT id, content, 1 - (embedding &lt;=&gt; $1) AS score
+FROM chunks
+WHERE tenant_id = $2
+ORDER BY embedding &lt;=&gt; $1
+LIMIT $3;
+</code></pre>
 <p><code>&lt;=&gt;</code> is pgvector’s cosine distance. <code>$2</code> is the tenant id, and it must always be present.</p>
 <p><strong>2. Row-level security: the database enforces the tenant for you.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> chunks <span class="kw">ENABLE</span> <span class="kw">ROW</span> <span class="kw">LEVEL</span> SECURITY;</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> POLICY tenant_isolation <span class="kw">ON</span> chunks</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">USING</span>      (tenant_id <span class="op">=</span> current_setting(<span class="st">'app.tenant_id'</span>):<span class="ch">:uuid</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">WITH</span> <span class="kw">CHECK</span> (tenant_id <span class="op">=</span> current_setting(<span class="st">'app.tenant_id'</span>):<span class="ch">:uuid</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-sql">ALTER TABLE chunks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation ON chunks
+  USING      (tenant_id = current_setting('app.tenant_id')::uuid)
+  WITH CHECK (tenant_id = current_setting('app.tenant_id')::uuid);
+</code></pre>
 <p>Now a query with no tenant clause still returns only the current tenant’s rows.</p>
 <p>This is not an application-proof boundary: <code>app.tenant_id</code> is just a custom GUC the application supplies, and <code>current_setting</code> will happily return whatever any SQL-executing role last set it to. The policy is only as trustworthy as the code and roles that can run SQL, which is why values must be bound as parameters rather than interpolated into statements.</p>
 <p><strong>3. Set the tenant for the transaction.</strong> <code>SET LOCAL</code> scopes the value to the current transaction.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> set_config(<span class="st">'app.tenant_id'</span>, $<span class="dv">1</span>, <span class="kw">true</span>);   <span class="co">-- true = local to transaction</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-sql">SELECT set_config('app.tenant_id', $1, true);   -- true = local to transaction
+</code></pre>
 <p>Run it at the start of every request. <code>true</code> means the setting resets when the transaction ends, so a pooled connection cannot leak it to the next request. It must run in the <strong>same transaction</strong> as the retrieval query: <code>set_config(..., true)</code> and <code>SET LOCAL</code> last only until the transaction ends, so in autocommit mode each statement is its own transaction and the setting is discarded before the query runs.</p>
 <p><strong>4. Force RLS even for the table owner.</strong> Owners bypass their own policies by default.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> chunks <span class="kw">FORCE</span> <span class="kw">ROW</span> <span class="kw">LEVEL</span> SECURITY;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-sql">ALTER TABLE chunks FORCE ROW LEVEL SECURITY;
+</code></pre>
 <p>This matters when your app connects as the table owner. Without it, policies are skipped.</p>
 <p><strong>5. Partition by tenant for large shared tables.</strong> Each partition can carry its own index.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> chunks (</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">id</span>        bigserial,</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    tenant_id uuid <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    content   text,</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    embedding vector(<span class="dv">1536</span>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>) <span class="kw">PARTITION</span> <span class="kw">BY</span> <span class="kw">LIST</span> (tenant_id);</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> chunks_acme <span class="kw">PARTITION</span> <span class="kw">OF</span> chunks <span class="cf">FOR</span> <span class="kw">VALUES</span> <span class="kw">IN</span> (<span class="st">'&lt;acme-uuid&gt;'</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-sql">CREATE TABLE chunks (
+    id        bigserial,
+    tenant_id uuid NOT NULL,
+    content   text,
+    embedding vector(1536)
+) PARTITION BY LIST (tenant_id);
+
+CREATE TABLE chunks_acme PARTITION OF chunks FOR VALUES IN ('&lt;acme-uuid&gt;');
+</code></pre>
 <p>RLS is per table. A policy on the parent <code>chunks</code> applies to queries routed through the parent, but a direct reference to a partition (<code>SELECT ... FROM chunks_acme</code>) is checked against that partition’s own policies. Enable row-level security and create the policy on every partition as well, or make all queries go through the parent so the parent policy applies.</p>
 <p><strong>6. A per-tenant namespace in a vector database.</strong> The shape differs by product, but the idea is the same: the tenant is part of the addressing, not a filter you might forget.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generic shape: choose the namespace from the request's tenant</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> client.search(</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    namespace<span class="op">=</span><span class="ss">f"tenant-</span><span class="sc">{</span>tenant_id<span class="sc">}</span><span class="ss">"</span>,   <span class="co"># separate logical store</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    vector<span class="op">=</span>query_embedding,</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    top_k<span class="op">=</span><span class="dv">5</span>,</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python"># Generic shape: choose the namespace from the request's tenant
+results = client.search(
+    namespace=f"tenant-{tenant_id}",   # separate logical store
+    vector=query_embedding,
+    top_k=5,
+)
+</code></pre>
 <p><strong>7. Carry the tenant through the request with <code>contextvars</code>.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> contextvars <span class="im">import</span> ContextVar</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>current_tenant: ContextVar[<span class="bu">str</span>] <span class="op">=</span> ContextVar(<span class="st">"current_tenant"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">from contextvars import ContextVar
+
+current_tenant: ContextVar[str] = ContextVar("current_tenant")
+</code></pre>
 <p>Every query function calls <code>current_tenant.get()</code> and <strong>fails closed</strong> if it is unset.</p>
-</section>
-<section id="examples-simple-to-real" class="level2">
-<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
 <p>These examples share one tiny, dependency-free setup: a bag-of-words embedding, a cosine score, and four documents owned by two tenants.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>VOCAB <span class="op">=</span> [<span class="st">"refund"</span>, <span class="st">"policy"</span>, <span class="st">"finance"</span>, <span class="st">"report"</span>, <span class="st">"vacation"</span>, <span class="st">"days"</span>]</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>DOCS <span class="op">=</span> [</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"tenant-a"</span>, <span class="st">"a1"</span>, <span class="st">"refund policy for tenant a"</span>),</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"tenant-b"</span>, <span class="st">"b1"</span>, <span class="st">"refund policy finance report"</span>),</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"tenant-b"</span>, <span class="st">"b2"</span>, <span class="st">"refund policy finance report"</span>),</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"tenant-b"</span>, <span class="st">"b3"</span>, <span class="st">"refund policy finance report"</span>),</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>QUERY <span class="op">=</span> <span class="st">"refund policy finance report"</span></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> embed(text: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">float</span>]:</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    vec <span class="op">=</span> [<span class="bu">float</span>(text.lower().split().count(w)) <span class="cf">for</span> w <span class="kw">in</span> VOCAB]</span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    norm <span class="op">=</span> math.sqrt(<span class="bu">sum</span>(v <span class="op">*</span> v <span class="cf">for</span> v <span class="kw">in</span> vec)) <span class="kw">or</span> <span class="fl">1.0</span></span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [v <span class="op">/</span> norm <span class="cf">for</span> v <span class="kw">in</span> vec]</span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> cosine(a, b):</span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(x <span class="op">*</span> y <span class="cf">for</span> x, y <span class="kw">in</span> <span class="bu">zip</span>(a, b))   <span class="co"># both vectors are unit length</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import math
+
+VOCAB = ["refund", "policy", "finance", "report", "vacation", "days"]
+DOCS = [
+    ("tenant-a", "a1", "refund policy for tenant a"),
+    ("tenant-b", "b1", "refund policy finance report"),
+    ("tenant-b", "b2", "refund policy finance report"),
+    ("tenant-b", "b3", "refund policy finance report"),
+]
+QUERY = "refund policy finance report"
+
+def embed(text: str) -&gt; list[float]:
+    vec = [float(text.lower().split().count(w)) for w in VOCAB]
+    norm = math.sqrt(sum(v * v for v in vec)) or 1.0
+    return [v / norm for v in vec]
+
+def cosine(a, b):
+    return sum(x * y for x, y in zip(a, b))   # both vectors are unit length
+</code></pre>
 <p><strong>Example 1 — the leak: a shared index with no filter.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> shared_index_naive(query, k<span class="op">=</span><span class="dv">3</span>):</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    q <span class="op">=</span> embed(query)</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    scored <span class="op">=</span> [(cosine(q, embed(t)), tid, did, t) <span class="cf">for</span> tid, did, t <span class="kw">in</span> DOCS]</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    scored.sort(key<span class="op">=</span><span class="kw">lambda</span> row: row[<span class="dv">0</span>], reverse<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> scored[:k]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def shared_index_naive(query, k=3):
+    q = embed(query)
+    scored = [(cosine(q, embed(t)), tid, did, t) for tid, did, t in DOCS]
+    scored.sort(key=lambda row: row[0], reverse=True)
+    return scored[:k]
+</code></pre>
 <p>Illustrative output for a <code>tenant-a</code> user asking about the refund policy:</p>
-<pre class="text"><code>1.000  tenant=tenant-b  doc=b1  'refund policy finance report'
+<pre><code class="language-text">1.000  tenant=tenant-b  doc=b1  'refund policy finance report'
 1.000  tenant=tenant-b  doc=b2  'refund policy finance report'
-1.000  tenant=tenant-b  doc=b3  'refund policy finance report'</code></pre>
+1.000  tenant=tenant-b  doc=b3  'refund policy finance report'
+</code></pre>
 <p>Every result belongs to <code>tenant-b</code>. The query was valid; the missing filter was the bug.</p>
 <p><strong>Example 2 — pre-filter by <code>tenant_id</code>.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> shared_index_filtered(query, tenant_id, k<span class="op">=</span><span class="dv">3</span>):</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    q <span class="op">=</span> embed(query)</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    scored <span class="op">=</span> [(cosine(q, embed(t)), tid, did, t)</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>              <span class="cf">for</span> tid, did, t <span class="kw">in</span> DOCS <span class="cf">if</span> tid <span class="op">==</span> tenant_id]</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    scored.sort(key<span class="op">=</span><span class="kw">lambda</span> row: row[<span class="dv">0</span>], reverse<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> scored[:k]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def shared_index_filtered(query, tenant_id, k=3):
+    q = embed(query)
+    scored = [(cosine(q, embed(t)), tid, did, t)
+              for tid, did, t in DOCS if tid == tenant_id]
+    scored.sort(key=lambda row: row[0], reverse=True)
+    return scored[:k]
+</code></pre>
 <p>Illustrative output:</p>
-<pre class="text"><code>0.707  tenant=tenant-a  doc=a1  'refund policy for tenant a'</code></pre>
+<pre><code class="language-text">0.707  tenant=tenant-a  doc=a1  'refund policy for tenant a'
+</code></pre>
 <p>The filter runs <em>inside</em> the search, so the other tenant’s rows are never scored.</p>
 <p><strong>Example 3 — isolated index (namespace per tenant).</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> isolated_indexes(query, tenant_id, k<span class="op">=</span><span class="dv">3</span>):</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    per_tenant <span class="op">=</span> {}</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> tid, did, t <span class="kw">in</span> DOCS:</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>        per_tenant.setdefault(tid, []).append((did, t))</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    q <span class="op">=</span> embed(query)</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    scored <span class="op">=</span> [(cosine(q, embed(t)), tenant_id, did, t)</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>              <span class="cf">for</span> did, t <span class="kw">in</span> per_tenant.get(tenant_id, [])]</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    scored.sort(key<span class="op">=</span><span class="kw">lambda</span> row: row[<span class="dv">0</span>], reverse<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> scored[:k]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def isolated_indexes(query, tenant_id, k=3):
+    per_tenant = {}
+    for tid, did, t in DOCS:
+        per_tenant.setdefault(tid, []).append((did, t))
+    q = embed(query)
+    scored = [(cosine(q, embed(t)), tenant_id, did, t)
+              for did, t in per_tenant.get(tenant_id, [])]
+    scored.sort(key=lambda row: row[0], reverse=True)
+    return scored[:k]
+</code></pre>
 <p>Illustrative output:</p>
-<pre class="text"><code>0.707  tenant=tenant-a  doc=a1  'refund policy for tenant a'</code></pre>
+<pre><code class="language-text">0.707  tenant=tenant-a  doc=a1  'refund policy for tenant a'
+</code></pre>
 <p>The other tenant’s documents are not present in the searched structure at all, so no filter can be forgotten.</p>
 <p><strong>Example 4 — the noisy neighbour: post-filtering starves the small tenant.</strong></p>
 <p>A big tenant fills the global top-K with near-identical documents. A small tenant asks the same question and gets nothing, because the filter is applied after ranking.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> post_filter_global_topk(query, tenant_id, k<span class="op">=</span><span class="dv">3</span>):</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [row <span class="cf">for</span> row <span class="kw">in</span> shared_index_naive(query, k) <span class="cf">if</span> row[<span class="dv">1</span>] <span class="op">==</span> tenant_id]</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>(post_filter_global_topk(QUERY, <span class="st">"tenant-a"</span>, k<span class="op">=</span><span class="dv">3</span>)))</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>(shared_index_filtered(QUERY, <span class="st">"tenant-a"</span>, k<span class="op">=</span><span class="dv">3</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def post_filter_global_topk(query, tenant_id, k=3):
+    return [row for row in shared_index_naive(query, k) if row[1] == tenant_id]
+
+print(len(post_filter_global_topk(QUERY, "tenant-a", k=3)))
+print(len(shared_index_filtered(QUERY, "tenant-a", k=3)))
+</code></pre>
 <p>Illustrative output:</p>
-<pre class="text"><code>global top-3 then filter -&gt; tenant-a results: 0
-pre-filter top-3 for tenant-a -&gt; results:     1</code></pre>
+<pre><code class="language-text">global top-3 then filter -&gt; tenant-a results: 0
+pre-filter top-3 for tenant-a -&gt; results:     1
+</code></pre>
 <p>Post-filtering turned a valid query into an empty answer. Pre-filtering returned the one document that tenant owns.</p>
 <p><strong>Example 5 — tenant context that fails closed.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> contextvars <span class="im">import</span> ContextVar</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>current_tenant: ContextVar[<span class="bu">str</span>] <span class="op">=</span> ContextVar(<span class="st">"current_tenant"</span>)</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> require_tenant() <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> current_tenant.get()</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">LookupError</span>:</span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="st">"no tenant in context: refuse to query"</span>) <span class="im">from</span> <span class="va">None</span></span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> search(query: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">tuple</span>[<span class="bu">str</span>, <span class="bu">tuple</span>[<span class="bu">str</span>, <span class="bu">str</span>]]:</span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Parameterized statement: the tenant id and the query are bound, not interpolated.</span></span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (</span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">"SELECT ... WHERE tenant_id = $1 AND query = $2"</span>,</span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>        (require_tenant(), query),</span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">from contextvars import ContextVar
+
+current_tenant: ContextVar[str] = ContextVar("current_tenant")
+
+def require_tenant() -&gt; str:
+    try:
+        return current_tenant.get()
+    except LookupError:
+        raise RuntimeError("no tenant in context: refuse to query") from None
+
+def search(query: str) -&gt; tuple[str, tuple[str, str]]:
+    # Parameterized statement: the tenant id and the query are bound, not interpolated.
+    return (
+        "SELECT ... WHERE tenant_id = $1 AND query = $2",
+        (require_tenant(), query),
+    )
+</code></pre>
 <p>Illustrative output:</p>
-<pre class="text"><code>unset  -&gt; RuntimeError: no tenant in context: refuse to query
+<pre><code class="language-text">unset  -&gt; RuntimeError: no tenant in context: refuse to query
 set    -&gt; ('SELECT ... WHERE tenant_id = $1 AND query = $2', ('tenant-a', 'refund'))
-reset  -&gt; RuntimeError: no tenant in context: refuse to query</code></pre>
+reset  -&gt; RuntimeError: no tenant in context: refuse to query
+</code></pre>
 <p>“Fail closed” means missing context causes a refusal, not an unfiltered query. Returning the statement and its parameters as a pair lets the driver bind them safely; building the same string with an f-string would reintroduce SQL injection, which is exactly why the tenant id and the query text are parameters rather than literals.</p>
 <p><strong>Example 6 — quotas and cost allocation per tenant.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dataclasses <span class="im">import</span> dataclass</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>PRICE_PER_1K_TOKENS <span class="op">=</span> <span class="fl">0.0004</span>  <span class="co"># illustrative</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Usage:</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    tenant_id: <span class="bu">str</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    requests: <span class="bu">int</span> <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    tokens: <span class="bu">int</span> <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>usages: <span class="bu">dict</span>[<span class="bu">str</span>, Usage] <span class="op">=</span> {}</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> record(tenant_id: <span class="bu">str</span>, tokens: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    usage <span class="op">=</span> usages.setdefault(tenant_id, Usage(tenant_id))</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    usage.requests <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    usage.tokens <span class="op">+=</span> tokens</span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>record(<span class="st">"tenant-a"</span>, <span class="dv">2000</span>)</span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>record(<span class="st">"tenant-a"</span>, <span class="dv">1000</span>)</span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>record(<span class="st">"tenant-b"</span>, <span class="dv">500</span>)</span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> u <span class="kw">in</span> usages.values():</span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(u.tenant_id, u.requests, u.tokens, <span class="bu">round</span>(u.tokens <span class="op">/</span> <span class="dv">1000</span> <span class="op">*</span> PRICE_PER_1K_TOKENS, <span class="dv">4</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">from dataclasses import dataclass
+
+PRICE_PER_1K_TOKENS = 0.0004  # illustrative
+
+@dataclass
+class Usage:
+    tenant_id: str
+    requests: int = 0
+    tokens: int = 0
+
+usages: dict[str, Usage] = {}
+def record(tenant_id: str, tokens: int) -&gt; None:
+    usage = usages.setdefault(tenant_id, Usage(tenant_id))
+    usage.requests += 1
+    usage.tokens += tokens
+
+record("tenant-a", 2000)
+record("tenant-a", 1000)
+record("tenant-b", 500)
+for u in usages.values():
+    print(u.tenant_id, u.requests, u.tokens, round(u.tokens / 1000 * PRICE_PER_1K_TOKENS, 4))
+</code></pre>
 <p>Illustrative output:</p>
-<pre class="text"><code>tenant-a 2 3000 0.0012
-tenant-b 1 500 0.0002</code></pre>
+<pre><code class="language-text">tenant-a 2 3000 0.0012
+tenant-b 1 500 0.0002
+</code></pre>
 <p>Metering turns “the AI bill” into a per-customer number, which is what quotas and finance need.</p>
-</section>
-<section id="in-production" class="level2">
-<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
 <ul>
 <li><strong>Derive <code>tenant_id</code> from the credential, never from request input.</strong> If the client can send <code>tenant_id</code>, an attacker can simply send someone else’s. Tie it to the authenticated token and treat any mismatch as a security incident.</li>
 <li><strong>Enforce isolation in the data layer, not only the app.</strong> Row-level security, namespaces, or separate databases keep working even when a developer writes a query with no filter. App-level <code>WHERE</code> clauses are a second line of defence.</li>
@@ -1406,60 +476,40 @@ tenant-b 1 500 0.0002</code></pre>
 <li><strong>Respect data residency.</strong> A tenant may require storage in one region. That requirement can force a separate database even when sharing would be cheaper.</li>
 <li><strong>Plan for deletion and migration.</strong> “Delete tenant X” must remove documents, chunks, vectors, caches, and backups. “Move tenant X” must re-embed if the destination uses a different model.</li>
 </ul>
-</section>
-<section id="interview-questions" class="level2">
-<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
-<section id="what-is-multi-tenant-rag-and-what-is-the-core-design-choice" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-multi-tenant-rag-and-what-is-the-core-design-choice">1. What is multi-tenant RAG, and what is the core design choice?</h3>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-what-is-multi-tenant-rag-and-what-is-the-core-design-choice"><a class="header" href="#1-what-is-multi-tenant-rag-and-what-is-the-core-design-choice">1. What is multi-tenant RAG, and what is the core design choice?</a></h3>
 <p><strong>Answer.</strong> It is one RAG system serving many customers, called tenants. The core choice is how much to share and how much to isolate. You can share one index with a <code>tenant_id</code> filter, give each tenant a namespace or schema, or give each a database. Sharing is cheaper; isolation is safer. Most systems use a hybrid.</p>
 <p><strong>Follow-up: “What decides the choice?”</strong> Sensitivity, regulation, data residency, tenant size, and cost. A regulated bank with strict residency gets its own database. A thousand tiny free-tier users share one index with strong RLS.</p>
 <p><strong>Trap.</strong> Treating multi-tenancy as only a database concern. Identity, caches, logs, quotas, and cost all carry the tenant dimension.</p>
-</section>
-<section id="shared-index-with-a-filter-or-an-index-per-tenant-how-do-you-choose" class="level3">
-<h3 class="anchored" data-anchor-id="shared-index-with-a-filter-or-an-index-per-tenant-how-do-you-choose">2. Shared index with a filter, or an index per tenant — how do you choose?</h3>
+<h3 id="2-shared-index-with-a-filter-or-an-index-per-tenant--how-do-you-choose"><a class="header" href="#2-shared-index-with-a-filter-or-an-index-per-tenant--how-do-you-choose">2. Shared index with a filter, or an index per tenant — how do you choose?</a></h3>
 <p><strong>Answer.</strong> Start with the threat and the scale. If a leak is catastrophic or legally restricted, isolate. If there are many small tenants and the data is low-sensitivity, share one index and enforce <code>tenant_id</code> in the database. In between, use a namespace or partition per tenant. Tenant size also matters: a huge tenant deserves its own index to avoid noisy-neighbour problems.</p>
 <p><strong>Follow-up: “What is the hybrid pattern?”</strong> Shared by default, dedicated namespaces for paid tiers, and a fully dedicated database for the few tenants with the strictest contracts.</p>
 <p><strong>Trap.</strong> Saying “isolated is always better.” It is not: it multiplies cost, operational work, and migration effort, and can make the long tail of tiny tenants unprofitable.</p>
-</section>
-<section id="why-is-pre-filtering-required-instead-of-post-filtering" class="level3">
-<h3 class="anchored" data-anchor-id="why-is-pre-filtering-required-instead-of-post-filtering">3. Why is pre-filtering required instead of post-filtering?</h3>
+<h3 id="3-why-is-pre-filtering-required-instead-of-post-filtering"><a class="header" href="#3-why-is-pre-filtering-required-instead-of-post-filtering">3. Why is pre-filtering required instead of post-filtering?</a></h3>
 <p><strong>Answer.</strong> Pre-filtering applies the tenant condition before ranking, so restricted rows are never fetched or scored. Post-filtering ranks the whole corpus first, then removes rows. It loses recall — a big tenant can occupy the whole top-K and leave a small tenant with zero results — and it moves restricted data into the process, where it can reach the model, caches, or logs.</p>
 <p><strong>Follow-up: “Can post-filtering itself leak data even if the code never prints it?”</strong> Yes, through side channels: result counts, scores, and rank changes can reveal that a restricted document exists. And any later code that touches the pre-filter list is a risk.</p>
 <p><strong>Trap.</strong> Believing post-filtering is “safe enough if the filter is correct.” Correctness is not the only issue; latency, recall, and side channels are.</p>
-</section>
-<section id="how-does-postgresql-row-level-security-help" class="level3">
-<h3 class="anchored" data-anchor-id="how-does-postgresql-row-level-security-help">4. How does PostgreSQL row-level security help?</h3>
+<h3 id="4-how-does-postgresql-row-level-security-help"><a class="header" href="#4-how-does-postgresql-row-level-security-help">4. How does PostgreSQL row-level security help?</a></h3>
 <p><strong>Answer.</strong> RLS attaches a policy to a table. The database compares each row to the policy and hides rows that fail, even if the query has no <code>WHERE</code> clause. You enable it, create a policy using <code>current_setting('app.tenant_id')</code>, and set that value per transaction with <code>set_config(..., true)</code>. It is defence in depth: a buggy query is still constrained.</p>
 <p><strong>Follow-up: “What is the classic RLS gotcha?”</strong> The table owner bypasses policies unless you run <code>ALTER TABLE ... FORCE ROW LEVEL SECURITY</code>. Also, a setting made with <code>SET</code> instead of <code>SET LOCAL</code> can persist on a pooled connection and leak to the next request.</p>
 <p><strong>Trap.</strong> Assuming RLS covers every path. Admin tools, replicas, exports, and analytics jobs may connect with different roles or bypass policies entirely.</p>
-</section>
-<section id="what-is-a-noisy-neighbour-in-rag-and-how-do-you-handle-it" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-a-noisy-neighbour-in-rag-and-how-do-you-handle-it">5. What is a noisy neighbour in RAG, and how do you handle it?</h3>
+<h3 id="5-what-is-a-noisy-neighbour-in-rag-and-how-do-you-handle-it"><a class="header" href="#5-what-is-a-noisy-neighbour-in-rag-and-how-do-you-handle-it">5. What is a noisy neighbour in RAG, and how do you handle it?</a></h3>
 <p><strong>Answer.</strong> One tenant’s traffic degrades another’s. A large tenant can fill the ANN candidate list, saturate embedding workers, occupy the reranker, or push up p99 latency. Handle it with per-tenant namespaces or indexes, per-tenant rate limits and quotas, request queues with fair scheduling, and dedicated replicas for the largest tenants.</p>
 <p><strong>Follow-up: “Give a retrieval-specific example.”</strong> In a shared index with post-filtering, a tenant with thousands of near-identical chunks fills the global top-K, so a small tenant’s one relevant chunk never reaches the reranker. Pre-filtering or namespaces fixes it.</p>
 <p><strong>Trap.</strong> Only measuring average latency. Noisy-neighbour problems hide in the tail: p95 and p99 for the small tenant, not the mean across all tenants.</p>
-</section>
-<section id="how-do-you-allocate-cost-across-tenants" class="level3">
-<h3 class="anchored" data-anchor-id="how-do-you-allocate-cost-across-tenants">6. How do you allocate cost across tenants?</h3>
+<h3 id="6-how-do-you-allocate-cost-across-tenants"><a class="header" href="#6-how-do-you-allocate-cost-across-tenants">6. How do you allocate cost across tenants?</a></h3>
 <p><strong>Answer.</strong> Tag every billable unit with <code>tenant_id</code>: embedding calls, LLM tokens, reranking, vector storage, and search compute. Store usage events, aggregate them per tenant and per period, and apply per-tenant quotas and budgets. This produces showback (visibility) or chargeback (an actual internal bill).</p>
 <p><strong>Follow-up: “Why is per-tenant cost hard in a shared index?”</strong> Shared compute does not naturally split. You approximate: attribute the query’s token and embedding cost directly, and allocate shared index cost by storage share or query share.</p>
 <p><strong>Trap.</strong> Forgetting retrieval cost. Embedding a large corpus and running ANN queries are real expenses, not just the final LLM call.</p>
-</section>
-<section id="how-do-you-prove-tenants-are-isolated" class="level3">
-<h3 class="anchored" data-anchor-id="how-do-you-prove-tenants-are-isolated">7. How do you prove tenants are isolated?</h3>
+<h3 id="7-how-do-you-prove-tenants-are-isolated"><a class="header" href="#7-how-do-you-prove-tenants-are-isolated">7. How do you prove tenants are isolated?</a></h3>
 <p><strong>Answer.</strong> Use canaries and negative tests. Give every tenant a unique canary document. Then, as each tenant, run a large, adversarial query set and assert that no result, citation, cache entry, log, or export ever contains another tenant’s canary or document ids. Add permission-change and deletion-propagation tests. Run the suite in CI.</p>
 <p><strong>Follow-up: “Where do leaks hide even when the database is correct?”</strong> Application caches keyed without the tenant, logs and metrics that store raw queries, admin and analytics tools, exports, and backups restored into a shared environment.</p>
 <p><strong>Trap.</strong> Testing only the happy path with well-behaved queries. Isolation must hold for adversarial phrasing, pagination, reruns, and error paths.</p>
-</section>
-<section id="a-tenant-asks-you-to-delete-all-their-data.-what-does-that-involve-in-multi-tenant-rag" class="level3">
-<h3 class="anchored" data-anchor-id="a-tenant-asks-you-to-delete-all-their-data.-what-does-that-involve-in-multi-tenant-rag">8. A tenant asks you to delete all their data. What does that involve in multi-tenant RAG?</h3>
+<h3 id="8-a-tenant-asks-you-to-delete-all-their-data-what-does-that-involve-in-multi-tenant-rag"><a class="header" href="#8-a-tenant-asks-you-to-delete-all-their-data-what-does-that-involve-in-multi-tenant-rag">8. A tenant asks you to delete all their data. What does that involve in multi-tenant RAG?</a></h3>
 <p><strong>Answer.</strong> Remove the source documents, all chunks and vectors, any cached answers and embeddings, derived summaries, logs that contain their text, and backups according to policy. Verify with a canary that nothing is retrievable. If data was shared into a global model, note that fine-tuning data cannot be surgically removed, which is one reason to keep tenant data out of training.</p>
 <p><strong>Follow-up: “Why is deletion harder than it sounds?”</strong> Data is copied: caches, search indexes, analytics copies, and backups. You need a data map that lists every place a tenant’s text can live.</p>
 <p><strong>Trap.</strong> Deleting only the rows in the main table and forgetting the vector index, the response cache, and the object store holding the originals.</p>
-</section>
-</section>
-<section id="remember-this" class="level2">
-<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
 <ul>
 <li><strong>Sharing and isolation are a dial, not a switch.</strong> Choose your point from sensitivity, regulation, scale, and cost.</li>
 <li><strong>The tenant filter belongs in the data layer.</strong> RLS, namespaces, or separate databases beat an app-level <code>WHERE</code> that someone can forget.</li>
@@ -1468,438 +518,58 @@ tenant-b 1 500 0.0002</code></pre>
 <li><strong>Test isolation with canaries in CI.</strong> One leaked canary is a breach; a passing suite is your evidence.</li>
 </ul>
 
+                    </main>
 
-</section>
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
-</main> <!-- /main -->
-<script id="quarto-html-after-body" type="application/javascript">
-  window.document.addEventListener("DOMContentLoaded", function (event) {
-    // Ensure there is a toggle, if there isn't float one in the top right
-    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
-      const a = window.document.createElement('a');
-      a.classList.add('top-right');
-      a.classList.add('quarto-color-scheme-toggle');
-      a.href = "";
-      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
-      const i = window.document.createElement("i");
-      i.classList.add('bi');
-      a.appendChild(i);
-      window.document.body.appendChild(a);
-    }
-    setColorSchemeToggle(hasAlternateSentinel())
-    const icon = "";
-    const anchorJS = new window.AnchorJS();
-    anchorJS.options = {
-      placement: 'right',
-      icon: icon
-    };
-    anchorJS.add('.anchored');
-    const isCodeAnnotation = (el) => {
-      for (const clz of el.classList) {
-        if (clz.startsWith('code-annotation-')) {                     
-          return true;
-        }
-      }
-      return false;
-    }
-    const onCopySuccess = function(e) {
-      // button target
-      const button = e.trigger;
-      // don't keep focus
-      button.blur();
-      // flash "checked"
-      button.classList.add('code-copy-button-checked');
-      var currentTitle = button.getAttribute("title");
-      button.setAttribute("title", "Copied!");
-      let tooltip;
-      if (window.bootstrap) {
-        button.setAttribute("data-bs-toggle", "tooltip");
-        button.setAttribute("data-bs-placement", "left");
-        button.setAttribute("data-bs-title", "Copied!");
-        tooltip = new bootstrap.Tooltip(button, 
-          { trigger: "manual", 
-            customClass: "code-copy-button-tooltip",
-            offset: [0, -8]});
-        tooltip.show();    
-      }
-      setTimeout(function() {
-        if (tooltip) {
-          tooltip.hide();
-          button.removeAttribute("data-bs-title");
-          button.removeAttribute("data-bs-toggle");
-          button.removeAttribute("data-bs-placement");
-        }
-        button.setAttribute("title", currentTitle);
-        button.classList.remove('code-copy-button-checked');
-      }, 1000);
-      // clear code selection
-      e.clearSelection();
-    }
-    const getTextToCopy = function(trigger) {
-      const outerScaffold = trigger.parentElement.cloneNode(true);
-      const codeEl = outerScaffold.querySelector('code');
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-      text: getTextToCopy
-    });
-    clipboard.on('success', onCopySuccess);
-    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-        text: getTextToCopy,
-        container: window.document.getElementById('quarto-embedded-source-code-modal')
-      });
-      clipboardModal.on('success', onCopySuccess);
-    }
-      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-      var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
-      var isInternal = (href) => {
-          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
-      }
-      // Inspect non-navigation links and adorn them if external
-     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-      for (var i=0; i<links.length; i++) {
-        const link = links[i];
-        if (!isInternal(link.href)) {
-          // undo the damage that might have been done by quarto-nav.js in the case of
-          // links that we want to consider external
-          if (link.dataset.originalHref !== undefined) {
-            link.href = link.dataset.originalHref;
-          }
-        }
-      }
-    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-      const config = {
-        allowHTML: true,
-        maxWidth: 500,
-        delay: 100,
-        arrow: false,
-        appendTo: function(el) {
-            return el.parentElement;
-        },
-        interactive: true,
-        interactiveBorder: 10,
-        theme: 'quarto',
-        placement: 'bottom-start',
-      };
-      if (contentFn) {
-        config.content = contentFn;
-      }
-      if (onTriggerFn) {
-        config.onTrigger = onTriggerFn;
-      }
-      if (onUntriggerFn) {
-        config.onUntrigger = onUntriggerFn;
-      }
-      window.tippy(el, config); 
-    }
-    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-    for (var i=0; i<noterefs.length; i++) {
-      const ref = noterefs[i];
-      tippyHover(ref, function() {
-        // use id or data attribute instead here
-        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-        try { href = new URL(href).hash; } catch {}
-        const id = href.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note) {
-          return note.innerHTML;
-        } else {
-          return "";
-        }
-      });
-    }
-    const xrefs = window.document.querySelectorAll('a.quarto-xref');
-    const processXRef = (id, note) => {
-      // Strip column container classes
-      const stripColumnClz = (el) => {
-        el.classList.remove("page-full", "page-columns");
-        if (el.children) {
-          for (const child of el.children) {
-            stripColumnClz(child);
-          }
-        }
-      }
-      stripColumnClz(note)
-      if (id === null || id.startsWith('sec-')) {
-        // Special case sections, only their first couple elements
-        const container = document.createElement("div");
-        if (note.children && note.children.length > 2) {
-          container.appendChild(note.children[0].cloneNode(true));
-          for (let i = 1; i < note.children.length; i++) {
-            const child = note.children[i];
-            if (child.tagName === "P" && child.innerText === "") {
-              continue;
-            } else {
-              container.appendChild(child.cloneNode(true));
-              break;
-            }
-          }
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(container);
-          }
-          return container.innerHTML
-        } else {
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(note);
-          }
-          return note.innerHTML;
-        }
-      } else {
-        // Remove any anchor links if they are present
-        const anchorLink = note.querySelector('a.anchorjs-link');
-        if (anchorLink) {
-          anchorLink.remove();
-        }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(note);
-        }
-        if (note.classList.contains("callout")) {
-          return note.outerHTML;
-        } else {
-          return note.innerHTML;
-        }
-      }
-    }
-    for (var i=0; i<xrefs.length; i++) {
-      const xref = xrefs[i];
-      tippyHover(xref, undefined, function(instance) {
-        instance.disable();
-        let url = xref.getAttribute('href');
-        let hash = undefined; 
-        if (url.startsWith('#')) {
-          hash = url;
-        } else {
-          try { hash = new URL(url).hash; } catch {}
-        }
-        if (hash) {
-          const id = hash.replace(/^#\/?/, "");
-          const note = window.document.getElementById(id);
-          if (note !== null) {
-            try {
-              const html = processXRef(id, note.cloneNode(true));
-              instance.setContent(html);
-            } finally {
-              instance.enable();
-              instance.show();
-            }
-          } else {
-            // See if we can fetch this
-            fetch(url.split('#')[0])
-            .then(res => res.text())
-            .then(html => {
-              const parser = new DOMParser();
-              const htmlDoc = parser.parseFromString(html, "text/html");
-              const note = htmlDoc.getElementById(id);
-              if (note !== null) {
-                const html = processXRef(id, note);
-                instance.setContent(html);
-              } 
-            }).finally(() => {
-              instance.enable();
-              instance.show();
-            });
-          }
-        } else {
-          // See if we can fetch a full url (with no hash to target)
-          // This is a special case and we should probably do some content thinning / targeting
-          fetch(url)
-          .then(res => res.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.querySelector('main.content');
-            if (note !== null) {
-              // This should only happen for chapter cross references
-              // (since there is no id in the URL)
-              // remove the first header
-              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-                note.children[0].remove();
-              }
-              const html = processXRef(null, note);
-              instance.setContent(html);
-            } 
-          }).finally(() => {
-            instance.enable();
-            instance.show();
-          });
-        }
-      }, function(instance) {
-      });
-    }
-        let selectedAnnoteEl;
-        const selectorForAnnotation = ( cell, annotation) => {
-          let cellAttr = 'data-code-cell="' + cell + '"';
-          let lineAttr = 'data-code-annotation="' +  annotation + '"';
-          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-          return selector;
-        }
-        const selectCodeLines = (annoteEl) => {
-          const doc = window.document;
-          const targetCell = annoteEl.getAttribute("data-target-cell");
-          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-          const lineIds = lines.map((line) => {
-            return targetCell + "-" + line;
-          })
-          let top = null;
-          let height = null;
-          let parent = null;
-          if (lineIds.length > 0) {
-              //compute the position of the single el (top and bottom and make a div)
-              const el = window.document.getElementById(lineIds[0]);
-              top = el.offsetTop;
-              height = el.offsetHeight;
-              parent = el.parentElement.parentElement;
-            if (lineIds.length > 1) {
-              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-              height = bottom - top;
-            }
-            if (top !== null && height !== null && parent !== null) {
-              // cook up a div (if necessary) and position it 
-              let div = window.document.getElementById("code-annotation-line-highlight");
-              if (div === null) {
-                div = window.document.createElement("div");
-                div.setAttribute("id", "code-annotation-line-highlight");
-                div.style.position = 'absolute';
-                parent.appendChild(div);
-              }
-              div.style.top = top - 2 + "px";
-              div.style.height = height + 4 + "px";
-              div.style.left = 0;
-              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-              if (gutterDiv === null) {
-                gutterDiv = window.document.createElement("div");
-                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-                gutterDiv.style.position = 'absolute';
-                const codeCell = window.document.getElementById(targetCell);
-                const gutter = codeCell.querySelector('.code-annotation-gutter');
-                gutter.appendChild(gutterDiv);
-              }
-              gutterDiv.style.top = top - 2 + "px";
-              gutterDiv.style.height = height + 4 + "px";
-            }
-            selectedAnnoteEl = annoteEl;
-          }
-        };
-        const unselectCodeLines = () => {
-          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-          elementsIds.forEach((elId) => {
-            const div = window.document.getElementById(elId);
-            if (div) {
-              div.remove();
-            }
-          });
-          selectedAnnoteEl = undefined;
-        };
-          // Handle positioning of the toggle
-      window.addEventListener(
-        "resize",
-        throttle(() => {
-          elRect = undefined;
-          if (selectedAnnoteEl) {
-            selectCodeLines(selectedAnnoteEl);
-          }
-        }, 10)
-      );
-      function throttle(fn, ms) {
-      let throttle = false;
-      let timer;
-        return (...args) => {
-          if(!throttle) { // first call gets through
-              fn.apply(this, args);
-              throttle = true;
-          } else { // all the others get throttled
-              if(timer) clearTimeout(timer); // cancel #2
-              timer = setTimeout(() => {
-                fn.apply(this, args);
-                timer = throttle = false;
-              }, ms);
-          }
-        };
-      }
-        // Attach click handler to the DT
-        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-        for (const annoteDlNode of annoteDls) {
-          annoteDlNode.addEventListener('click', (event) => {
-            const clickedEl = event.target;
-            if (clickedEl !== selectedAnnoteEl) {
-              unselectCodeLines();
-              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-              if (activeEl) {
-                activeEl.classList.remove('code-annotation-active');
-              }
-              selectCodeLines(clickedEl);
-              clickedEl.classList.add('code-annotation-active');
-            } else {
-              // Unselect the line
-              unselectCodeLines();
-              clickedEl.classList.remove('code-annotation-active');
-            }
-          });
-        }
-    const findCites = (el) => {
-      const parentEl = el.parentElement;
-      if (parentEl) {
-        const cites = parentEl.dataset.cites;
-        if (cites) {
-          return {
-            el,
-            cites: cites.split(' ')
-          };
-        } else {
-          return findCites(el.parentElement)
-        }
-      } else {
-        return undefined;
-      }
-    };
-    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-    for (var i=0; i<bibliorefs.length; i++) {
-      const ref = bibliorefs[i];
-      const citeInfo = findCites(ref);
-      if (citeInfo) {
-        tippyHover(citeInfo.el, function() {
-          var popup = window.document.createElement('div');
-          citeInfo.cites.forEach(function(cite) {
-            var citeDiv = window.document.createElement('div');
-            citeDiv.classList.add('hanging-indent');
-            citeDiv.classList.add('csl-entry');
-            var biblioDiv = window.document.getElementById('ref-' + cite);
-            if (biblioDiv) {
-              citeDiv.innerHTML = biblioDiv.innerHTML;
-            }
-            popup.appendChild(citeDiv);
-          });
-          return popup.innerHTML;
-        });
-      }
-    }
-  });
-  </script>
-<nav class="page-navigation">
-  <div class="nav-page nav-page-previous">
-      <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="pagination-link" aria-label="RAG Evaluation and Testing">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">RAG Evaluation and Testing</span></span>
-      </a>          
-  </div>
-  <div class="nav-page nav-page-next">
-      <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="pagination-link" aria-label="RAG Security and Access Control">
-        <span class="nav-page-text"><span class="chapter-title">RAG Security and Access Control</span></span> <i class="bi bi-arrow-right-short"></i>
-      </a>
-  </div>
-</nav>
-</div> <!-- /content -->
+                            <a rel="next prefetch" href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
 
 
 
 
-</body></html>
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom.js"></script>
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

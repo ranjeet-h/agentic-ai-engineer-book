@@ -1,1038 +1,198 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
-
-<meta charset="utf-8">
-<meta name="generator" content="quarto-1.10.18">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-
-
-<title>Structured Outputs and JSON Schema – Agentic AI Engineering Study Book</title>
-<style>
-/* Default styles provided by pandoc.
-** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
-*/
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: 1.5em;}
-div.column{flex: auto;}
-@media screen {
-div.columns{gap: min(4vw, 1.5em);}
-div.column{overflow-x: auto;}
-}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-ul.task-list{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-  width: 0.8em;
-  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
-  vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-</style>
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Structured Outputs and JSON Schema - Agentic AI Engineering Study Book</title>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<link href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" rel="next">
-<link href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" rel="prev">
-<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-012e79344040a4a328ea85a5b0a60384.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-d84a0d611e1de1507791ffd4dad004b1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
-<script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
-  "copy-button": false,
-  "collapse-after": 3,
-  "panel-placement": "start",
-  "type": "textbox",
-  "limit": 50,
-  "keyboard-shortcut": [
-    "f",
-    "/",
-    "s"
-  ],
-  "show-item-context": false,
-  "language": {
-    "search-no-results-text": "No results",
-    "search-matching-documents-text": "matching documents",
-    "search-copy-link-title": "Copy link to search",
-    "search-hide-matches-text": "Hide additional matches",
-    "search-more-match-text": "more match in this document",
-    "search-more-matches-text": "more matches in this document",
-    "search-clear-button-title": "Clear",
-    "search-text-placeholder": "",
-    "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit",
-    "search-label": "Search"
-  }
-}</script>
-<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
-<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
-<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../assets/fonts/fonts.css">
+        <link rel="stylesheet" href="../theme/custom.css">
 
 
-<link rel="stylesheet" href="../assets/fonts/fonts.css">
-<link rel="stylesheet" href="../styles/custom.css">
-</head>
-
-<body class="nav-sidebar floating quarto-light"><script id="quarto-html-before-body" type="application/javascript">
-    const toggleBodyColorMode = (bsSheetEl) => {
-      const mode = bsSheetEl.getAttribute("data-mode");
-      const bodyEl = window.document.querySelector("body");
-      if (mode === "dark") {
-        bodyEl.classList.add("quarto-dark");
-        bodyEl.classList.remove("quarto-light");
-      } else {
-        bodyEl.classList.add("quarto-light");
-        bodyEl.classList.remove("quarto-dark");
-      }
-    }
-    const toggleBodyColorPrimary = () => {
-      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
-      if (bsSheetEl) {
-        toggleBodyColorMode(bsSheetEl);
-      }
-    }
-    const setColorSchemeToggle = (alternate) => {
-      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
-      for (let i=0; i < toggles.length; i++) {
-        const toggle = toggles[i];
-        if (toggle) {
-          if (alternate) {
-            toggle.classList.add("alternate");
-          } else {
-            toggle.classList.remove("alternate");
-          }
-        }
-      }
-    };
-    const toggleColorMode = (alternate) => {
-      // Switch the stylesheets
-      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
-      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
-      manageTransitions('#quarto-margin-sidebar .nav-link', false);
-      if (alternate) {
-        // note: dark is layered on light, we don't disable primary!
-        enableStylesheet(alternateStylesheets);
-        for (const sheetNode of alternateStylesheets) {
-          if (sheetNode.id === "quarto-bootstrap") {
-            toggleBodyColorMode(sheetNode);
-          }
-        }
-      } else {
-        disableStylesheet(alternateStylesheets);
-        enableStylesheet(primaryStylesheets)
-        toggleBodyColorPrimary();
-      }
-      manageTransitions('#quarto-margin-sidebar .nav-link', true);
-      // Switch the toggles
-      setColorSchemeToggle(alternate)
-      // Hack to workaround the fact that safari doesn't
-      // properly recolor the scrollbar when toggling (#1455)
-      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
-        manageTransitions("body", false);
-        window.scrollTo(0, 1);
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          manageTransitions("body", true);
-        }, 40);
-      }
-    }
-    const disableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        stylesheet.rel = 'disabled-stylesheet';
-      }
-    }
-    const enableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
-          stylesheet.rel = 'stylesheet';
-        }
-      }
-    }
-    const manageTransitions = (selector, allowTransitions) => {
-      const els = window.document.querySelectorAll(selector);
-      for (let i=0; i < els.length; i++) {
-        const el = els[i];
-        if (allowTransitions) {
-          el.classList.remove('notransition');
-        } else {
-          el.classList.add('notransition');
-        }
-      }
-    }
-    const isFileUrl = () => {
-      return window.location.protocol === 'file:';
-    }
-    const hasAlternateSentinel = () => {
-      let styleSentinel = getColorSchemeSentinel();
-      if (styleSentinel !== null) {
-        return styleSentinel === "alternate";
-      } else {
-        return false;
-      }
-    }
-    const setStyleSentinel = (alternate) => {
-      const value = alternate ? "alternate" : "default";
-      if (!isFileUrl()) {
-        window.localStorage.setItem("quarto-color-scheme", value);
-      } else {
-        localAlternateSentinel = value;
-      }
-    }
-    const getColorSchemeSentinel = () => {
-      if (!isFileUrl()) {
-        const storageValue = window.localStorage.getItem("quarto-color-scheme");
-        return storageValue != null ? storageValue : localAlternateSentinel;
-      } else {
-        return localAlternateSentinel;
-      }
-    }
-    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
-      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
-      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
-      let newTheme = '';
-      if(authorPrefersDark) {
-        newTheme = isAlternate ? baseTheme : alternateTheme;
-      } else {
-        newTheme = isAlternate ? alternateTheme : baseTheme;
-      }
-      const changeGiscusTheme = () => {
-        // From: https://github.com/giscus/giscus/issues/336
-        const sendMessage = (message) => {
-          const iframe = document.querySelector('iframe.giscus-frame');
-          if (!iframe) return;
-          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
-        }
-        sendMessage({
-          setConfig: {
-            theme: newTheme
-          }
-        });
-      }
-      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
-      if (isGiscussLoaded) {
-        changeGiscusTheme();
-      }
-    };
-    const authorPrefersDark = false;
-    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    const darkModeDefault = queryPrefersDark.matches;
-      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
-    // Dark / light mode switch
-    window.quartoToggleColorScheme = () => {
-      // Read the current dark / light value
-      let toAlternate = !hasAlternateSentinel();
-      toggleColorMode(toAlternate);
-      setStyleSentinel(toAlternate);
-      toggleGiscusIfUsed(toAlternate, darkModeDefault);
-      window.dispatchEvent(new Event('resize'));
-    };
-    queryPrefersDark.addEventListener("change", e => {
-      if(window.localStorage.getItem("quarto-color-scheme") !== null)
-        return;
-      const alternate = e.matches
-      toggleColorMode(alternate);
-      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
-      toggleGiscusIfUsed(alternate, darkModeDefault);
-    });
-    // Switch to dark mode if need be
-    if (hasAlternateSentinel()) {
-      toggleColorMode(true);
-    } else {
-      toggleColorMode(false);
-    }
-  </script>
-
-<div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
-  <nav class="quarto-secondary-nav">
-    <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
-        <i class="bi bi-layout-text-sidebar-reverse"></i>
-      </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html"><span class="chapter-title">Structured Outputs and JSON Schema</span></a></li></ol></nav>
-        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-        </a>
-      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
-        <i class="bi bi-search"></i>
-      </button>
-    </div>
-  </nav>
-</header>
-<!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
-<!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header">
-    <div class="sidebar-title mb-0 py-0">
-      <a href="../">Agentic AI Engineering Study Book</a> 
-        <div class="sidebar-tools-main">
-  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
-</div>
-    </div>
-      </div>
-        <div class="mt-2 flex-shrink-0 align-items-center">
-        <div class="sidebar-search">
-        <div id="quarto-search" class="" title="Search"></div>
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
         </div>
-        </div>
-    <div class="sidebar-menu-container"> 
-    <ul class="list-unstyled mt-1">
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
-  </div>
-</li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 1 — Production Python</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 3 — RAG Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-04-agentic-ai-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 4 — Agentic AI Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/01-what-an-ai-agent-is.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">What an AI Agent Is</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/02-the-agent-loop.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Agent Loop</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/03-tool-execution-and-result-validation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Execution and Result Validation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/04-agent-memory-short-term-and-working.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Short-Term and Working</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/05-agent-memory-long-term-episodic-semantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Long-Term, Episodic, and Semantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/06-planning-decomposition-and-routing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Planning, Decomposition, and Routing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/07-reflection-and-self-correction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reflection and Self-Correction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/08-retries-termination-and-loop-detection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retries, Termination, and Loop Detection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/09-state-management-and-persistence.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">State Management and Persistence</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/10-checkpointing-and-durable-execution.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Checkpointing and Durable Execution</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/11-human-in-the-loop-and-approvals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Human-in-the-Loop and Approvals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/12-guardrails.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Guardrails</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/13-structured-agent-outputs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Agent Outputs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/14-tool-schemas-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Schemas and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/15-tool-permissions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Permissions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/16-parallel-and-conditional-workflows.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parallel and Conditional Workflows</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/17-long-running-and-background-agents.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Long-Running and Background Agents</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/18-langgraph-graphs-and-state.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Graphs and State</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/19-langgraph-checkpoints-interrupts-subgraphs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Checkpoints, Interrupts, and Subgraphs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/20-openai-agents-sdk.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">OpenAI Agents SDK</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/21-agent-orchestration-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Orchestration Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/22-agent-reliability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Reliability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-05-mcp-tool-ecosystems/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 5 — MCP and Tool Ecosystems</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/01-mcp-fundamentals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Fundamentals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/02-mcp-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/03-mcp-transports.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Transports</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/04-mcp-tools-resources-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tools, Resources, and Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/05-tool-and-capability-discovery.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool and Capability Discovery</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/06-mcp-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/07-sessions-and-stateful-stateless-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sessions and Stateful vs Stateless Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/08-building-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/09-building-mcp-clients.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Clients</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/10-database-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Database MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/11-github-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">GitHub MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/12-filesystem-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Filesystem MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/13-browser-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Browser MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/14-internal-api-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Internal API MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/15-enterprise-mcp-gateways.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Enterprise MCP Gateways</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/16-mcp-security-and-permission-boundaries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Security and Permission Boundaries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/17-mcp-observability-and-audit-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Observability and Audit Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/18-mcp-tool-versioning-and-registries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tool Versioning and Registries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/19-agent-to-agent-communication-and-a2a.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent-to-Agent Communication and A2A</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/20-agent-capability-discovery-and-interoperability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Capability Discovery and Interoperability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-    </ul>
     </div>
-</nav>
-<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
-<!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">Table of contents</h2>
-   
-  <ul class="collapse">
-  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
-  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
-  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
-  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
-  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
-  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
-  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
-  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
-  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
-  </ul>
-</nav>
-    </div>
-<!-- main -->
-<main class="content" id="quarto-document-content">
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html"><span class="chapter-title">Structured Outputs and JSON Schema</span></a></li></ol></nav>
-<div class="quarto-title">
-<h1 class="title"><span class="chapter-title">Structured Outputs and JSON Schema</span></h1>
-</div>
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
 
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
 
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
-<div class="quarto-title-meta">
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
 
-    
-  
-    
-  </div>
-  
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
 
+        <div id="page-wrapper" class="page-wrapper">
 
-</header>
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
 
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
 
-<blockquote class="blockquote">
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="structured-outputs-and-json-schema"><a class="header" href="#structured-outputs-and-json-schema">Structured Outputs and JSON Schema</a></h1>
+<blockquote>
 <p><strong>Interview answer (say this first).</strong> A language model emits free text, so anything that consumes its output has to parse it, and parsing breaks on invalid JSON, wrong types, and invented values. JSON Schema is a standard description of the exact shape you want. Structured outputs make the model conform to that schema, usually by constraining decoding so invalid tokens are impossible, and you still validate the result on your side.</p>
 </blockquote>
-<section id="why-this-exists" class="level2">
-<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
 <p>An LLM produces a sequence of tokens. Nothing in that process knows about JSON. When you ask for JSON, you are asking the model to imitate the <em>appearance</em> of JSON, and appearance is not a guarantee.</p>
 <p>Here is what actually comes back in practice:</p>
-<pre class="text"><code>Sure! Here is the JSON you asked for:
+<pre><code class="language-text">Sure! Here is the JSON you asked for:
 
 { "action": "search", "query": "lora" }
 
-Let me know if you need anything else.</code></pre>
+Let me know if you need anything else.
+</code></pre>
 <p>The JSON is correct, but it is wrapped in prose and a markdown fence. A naive <code>json.loads()</code> fails. Now consider an agent that must decide the next tool to call. A parse failure stops the whole chain, and the failure may be rare enough to look like a flaky bug rather than a design flaw.</p>
 <p>Even when the JSON parses, other failures remain:</p>
 <ul>
@@ -1044,188 +204,63 @@ Let me know if you need anything else.</code></pre>
 <li><strong>Refusal.</strong> The model declines and returns prose entirely.</li>
 </ul>
 <p>String prompts and retry loops reduce these failures but never remove them, because they rely on the model choosing the right format. <strong>Structured outputs</strong> fix the root cause: instead of asking for a shape and checking afterward, they constrain generation so that only valid output is possible.</p>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
+<blockquote>
+<p><strong>Note:</strong></p>
 <p><strong>The one-sentence purpose.</strong> JSON Schema says exactly what shape is valid, and structured output makes the model incapable of producing anything else.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Token</strong></td><td>A small piece of text, roughly a word or part of a word. Models generate one at a time.</td></tr>
+<tr><td><strong>Logits</strong></td><td>The raw scores the model assigns to every possible next token.</td></tr>
+<tr><td><strong>Decoding</strong></td><td>Turning logits into a chosen token, usually with sampling.</td></tr>
+<tr><td><strong>JSON</strong></td><td>A text format for objects, arrays, strings, numbers, booleans, and null.</td></tr>
+<tr><td><strong>JSON Schema</strong></td><td>A standard JSON document that describes which JSON documents are valid.</td></tr>
+<tr><td><strong>Schema keyword</strong></td><td>A rule inside a schema, such as <code>type</code>, <code>required</code>, <code>enum</code>, or <code>minimum</code>.</td></tr>
+<tr><td><strong><code>type</code></strong></td><td>The allowed kind: <code>object</code>, <code>array</code>, <code>string</code>, <code>number</code>, <code>integer</code>, <code>boolean</code>, <code>null</code>.</td></tr>
+<tr><td><strong><code>properties</code></strong></td><td>The named fields allowed on an object.</td></tr>
+<tr><td><strong><code>required</code></strong></td><td>The fields that must be present.</td></tr>
+<tr><td><strong><code>enum</code></strong></td><td>A fixed set of allowed values.</td></tr>
+<tr><td><strong><code>$defs</code> and <code>$ref</code></strong></td><td>A way to define a shape once and refer to it elsewhere. Used for nested models.</td></tr>
+<tr><td><strong><code>additionalProperties</code></strong></td><td>Whether unknown fields are allowed. <code>false</code> forbids them.</td></tr>
+<tr><td><strong>Grammar</strong></td><td>A formal set of rules describing valid strings. A schema can be compiled into one.</td></tr>
+<tr><td><strong>Constrained decoding</strong></td><td>Restricting which tokens the model may choose next, so the output always matches the grammar.</td></tr>
+<tr><td><strong>Mask</strong></td><td>A set of tokens temporarily forbidden at a decoding step.</td></tr>
+<tr><td><strong>Validation</strong></td><td>Checking a finished value against the schema.</td></tr>
+<tr><td><strong>Retry loop</strong></td><td>Calling the model again with the validation error in the prompt.</td></tr>
+<tr><td><strong>Refusal</strong></td><td>The model declines to answer.</td></tr>
+<tr><td><strong>Truncation</strong></td><td>The output stops early because <code>max_tokens</code> was reached.</td></tr>
+<tr><td><strong>Strict mode</strong></td><td>A provider flag that guarantees the schema is enforced.</td></tr>
+</tbody></table>
 </div>
-</div>
-</section>
-<section id="start-from-zero" class="level2">
-<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Word</th>
-<th>Plain meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Token</strong></td>
-<td>A small piece of text, roughly a word or part of a word. Models generate one at a time.</td>
-</tr>
-<tr class="even">
-<td><strong>Logits</strong></td>
-<td>The raw scores the model assigns to every possible next token.</td>
-</tr>
-<tr class="odd">
-<td><strong>Decoding</strong></td>
-<td>Turning logits into a chosen token, usually with sampling.</td>
-</tr>
-<tr class="even">
-<td><strong>JSON</strong></td>
-<td>A text format for objects, arrays, strings, numbers, booleans, and null.</td>
-</tr>
-<tr class="odd">
-<td><strong>JSON Schema</strong></td>
-<td>A standard JSON document that describes which JSON documents are valid.</td>
-</tr>
-<tr class="even">
-<td><strong>Schema keyword</strong></td>
-<td>A rule inside a schema, such as <code>type</code>, <code>required</code>, <code>enum</code>, or <code>minimum</code>.</td>
-</tr>
-<tr class="odd">
-<td><strong><code>type</code></strong></td>
-<td>The allowed kind: <code>object</code>, <code>array</code>, <code>string</code>, <code>number</code>, <code>integer</code>, <code>boolean</code>, <code>null</code>.</td>
-</tr>
-<tr class="even">
-<td><strong><code>properties</code></strong></td>
-<td>The named fields allowed on an object.</td>
-</tr>
-<tr class="odd">
-<td><strong><code>required</code></strong></td>
-<td>The fields that must be present.</td>
-</tr>
-<tr class="even">
-<td><strong><code>enum</code></strong></td>
-<td>A fixed set of allowed values.</td>
-</tr>
-<tr class="odd">
-<td><strong><code>$defs</code> and <code>$ref</code></strong></td>
-<td>A way to define a shape once and refer to it elsewhere. Used for nested models.</td>
-</tr>
-<tr class="even">
-<td><strong><code>additionalProperties</code></strong></td>
-<td>Whether unknown fields are allowed. <code>false</code> forbids them.</td>
-</tr>
-<tr class="odd">
-<td><strong>Grammar</strong></td>
-<td>A formal set of rules describing valid strings. A schema can be compiled into one.</td>
-</tr>
-<tr class="even">
-<td><strong>Constrained decoding</strong></td>
-<td>Restricting which tokens the model may choose next, so the output always matches the grammar.</td>
-</tr>
-<tr class="odd">
-<td><strong>Mask</strong></td>
-<td>A set of tokens temporarily forbidden at a decoding step.</td>
-</tr>
-<tr class="even">
-<td><strong>Validation</strong></td>
-<td>Checking a finished value against the schema.</td>
-</tr>
-<tr class="odd">
-<td><strong>Retry loop</strong></td>
-<td>Calling the model again with the validation error in the prompt.</td>
-</tr>
-<tr class="even">
-<td><strong>Refusal</strong></td>
-<td>The model declines to answer.</td>
-</tr>
-<tr class="odd">
-<td><strong>Truncation</strong></td>
-<td>The output stops early because <code>max_tokens</code> was reached.</td>
-</tr>
-<tr class="even">
-<td><strong>Strict mode</strong></td>
-<td>A provider flag that guarantees the schema is enforced.</td>
-</tr>
-</tbody>
-</table>
 <p>Two distinctions are worth pinning down now:</p>
 <ul>
 <li><strong>JSON mode vs schema mode.</strong> JSON mode promises <em>syntactically valid JSON</em> but not any particular fields. Schema mode promises a <em>specific shape</em>. Schema mode is what you want for machine consumption.</li>
 <li><strong>Generation-time vs post-hoc.</strong> Constrained decoding makes bad output impossible during generation. Validation checks the finished text afterward. Good systems do both, because the schema can be right while the content is wrong.</li>
 </ul>
-</section>
-<section id="the-core-idea" class="level2">
-<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Imagine a road with a fence on both sides. Without the fence, a driver can drift anywhere; you can only check afterward where they ended up. With the fence, the car physically cannot leave the road. That is constrained decoding: the invalid paths are removed <em>while driving</em>, not punished afterward.</p>
 <p>A JSON Schema is the fence plan. The provider compiles it into a <strong>grammar</strong>: a state machine describing which token sequences are valid. At each generation step the engine looks at the current state, computes the set of tokens that keep the output valid, and forbids every other token. Then it samples among the allowed ones as usual.</p>
-<div class="cell" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart LR
-    A["Pydantic model&lt;br/&gt;or JSON Schema"] --&gt; B["compile to grammar&lt;br/&gt;state machine"]
-    B --&gt; C["at each step,&lt;br/&gt;mask invalid tokens"]
-    C --&gt; D["sample next token&lt;br/&gt;from allowed set"]
-    D --&gt; E{"grammar&lt;br/&gt;complete?"}
+<pre class="mermaid">flowchart LR
+    A[&quot;Pydantic model&lt;br/&gt;or JSON Schema&quot;] --&gt; B[&quot;compile to grammar&lt;br/&gt;state machine&quot;]
+    B --&gt; C[&quot;at each step,&lt;br/&gt;mask invalid tokens&quot;]
+    C --&gt; D[&quot;sample next token&lt;br/&gt;from allowed set&quot;]
+    D --&gt; E{&quot;grammar&lt;br/&gt;complete?&quot;}
     E --&gt;|no| C
-    E --&gt;|yes| F["valid JSON string"]
-    F --&gt; G["validate again&lt;br/&gt;with Pydantic"]
-    G --&gt;|invalid| H["retry with error&lt;br/&gt;in the prompt"]
-    G --&gt;|valid| I["typed object"]
+    E --&gt;|yes| F[&quot;valid JSON string&quot;]
+    F --&gt; G[&quot;validate again&lt;br/&gt;with Pydantic&quot;]
+    G --&gt;|invalid| H[&quot;retry with error&lt;br/&gt;in the prompt&quot;]
+    G --&gt;|valid| I[&quot;typed object&quot;]
 </pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
 <p>The important consequence: with true constrained decoding, the output is <strong>syntactically guaranteed</strong>. It is not guaranteed to be <strong>semantically correct</strong>. A schema can force <code>action</code> to be one of three strings, but it cannot make the model choose the right one. Structured output removes parsing failures, not reasoning failures.</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Approach</th>
-<th>What it guarantees</th>
-<th>Typical failure</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Prompt only</td>
-<td>Nothing</td>
-<td>Prose, markdown fences, wrong fields</td>
-</tr>
-<tr class="even">
-<td>JSON mode</td>
-<td>Valid JSON syntax</td>
-<td>Right syntax, wrong fields</td>
-</tr>
-<tr class="odd">
-<td>JSON Schema mode</td>
-<td>The exact shape</td>
-<td>Valid shape, wrong content</td>
-</tr>
-<tr class="even">
-<td>Schema plus validation</td>
-<td>Shape checked on your side</td>
-<td>Content can still be wrong</td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="how-it-works" class="level2">
-<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
-<ol type="1">
+<div class="table-wrapper"><table><thead><tr><th>Approach</th><th>What it guarantees</th><th>Typical failure</th></tr></thead><tbody>
+<tr><td>Prompt only</td><td>Nothing</td><td>Prose, markdown fences, wrong fields</td></tr>
+<tr><td>JSON mode</td><td>Valid JSON syntax</td><td>Right syntax, wrong fields</td></tr>
+<tr><td>JSON Schema mode</td><td>The exact shape</td><td>Valid shape, wrong content</td></tr>
+<tr><td>Schema plus validation</td><td>Shape checked on your side</td><td>Content can still be wrong</td></tr>
+</tbody></table>
+</div>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
 <li><strong>You define the schema.</strong> Usually you write a Pydantic model and call <code>model_json_schema()</code>. This keeps the schema and the validator from diverging.</li>
 <li><strong>The provider compiles the schema into a grammar.</strong> Objects, arrays, <code>enum</code>s, and required fields become states and transitions. Some schemas compile cleanly; very complex ones can be rejected or slow decoding.</li>
 <li><strong>The model computes logits for the next token.</strong> Nothing has changed yet.</li>
@@ -1240,167 +275,179 @@ Note
 <li><strong>Refusal.</strong> The model may decline before the grammar completes. Refusals are not schema violations, so you must detect them separately.</li>
 <li><strong>Truncation.</strong> If <code>max_tokens</code> is too small, generation stops mid-object. The partial string is invalid, and no amount of grammar helps. Budget tokens for the largest valid document.</li>
 </ul>
-</section>
-<section id="the-syntax-you-will-use" class="level2">
-<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
 <p><strong>Write a schema by hand.</strong> This is the smallest useful schema: one enum field.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span><span class="fu">,</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"action"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">,</span> <span class="dt">"enum"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"search"</span><span class="ot">,</span> <span class="st">"summarize"</span><span class="ot">,</span> <span class="st">"finish"</span><span class="ot">]</span> <span class="fu">}</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"action"</span><span class="ot">]</span><span class="fu">,</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"additionalProperties"</span><span class="fu">:</span> <span class="kw">false</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-json">{
+  "type": "object",
+  "properties": {
+    "action": { "type": "string", "enum": ["search", "summarize", "finish"] }
+  },
+  "required": ["action"],
+  "additionalProperties": false
+}
+</code></pre>
 <p><strong>Generate the schema from Pydantic.</strong> One source of truth for the schema and the validator.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Literal</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pydantic <span class="im">import</span> BaseModel, Field</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Step(BaseModel):</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    action: Literal[<span class="st">"search"</span>, <span class="st">"summarize"</span>, <span class="st">"finish"</span>]</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    query: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    confidence: <span class="bu">float</span> <span class="op">=</span> Field(ge<span class="op">=</span><span class="fl">0.0</span>, le<span class="op">=</span><span class="fl">1.0</span>, default<span class="op">=</span><span class="fl">1.0</span>)</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Plan(BaseModel):</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    steps: <span class="bu">list</span>[Step] <span class="op">=</span> Field(min_length<span class="op">=</span><span class="dv">1</span>, max_length<span class="op">=</span><span class="dv">5</span>)</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>schema <span class="op">=</span> Plan.model_json_schema()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">from typing import Literal
+from pydantic import BaseModel, Field
+
+class Step(BaseModel):
+    action: Literal["search", "summarize", "finish"]
+    query: str | None = None
+    confidence: float = Field(ge=0.0, le=1.0, default=1.0)
+
+class Plan(BaseModel):
+    steps: list[Step] = Field(min_length=1, max_length=5)
+
+schema = Plan.model_json_schema()
+</code></pre>
 <p>Pydantic emits the nested <code>Step</code> under <code>$defs</code> and refers to it with <code>$ref</code>:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="st">"steps"</span><span class="er">:</span> <span class="fu">{</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"$ref"</span><span class="fu">:</span> <span class="st">"#/$defs/Step"</span> <span class="fu">},</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"maxItems"</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"minItems"</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-json">"steps": {
+  "items": { "$ref": "#/$defs/Step" },
+  "maxItems": 5,
+  "minItems": 1,
+  "type": "array"
+}
+</code></pre>
 <p><strong>Validate any JSON against the schema with <code>jsonschema</code>.</strong> This is how you check a provider’s output against the same contract.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jsonschema</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>jsonschema.validate({<span class="st">"steps"</span>: [{<span class="st">"action"</span>: <span class="st">"search"</span>}]}, schema)   <span class="co"># passes</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import jsonschema
+
+jsonschema.validate({"steps": [{"action": "search"}]}, schema)   # passes
+</code></pre>
 <p><strong>Parse into typed objects with Pydantic.</strong> This is the call that belongs in production code.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pydantic <span class="im">import</span> ValidationError</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    plan <span class="op">=</span> Plan.model_validate_json(raw_text)</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> ValidationError <span class="im">as</span> e:</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> err <span class="kw">in</span> e.errors():</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(err[<span class="st">"loc"</span>], err[<span class="st">"type"</span>])   <span class="co"># ('steps', 0, 'action') literal_error</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">from pydantic import ValidationError
+
+try:
+    plan = Plan.model_validate_json(raw_text)
+except ValidationError as e:
+    for err in e.errors():
+        print(err["loc"], err["type"])   # ('steps', 0, 'action') literal_error
+</code></pre>
 <p><strong>Forbid extra fields.</strong> By default Pydantic allows unknown keys and its schema omits <code>additionalProperties</code>. Set <code>extra="forbid"</code> to tighten both.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pydantic <span class="im">import</span> ConfigDict</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Strict(BaseModel):</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    model_config <span class="op">=</span> ConfigDict(extra<span class="op">=</span><span class="st">"forbid"</span>)</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    a: <span class="bu">int</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co"># schema now contains "additionalProperties": false</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">from pydantic import ConfigDict
+
+class Strict(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    a: int
+
+# schema now contains "additionalProperties": false
+</code></pre>
 <p><strong>OpenAI: request a schema.</strong> The <code>strict</code> flag asks the provider to enforce it.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> openai <span class="im">import</span> OpenAI</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>client <span class="op">=</span> OpenAI()</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> client.chat.completions.create(</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">"&lt;a-model-with-structured-outputs&gt;"</span>,</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    messages<span class="op">=</span>[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"Plan how to answer: what is LoRA?"</span>}],</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    response_format<span class="op">=</span>{</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">"type"</span>: <span class="st">"json_schema"</span>,</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">"json_schema"</span>: {<span class="st">"name"</span>: <span class="st">"plan"</span>, <span class="st">"strict"</span>: <span class="va">True</span>, <span class="st">"schema"</span>: schema},</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    },</span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>raw <span class="op">=</span> response.choices[<span class="dv">0</span>].message.content</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">from openai import OpenAI
+
+client = OpenAI()
+response = client.chat.completions.create(
+    model="&lt;a-model-with-structured-outputs&gt;",
+    messages=[{"role": "user", "content": "Plan how to answer: what is LoRA?"}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {"name": "plan", "strict": True, "schema": schema},
+    },
+)
+raw = response.choices[0].message.content
+</code></pre>
 <p><strong>OpenAI: parse directly into Pydantic.</strong> The SDK builds the schema for you and returns a parsed object.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>parsed <span class="op">=</span> client.beta.chat.completions.parse(</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">"&lt;a-model-with-structured-outputs&gt;"</span>,</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    messages<span class="op">=</span>[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"Plan how to answer: what is LoRA?"</span>}],</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    response_format<span class="op">=</span>Plan,</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>plan <span class="op">=</span> parsed.choices[<span class="dv">0</span>].message.parsed</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">parsed = client.beta.chat.completions.parse(
+    model="&lt;a-model-with-structured-outputs&gt;",
+    messages=[{"role": "user", "content": "Plan how to answer: what is LoRA?"}],
+    response_format=Plan,
+)
+plan = parsed.choices[0].message.parsed
+</code></pre>
 <p><strong>Anthropic: force a single tool call.</strong> Tool input schemas are JSON Schema, so <code>tool_choice</code> is a structured-output mechanism.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>resp <span class="op">=</span> client.messages.create(</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">"&lt;a-claude-model&gt;"</span>,</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    max_tokens<span class="op">=</span><span class="dv">1024</span>,</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    tools<span class="op">=</span>[{<span class="st">"name"</span>: <span class="st">"emit_plan"</span>, <span class="st">"description"</span>: <span class="st">"Return the plan."</span>,</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">"input_schema"</span>: schema}],</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    tool_choice<span class="op">=</span>{<span class="st">"type"</span>: <span class="st">"tool"</span>, <span class="st">"name"</span>: <span class="st">"emit_plan"</span>},</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    messages<span class="op">=</span>[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"Plan how to answer: what is LoRA?"</span>}],</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>payload <span class="op">=</span> resp.content[<span class="dv">0</span>].<span class="bu">input</span>     <span class="co"># already a dict, validated by the shape</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">resp = client.messages.create(
+    model="&lt;a-claude-model&gt;",
+    max_tokens=1024,
+    tools=[{"name": "emit_plan", "description": "Return the plan.",
+            "input_schema": schema}],
+    tool_choice={"type": "tool", "name": "emit_plan"},
+    messages=[{"role": "user", "content": "Plan how to answer: what is LoRA?"}],
+)
+payload = resp.content[0].input     # already a dict, validated by the shape
+</code></pre>
 <p><strong>Gemini: pass the schema in the config.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> google <span class="im">import</span> genai</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> google.genai <span class="im">import</span> types</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>gemini <span class="op">=</span> genai.Client()</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>resp <span class="op">=</span> gemini.models.generate_content(</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">"&lt;a-gemini-model&gt;"</span>,</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    contents<span class="op">=</span><span class="st">"Plan how to answer: what is LoRA?"</span>,</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    config<span class="op">=</span>types.GenerateContentConfig(</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        response_mime_type<span class="op">=</span><span class="st">"application/json"</span>,</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        response_schema<span class="op">=</span>Plan,</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">from google import genai
+from google.genai import types
+
+gemini = genai.Client()
+resp = gemini.models.generate_content(
+    model="&lt;a-gemini-model&gt;",
+    contents="Plan how to answer: what is LoRA?",
+    config=types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=Plan,
+    ),
+)
+</code></pre>
 <p><strong>Libraries that constrain locally.</strong> <code>outlines</code>, <code>xgrammar</code>, and <code>llguidance</code> compile schemas to token masks for open models, so you get the same guarantee without a hosted API. <code>instructor</code> wraps providers and adds validation plus retries.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Illustrative: local constrained decoding with an open model.</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> outlines</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># outlines 1.x: build a Generator from a model and an output type.</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>generator <span class="op">=</span> outlines.Generator(outlines.from_transformers(model, tokenizer), Plan)</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>plan <span class="op">=</span> generator(<span class="st">"Plan how to answer: what is LoRA?"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python"># Illustrative: local constrained decoding with an open model.
+import outlines
+
+# outlines 1.x: build a Generator from a model and an output type.
+generator = outlines.Generator(outlines.from_transformers(model, tokenizer), Plan)
+plan = generator("Plan how to answer: what is LoRA?")
+</code></pre>
 <p><strong>A minimal retry loop.</strong> Feed the validation error back rather than repeating the same prompt.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>feedback <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> attempt <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>):</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    raw <span class="op">=</span> call_model(prompt, feedback)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        plan <span class="op">=</span> Plan.model_validate_json(raw)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> ValidationError <span class="im">as</span> e:</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>        feedback <span class="op">=</span> <span class="bu">str</span>(e.errors())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
-<section id="examples-simple-to-real" class="level2">
-<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<pre><code class="language-python">feedback = None
+for attempt in range(3):
+    raw = call_model(prompt, feedback)
+    try:
+        plan = Plan.model_validate_json(raw)
+        break
+    except ValidationError as e:
+        feedback = str(e.errors())
+</code></pre>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
 <p><strong>Example 1 — a Pydantic model produces a real schema.</strong> Here is the actual output for the <code>Plan</code> model, shortened:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"$defs"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"Step"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"action"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"enum"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"search"</span><span class="ot">,</span> <span class="st">"summarize"</span><span class="ot">,</span> <span class="st">"finish"</span><span class="ot">]</span><span class="fu">,</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span> <span class="fu">},</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"query"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"anyOf"</span><span class="fu">:</span> <span class="ot">[</span><span class="fu">{</span><span class="dt">"type"</span><span class="fu">:</span> <span class="st">"string"</span><span class="fu">}</span><span class="ot">,</span> <span class="fu">{</span><span class="dt">"type"</span><span class="fu">:</span> <span class="st">"null"</span><span class="fu">}</span><span class="ot">]</span><span class="fu">,</span> <span class="dt">"default"</span><span class="fu">:</span> <span class="kw">null</span> <span class="fu">},</span></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"confidence"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"default"</span><span class="fu">:</span> <span class="fl">1.0</span><span class="fu">,</span> <span class="dt">"maximum"</span><span class="fu">:</span> <span class="fl">1.0</span><span class="fu">,</span> <span class="dt">"minimum"</span><span class="fu">:</span> <span class="fl">0.0</span><span class="fu">,</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"number"</span> <span class="fu">}</span></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"action"</span><span class="ot">]</span><span class="fu">,</span></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span></span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"properties"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"steps"</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">"items"</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">"$ref"</span><span class="fu">:</span> <span class="st">"#/$defs/Step"</span><span class="fu">},</span> <span class="dt">"minItems"</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span> <span class="dt">"maxItems"</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span> <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"array"</span> <span class="fu">}</span> <span class="fu">},</span></span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"required"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"steps"</span><span class="ot">]</span><span class="fu">,</span></span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"type"</span><span class="fu">:</span> <span class="st">"object"</span></span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-json">{
+  "$defs": {
+    "Step": {
+      "properties": {
+        "action": { "enum": ["search", "summarize", "finish"], "type": "string" },
+        "query": { "anyOf": [{"type": "string"}, {"type": "null"}], "default": null },
+        "confidence": { "default": 1.0, "maximum": 1.0, "minimum": 0.0, "type": "number" }
+      },
+      "required": ["action"],
+      "type": "object"
+    }
+  },
+  "properties": { "steps": { "items": {"$ref": "#/$defs/Step"}, "minItems": 1, "maxItems": 5, "type": "array" } },
+  "required": ["steps"],
+  "type": "object"
+}
+</code></pre>
 <p>Notice three things. <code>Literal</code> became an <code>enum</code>. <code>str | None</code> became an <code>anyOf</code> with <code>null</code>, which is how JSON Schema expresses nullability. Nested models moved into <code>$defs</code> and are referenced with <code>$ref</code>.</p>
 <p><strong>Example 2 — the same schema rejects bad data.</strong> <code>jsonschema.validate</code> gives a precise reason for each failure.</p>
-<pre class="text"><code>good instance: VALID
+<pre><code class="language-text">good instance: VALID
 invented action: INVALID -&gt; 'deploy' is not one of ['search', 'summarize', 'finish']
 missing steps: INVALID -&gt; 'steps' is a required property
 empty steps: INVALID -&gt; [] should be non-empty
-confidence too high: INVALID -&gt; 2.0 is greater than the maximum of 1.0</code></pre>
+confidence too high: INVALID -&gt; 2.0 is greater than the maximum of 1.0
+</code></pre>
 <p>This is the value of a schema: four different classes of bug, each caught with a specific message instead of a vague parse error.</p>
 <p><strong>Example 3 — Pydantic reports the exact path.</strong> When validation fails, <code>loc</code> tells you which nested field was wrong.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>Plan.model_validate_json(<span class="st">'{"steps": [{"action": "deploy"}]}'</span>)</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ValidationError: loc=('steps', 0, 'action'), type='literal_error'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">Plan.model_validate_json('{"steps": [{"action": "deploy"}]}')
+# ValidationError: loc=('steps', 0, 'action'), type='literal_error'
+</code></pre>
 <p>For nested lists the path is <code>('steps', 0, 'action')</code>: field, index, field. Log the path; it is far more useful than the message alone.</p>
 <p><strong>Example 4 — extra fields are allowed by default.</strong> This surprise catches many teams. Pydantic’s default schema has no <code>additionalProperties</code> key, so unknown fields pass JSON Schema validation, though Pydantic drops them unless configured otherwise.</p>
-<pre class="text"><code>loose schema additionalProperties: absent
+<pre><code class="language-text">loose schema additionalProperties: absent
 strict schema additionalProperties: False
-strict extra field -&gt; extra_forbidden</code></pre>
+strict extra field -&gt; extra_forbidden
+</code></pre>
 <p>Turn on <code>extra="forbid"</code> when a stray field indicates an upstream bug you want surfaced.</p>
 <p><strong>Example 5 — the provider request shape is just a dict.</strong> Building it is static; the schema travels inside.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>response_format <span class="op">=</span> {</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"type"</span>: <span class="st">"json_schema"</span>,</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"json_schema"</span>: {<span class="st">"name"</span>: <span class="st">"plan"</span>, <span class="st">"strict"</span>: <span class="va">True</span>, <span class="st">"schema"</span>: schema},</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># response_format["type"] -&gt; "json_schema", strict -&gt; True</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">response_format = {
+    "type": "json_schema",
+    "json_schema": {"name": "plan", "strict": True, "schema": schema},
+}
+# response_format["type"] -&gt; "json_schema", strict -&gt; True
+</code></pre>
 <p><strong>Example 6 — a retry loop recovers from a bad first attempt.</strong> The model’s first answer uses an invented action; the second, with the error in the prompt, is valid.</p>
-<pre class="text"><code>retry attempts: 2
-recovered plan: search lora</code></pre>
+<pre><code class="language-text">retry attempts: 2
+recovered plan: search lora
+</code></pre>
 <p>Retries fix schema violations, but each retry costs tokens and latency. If a model fails often, fix the schema or the prompt rather than raising the retry limit.</p>
-</section>
-<section id="in-production" class="level2">
-<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
 <ul>
 <li><strong>Design schemas the model can satisfy.</strong> Deeply nested schemas and huge enums increase decoding cost and failure rates. Flatten where possible and keep enums short.</li>
 <li><strong>Cap <code>max_tokens</code> above the largest valid output.</strong> Truncation produces invalid JSON regardless of the schema, and it is a common cause of sudden parse failures in production.</li>
@@ -1415,60 +462,40 @@ recovered plan: search lora</code></pre>
 <li><strong>Mind streaming.</strong> Partial JSON is not parseable. If you stream, either parse incrementally with a tolerant parser or wait for the complete object before validating.</li>
 <li><strong>Version your schemas.</strong> When the contract changes, old callers break. Treat the schema like an API: version it and migrate.</li>
 </ul>
-</section>
-<section id="interview-questions" class="level2">
-<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
-<section id="why-is-free-text-output-a-problem-for-software" class="level3">
-<h3 class="anchored" data-anchor-id="why-is-free-text-output-a-problem-for-software">1. Why is free-text output a problem for software?</h3>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-why-is-free-text-output-a-problem-for-software"><a class="header" href="#1-why-is-free-text-output-a-problem-for-software">1. Why is free-text output a problem for software?</a></h3>
 <p><strong>Answer.</strong> Software needs predictable structure, and free text has none. Even when a model is asked for JSON it may wrap it in prose, use the wrong type, omit a field, invent an enum value, or get truncated. Every consumer then needs fragile parsing and a retry path, and failures surface far from their cause. Structured outputs replace hopeful parsing with an enforced contract.</p>
-<p><strong>Follow-up: “Does a schema fix all of that?”</strong> No.&nbsp;It fixes syntax and shape. Refusals, truncation, and semantically wrong content still need handling.</p>
+<p><strong>Follow-up: “Does a schema fix all of that?”</strong> No. It fixes syntax and shape. Refusals, truncation, and semantically wrong content still need handling.</p>
 <p><strong>Trap.</strong> Assuming a good prompt guarantees format. Prompts are probabilistic; schemas are constraints.</p>
-</section>
-<section id="what-is-json-schema" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-json-schema">2. What is JSON Schema?</h3>
+<h3 id="2-what-is-json-schema"><a class="header" href="#2-what-is-json-schema">2. What is JSON Schema?</a></h3>
 <p><strong>Answer.</strong> It is a standard JSON document that describes which JSON documents are valid. Keywords declare types, required fields, allowed values, numeric bounds, array lengths, and nesting. Tools, editors, and LLM providers all understand it, which is why it is the shared language for structured output.</p>
 <p><strong>Follow-up: “How does Pydantic relate to it?”</strong> Pydantic reads your type annotations and generates a JSON Schema with <code>model_json_schema()</code>. The same model then validates the model’s output, so the schema and the check cannot drift apart.</p>
 <p><strong>Trap.</strong> Thinking JSON Schema validates data types at runtime. It describes validity; you still need a validator like <code>jsonschema</code> or Pydantic to enforce it.</p>
-</section>
-<section id="what-is-constrained-decoding-and-how-does-it-work" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-constrained-decoding-and-how-does-it-work">3. What is constrained decoding, and how does it work?</h3>
+<h3 id="3-what-is-constrained-decoding-and-how-does-it-work"><a class="header" href="#3-what-is-constrained-decoding-and-how-does-it-work">3. What is constrained decoding, and how does it work?</a></h3>
 <p><strong>Answer.</strong> It restricts generation at each token step so the result must match a grammar compiled from the schema. At every step, tokens that would violate the grammar are masked to negative infinity, so sampling can only choose a legal token. The output is then syntactically guaranteed.</p>
 <p><strong>Follow-up: “Can the model still be wrong?”</strong> Yes. The grammar controls form, not meaning. The model can pick a valid but incorrect value. Constrained decoding eliminates parse errors, not reasoning errors.</p>
 <p><strong>Trap.</strong> Saying constrained decoding makes the model “more accurate”. It makes the output well-formed; accuracy is a separate problem.</p>
-</section>
-<section id="what-is-the-difference-between-json-mode-and-json-schema-mode" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-the-difference-between-json-mode-and-json-schema-mode">4. What is the difference between JSON mode and JSON Schema mode?</h3>
+<h3 id="4-what-is-the-difference-between-json-mode-and-json-schema-mode"><a class="header" href="#4-what-is-the-difference-between-json-mode-and-json-schema-mode">4. What is the difference between JSON mode and JSON Schema mode?</a></h3>
 <p><strong>Answer.</strong> JSON mode guarantees syntactically valid JSON but does not control which fields appear, so you can still get the wrong shape. JSON Schema mode enforces a specific structure, including required fields, types, and enums. Schema mode is what machine consumers should use.</p>
 <p><strong>Follow-up: “When would JSON mode be enough?”</strong> When the content is genuinely freeform, such as an arbitrary settings object a human will inspect. For pipelines that branch on field values, use schema mode.</p>
 <p><strong>Trap.</strong> Treating <code>{"type": "json_object"}</code> as a schema. It is only a promise about syntax.</p>
-</section>
-<section id="how-do-you-handle-a-validation-failure" class="level3">
-<h3 class="anchored" data-anchor-id="how-do-you-handle-a-validation-failure">5. How do you handle a validation failure?</h3>
+<h3 id="5-how-do-you-handle-a-validation-failure"><a class="header" href="#5-how-do-you-handle-a-validation-failure">5. How do you handle a validation failure?</a></h3>
 <p><strong>Answer.</strong> Retry with the validation error included in the prompt, so the model can see exactly which field was wrong, and cap the number of attempts. If it keeps failing, fall back to a safer path, such as a simpler schema, a different model, or a human review. Never pass unvalidated output into a tool with side effects.</p>
 <p><strong>Follow-up: “Why include the error rather than just retrying?”</strong> Repeating the identical prompt tends to reproduce the same mistake. The error narrows the correction and raises the success rate.</p>
 <p><strong>Trap.</strong> Retrying forever. Each attempt costs tokens and latency, and a persistent failure means the schema or prompt is wrong.</p>
-</section>
-<section id="what-are-the-common-failure-modes-of-structured-output" class="level3">
-<h3 class="anchored" data-anchor-id="what-are-the-common-failure-modes-of-structured-output">6. What are the common failure modes of structured output?</h3>
+<h3 id="6-what-are-the-common-failure-modes-of-structured-output"><a class="header" href="#6-what-are-the-common-failure-modes-of-structured-output">6. What are the common failure modes of structured output?</a></h3>
 <p><strong>Answer.</strong> Refusals, where the model returns prose; truncation, where <code>max_tokens</code> cuts the JSON short; schemas the provider cannot compile; invented values inside a valid shape; and unknown extra fields when <code>additionalProperties</code> is not set. Each needs its own handling.</p>
 <p><strong>Follow-up: “Which is hardest to detect?”</strong> Semantically wrong but well-formed output. The schema passes and nothing alerts you, so correctness requires your own business-logic checks or an evaluation harness.</p>
 <p><strong>Trap.</strong> Assuming a successful parse means success. A parsed object can still be nonsense.</p>
-</section>
-<section id="how-does-pydantic-fit-into-this-workflow" class="level3">
-<h3 class="anchored" data-anchor-id="how-does-pydantic-fit-into-this-workflow">7. How does Pydantic fit into this workflow?</h3>
+<h3 id="7-how-does-pydantic-fit-into-this-workflow"><a class="header" href="#7-how-does-pydantic-fit-into-this-workflow">7. How does Pydantic fit into this workflow?</a></h3>
 <p><strong>Answer.</strong> Pydantic plays both roles. <code>model_json_schema()</code> produces the schema you send to the provider, and <code>model_validate_json()</code> checks and parses the response into typed objects. Using one model for both means the contract and the validator are always in sync, and failures come back with a precise field path.</p>
 <p><strong>Follow-up: “What extra protection does Pydantic add over the schema?”</strong> It can enforce rules the provider’s schema support may not, and it catches cases where the provider’s enforcement is weaker than promised. It is your line of defence.</p>
 <p><strong>Trap.</strong> Reusing the response model as an input model. Keep the schemas for what you send and what you return separate, as with any API.</p>
-</section>
-<section id="how-do-structured-outputs-and-tool-calling-relate" class="level3">
-<h3 class="anchored" data-anchor-id="how-do-structured-outputs-and-tool-calling-relate">8. How do structured outputs and tool calling relate?</h3>
+<h3 id="8-how-do-structured-outputs-and-tool-calling-relate"><a class="header" href="#8-how-do-structured-outputs-and-tool-calling-relate">8. How do structured outputs and tool calling relate?</a></h3>
 <p><strong>Answer.</strong> They share the same machinery. A tool is described by a JSON Schema of its arguments, and a tool call is a structured object containing the tool name and arguments. Forcing a single tool call is a common way to get structured output. The difference is purpose: structured output returns data to your program, while tool calling asks the model to trigger an action.</p>
 <p><strong>Follow-up: “How does that affect safety?”</strong> Because a tool call can have side effects, validation must happen before execution, and risky tools should require confirmation or a sandbox. Valid structure is not permission to act.</p>
 <p><strong>Trap.</strong> Confusing a tool schema with a response schema. They are both JSON Schema, but one describes an action’s inputs and the other describes data you want back.</p>
-</section>
-</section>
-<section id="remember-this" class="level2">
-<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
 <ul>
 <li><strong>Free text is not a contract.</strong> Ask for a schema, or you own the parsing bugs.</li>
 <li><strong>JSON Schema defines the shape; Pydantic generates it and validates the result.</strong> One source of truth.</li>
@@ -1477,438 +504,58 @@ recovered plan: search lora</code></pre>
 <li><strong>Handle refusals, truncation, and bounded retries explicitly</strong>, because grammar cannot cover them.</li>
 </ul>
 
+                    </main>
 
-</section>
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
-</main> <!-- /main -->
-<script id="quarto-html-after-body" type="application/javascript">
-  window.document.addEventListener("DOMContentLoaded", function (event) {
-    // Ensure there is a toggle, if there isn't float one in the top right
-    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
-      const a = window.document.createElement('a');
-      a.classList.add('top-right');
-      a.classList.add('quarto-color-scheme-toggle');
-      a.href = "";
-      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
-      const i = window.document.createElement("i");
-      i.classList.add('bi');
-      a.appendChild(i);
-      window.document.body.appendChild(a);
-    }
-    setColorSchemeToggle(hasAlternateSentinel())
-    const icon = "";
-    const anchorJS = new window.AnchorJS();
-    anchorJS.options = {
-      placement: 'right',
-      icon: icon
-    };
-    anchorJS.add('.anchored');
-    const isCodeAnnotation = (el) => {
-      for (const clz of el.classList) {
-        if (clz.startsWith('code-annotation-')) {                     
-          return true;
-        }
-      }
-      return false;
-    }
-    const onCopySuccess = function(e) {
-      // button target
-      const button = e.trigger;
-      // don't keep focus
-      button.blur();
-      // flash "checked"
-      button.classList.add('code-copy-button-checked');
-      var currentTitle = button.getAttribute("title");
-      button.setAttribute("title", "Copied!");
-      let tooltip;
-      if (window.bootstrap) {
-        button.setAttribute("data-bs-toggle", "tooltip");
-        button.setAttribute("data-bs-placement", "left");
-        button.setAttribute("data-bs-title", "Copied!");
-        tooltip = new bootstrap.Tooltip(button, 
-          { trigger: "manual", 
-            customClass: "code-copy-button-tooltip",
-            offset: [0, -8]});
-        tooltip.show();    
-      }
-      setTimeout(function() {
-        if (tooltip) {
-          tooltip.hide();
-          button.removeAttribute("data-bs-title");
-          button.removeAttribute("data-bs-toggle");
-          button.removeAttribute("data-bs-placement");
-        }
-        button.setAttribute("title", currentTitle);
-        button.classList.remove('code-copy-button-checked');
-      }, 1000);
-      // clear code selection
-      e.clearSelection();
-    }
-    const getTextToCopy = function(trigger) {
-      const outerScaffold = trigger.parentElement.cloneNode(true);
-      const codeEl = outerScaffold.querySelector('code');
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-      text: getTextToCopy
-    });
-    clipboard.on('success', onCopySuccess);
-    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-        text: getTextToCopy,
-        container: window.document.getElementById('quarto-embedded-source-code-modal')
-      });
-      clipboardModal.on('success', onCopySuccess);
-    }
-      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-      var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
-      var isInternal = (href) => {
-          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
-      }
-      // Inspect non-navigation links and adorn them if external
-     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-      for (var i=0; i<links.length; i++) {
-        const link = links[i];
-        if (!isInternal(link.href)) {
-          // undo the damage that might have been done by quarto-nav.js in the case of
-          // links that we want to consider external
-          if (link.dataset.originalHref !== undefined) {
-            link.href = link.dataset.originalHref;
-          }
-        }
-      }
-    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-      const config = {
-        allowHTML: true,
-        maxWidth: 500,
-        delay: 100,
-        arrow: false,
-        appendTo: function(el) {
-            return el.parentElement;
-        },
-        interactive: true,
-        interactiveBorder: 10,
-        theme: 'quarto',
-        placement: 'bottom-start',
-      };
-      if (contentFn) {
-        config.content = contentFn;
-      }
-      if (onTriggerFn) {
-        config.onTrigger = onTriggerFn;
-      }
-      if (onUntriggerFn) {
-        config.onUntrigger = onUntriggerFn;
-      }
-      window.tippy(el, config); 
-    }
-    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-    for (var i=0; i<noterefs.length; i++) {
-      const ref = noterefs[i];
-      tippyHover(ref, function() {
-        // use id or data attribute instead here
-        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-        try { href = new URL(href).hash; } catch {}
-        const id = href.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note) {
-          return note.innerHTML;
-        } else {
-          return "";
-        }
-      });
-    }
-    const xrefs = window.document.querySelectorAll('a.quarto-xref');
-    const processXRef = (id, note) => {
-      // Strip column container classes
-      const stripColumnClz = (el) => {
-        el.classList.remove("page-full", "page-columns");
-        if (el.children) {
-          for (const child of el.children) {
-            stripColumnClz(child);
-          }
-        }
-      }
-      stripColumnClz(note)
-      if (id === null || id.startsWith('sec-')) {
-        // Special case sections, only their first couple elements
-        const container = document.createElement("div");
-        if (note.children && note.children.length > 2) {
-          container.appendChild(note.children[0].cloneNode(true));
-          for (let i = 1; i < note.children.length; i++) {
-            const child = note.children[i];
-            if (child.tagName === "P" && child.innerText === "") {
-              continue;
-            } else {
-              container.appendChild(child.cloneNode(true));
-              break;
-            }
-          }
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(container);
-          }
-          return container.innerHTML
-        } else {
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(note);
-          }
-          return note.innerHTML;
-        }
-      } else {
-        // Remove any anchor links if they are present
-        const anchorLink = note.querySelector('a.anchorjs-link');
-        if (anchorLink) {
-          anchorLink.remove();
-        }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(note);
-        }
-        if (note.classList.contains("callout")) {
-          return note.outerHTML;
-        } else {
-          return note.innerHTML;
-        }
-      }
-    }
-    for (var i=0; i<xrefs.length; i++) {
-      const xref = xrefs[i];
-      tippyHover(xref, undefined, function(instance) {
-        instance.disable();
-        let url = xref.getAttribute('href');
-        let hash = undefined; 
-        if (url.startsWith('#')) {
-          hash = url;
-        } else {
-          try { hash = new URL(url).hash; } catch {}
-        }
-        if (hash) {
-          const id = hash.replace(/^#\/?/, "");
-          const note = window.document.getElementById(id);
-          if (note !== null) {
-            try {
-              const html = processXRef(id, note.cloneNode(true));
-              instance.setContent(html);
-            } finally {
-              instance.enable();
-              instance.show();
-            }
-          } else {
-            // See if we can fetch this
-            fetch(url.split('#')[0])
-            .then(res => res.text())
-            .then(html => {
-              const parser = new DOMParser();
-              const htmlDoc = parser.parseFromString(html, "text/html");
-              const note = htmlDoc.getElementById(id);
-              if (note !== null) {
-                const html = processXRef(id, note);
-                instance.setContent(html);
-              } 
-            }).finally(() => {
-              instance.enable();
-              instance.show();
-            });
-          }
-        } else {
-          // See if we can fetch a full url (with no hash to target)
-          // This is a special case and we should probably do some content thinning / targeting
-          fetch(url)
-          .then(res => res.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.querySelector('main.content');
-            if (note !== null) {
-              // This should only happen for chapter cross references
-              // (since there is no id in the URL)
-              // remove the first header
-              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-                note.children[0].remove();
-              }
-              const html = processXRef(null, note);
-              instance.setContent(html);
-            } 
-          }).finally(() => {
-            instance.enable();
-            instance.show();
-          });
-        }
-      }, function(instance) {
-      });
-    }
-        let selectedAnnoteEl;
-        const selectorForAnnotation = ( cell, annotation) => {
-          let cellAttr = 'data-code-cell="' + cell + '"';
-          let lineAttr = 'data-code-annotation="' +  annotation + '"';
-          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-          return selector;
-        }
-        const selectCodeLines = (annoteEl) => {
-          const doc = window.document;
-          const targetCell = annoteEl.getAttribute("data-target-cell");
-          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-          const lineIds = lines.map((line) => {
-            return targetCell + "-" + line;
-          })
-          let top = null;
-          let height = null;
-          let parent = null;
-          if (lineIds.length > 0) {
-              //compute the position of the single el (top and bottom and make a div)
-              const el = window.document.getElementById(lineIds[0]);
-              top = el.offsetTop;
-              height = el.offsetHeight;
-              parent = el.parentElement.parentElement;
-            if (lineIds.length > 1) {
-              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-              height = bottom - top;
-            }
-            if (top !== null && height !== null && parent !== null) {
-              // cook up a div (if necessary) and position it 
-              let div = window.document.getElementById("code-annotation-line-highlight");
-              if (div === null) {
-                div = window.document.createElement("div");
-                div.setAttribute("id", "code-annotation-line-highlight");
-                div.style.position = 'absolute';
-                parent.appendChild(div);
-              }
-              div.style.top = top - 2 + "px";
-              div.style.height = height + 4 + "px";
-              div.style.left = 0;
-              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-              if (gutterDiv === null) {
-                gutterDiv = window.document.createElement("div");
-                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-                gutterDiv.style.position = 'absolute';
-                const codeCell = window.document.getElementById(targetCell);
-                const gutter = codeCell.querySelector('.code-annotation-gutter');
-                gutter.appendChild(gutterDiv);
-              }
-              gutterDiv.style.top = top - 2 + "px";
-              gutterDiv.style.height = height + 4 + "px";
-            }
-            selectedAnnoteEl = annoteEl;
-          }
-        };
-        const unselectCodeLines = () => {
-          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-          elementsIds.forEach((elId) => {
-            const div = window.document.getElementById(elId);
-            if (div) {
-              div.remove();
-            }
-          });
-          selectedAnnoteEl = undefined;
-        };
-          // Handle positioning of the toggle
-      window.addEventListener(
-        "resize",
-        throttle(() => {
-          elRect = undefined;
-          if (selectedAnnoteEl) {
-            selectCodeLines(selectedAnnoteEl);
-          }
-        }, 10)
-      );
-      function throttle(fn, ms) {
-      let throttle = false;
-      let timer;
-        return (...args) => {
-          if(!throttle) { // first call gets through
-              fn.apply(this, args);
-              throttle = true;
-          } else { // all the others get throttled
-              if(timer) clearTimeout(timer); // cancel #2
-              timer = setTimeout(() => {
-                fn.apply(this, args);
-                timer = throttle = false;
-              }, ms);
-          }
-        };
-      }
-        // Attach click handler to the DT
-        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-        for (const annoteDlNode of annoteDls) {
-          annoteDlNode.addEventListener('click', (event) => {
-            const clickedEl = event.target;
-            if (clickedEl !== selectedAnnoteEl) {
-              unselectCodeLines();
-              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-              if (activeEl) {
-                activeEl.classList.remove('code-annotation-active');
-              }
-              selectCodeLines(clickedEl);
-              clickedEl.classList.add('code-annotation-active');
-            } else {
-              // Unselect the line
-              unselectCodeLines();
-              clickedEl.classList.remove('code-annotation-active');
-            }
-          });
-        }
-    const findCites = (el) => {
-      const parentEl = el.parentElement;
-      if (parentEl) {
-        const cites = parentEl.dataset.cites;
-        if (cites) {
-          return {
-            el,
-            cites: cites.split(' ')
-          };
-        } else {
-          return findCites(el.parentElement)
-        }
-      } else {
-        return undefined;
-      }
-    };
-    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-    for (var i=0; i<bibliorefs.length; i++) {
-      const ref = bibliorefs[i];
-      const citeInfo = findCites(ref);
-      if (citeInfo) {
-        tippyHover(citeInfo.el, function() {
-          var popup = window.document.createElement('div');
-          citeInfo.cites.forEach(function(cite) {
-            var citeDiv = window.document.createElement('div');
-            citeDiv.classList.add('hanging-indent');
-            citeDiv.classList.add('csl-entry');
-            var biblioDiv = window.document.getElementById('ref-' + cite);
-            if (biblioDiv) {
-              citeDiv.innerHTML = biblioDiv.innerHTML;
-            }
-            popup.appendChild(citeDiv);
-          });
-          return popup.innerHTML;
-        });
-      }
-    }
-  });
-  </script>
-<nav class="page-navigation">
-  <div class="nav-page nav-page-previous">
-      <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="pagination-link" aria-label="Numeric Precision and Quantization">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Numeric Precision and Quantization</span></span>
-      </a>          
-  </div>
-  <div class="nav-page nav-page-next">
-      <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="pagination-link" aria-label="Function and Tool Calling">
-        <span class="nav-page-text"><span class="chapter-title">Function and Tool Calling</span></span> <i class="bi bi-arrow-right-short"></i>
-      </a>
-  </div>
-</nav>
-</div> <!-- /content -->
+                            <a rel="next prefetch" href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
 
 
 
 
-</body></html>
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom.js"></script>
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

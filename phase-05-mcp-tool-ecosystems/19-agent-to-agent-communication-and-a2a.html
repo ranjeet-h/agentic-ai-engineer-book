@@ -1,1044 +1,194 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
-
-<meta charset="utf-8">
-<meta name="generator" content="quarto-1.10.18">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-
-
-<title>Agent-to-Agent Communication and A2A – Agentic AI Engineering Study Book</title>
-<style>
-/* Default styles provided by pandoc.
-** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
-*/
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: 1.5em;}
-div.column{flex: auto;}
-@media screen {
-div.columns{gap: min(4vw, 1.5em);}
-div.column{overflow-x: auto;}
-}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-ul.task-list{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-  width: 0.8em;
-  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
-  vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-</style>
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Agent-to-Agent Communication and A2A - Agentic AI Engineering Study Book</title>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<link href="../phase-05-mcp-tool-ecosystems/20-agent-capability-discovery-and-interoperability.html" rel="next">
-<link href="../phase-05-mcp-tool-ecosystems/18-mcp-tool-versioning-and-registries.html" rel="prev">
-<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-012e79344040a4a328ea85a5b0a60384.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-d84a0d611e1de1507791ffd4dad004b1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
-<script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
-  "copy-button": false,
-  "collapse-after": 3,
-  "panel-placement": "start",
-  "type": "textbox",
-  "limit": 50,
-  "keyboard-shortcut": [
-    "f",
-    "/",
-    "s"
-  ],
-  "show-item-context": false,
-  "language": {
-    "search-no-results-text": "No results",
-    "search-matching-documents-text": "matching documents",
-    "search-copy-link-title": "Copy link to search",
-    "search-hide-matches-text": "Hide additional matches",
-    "search-more-match-text": "more match in this document",
-    "search-more-matches-text": "more matches in this document",
-    "search-clear-button-title": "Clear",
-    "search-text-placeholder": "",
-    "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit",
-    "search-label": "Search"
-  }
-}</script>
-<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
-<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
-<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../assets/fonts/fonts.css">
+        <link rel="stylesheet" href="../theme/custom.css">
 
 
-<link rel="stylesheet" href="../assets/fonts/fonts.css">
-<link rel="stylesheet" href="../styles/custom.css">
-</head>
-
-<body class="nav-sidebar floating quarto-light"><script id="quarto-html-before-body" type="application/javascript">
-    const toggleBodyColorMode = (bsSheetEl) => {
-      const mode = bsSheetEl.getAttribute("data-mode");
-      const bodyEl = window.document.querySelector("body");
-      if (mode === "dark") {
-        bodyEl.classList.add("quarto-dark");
-        bodyEl.classList.remove("quarto-light");
-      } else {
-        bodyEl.classList.add("quarto-light");
-        bodyEl.classList.remove("quarto-dark");
-      }
-    }
-    const toggleBodyColorPrimary = () => {
-      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
-      if (bsSheetEl) {
-        toggleBodyColorMode(bsSheetEl);
-      }
-    }
-    const setColorSchemeToggle = (alternate) => {
-      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
-      for (let i=0; i < toggles.length; i++) {
-        const toggle = toggles[i];
-        if (toggle) {
-          if (alternate) {
-            toggle.classList.add("alternate");
-          } else {
-            toggle.classList.remove("alternate");
-          }
-        }
-      }
-    };
-    const toggleColorMode = (alternate) => {
-      // Switch the stylesheets
-      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
-      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
-      manageTransitions('#quarto-margin-sidebar .nav-link', false);
-      if (alternate) {
-        // note: dark is layered on light, we don't disable primary!
-        enableStylesheet(alternateStylesheets);
-        for (const sheetNode of alternateStylesheets) {
-          if (sheetNode.id === "quarto-bootstrap") {
-            toggleBodyColorMode(sheetNode);
-          }
-        }
-      } else {
-        disableStylesheet(alternateStylesheets);
-        enableStylesheet(primaryStylesheets)
-        toggleBodyColorPrimary();
-      }
-      manageTransitions('#quarto-margin-sidebar .nav-link', true);
-      // Switch the toggles
-      setColorSchemeToggle(alternate)
-      // Hack to workaround the fact that safari doesn't
-      // properly recolor the scrollbar when toggling (#1455)
-      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
-        manageTransitions("body", false);
-        window.scrollTo(0, 1);
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          manageTransitions("body", true);
-        }, 40);
-      }
-    }
-    const disableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        stylesheet.rel = 'disabled-stylesheet';
-      }
-    }
-    const enableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
-          stylesheet.rel = 'stylesheet';
-        }
-      }
-    }
-    const manageTransitions = (selector, allowTransitions) => {
-      const els = window.document.querySelectorAll(selector);
-      for (let i=0; i < els.length; i++) {
-        const el = els[i];
-        if (allowTransitions) {
-          el.classList.remove('notransition');
-        } else {
-          el.classList.add('notransition');
-        }
-      }
-    }
-    const isFileUrl = () => {
-      return window.location.protocol === 'file:';
-    }
-    const hasAlternateSentinel = () => {
-      let styleSentinel = getColorSchemeSentinel();
-      if (styleSentinel !== null) {
-        return styleSentinel === "alternate";
-      } else {
-        return false;
-      }
-    }
-    const setStyleSentinel = (alternate) => {
-      const value = alternate ? "alternate" : "default";
-      if (!isFileUrl()) {
-        window.localStorage.setItem("quarto-color-scheme", value);
-      } else {
-        localAlternateSentinel = value;
-      }
-    }
-    const getColorSchemeSentinel = () => {
-      if (!isFileUrl()) {
-        const storageValue = window.localStorage.getItem("quarto-color-scheme");
-        return storageValue != null ? storageValue : localAlternateSentinel;
-      } else {
-        return localAlternateSentinel;
-      }
-    }
-    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
-      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
-      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
-      let newTheme = '';
-      if(authorPrefersDark) {
-        newTheme = isAlternate ? baseTheme : alternateTheme;
-      } else {
-        newTheme = isAlternate ? alternateTheme : baseTheme;
-      }
-      const changeGiscusTheme = () => {
-        // From: https://github.com/giscus/giscus/issues/336
-        const sendMessage = (message) => {
-          const iframe = document.querySelector('iframe.giscus-frame');
-          if (!iframe) return;
-          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
-        }
-        sendMessage({
-          setConfig: {
-            theme: newTheme
-          }
-        });
-      }
-      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
-      if (isGiscussLoaded) {
-        changeGiscusTheme();
-      }
-    };
-    const authorPrefersDark = false;
-    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    const darkModeDefault = queryPrefersDark.matches;
-      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
-    // Dark / light mode switch
-    window.quartoToggleColorScheme = () => {
-      // Read the current dark / light value
-      let toAlternate = !hasAlternateSentinel();
-      toggleColorMode(toAlternate);
-      setStyleSentinel(toAlternate);
-      toggleGiscusIfUsed(toAlternate, darkModeDefault);
-      window.dispatchEvent(new Event('resize'));
-    };
-    queryPrefersDark.addEventListener("change", e => {
-      if(window.localStorage.getItem("quarto-color-scheme") !== null)
-        return;
-      const alternate = e.matches
-      toggleColorMode(alternate);
-      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
-      toggleGiscusIfUsed(alternate, darkModeDefault);
-    });
-    // Switch to dark mode if need be
-    if (hasAlternateSentinel()) {
-      toggleColorMode(true);
-    } else {
-      toggleColorMode(false);
-    }
-  </script>
-
-<div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
-  <nav class="quarto-secondary-nav">
-    <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
-        <i class="bi bi-layout-text-sidebar-reverse"></i>
-      </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-05-mcp-tool-ecosystems/index.html">Phase 5 — MCP and Tool Ecosystems</a></li><li class="breadcrumb-item"><a href="../phase-05-mcp-tool-ecosystems/19-agent-to-agent-communication-and-a2a.html"><span class="chapter-title">Agent-to-Agent Communication and A2A</span></a></li></ol></nav>
-        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-        </a>
-      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
-        <i class="bi bi-search"></i>
-      </button>
-    </div>
-  </nav>
-</header>
-<!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
-<!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header">
-    <div class="sidebar-title mb-0 py-0">
-      <a href="../">Agentic AI Engineering Study Book</a> 
-        <div class="sidebar-tools-main">
-  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
-</div>
-    </div>
-      </div>
-        <div class="mt-2 flex-shrink-0 align-items-center">
-        <div class="sidebar-search">
-        <div id="quarto-search" class="" title="Search"></div>
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
         </div>
-        </div>
-    <div class="sidebar-menu-container"> 
-    <ul class="list-unstyled mt-1">
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
-  </div>
-</li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 1 — Production Python</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 3 — RAG Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-04-agentic-ai-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 4 — Agentic AI Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/01-what-an-ai-agent-is.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">What an AI Agent Is</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/02-the-agent-loop.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Agent Loop</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/03-tool-execution-and-result-validation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Execution and Result Validation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/04-agent-memory-short-term-and-working.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Short-Term and Working</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/05-agent-memory-long-term-episodic-semantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Long-Term, Episodic, and Semantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/06-planning-decomposition-and-routing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Planning, Decomposition, and Routing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/07-reflection-and-self-correction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reflection and Self-Correction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/08-retries-termination-and-loop-detection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retries, Termination, and Loop Detection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/09-state-management-and-persistence.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">State Management and Persistence</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/10-checkpointing-and-durable-execution.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Checkpointing and Durable Execution</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/11-human-in-the-loop-and-approvals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Human-in-the-Loop and Approvals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/12-guardrails.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Guardrails</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/13-structured-agent-outputs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Agent Outputs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/14-tool-schemas-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Schemas and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/15-tool-permissions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Permissions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/16-parallel-and-conditional-workflows.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parallel and Conditional Workflows</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/17-long-running-and-background-agents.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Long-Running and Background Agents</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/18-langgraph-graphs-and-state.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Graphs and State</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/19-langgraph-checkpoints-interrupts-subgraphs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Checkpoints, Interrupts, and Subgraphs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/20-openai-agents-sdk.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">OpenAI Agents SDK</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/21-agent-orchestration-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Orchestration Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/22-agent-reliability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Reliability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-05-mcp-tool-ecosystems/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 5 — MCP and Tool Ecosystems</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/01-mcp-fundamentals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Fundamentals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/02-mcp-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/03-mcp-transports.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Transports</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/04-mcp-tools-resources-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tools, Resources, and Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/05-tool-and-capability-discovery.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool and Capability Discovery</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/06-mcp-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/07-sessions-and-stateful-stateless-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sessions and Stateful vs Stateless Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/08-building-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/09-building-mcp-clients.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Clients</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/10-database-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Database MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/11-github-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">GitHub MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/12-filesystem-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Filesystem MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/13-browser-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Browser MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/14-internal-api-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Internal API MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/15-enterprise-mcp-gateways.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Enterprise MCP Gateways</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/16-mcp-security-and-permission-boundaries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Security and Permission Boundaries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/17-mcp-observability-and-audit-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Observability and Audit Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/18-mcp-tool-versioning-and-registries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tool Versioning and Registries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/19-agent-to-agent-communication-and-a2a.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Agent-to-Agent Communication and A2A</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/20-agent-capability-discovery-and-interoperability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Capability Discovery and Interoperability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-    </ul>
     </div>
-</nav>
-<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
-<!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">Table of contents</h2>
-   
-  <ul class="collapse">
-  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
-  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
-  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
-  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
-  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
-  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
-  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
-  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
-  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
-  </ul>
-</nav>
-    </div>
-<!-- main -->
-<main class="content" id="quarto-document-content">
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-05-mcp-tool-ecosystems/index.html">Phase 5 — MCP and Tool Ecosystems</a></li><li class="breadcrumb-item"><a href="../phase-05-mcp-tool-ecosystems/19-agent-to-agent-communication-and-a2a.html"><span class="chapter-title">Agent-to-Agent Communication and A2A</span></a></li></ol></nav>
-<div class="quarto-title">
-<h1 class="title"><span class="chapter-title">Agent-to-Agent Communication and A2A</span></h1>
-</div>
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
 
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
 
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
-<div class="quarto-title-meta">
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
 
-    
-  
-    
-  </div>
-  
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
 
+        <div id="page-wrapper" class="page-wrapper">
 
-</header>
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
 
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
 
-<blockquote class="blockquote">
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="agent-to-agent-communication-and-a2a"><a class="header" href="#agent-to-agent-communication-and-a2a">Agent-to-Agent Communication and A2A</a></h1>
+<blockquote>
 <p><strong>Interview answer (say this first).</strong> MCP connects an agent to tools and data; A2A connects an agent to another agent. A2A is an open protocol where a peer publishes an Agent Card at a well-known URL describing its identity, skills, and security. A client sends a Message; the peer creates a Task with a lifecycle — submitted, working, input-required, completed, failed — and can stream status and artifact updates or use push notifications for long-running work. A handoff moves control to the peer; an MCP tool call keeps the caller in control. Trust comes from the card, signatures, auth schemes, and scoped permissions.</p>
 </blockquote>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
+<blockquote>
+<p><strong>Note:</strong></p>
 <p><strong>Verified.</strong> Every runnable pure-Python example on this page was executed on Python 3.14. The Agent Card shapes, task states, and client and server APIs were executed or introspected on Python 3.12 with the official <code>a2a-sdk</code> version <code>1.1.2</code> (protobuf-based types). A2A is evolving; check the spec and SDK version you ship.</p>
-</div>
-</div>
-<section id="why-this-exists" class="level2">
-<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
 <p>A single agent can only hold so much. At some point it needs another agent, not another function. The reasons are the same ones that justify multi-agent orchestration, but now the other agent lives behind a network boundary:</p>
 <ul>
 <li><strong>Specialisation.</strong> One team owns billing, another owns compliance. Each has its own agent, tools, and data.</li>
@@ -1047,123 +197,43 @@ Note
 <li><strong>Streaming.</strong> The peer produces partial results and progress. The caller wants them as they arrive.</li>
 </ul>
 <p>The naive solution is to wrap the remote agent as a tool. That loses things:</p>
-<pre class="text"><code>agent_call(peer="billing", text="refund order A-100") -&gt; "done"</code></pre>
+<pre><code class="language-text">agent_call(peer="billing", text="refund order A-100") -&gt; "done"
+</code></pre>
 <p>Where is the task id? How do you ask for status an hour later? How do you cancel it? How do you get the receipt artifact? How do you know the peer’s capabilities before sending a sensitive request? A flat function call answers none of these questions.</p>
 <p>A2A (Agent-to-Agent) exists to give agent-to-agent work a real protocol: discovery through an Agent Card, work represented as a Task, updates delivered by streaming or push, and a lifecycle both sides agree on.</p>
-<div class="callout callout-style-default callout-tip callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Tip
-</div>
-</div>
-<div class="callout-body-container callout-body">
+<blockquote>
+<p><strong>Tip:</strong></p>
 <p><strong>The one-sentence purpose.</strong> A2A is the protocol that lets one agent delegate work to another agent it does not control, track that work over time, and receive artifacts back.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>A2A</strong></td><td>Agent-to-Agent: an open protocol for agents to send work to other agents.</td></tr>
+<tr><td><strong>Agent</strong></td><td>An autonomous service that can accept a task and act on it.</td></tr>
+<tr><td><strong>Agent Card</strong></td><td>A JSON document describing an agent: name, version, skills, security, and interfaces.</td></tr>
+<tr><td><strong>Skill</strong></td><td>One capability an agent advertises, such as “refund processing”.</td></tr>
+<tr><td><strong>Well-known URL</strong></td><td>A fixed path where the card is served; the SDK uses <code>/.well-known/agent-card.json</code>.</td></tr>
+<tr><td><strong>Message</strong></td><td>One unit sent to an agent, with a role and one or more parts.</td></tr>
+<tr><td><strong>Part</strong></td><td>One piece of a message: text, raw bytes, a URL, or structured data.</td></tr>
+<tr><td><strong>Task</strong></td><td>A stateful unit of work created from a message, with an id and a status.</td></tr>
+<tr><td><strong>Task id</strong></td><td>The identifier used to fetch, stream, or cancel that task later.</td></tr>
+<tr><td><strong>Context id</strong></td><td>An id grouping related tasks in one conversation or session.</td></tr>
+<tr><td><strong>Task state</strong></td><td>The lifecycle stage, such as <code>WORKING</code> or <code>COMPLETED</code>.</td></tr>
+<tr><td><strong>Artifact</strong></td><td>A concrete output of a task, such as a report or a JSON result.</td></tr>
+<tr><td><strong>Streaming</strong></td><td>Receiving incremental status and artifact updates while the task runs.</td></tr>
+<tr><td><strong>Push notification</strong></td><td>A webhook the server calls when a task updates, for work that outlives a connection.</td></tr>
+<tr><td><strong>Handoff</strong></td><td>Transferring control so the peer owns the rest of the work.</td></tr>
+<tr><td><strong>Delegation</strong></td><td>Sending a sub-task to a peer and using its result.</td></tr>
+<tr><td><strong>Peer</strong></td><td>The remote agent on the other side of the call.</td></tr>
+<tr><td><strong>Protocol binding</strong></td><td>How bytes are carried: <code>JSONRPC</code>, <code>HTTP+JSON</code>, or <code>GRPC</code>.</td></tr>
+<tr><td><strong>Trust</strong></td><td>The reasons to believe the peer is who it claims and will behave correctly.</td></tr>
+</tbody></table>
 </div>
-</div>
-</section>
-<section id="start-from-zero" class="level2">
-<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Word</th>
-<th>Plain meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>A2A</strong></td>
-<td>Agent-to-Agent: an open protocol for agents to send work to other agents.</td>
-</tr>
-<tr class="even">
-<td><strong>Agent</strong></td>
-<td>An autonomous service that can accept a task and act on it.</td>
-</tr>
-<tr class="odd">
-<td><strong>Agent Card</strong></td>
-<td>A JSON document describing an agent: name, version, skills, security, and interfaces.</td>
-</tr>
-<tr class="even">
-<td><strong>Skill</strong></td>
-<td>One capability an agent advertises, such as “refund processing”.</td>
-</tr>
-<tr class="odd">
-<td><strong>Well-known URL</strong></td>
-<td>A fixed path where the card is served; the SDK uses <code>/.well-known/agent-card.json</code>.</td>
-</tr>
-<tr class="even">
-<td><strong>Message</strong></td>
-<td>One unit sent to an agent, with a role and one or more parts.</td>
-</tr>
-<tr class="odd">
-<td><strong>Part</strong></td>
-<td>One piece of a message: text, raw bytes, a URL, or structured data.</td>
-</tr>
-<tr class="even">
-<td><strong>Task</strong></td>
-<td>A stateful unit of work created from a message, with an id and a status.</td>
-</tr>
-<tr class="odd">
-<td><strong>Task id</strong></td>
-<td>The identifier used to fetch, stream, or cancel that task later.</td>
-</tr>
-<tr class="even">
-<td><strong>Context id</strong></td>
-<td>An id grouping related tasks in one conversation or session.</td>
-</tr>
-<tr class="odd">
-<td><strong>Task state</strong></td>
-<td>The lifecycle stage, such as <code>WORKING</code> or <code>COMPLETED</code>.</td>
-</tr>
-<tr class="even">
-<td><strong>Artifact</strong></td>
-<td>A concrete output of a task, such as a report or a JSON result.</td>
-</tr>
-<tr class="odd">
-<td><strong>Streaming</strong></td>
-<td>Receiving incremental status and artifact updates while the task runs.</td>
-</tr>
-<tr class="even">
-<td><strong>Push notification</strong></td>
-<td>A webhook the server calls when a task updates, for work that outlives a connection.</td>
-</tr>
-<tr class="odd">
-<td><strong>Handoff</strong></td>
-<td>Transferring control so the peer owns the rest of the work.</td>
-</tr>
-<tr class="even">
-<td><strong>Delegation</strong></td>
-<td>Sending a sub-task to a peer and using its result.</td>
-</tr>
-<tr class="odd">
-<td><strong>Peer</strong></td>
-<td>The remote agent on the other side of the call.</td>
-</tr>
-<tr class="even">
-<td><strong>Protocol binding</strong></td>
-<td>How bytes are carried: <code>JSONRPC</code>, <code>HTTP+JSON</code>, or <code>GRPC</code>.</td>
-</tr>
-<tr class="odd">
-<td><strong>Trust</strong></td>
-<td>The reasons to believe the peer is who it claims and will behave correctly.</td>
-</tr>
-</tbody>
-</table>
 <p>Two distinctions matter:</p>
 <ul>
 <li><strong>Task versus RPC.</strong> A tool call is one request and one response. A2A work is a task with a lifecycle you can observe, continue, or cancel.</li>
 <li><strong>Handoff versus delegation.</strong> A handoff transfers ownership. Delegation keeps the caller in charge and treats the peer’s result as an input.</li>
 </ul>
-</section>
-<section id="the-core-idea" class="level2">
-<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of your agent as a person working at a desk, and a peer agent as a specialist firm.</p>
 <ul>
 <li>Before you call the firm, you read its <strong>brochure and credentials</strong> — the Agent Card.</li>
@@ -1173,12 +243,7 @@ Tip
 <li>For a long job, they <strong>phone you with updates</strong> or let you <strong>check the case online</strong> — streaming or push plus <code>get_task</code>.</li>
 <li>When done, they deliver <strong>documents</strong> — Artifacts.</li>
 </ul>
-<div class="cell" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">sequenceDiagram
+<pre class="mermaid">sequenceDiagram
     participant C as Client agent
     participant R as Agent Card endpoint
     participant P as Peer agent
@@ -1193,81 +258,24 @@ Tip
     C-&gt;&gt;P: GetTask(task_id) [optional, for reconnect]
     P--&gt;&gt;C: Task (final state + artifacts)
 </pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
 <p>The two protocols divide the world cleanly:</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Question</th>
-<th>MCP</th>
-<th>A2A</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Connects</td>
-<td>Agent to tools and data</td>
-<td>Agent to another agent</td>
-</tr>
-<tr class="even">
-<td>Discovery</td>
-<td><code>tools/list</code>, resources, prompts</td>
-<td>Agent Card at a well-known URL</td>
-</tr>
-<tr class="odd">
-<td>Unit of work</td>
-<td>Tool call (request/response)</td>
-<td>Task with a lifecycle</td>
-</tr>
-<tr class="even">
-<td>Long-running</td>
-<td>Progress notifications</td>
-<td>Task states, streaming, push</td>
-</tr>
-<tr class="odd">
-<td>Output</td>
-<td>Tool result content</td>
-<td>Messages and artifacts</td>
-</tr>
-<tr class="even">
-<td>Trust model</td>
-<td>Host and gateway enforce scopes</td>
-<td>Card, signatures, auth schemes</td>
-</tr>
-<tr class="odd">
-<td>Typical caller</td>
-<td>An agent runtime</td>
-<td>An agent, or an orchestrator</td>
-</tr>
-</tbody>
-</table>
+<div class="table-wrapper"><table><thead><tr><th>Question</th><th>MCP</th><th>A2A</th></tr></thead><tbody>
+<tr><td>Connects</td><td>Agent to tools and data</td><td>Agent to another agent</td></tr>
+<tr><td>Discovery</td><td><code>tools/list</code>, resources, prompts</td><td>Agent Card at a well-known URL</td></tr>
+<tr><td>Unit of work</td><td>Tool call (request/response)</td><td>Task with a lifecycle</td></tr>
+<tr><td>Long-running</td><td>Progress notifications</td><td>Task states, streaming, push</td></tr>
+<tr><td>Output</td><td>Tool result content</td><td>Messages and artifacts</td></tr>
+<tr><td>Trust model</td><td>Host and gateway enforce scopes</td><td>Card, signatures, auth schemes</td></tr>
+<tr><td>Typical caller</td><td>An agent runtime</td><td>An agent, or an orchestrator</td></tr>
+</tbody></table>
+</div>
 <p>They compose. An agent uses MCP to reach its own tools, and A2A to reach another agent that uses its own MCP servers.</p>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
+<blockquote>
+<p><strong>Note:</strong></p>
 <p><strong>Where the two meet.</strong> MCP has recently added task support too, and A2A has grown more transport options. The clean mental model still holds: MCP is the tool and data plane, A2A is the peer-to-peer plane. Treat the overlap as an implementation detail and check the version you use.</p>
-</div>
-</div>
-</section>
-<section id="how-it-works" class="level2">
-<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
-<ol type="1">
+</blockquote>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
 <li><strong>Discover the peer.</strong> Fetch the Agent Card from the well-known URL, or from a registry. The card states the interfaces, the supported bindings and versions, the skills, and the security schemes.</li>
 <li><strong>Read the skills before sending work.</strong> A skill has an id, a name, a description, tags, examples, and input and output modes. Matching the task to a skill is how you avoid sending work the peer cannot do.</li>
 <li><strong>Authenticate as the security scheme requires.</strong> The card may advertise OAuth2, API key, mTLS, or OpenID Connect. The client presents credentials; the peer validates them.</li>
@@ -1281,96 +289,98 @@ Note
 <li><strong>Keep the context id across related tasks.</strong> One context id ties a multi-turn conversation together and lets both sides log a coherent story.</li>
 <li><strong>Verify trust inputs.</strong> Check the card’s signatures where present, pin the interface you expect, and treat every claim on the card as untrusted until the peer proves it by authenticating and completing work.</li>
 </ol>
-</section>
-<section id="the-syntax-you-will-use" class="level2">
-<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
 <p><strong>Build an Agent Card.</strong> Skills are the advertised capabilities; capabilities flag streaming and push.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> a2a.types <span class="im">as</span> t</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>card <span class="op">=</span> t.AgentCard()</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>card.name <span class="op">=</span> <span class="st">"billing-agent"</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>card.description <span class="op">=</span> <span class="st">"Handles refunds, invoices, and billing questions."</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>card.version <span class="op">=</span> <span class="st">"1.4.0"</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>interface <span class="op">=</span> card.supported_interfaces.add()</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>interface.url <span class="op">=</span> <span class="st">"https://billing.example.com/a2a"</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>interface.protocol_binding <span class="op">=</span> <span class="st">"JSONRPC"</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>interface.protocol_version <span class="op">=</span> <span class="st">"1.0"</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>skill <span class="op">=</span> card.skills.add()</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>skill.<span class="bu">id</span> <span class="op">=</span> <span class="st">"refund"</span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>skill.name <span class="op">=</span> <span class="st">"Refund processing"</span></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>skill.description <span class="op">=</span> <span class="st">"Start or check a refund for an order."</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>skill.tags.extend([<span class="st">"billing"</span>, <span class="st">"refund"</span>])</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>skill.examples.append(<span class="st">"Refund order A-100"</span>)</span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>skill.input_modes.append(<span class="st">"text/plain"</span>)</span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>skill.output_modes.append(<span class="st">"application/json"</span>)</span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>card.capabilities.streaming <span class="op">=</span> <span class="va">True</span></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>card.capabilities.push_notifications <span class="op">=</span> <span class="va">True</span></span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>card.default_input_modes.append(<span class="st">"text/plain"</span>)</span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>card.default_output_modes.append(<span class="st">"application/json"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import a2a.types as t
+
+card = t.AgentCard()
+card.name = "billing-agent"
+card.description = "Handles refunds, invoices, and billing questions."
+card.version = "1.4.0"
+
+interface = card.supported_interfaces.add()
+interface.url = "https://billing.example.com/a2a"
+interface.protocol_binding = "JSONRPC"
+interface.protocol_version = "1.0"
+
+skill = card.skills.add()
+skill.id = "refund"
+skill.name = "Refund processing"
+skill.description = "Start or check a refund for an order."
+skill.tags.extend(["billing", "refund"])
+skill.examples.append("Refund order A-100")
+skill.input_modes.append("text/plain")
+skill.output_modes.append("application/json")
+
+card.capabilities.streaming = True
+card.capabilities.push_notifications = True
+card.default_input_modes.append("text/plain")
+card.default_output_modes.append("application/json")
+</code></pre>
 <p>The serialized JSON uses camelCase field names such as <code>supportedInterfaces</code>, <code>pushNotifications</code>, and <code>defaultInputModes</code>.</p>
 <p><strong>Discover the card at the well-known path.</strong> The resolver takes an <code>httpx</code> client and the peer’s base URL.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> httpx</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> a2a.client.card_resolver <span class="im">import</span> A2ACardResolver</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> a2a.utils <span class="im">import</span> AGENT_CARD_WELL_KNOWN_PATH</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="cf">with</span> httpx.AsyncClient() <span class="im">as</span> http:</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    resolver <span class="op">=</span> A2ACardResolver(http, <span class="st">"https://billing.example.com"</span>)</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    card <span class="op">=</span> <span class="cf">await</span> resolver.get_agent_card()      <span class="co"># GET /.well-known/agent-card.json</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import httpx
+from a2a.client.card_resolver import A2ACardResolver
+from a2a.utils import AGENT_CARD_WELL_KNOWN_PATH
+
+async with httpx.AsyncClient() as http:
+    resolver = A2ACardResolver(http, "https://billing.example.com")
+    card = await resolver.get_agent_card()      # GET /.well-known/agent-card.json
+</code></pre>
 <p><code>AGENT_CARD_WELL_KNOWN_PATH</code> is <code>/.well-known/agent-card.json</code> in <code>a2a-sdk</code> 1.1.2. Older drafts used <code>/.well-known/agent.json</code>, so verify the path your peer serves.</p>
 <p><strong>Send a message and consume the stream.</strong> <code>send_message</code> returns an async iterator of stream responses.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> a2a.types <span class="im">as</span> t</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> a2a.client.client_factory <span class="im">import</span> ClientFactory</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> a2a.types <span class="im">import</span> SendMessageRequest</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> a2a.helpers <span class="im">import</span> new_text_message</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>client <span class="op">=</span> ClientFactory().create(card)           <span class="co"># card discovered earlier</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>request <span class="op">=</span> SendMessageRequest(</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    message<span class="op">=</span>new_text_message(<span class="st">"Refund order A-100"</span>, role<span class="op">=</span>t.Role.ROLE_USER)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="cf">for</span> event <span class="kw">in</span> client.send_message(request):</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> event.HasField(<span class="st">"status_update"</span>):</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">"status:"</span>, event.status_update.status.state)</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> event.HasField(<span class="st">"artifact_update"</span>):</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">"artifact:"</span>, event.artifact_update.artifact.name)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import a2a.types as t
+from a2a.client.client_factory import ClientFactory
+from a2a.types import SendMessageRequest
+from a2a.helpers import new_text_message
+
+client = ClientFactory().create(card)           # card discovered earlier
+request = SendMessageRequest(
+    message=new_text_message("Refund order A-100", role=t.Role.ROLE_USER)
+)
+
+async for event in client.send_message(request):
+    if event.HasField("status_update"):
+        print("status:", event.status_update.status.state)
+    elif event.HasField("artifact_update"):
+        print("artifact:", event.artifact_update.artifact.name)
+</code></pre>
 <p><code>StreamResponse</code> can hold a <code>task</code>, a <code>message</code>, a <code>status_update</code>, or an <code>artifact_update</code>. The boolean <code>event.HasField(...)</code> tells you which. <code>new_text_message</code> defaults to the agent role, so a client request sets <code>ROLE_USER</code> explicitly.</p>
 <p><strong>Emit updates from the server.</strong> The <code>TaskUpdater</code> writes status and artifact events to the event queue.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> a2a.types <span class="im">as</span> t</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> a2a.helpers <span class="im">import</span> new_text_part</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> a2a.server.tasks.task_updater <span class="im">import</span> TaskUpdater</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> execute(context, event_queue):</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    updater <span class="op">=</span> TaskUpdater(event_queue, context.task_id, context.context_id)</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> updater.start_work()</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> updater.update_status(</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        t.TaskState.TASK_STATE_WORKING,</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        message<span class="op">=</span>updater.new_agent_message([new_text_part(<span class="st">"Reading the order"</span>)]),</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> updater.add_artifact([new_text_part(<span class="st">"Refund of $20 approved"</span>)], name<span class="op">=</span><span class="st">"summary"</span>)</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> updater.complete()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import a2a.types as t
+from a2a.helpers import new_text_part
+from a2a.server.tasks.task_updater import TaskUpdater
+
+async def execute(context, event_queue):
+    updater = TaskUpdater(event_queue, context.task_id, context.context_id)
+    await updater.start_work()
+    await updater.update_status(
+        t.TaskState.TASK_STATE_WORKING,
+        message=updater.new_agent_message([new_text_part("Reading the order")]),
+    )
+    await updater.add_artifact([new_text_part("Refund of $20 approved")], name="summary")
+    await updater.complete()
+</code></pre>
 <p><code>TaskUpdater</code> also has <code>submit</code>, <code>requires_input</code>, <code>requires_auth</code>, <code>reject</code>, <code>failed</code>, and <code>cancel</code>, one per lifecycle state. <code>update_status</code> takes a <code>TaskState</code> enum value, not a string. This sequence was executed against a real event queue and produced four events: two status updates, one artifact update, and a final status update.</p>
 <p><strong>Fetch and cancel a task later.</strong> Both take a request object and return the current task.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> a2a.types <span class="im">import</span> GetTaskRequest, CancelTaskRequest</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>task <span class="op">=</span> <span class="cf">await</span> client.get_task(GetTaskRequest(<span class="bu">id</span><span class="op">=</span>task_id))</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(task.status.state, [a.name <span class="cf">for</span> a <span class="kw">in</span> task.artifacts])</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="cf">await</span> client.cancel_task(CancelTaskRequest(<span class="bu">id</span><span class="op">=</span>task_id))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">from a2a.types import GetTaskRequest, CancelTaskRequest
+
+task = await client.get_task(GetTaskRequest(id=task_id))
+print(task.status.state, [a.name for a in task.artifacts])
+
+await client.cancel_task(CancelTaskRequest(id=task_id))
+</code></pre>
 <p><strong>Verify the card before trusting it.</strong> The resolver and the client factory accept a verifier callback.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> verify(card):</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="st">"https://billing.example.com"</span> <span class="kw">not</span> <span class="kw">in</span> [i.url <span class="cf">for</span> i <span class="kw">in</span> card.supported_interfaces]:</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"unexpected interface"</span>)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>card <span class="op">=</span> <span class="cf">await</span> resolver.get_agent_card(signature_verifier<span class="op">=</span>verify)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def verify(card):
+    if "https://billing.example.com" not in [i.url for i in card.supported_interfaces]:
+        raise ValueError("unexpected interface")
+
+card = await resolver.get_agent_card(signature_verifier=verify)
+</code></pre>
 <p>The callback runs after the card is fetched. Use it to check a signature, an expected host, or a pinned version.</p>
-</section>
-<section id="examples-simple-to-real" class="level2">
-<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
 <p><strong>Example 1 — a serialized Agent Card.</strong> This is the shape a peer serves at the well-known URL.</p>
-<pre class="text"><code>{
+<pre><code class="language-text">{
   "capabilities": {"pushNotifications": true, "streaming": true},
   "defaultInputModes": ["text/plain"],
   "defaultOutputModes": ["application/json"],
@@ -1384,56 +394,62 @@ Note
                            "protocolVersion": "1.0",
                            "url": "https://billing.example.com/a2a"}],
   "version": "1.4.0"
-}</code></pre>
+}
+</code></pre>
 <p>Everything a caller needs to decide whether to send work is here: what the agent does, how to reach it, how to authenticate, and whether it streams.</p>
 <p><strong>Example 2 — parse the card back.</strong> A discovered card round-trips to typed data.</p>
-<pre class="text"><code>name: billing-agent | version: 1.4.0
+<pre><code class="language-text">name: billing-agent | version: 1.4.0
 skills: [('refund', 'Refund processing')]
 streaming: True | push: True
-interface: https://billing.example.com/a2a JSONRPC</code></pre>
+interface: https://billing.example.com/a2a JSONRPC
+</code></pre>
 <p>Read the skills list to route work, and the capabilities to choose streaming or polling.</p>
 <p><strong>Example 3 — discovery facts you can rely on.</strong></p>
-<pre class="text"><code>well-known path: /.well-known/agent-card.json
+<pre><code class="language-text">well-known path: /.well-known/agent-card.json
 default RPC url: /
-bindings: ['JSONRPC', 'HTTP+JSON', 'GRPC']</code></pre>
+bindings: ['JSONRPC', 'HTTP+JSON', 'GRPC']
+</code></pre>
 <p>Three protocol bindings are defined. The transport (HTTP, gRPC) is separate from the binding name, which is why the card lists a <code>protocolBinding</code> per interface.</p>
 <p><strong>Example 4 — the task lifecycle accepts and rejects transitions.</strong></p>
-<pre class="text"><code>ok: SUBMITTED -&gt; WORKING
+<pre><code class="language-text">ok: SUBMITTED -&gt; WORKING
 ok: WORKING -&gt; INPUT_REQUIRED
 ok: INPUT_REQUIRED -&gt; WORKING
 ok: WORKING -&gt; COMPLETED
-rejected: COMPLETED -&gt; WORKING</code></pre>
+rejected: COMPLETED -&gt; WORKING
+</code></pre>
 <p>Terminal states are terminal. A peer that tries to restart a completed task is buggy, and the client should reject the update rather than double-process it.</p>
 <p><strong>Example 5 — streaming updates while the task runs.</strong></p>
-<pre class="text"><code>('status', 'WORKING', None)
+<pre><code class="language-text">('status', 'WORKING', None)
 ('status', 'WORKING', 'reading order')
 ('artifact', 'summary', 'Refund of $20 approved.')
-('status', 'COMPLETED', 'done')</code></pre>
+('status', 'COMPLETED', 'done')
+</code></pre>
 <p>Status arrives first, then the artifact, then completion. A client that only reads the final status loses the partial result and cannot show progress.</p>
 <p><strong>Example 6 — handoff versus an MCP tool call.</strong></p>
-<pre class="text"><code>result of refund.create({'order_id': 'A-100'})
+<pre><code class="language-text">result of refund.create({'order_id': 'A-100'})
 billing-agent now owns the task
   ('mcp', 'coordinator', 'stays in control')
-  ('a2a', 'coordinator', 'control moves to billing-agent')</code></pre>
+  ('a2a', 'coordinator', 'control moves to billing-agent')
+</code></pre>
 <p>With MCP, the coordinator keeps control and gets a result. With a handoff, the peer owns the rest. The difference decides who answers the user, who logs the final state, and who handles failure.</p>
 <p><strong>Example 7 — the trust surface on the card.</strong></p>
-<pre class="text"><code>securitySchemes: ['oauth']
+<pre><code class="language-text">securitySchemes: ['oauth']
 securityRequirements: [{'schemes': {'oauth': {'list': ['billing.refund']}}}]
 signature fields: ['protected', 'signature']
-AgentCardSignature fields: ['protected', 'signature', 'header']</code></pre>
+AgentCardSignature fields: ['protected', 'signature', 'header']
+</code></pre>
 <p>The card can require OAuth scopes per skill, and can carry a JWS signature whose payload is the canonicalized Agent Card; the <code>protected</code> field is the base64url-encoded JWS header (including <code>alg</code> and <code>kid</code>) and <code>signature</code> is the signature over that payload. A client that ignores both is trusting whatever answered the network call.</p>
 <p><strong>Example 8 — the SDK’s client and server surface.</strong></p>
-<pre class="text"><code>Client.send_message -&gt; AsyncIterator[StreamResponse]
+<pre><code class="language-text">Client.send_message -&gt; AsyncIterator[StreamResponse]
 Client methods: get_task, cancel_task, subscribe, ...
 ClientConfig fields: ['streaming', 'polling', 'httpx_client', 'grpc_channel_factory',
                       'supported_protocol_bindings', 'use_client_preference',
                       'accepted_output_modes', 'push_notification_config']
 TaskUpdater methods: add_artifact, cancel, complete, failed, new_agent_message,
-                     reject, requires_auth, requires_input, start_work, submit</code></pre>
+                     reject, requires_auth, requires_input, start_work, submit
+</code></pre>
 <p>One client handles streaming and polling, and one updater moves a task through every state. That is the whole interaction surface in two objects.</p>
-</section>
-<section id="in-production" class="level2">
-<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
 <ul>
 <li><strong>Verify the card before you use it.</strong> A card is a plain network response. Check the signature where present, pin the expected interface and version, and never let an unexpected URL reach your credential store.</li>
 <li><strong>Do not treat a skill as a tool.</strong> A skill is a broad capability. Send a message and let the peer decide how to fulfil it. Over-specifying the method turns A2A into brittle RPC.</li>
@@ -1448,60 +464,40 @@ TaskUpdater methods: add_artifact, cancel, complete, failed, new_agent_message,
 <li><strong>Version the interface you expect.</strong> Pin a <code>protocolVersion</code> and a peer agent <code>version</code>, and fail fast when they change. Silent protocol drift is hard to debug.</li>
 <li><strong>Log the task id on every line.</strong> The task id is the A2A correlation id. Without it, host and peer logs cannot be joined.</li>
 </ul>
-</section>
-<section id="interview-questions" class="level2">
-<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
-<section id="what-is-a2a-and-how-is-it-different-from-mcp" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-a2a-and-how-is-it-different-from-mcp">1. What is A2A, and how is it different from MCP?</h3>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-what-is-a2a-and-how-is-it-different-from-mcp"><a class="header" href="#1-what-is-a2a-and-how-is-it-different-from-mcp">1. What is A2A, and how is it different from MCP?</a></h3>
 <p><strong>Answer.</strong> A2A is an open protocol for one agent to delegate work to another agent. MCP connects an agent to tools and data; A2A connects agents to agents. In MCP the unit is a tool call, usually request/response. In A2A the unit is a Task with a lifecycle, discoverable skills, streaming or push updates, and artifacts. They compose: an agent uses MCP for its tools and A2A to reach peers.</p>
 <p><strong>Follow-up: “Why not just wrap the other agent as an MCP tool?”</strong> You lose long-running tasks, status retrieval, cancellation, streaming artifacts, and capability discovery. A flat call cannot represent work that lasts an hour.</p>
 <p><strong>Trap.</strong> Saying they are competitors. The clean design uses both at different layers.</p>
-</section>
-<section id="what-is-an-agent-card-and-what-does-it-contain" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-an-agent-card-and-what-does-it-contain">2. What is an Agent Card, and what does it contain?</h3>
+<h3 id="2-what-is-an-agent-card-and-what-does-it-contain"><a class="header" href="#2-what-is-an-agent-card-and-what-does-it-contain">2. What is an Agent Card, and what does it contain?</a></h3>
 <p><strong>Answer.</strong> A JSON document at a well-known URL describing the agent: name, description, version, supported interfaces and protocol bindings, provider, skills, capabilities such as streaming and push notifications, supported input and output modes, security schemes, and optional signatures. It is the discovery and trust entry point: a caller reads it before sending anything.</p>
 <p><strong>Follow-up: “What is a skill?”</strong> One advertised capability, with an id, name, description, tags, examples, and input and output modes. Skills are how a caller decides whether the peer can do the work.</p>
 <p><strong>Trap.</strong> Trusting the card’s claims. The card is attacker-controlled data until you verify the host and the signature and the peer proves itself with authenticated work.</p>
-</section>
-<section id="walk-through-a-tasks-lifecycle." class="level3">
-<h3 class="anchored" data-anchor-id="walk-through-a-tasks-lifecycle.">3. Walk through a task’s lifecycle.</h3>
+<h3 id="3-walk-through-a-tasks-lifecycle"><a class="header" href="#3-walk-through-a-tasks-lifecycle">3. Walk through a task’s lifecycle.</a></h3>
 <p><strong>Answer.</strong> A message may cause the peer to create a task in <code>SUBMITTED</code>, though the peer can also answer with a plain Message and no task. When a task exists, the peer moves it to <code>WORKING</code>, and may pause in <code>INPUT_REQUIRED</code> or <code>AUTH_REQUIRED</code>. It ends in <code>COMPLETED</code>, <code>FAILED</code>, <code>CANCELED</code>, or <code>REJECTED</code>. Along the way the task accumulates status updates, history messages, and artifacts. Terminal states do not transition further.</p>
 <p><strong>Follow-up: “How does a client observe it?”</strong> By streaming the updates while connected, by receiving push notifications when not, or by calling <code>get_task</code> to fetch current state. The task id is the handle for all three.</p>
 <p><strong>Trap.</strong> Treating <code>INPUT_REQUIRED</code> as a failure. It is a request for information, and the task can resume.</p>
-</section>
-<section id="when-do-you-use-streaming-versus-push-notifications" class="level3">
-<h3 class="anchored" data-anchor-id="when-do-you-use-streaming-versus-push-notifications">4. When do you use streaming versus push notifications?</h3>
+<h3 id="4-when-do-you-use-streaming-versus-push-notifications"><a class="header" href="#4-when-do-you-use-streaming-versus-push-notifications">4. When do you use streaming versus push notifications?</a></h3>
 <p><strong>Answer.</strong> Streaming suits interactive work where a caller is waiting and can hold a connection. Push notifications suit work that outlives a connection — minutes to hours, across deploys, or on the server side with no client online. Use streaming when you can, and push with a poll fallback for durable long-running tasks.</p>
 <p><strong>Follow-up: “What breaks a stream?”</strong> Any network interruption, a deploy, an idle timeout, or a sleeping client. That is why a durable task must be retrievable by id rather than existing only inside the connection.</p>
 <p><strong>Trap.</strong> Assuming a completed stream means the work completed. Reconcile by fetching the task; the connection can drop after the peer finished.</p>
-</section>
-<section id="explain-handoff-versus-delegation." class="level3">
-<h3 class="anchored" data-anchor-id="explain-handoff-versus-delegation.">5. Explain handoff versus delegation.</h3>
+<h3 id="5-explain-handoff-versus-delegation"><a class="header" href="#5-explain-handoff-versus-delegation">5. Explain handoff versus delegation.</a></h3>
 <p><strong>Answer.</strong> A handoff transfers control: the peer owns the rest of the task and the caller steps out. Delegation keeps the caller in control and uses the peer’s result as an input to its own next step. A handoff is right when the specialist should finish; delegation is right when the caller must combine several results.</p>
 <p><strong>Follow-up: “Which does A2A support?”</strong> Both, as usage patterns. The protocol gives you tasks and messages; the pattern is which agent holds the task and answers the user.</p>
 <p><strong>Trap.</strong> Handing off and then expecting to post-process. After a handoff, the peer is the owner, and the caller may not see intermediate state.</p>
-</section>
-<section id="how-do-agents-trust-each-other-in-a2a" class="level3">
-<h3 class="anchored" data-anchor-id="how-do-agents-trust-each-other-in-a2a">6. How do agents trust each other in A2A?</h3>
+<h3 id="6-how-do-agents-trust-each-other-in-a2a"><a class="header" href="#6-how-do-agents-trust-each-other-in-a2a">6. How do agents trust each other in A2A?</a></h3>
 <p><strong>Answer.</strong> Layered. The card declares security schemes such as OAuth2, API keys, mTLS, or OpenID Connect, and can carry a JWS whose payload is the canonicalized Agent Card and whose <code>protected</code> field is the encoded JWS header. The client verifies the card, authenticates, and requests scoped permissions per skill. The peer enforces its own authorization, and audit logging ties calls to identities. Trust is never a single check.</p>
 <p><strong>Follow-up: “What is the confused-deputy risk?”</strong> A peer with broad permissions can be used through your agent to reach data your user should not see. Pass the user’s identity and scope through, and re-check at the peer rather than trusting the caller.</p>
 <p><strong>Trap.</strong> Relying on network location for trust. Being on the same VPC does not make a peer authorized.</p>
-</section>
-<section id="what-failure-modes-do-you-design-for-in-a2a" class="level3">
-<h3 class="anchored" data-anchor-id="what-failure-modes-do-you-design-for-in-a2a">7. What failure modes do you design for in A2A?</h3>
+<h3 id="7-what-failure-modes-do-you-design-for-in-a2a"><a class="header" href="#7-what-failure-modes-do-you-design-for-in-a2a">7. What failure modes do you design for in A2A?</a></h3>
 <p><strong>Answer.</strong> Duplicate tasks from retries, dropped streams, peers that need more input, auth expiring mid-task, tasks that never terminate, artifacts that are empty, and peers that claim a skill but fail it. Handle each with an idempotency key, task retrieval, bounded clarification rounds, credential refresh, a duration cap, artifact validation, and capability verification before routing.</p>
 <p><strong>Follow-up: “What is the hardest one?”</strong> The overclaiming peer. It advertises a skill and then fails. You cannot detect it from the card, only from outcomes, so track success rate per peer and demote peers that break their promises.</p>
 <p><strong>Trap.</strong> Retrying <code>send_message</code> blindly. A timeout does not mean the peer did not create the task, and a blind retry can run the work twice.</p>
-</section>
-<section id="how-does-a2a-relate-to-mcp-tool-permissions-and-scopes" class="level3">
-<h3 class="anchored" data-anchor-id="how-does-a2a-relate-to-mcp-tool-permissions-and-scopes">8. How does A2A relate to MCP tool permissions and scopes?</h3>
+<h3 id="8-how-does-a2a-relate-to-mcp-tool-permissions-and-scopes"><a class="header" href="#8-how-does-a2a-relate-to-mcp-tool-permissions-and-scopes">8. How does A2A relate to MCP tool permissions and scopes?</a></h3>
 <p><strong>Answer.</strong> They are different boundaries. MCP scopes decide which tools an agent may call on its own servers. A2A security requirements decide what the peer demands from the caller for each skill. A well-designed agent carries the user’s identity and scope through the whole chain, so the peer’s check is meaningful, and the gateway still enforces its own allowlist.</p>
 <p><strong>Follow-up: “Where does the audit record live?”</strong> At both ends, joined by the task id and the trace context. Each side records who called, for which skill, under which scopes, and what happened.</p>
 <p><strong>Trap.</strong> Passing a broad service identity and losing the user. Then every peer sees the same powerful caller and your per-user access control disappears.</p>
-</section>
-</section>
-<section id="remember-this" class="level2">
-<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
 <ul>
 <li><strong>MCP is agent-to-tools; A2A is agent-to-agent.</strong> They compose at different layers.</li>
 <li><strong>Agent Card at a well-known URL</strong> is the discovery and trust entry point: skills, interfaces, capabilities, security.</li>
@@ -1510,438 +506,58 @@ TaskUpdater methods: add_artifact, cancel, complete, failed, new_agent_message,
 <li><strong>Handoff transfers control; delegation keeps the caller in charge.</strong> Verify the peer before trusting it.</li>
 </ul>
 
+                    </main>
 
-</section>
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-05-mcp-tool-ecosystems/18-mcp-tool-versioning-and-registries.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
-</main> <!-- /main -->
-<script id="quarto-html-after-body" type="application/javascript">
-  window.document.addEventListener("DOMContentLoaded", function (event) {
-    // Ensure there is a toggle, if there isn't float one in the top right
-    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
-      const a = window.document.createElement('a');
-      a.classList.add('top-right');
-      a.classList.add('quarto-color-scheme-toggle');
-      a.href = "";
-      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
-      const i = window.document.createElement("i");
-      i.classList.add('bi');
-      a.appendChild(i);
-      window.document.body.appendChild(a);
-    }
-    setColorSchemeToggle(hasAlternateSentinel())
-    const icon = "";
-    const anchorJS = new window.AnchorJS();
-    anchorJS.options = {
-      placement: 'right',
-      icon: icon
-    };
-    anchorJS.add('.anchored');
-    const isCodeAnnotation = (el) => {
-      for (const clz of el.classList) {
-        if (clz.startsWith('code-annotation-')) {                     
-          return true;
-        }
-      }
-      return false;
-    }
-    const onCopySuccess = function(e) {
-      // button target
-      const button = e.trigger;
-      // don't keep focus
-      button.blur();
-      // flash "checked"
-      button.classList.add('code-copy-button-checked');
-      var currentTitle = button.getAttribute("title");
-      button.setAttribute("title", "Copied!");
-      let tooltip;
-      if (window.bootstrap) {
-        button.setAttribute("data-bs-toggle", "tooltip");
-        button.setAttribute("data-bs-placement", "left");
-        button.setAttribute("data-bs-title", "Copied!");
-        tooltip = new bootstrap.Tooltip(button, 
-          { trigger: "manual", 
-            customClass: "code-copy-button-tooltip",
-            offset: [0, -8]});
-        tooltip.show();    
-      }
-      setTimeout(function() {
-        if (tooltip) {
-          tooltip.hide();
-          button.removeAttribute("data-bs-title");
-          button.removeAttribute("data-bs-toggle");
-          button.removeAttribute("data-bs-placement");
-        }
-        button.setAttribute("title", currentTitle);
-        button.classList.remove('code-copy-button-checked');
-      }, 1000);
-      // clear code selection
-      e.clearSelection();
-    }
-    const getTextToCopy = function(trigger) {
-      const outerScaffold = trigger.parentElement.cloneNode(true);
-      const codeEl = outerScaffold.querySelector('code');
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-      text: getTextToCopy
-    });
-    clipboard.on('success', onCopySuccess);
-    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-        text: getTextToCopy,
-        container: window.document.getElementById('quarto-embedded-source-code-modal')
-      });
-      clipboardModal.on('success', onCopySuccess);
-    }
-      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-      var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
-      var isInternal = (href) => {
-          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
-      }
-      // Inspect non-navigation links and adorn them if external
-     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-      for (var i=0; i<links.length; i++) {
-        const link = links[i];
-        if (!isInternal(link.href)) {
-          // undo the damage that might have been done by quarto-nav.js in the case of
-          // links that we want to consider external
-          if (link.dataset.originalHref !== undefined) {
-            link.href = link.dataset.originalHref;
-          }
-        }
-      }
-    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-      const config = {
-        allowHTML: true,
-        maxWidth: 500,
-        delay: 100,
-        arrow: false,
-        appendTo: function(el) {
-            return el.parentElement;
-        },
-        interactive: true,
-        interactiveBorder: 10,
-        theme: 'quarto',
-        placement: 'bottom-start',
-      };
-      if (contentFn) {
-        config.content = contentFn;
-      }
-      if (onTriggerFn) {
-        config.onTrigger = onTriggerFn;
-      }
-      if (onUntriggerFn) {
-        config.onUntrigger = onUntriggerFn;
-      }
-      window.tippy(el, config); 
-    }
-    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-    for (var i=0; i<noterefs.length; i++) {
-      const ref = noterefs[i];
-      tippyHover(ref, function() {
-        // use id or data attribute instead here
-        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-        try { href = new URL(href).hash; } catch {}
-        const id = href.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note) {
-          return note.innerHTML;
-        } else {
-          return "";
-        }
-      });
-    }
-    const xrefs = window.document.querySelectorAll('a.quarto-xref');
-    const processXRef = (id, note) => {
-      // Strip column container classes
-      const stripColumnClz = (el) => {
-        el.classList.remove("page-full", "page-columns");
-        if (el.children) {
-          for (const child of el.children) {
-            stripColumnClz(child);
-          }
-        }
-      }
-      stripColumnClz(note)
-      if (id === null || id.startsWith('sec-')) {
-        // Special case sections, only their first couple elements
-        const container = document.createElement("div");
-        if (note.children && note.children.length > 2) {
-          container.appendChild(note.children[0].cloneNode(true));
-          for (let i = 1; i < note.children.length; i++) {
-            const child = note.children[i];
-            if (child.tagName === "P" && child.innerText === "") {
-              continue;
-            } else {
-              container.appendChild(child.cloneNode(true));
-              break;
-            }
-          }
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(container);
-          }
-          return container.innerHTML
-        } else {
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(note);
-          }
-          return note.innerHTML;
-        }
-      } else {
-        // Remove any anchor links if they are present
-        const anchorLink = note.querySelector('a.anchorjs-link');
-        if (anchorLink) {
-          anchorLink.remove();
-        }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(note);
-        }
-        if (note.classList.contains("callout")) {
-          return note.outerHTML;
-        } else {
-          return note.innerHTML;
-        }
-      }
-    }
-    for (var i=0; i<xrefs.length; i++) {
-      const xref = xrefs[i];
-      tippyHover(xref, undefined, function(instance) {
-        instance.disable();
-        let url = xref.getAttribute('href');
-        let hash = undefined; 
-        if (url.startsWith('#')) {
-          hash = url;
-        } else {
-          try { hash = new URL(url).hash; } catch {}
-        }
-        if (hash) {
-          const id = hash.replace(/^#\/?/, "");
-          const note = window.document.getElementById(id);
-          if (note !== null) {
-            try {
-              const html = processXRef(id, note.cloneNode(true));
-              instance.setContent(html);
-            } finally {
-              instance.enable();
-              instance.show();
-            }
-          } else {
-            // See if we can fetch this
-            fetch(url.split('#')[0])
-            .then(res => res.text())
-            .then(html => {
-              const parser = new DOMParser();
-              const htmlDoc = parser.parseFromString(html, "text/html");
-              const note = htmlDoc.getElementById(id);
-              if (note !== null) {
-                const html = processXRef(id, note);
-                instance.setContent(html);
-              } 
-            }).finally(() => {
-              instance.enable();
-              instance.show();
-            });
-          }
-        } else {
-          // See if we can fetch a full url (with no hash to target)
-          // This is a special case and we should probably do some content thinning / targeting
-          fetch(url)
-          .then(res => res.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.querySelector('main.content');
-            if (note !== null) {
-              // This should only happen for chapter cross references
-              // (since there is no id in the URL)
-              // remove the first header
-              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-                note.children[0].remove();
-              }
-              const html = processXRef(null, note);
-              instance.setContent(html);
-            } 
-          }).finally(() => {
-            instance.enable();
-            instance.show();
-          });
-        }
-      }, function(instance) {
-      });
-    }
-        let selectedAnnoteEl;
-        const selectorForAnnotation = ( cell, annotation) => {
-          let cellAttr = 'data-code-cell="' + cell + '"';
-          let lineAttr = 'data-code-annotation="' +  annotation + '"';
-          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-          return selector;
-        }
-        const selectCodeLines = (annoteEl) => {
-          const doc = window.document;
-          const targetCell = annoteEl.getAttribute("data-target-cell");
-          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-          const lineIds = lines.map((line) => {
-            return targetCell + "-" + line;
-          })
-          let top = null;
-          let height = null;
-          let parent = null;
-          if (lineIds.length > 0) {
-              //compute the position of the single el (top and bottom and make a div)
-              const el = window.document.getElementById(lineIds[0]);
-              top = el.offsetTop;
-              height = el.offsetHeight;
-              parent = el.parentElement.parentElement;
-            if (lineIds.length > 1) {
-              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-              height = bottom - top;
-            }
-            if (top !== null && height !== null && parent !== null) {
-              // cook up a div (if necessary) and position it 
-              let div = window.document.getElementById("code-annotation-line-highlight");
-              if (div === null) {
-                div = window.document.createElement("div");
-                div.setAttribute("id", "code-annotation-line-highlight");
-                div.style.position = 'absolute';
-                parent.appendChild(div);
-              }
-              div.style.top = top - 2 + "px";
-              div.style.height = height + 4 + "px";
-              div.style.left = 0;
-              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-              if (gutterDiv === null) {
-                gutterDiv = window.document.createElement("div");
-                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-                gutterDiv.style.position = 'absolute';
-                const codeCell = window.document.getElementById(targetCell);
-                const gutter = codeCell.querySelector('.code-annotation-gutter');
-                gutter.appendChild(gutterDiv);
-              }
-              gutterDiv.style.top = top - 2 + "px";
-              gutterDiv.style.height = height + 4 + "px";
-            }
-            selectedAnnoteEl = annoteEl;
-          }
-        };
-        const unselectCodeLines = () => {
-          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-          elementsIds.forEach((elId) => {
-            const div = window.document.getElementById(elId);
-            if (div) {
-              div.remove();
-            }
-          });
-          selectedAnnoteEl = undefined;
-        };
-          // Handle positioning of the toggle
-      window.addEventListener(
-        "resize",
-        throttle(() => {
-          elRect = undefined;
-          if (selectedAnnoteEl) {
-            selectCodeLines(selectedAnnoteEl);
-          }
-        }, 10)
-      );
-      function throttle(fn, ms) {
-      let throttle = false;
-      let timer;
-        return (...args) => {
-          if(!throttle) { // first call gets through
-              fn.apply(this, args);
-              throttle = true;
-          } else { // all the others get throttled
-              if(timer) clearTimeout(timer); // cancel #2
-              timer = setTimeout(() => {
-                fn.apply(this, args);
-                timer = throttle = false;
-              }, ms);
-          }
-        };
-      }
-        // Attach click handler to the DT
-        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-        for (const annoteDlNode of annoteDls) {
-          annoteDlNode.addEventListener('click', (event) => {
-            const clickedEl = event.target;
-            if (clickedEl !== selectedAnnoteEl) {
-              unselectCodeLines();
-              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-              if (activeEl) {
-                activeEl.classList.remove('code-annotation-active');
-              }
-              selectCodeLines(clickedEl);
-              clickedEl.classList.add('code-annotation-active');
-            } else {
-              // Unselect the line
-              unselectCodeLines();
-              clickedEl.classList.remove('code-annotation-active');
-            }
-          });
-        }
-    const findCites = (el) => {
-      const parentEl = el.parentElement;
-      if (parentEl) {
-        const cites = parentEl.dataset.cites;
-        if (cites) {
-          return {
-            el,
-            cites: cites.split(' ')
-          };
-        } else {
-          return findCites(el.parentElement)
-        }
-      } else {
-        return undefined;
-      }
-    };
-    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-    for (var i=0; i<bibliorefs.length; i++) {
-      const ref = bibliorefs[i];
-      const citeInfo = findCites(ref);
-      if (citeInfo) {
-        tippyHover(citeInfo.el, function() {
-          var popup = window.document.createElement('div');
-          citeInfo.cites.forEach(function(cite) {
-            var citeDiv = window.document.createElement('div');
-            citeDiv.classList.add('hanging-indent');
-            citeDiv.classList.add('csl-entry');
-            var biblioDiv = window.document.getElementById('ref-' + cite);
-            if (biblioDiv) {
-              citeDiv.innerHTML = biblioDiv.innerHTML;
-            }
-            popup.appendChild(citeDiv);
-          });
-          return popup.innerHTML;
-        });
-      }
-    }
-  });
-  </script>
-<nav class="page-navigation">
-  <div class="nav-page nav-page-previous">
-      <a href="../phase-05-mcp-tool-ecosystems/18-mcp-tool-versioning-and-registries.html" class="pagination-link" aria-label="MCP Tool Versioning and Registries">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">MCP Tool Versioning and Registries</span></span>
-      </a>          
-  </div>
-  <div class="nav-page nav-page-next">
-      <a href="../phase-05-mcp-tool-ecosystems/20-agent-capability-discovery-and-interoperability.html" class="pagination-link" aria-label="Agent Capability Discovery and Interoperability">
-        <span class="nav-page-text"><span class="chapter-title">Agent Capability Discovery and Interoperability</span></span> <i class="bi bi-arrow-right-short"></i>
-      </a>
-  </div>
-</nav>
-</div> <!-- /content -->
+                            <a rel="next prefetch" href="../phase-05-mcp-tool-ecosystems/20-agent-capability-discovery-and-interoperability.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-05-mcp-tool-ecosystems/18-mcp-tool-versioning-and-registries.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-05-mcp-tool-ecosystems/20-agent-capability-discovery-and-interoperability.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
 
 
 
 
-</body></html>
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom.js"></script>
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

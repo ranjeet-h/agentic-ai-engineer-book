@@ -1,1194 +1,244 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
-
-<meta charset="utf-8">
-<meta name="generator" content="quarto-1.10.18">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-
-
-<title>Forward Pass and Backpropagation – Agentic AI Engineering Study Book</title>
-<style>
-/* Default styles provided by pandoc.
-** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
-*/
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: 1.5em;}
-div.column{flex: auto;}
-@media screen {
-div.columns{gap: min(4vw, 1.5em);}
-div.column{overflow-x: auto;}
-}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-ul.task-list{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-  width: 0.8em;
-  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
-  vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-</style>
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Forward Pass and Backpropagation - Agentic AI Engineering Study Book</title>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<link href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" rel="next">
-<link href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" rel="prev">
-<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-012e79344040a4a328ea85a5b0a60384.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-d84a0d611e1de1507791ffd4dad004b1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
-<script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
-  "copy-button": false,
-  "collapse-after": 3,
-  "panel-placement": "start",
-  "type": "textbox",
-  "limit": 50,
-  "keyboard-shortcut": [
-    "f",
-    "/",
-    "s"
-  ],
-  "show-item-context": false,
-  "language": {
-    "search-no-results-text": "No results",
-    "search-matching-documents-text": "matching documents",
-    "search-copy-link-title": "Copy link to search",
-    "search-hide-matches-text": "Hide additional matches",
-    "search-more-match-text": "more match in this document",
-    "search-more-matches-text": "more matches in this document",
-    "search-clear-button-title": "Clear",
-    "search-text-placeholder": "",
-    "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit",
-    "search-label": "Search"
-  }
-}</script>
-<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
-<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
-<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../assets/fonts/fonts.css">
+        <link rel="stylesheet" href="../theme/custom.css">
 
 
-<link rel="stylesheet" href="../assets/fonts/fonts.css">
-<link rel="stylesheet" href="../styles/custom.css">
-</head>
-
-<body class="nav-sidebar floating quarto-light"><script id="quarto-html-before-body" type="application/javascript">
-    const toggleBodyColorMode = (bsSheetEl) => {
-      const mode = bsSheetEl.getAttribute("data-mode");
-      const bodyEl = window.document.querySelector("body");
-      if (mode === "dark") {
-        bodyEl.classList.add("quarto-dark");
-        bodyEl.classList.remove("quarto-light");
-      } else {
-        bodyEl.classList.add("quarto-light");
-        bodyEl.classList.remove("quarto-dark");
-      }
-    }
-    const toggleBodyColorPrimary = () => {
-      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
-      if (bsSheetEl) {
-        toggleBodyColorMode(bsSheetEl);
-      }
-    }
-    const setColorSchemeToggle = (alternate) => {
-      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
-      for (let i=0; i < toggles.length; i++) {
-        const toggle = toggles[i];
-        if (toggle) {
-          if (alternate) {
-            toggle.classList.add("alternate");
-          } else {
-            toggle.classList.remove("alternate");
-          }
-        }
-      }
-    };
-    const toggleColorMode = (alternate) => {
-      // Switch the stylesheets
-      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
-      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
-      manageTransitions('#quarto-margin-sidebar .nav-link', false);
-      if (alternate) {
-        // note: dark is layered on light, we don't disable primary!
-        enableStylesheet(alternateStylesheets);
-        for (const sheetNode of alternateStylesheets) {
-          if (sheetNode.id === "quarto-bootstrap") {
-            toggleBodyColorMode(sheetNode);
-          }
-        }
-      } else {
-        disableStylesheet(alternateStylesheets);
-        enableStylesheet(primaryStylesheets)
-        toggleBodyColorPrimary();
-      }
-      manageTransitions('#quarto-margin-sidebar .nav-link', true);
-      // Switch the toggles
-      setColorSchemeToggle(alternate)
-      // Hack to workaround the fact that safari doesn't
-      // properly recolor the scrollbar when toggling (#1455)
-      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
-        manageTransitions("body", false);
-        window.scrollTo(0, 1);
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          manageTransitions("body", true);
-        }, 40);
-      }
-    }
-    const disableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        stylesheet.rel = 'disabled-stylesheet';
-      }
-    }
-    const enableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
-          stylesheet.rel = 'stylesheet';
-        }
-      }
-    }
-    const manageTransitions = (selector, allowTransitions) => {
-      const els = window.document.querySelectorAll(selector);
-      for (let i=0; i < els.length; i++) {
-        const el = els[i];
-        if (allowTransitions) {
-          el.classList.remove('notransition');
-        } else {
-          el.classList.add('notransition');
-        }
-      }
-    }
-    const isFileUrl = () => {
-      return window.location.protocol === 'file:';
-    }
-    const hasAlternateSentinel = () => {
-      let styleSentinel = getColorSchemeSentinel();
-      if (styleSentinel !== null) {
-        return styleSentinel === "alternate";
-      } else {
-        return false;
-      }
-    }
-    const setStyleSentinel = (alternate) => {
-      const value = alternate ? "alternate" : "default";
-      if (!isFileUrl()) {
-        window.localStorage.setItem("quarto-color-scheme", value);
-      } else {
-        localAlternateSentinel = value;
-      }
-    }
-    const getColorSchemeSentinel = () => {
-      if (!isFileUrl()) {
-        const storageValue = window.localStorage.getItem("quarto-color-scheme");
-        return storageValue != null ? storageValue : localAlternateSentinel;
-      } else {
-        return localAlternateSentinel;
-      }
-    }
-    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
-      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
-      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
-      let newTheme = '';
-      if(authorPrefersDark) {
-        newTheme = isAlternate ? baseTheme : alternateTheme;
-      } else {
-        newTheme = isAlternate ? alternateTheme : baseTheme;
-      }
-      const changeGiscusTheme = () => {
-        // From: https://github.com/giscus/giscus/issues/336
-        const sendMessage = (message) => {
-          const iframe = document.querySelector('iframe.giscus-frame');
-          if (!iframe) return;
-          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
-        }
-        sendMessage({
-          setConfig: {
-            theme: newTheme
-          }
-        });
-      }
-      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
-      if (isGiscussLoaded) {
-        changeGiscusTheme();
-      }
-    };
-    const authorPrefersDark = false;
-    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    const darkModeDefault = queryPrefersDark.matches;
-      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
-    // Dark / light mode switch
-    window.quartoToggleColorScheme = () => {
-      // Read the current dark / light value
-      let toAlternate = !hasAlternateSentinel();
-      toggleColorMode(toAlternate);
-      setStyleSentinel(toAlternate);
-      toggleGiscusIfUsed(toAlternate, darkModeDefault);
-      window.dispatchEvent(new Event('resize'));
-    };
-    queryPrefersDark.addEventListener("change", e => {
-      if(window.localStorage.getItem("quarto-color-scheme") !== null)
-        return;
-      const alternate = e.matches
-      toggleColorMode(alternate);
-      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
-      toggleGiscusIfUsed(alternate, darkModeDefault);
-    });
-    // Switch to dark mode if need be
-    if (hasAlternateSentinel()) {
-      toggleColorMode(true);
-    } else {
-      toggleColorMode(false);
-    }
-  </script>
-
-<div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
-  <nav class="quarto-secondary-nav">
-    <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
-        <i class="bi bi-layout-text-sidebar-reverse"></i>
-      </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html"><span class="chapter-title">Forward Pass and Backpropagation</span></a></li></ol></nav>
-        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-        </a>
-      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
-        <i class="bi bi-search"></i>
-      </button>
-    </div>
-  </nav>
-</header>
-<!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
-<!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header">
-    <div class="sidebar-title mb-0 py-0">
-      <a href="../">Agentic AI Engineering Study Book</a> 
-        <div class="sidebar-tools-main">
-  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
-</div>
-    </div>
-      </div>
-        <div class="mt-2 flex-shrink-0 align-items-center">
-        <div class="sidebar-search">
-        <div id="quarto-search" class="" title="Search"></div>
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
         </div>
-        </div>
-    <div class="sidebar-menu-container"> 
-    <ul class="list-unstyled mt-1">
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
-  </div>
-</li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 1 — Production Python</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 3 — RAG Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-04-agentic-ai-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 4 — Agentic AI Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/01-what-an-ai-agent-is.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">What an AI Agent Is</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/02-the-agent-loop.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Agent Loop</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/03-tool-execution-and-result-validation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Execution and Result Validation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/04-agent-memory-short-term-and-working.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Short-Term and Working</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/05-agent-memory-long-term-episodic-semantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Long-Term, Episodic, and Semantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/06-planning-decomposition-and-routing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Planning, Decomposition, and Routing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/07-reflection-and-self-correction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reflection and Self-Correction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/08-retries-termination-and-loop-detection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retries, Termination, and Loop Detection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/09-state-management-and-persistence.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">State Management and Persistence</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/10-checkpointing-and-durable-execution.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Checkpointing and Durable Execution</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/11-human-in-the-loop-and-approvals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Human-in-the-Loop and Approvals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/12-guardrails.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Guardrails</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/13-structured-agent-outputs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Agent Outputs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/14-tool-schemas-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Schemas and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/15-tool-permissions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Permissions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/16-parallel-and-conditional-workflows.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parallel and Conditional Workflows</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/17-long-running-and-background-agents.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Long-Running and Background Agents</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/18-langgraph-graphs-and-state.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Graphs and State</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/19-langgraph-checkpoints-interrupts-subgraphs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Checkpoints, Interrupts, and Subgraphs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/20-openai-agents-sdk.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">OpenAI Agents SDK</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/21-agent-orchestration-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Orchestration Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/22-agent-reliability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Reliability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-05-mcp-tool-ecosystems/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 5 — MCP and Tool Ecosystems</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/01-mcp-fundamentals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Fundamentals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/02-mcp-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/03-mcp-transports.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Transports</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/04-mcp-tools-resources-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tools, Resources, and Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/05-tool-and-capability-discovery.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool and Capability Discovery</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/06-mcp-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/07-sessions-and-stateful-stateless-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sessions and Stateful vs Stateless Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/08-building-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/09-building-mcp-clients.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Clients</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/10-database-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Database MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/11-github-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">GitHub MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/12-filesystem-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Filesystem MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/13-browser-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Browser MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/14-internal-api-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Internal API MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/15-enterprise-mcp-gateways.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Enterprise MCP Gateways</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/16-mcp-security-and-permission-boundaries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Security and Permission Boundaries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/17-mcp-observability-and-audit-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Observability and Audit Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/18-mcp-tool-versioning-and-registries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tool Versioning and Registries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/19-agent-to-agent-communication-and-a2a.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent-to-Agent Communication and A2A</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/20-agent-capability-discovery-and-interoperability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Capability Discovery and Interoperability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-    </ul>
     </div>
-</nav>
-<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
-<!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">Table of contents</h2>
-   
-  <ul class="collapse">
-  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
-  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
-  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
-  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
-  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
-  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
-  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
-  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
-  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
-  </ul>
-</nav>
-    </div>
-<!-- main -->
-<main class="content" id="quarto-document-content">
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html"><span class="chapter-title">Forward Pass and Backpropagation</span></a></li></ol></nav>
-<div class="quarto-title">
-<h1 class="title"><span class="chapter-title">Forward Pass and Backpropagation</span></h1>
-</div>
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
 
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
 
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
-<div class="quarto-title-meta">
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
 
-    
-  
-    
-  </div>
-  
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
 
+        <div id="page-wrapper" class="page-wrapper">
 
-</header>
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
 
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
 
-<blockquote class="blockquote">
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="forward-pass-and-backpropagation"><a class="header" href="#forward-pass-and-backpropagation">Forward Pass and Backpropagation</a></h1>
+<blockquote>
 <p><strong>Interview answer (say this first).</strong> The forward pass runs the input through the network to produce a prediction and records every operation in a <strong>computation graph</strong>. Backpropagation then walks that graph backward, applying the chain rule to compute the gradient of the loss with respect to every parameter. PyTorch’s autograd does this automatically: you call <code>loss.backward()</code>, each parameter’s <code>.grad</code> is filled, and the optimizer uses those gradients to update the weights. The whole backward pass costs about the same as one extra forward pass.</p>
 </blockquote>
-<section id="why-this-exists" class="level2">
-<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
 <p>Chapter 1 said training adjusts parameters to reduce a loss. That raises the only question that matters: <strong>how do you know which way to move each parameter?</strong></p>
 <p>The naive answer is to nudge each parameter and measure the effect. For a parameter (w), estimate the gradient with a finite difference:</p>
-<pre class="text"><code>dLoss/dw  ≈  ( loss(w + ε) - loss(w - ε) ) / (2ε)</code></pre>
+<pre><code class="language-text">dLoss/dw  ≈  ( loss(w + ε) - loss(w - ε) ) / (2ε)
+</code></pre>
 <p>That works, and we will use it as a correctness check. But as a training method it is hopeless. A model with one billion parameters would need two billion forward passes for a single update. At even one millisecond per pass, one step takes weeks.</p>
 <p>Backpropagation is the efficient answer. It computes the gradient for <strong>all</strong> parameters in one backward sweep, using information the forward pass already computed. The insight is the <strong>chain rule</strong>: if the loss depends on the output, the output on the last layer, and so on back to the input, then the derivative of the loss with respect to any earlier value is just the product of the local derivatives along the path. Doing that multiplication from the end backward reuses intermediate results instead of recomputing them.</p>
 <p>This is why deep learning became practical. Without backpropagation there is no cheap gradient, and without cheap gradients there is no training.</p>
-</section>
-<section id="start-from-zero" class="level2">
-<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Word</th>
-<th>Plain meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Forward pass</strong></td>
-<td>Running inputs through the network to get outputs.</td>
-</tr>
-<tr class="even">
-<td><strong>Computation graph</strong></td>
-<td>The record of operations the forward pass performed: nodes are tensors, edges are operations.</td>
-</tr>
-<tr class="odd">
-<td><strong>Chain rule</strong></td>
-<td>The calculus rule for differentiating a composition: multiply the local derivatives along the chain.</td>
-</tr>
-<tr class="even">
-<td><strong>Local gradient</strong></td>
-<td>The derivative of one operation’s output with respect to its own input, for example <code>d(tanh)/dz</code>.</td>
-</tr>
-<tr class="odd">
-<td><strong>Upstream gradient</strong></td>
-<td>The gradient arriving from later in the graph, with respect to this operation’s output.</td>
-</tr>
-<tr class="even">
-<td><strong>Backward pass</strong></td>
-<td>Walking the graph in reverse, multiplying local and upstream gradients to get gradients for earlier values.</td>
-</tr>
-<tr class="odd">
-<td><strong>Autograd</strong></td>
-<td>PyTorch’s engine that builds the graph and runs the backward pass.</td>
-</tr>
-<tr class="even">
-<td><strong>Leaf tensor</strong></td>
-<td>A tensor you created directly, such as a model parameter. Gradients are stored on leaves.</td>
-</tr>
-<tr class="odd">
-<td><strong><code>.grad</code></strong></td>
-<td>The gradient tensor attached to a leaf after a backward pass.</td>
-</tr>
-<tr class="even">
-<td><strong><code>backward()</code></strong></td>
-<td>The call that starts the reverse sweep from a scalar loss.</td>
-</tr>
-<tr class="odd">
-<td><strong><code>zero_grad()</code></strong></td>
-<td>The call that clears stored gradients before the next step; by default it sets them to <code>None</code>.</td>
-</tr>
-<tr class="even">
-<td><strong>Gradient accumulation</strong></td>
-<td>Deliberately summing gradients from several backward passes before one optimizer step.</td>
-</tr>
-<tr class="odd">
-<td><strong>Micro-batch</strong></td>
-<td>A small slice of a large batch, used so each forward pass fits in memory.</td>
-</tr>
-<tr class="even">
-<td><strong>Vanishing gradient</strong></td>
-<td>Gradients shrink toward zero as they travel back through many layers, so early layers barely learn.</td>
-</tr>
-<tr class="odd">
-<td><strong>Exploding gradient</strong></td>
-<td>Gradients grow without bound, producing <code>NaN</code> weights.</td>
-</tr>
-<tr class="even">
-<td><strong>Gradient clipping</strong></td>
-<td>Rescaling gradients when their norm is too large, to keep steps stable.</td>
-</tr>
-<tr class="odd">
-<td><strong>Numeric gradient</strong></td>
-<td>A finite-difference estimate of a gradient, used to check that autograd is correct.</td>
-</tr>
-<tr class="even">
-<td><strong>Retain graph</strong></td>
-<td>Keep the saved forward values so a second backward pass can reuse them.</td>
-</tr>
-</tbody>
-</table>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Forward pass</strong></td><td>Running inputs through the network to get outputs.</td></tr>
+<tr><td><strong>Computation graph</strong></td><td>The record of operations the forward pass performed: nodes are tensors, edges are operations.</td></tr>
+<tr><td><strong>Chain rule</strong></td><td>The calculus rule for differentiating a composition: multiply the local derivatives along the chain.</td></tr>
+<tr><td><strong>Local gradient</strong></td><td>The derivative of one operation’s output with respect to its own input, for example <code>d(tanh)/dz</code>.</td></tr>
+<tr><td><strong>Upstream gradient</strong></td><td>The gradient arriving from later in the graph, with respect to this operation’s output.</td></tr>
+<tr><td><strong>Backward pass</strong></td><td>Walking the graph in reverse, multiplying local and upstream gradients to get gradients for earlier values.</td></tr>
+<tr><td><strong>Autograd</strong></td><td>PyTorch’s engine that builds the graph and runs the backward pass.</td></tr>
+<tr><td><strong>Leaf tensor</strong></td><td>A tensor you created directly, such as a model parameter. Gradients are stored on leaves.</td></tr>
+<tr><td><strong><code>.grad</code></strong></td><td>The gradient tensor attached to a leaf after a backward pass.</td></tr>
+<tr><td><strong><code>backward()</code></strong></td><td>The call that starts the reverse sweep from a scalar loss.</td></tr>
+<tr><td><strong><code>zero_grad()</code></strong></td><td>The call that clears stored gradients before the next step; by default it sets them to <code>None</code>.</td></tr>
+<tr><td><strong>Gradient accumulation</strong></td><td>Deliberately summing gradients from several backward passes before one optimizer step.</td></tr>
+<tr><td><strong>Micro-batch</strong></td><td>A small slice of a large batch, used so each forward pass fits in memory.</td></tr>
+<tr><td><strong>Vanishing gradient</strong></td><td>Gradients shrink toward zero as they travel back through many layers, so early layers barely learn.</td></tr>
+<tr><td><strong>Exploding gradient</strong></td><td>Gradients grow without bound, producing <code>NaN</code> weights.</td></tr>
+<tr><td><strong>Gradient clipping</strong></td><td>Rescaling gradients when their norm is too large, to keep steps stable.</td></tr>
+<tr><td><strong>Numeric gradient</strong></td><td>A finite-difference estimate of a gradient, used to check that autograd is correct.</td></tr>
+<tr><td><strong>Retain graph</strong></td><td>Keep the saved forward values so a second backward pass can reuse them.</td></tr>
+</tbody></table>
+</div>
 <p>The pair to keep straight is <strong>forward vs backward</strong>. The forward pass computes values and saves what it needs; the backward pass computes derivatives using those saved values. Confusing which one stores memory is the source of most out-of-memory surprises.</p>
-</section>
-<section id="the-core-idea" class="level2">
-<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of a row of gears. You turn the first gear; each gear turns the next; the last gear shows a speed. Backpropagation answers: <em>if I want the final speed to change, how much should I adjust the first gear?</em> It traces the train of gears backward, multiplying the ratio of each gear pair.</p>
-<div class="cell" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart LR
-    X["input x"] --&gt; M1["multiply&lt;br/&gt;u = w·x + b"]
-    W["weight w"] --&gt; M1
-    M1 --&gt; M2["square&lt;br/&gt;y = u²"]
-    M2 --&gt; L["loss&lt;br/&gt;L = (y - t)²"]
-    T["target t"] --&gt; L
-    L -. "dL/dy (upstream)" .-&gt; M2
-    M2 -. "dL/du = dL/dy · 2u" .-&gt; M1
-    M1 -. "dL/dw = dL/du · x" .-&gt; W
+<pre class="mermaid">flowchart LR
+    X[&quot;input x&quot;] --&gt; M1[&quot;multiply&lt;br/&gt;u = w·x + b&quot;]
+    W[&quot;weight w&quot;] --&gt; M1
+    M1 --&gt; M2[&quot;square&lt;br/&gt;y = u²&quot;]
+    M2 --&gt; L[&quot;loss&lt;br/&gt;L = (y - t)²&quot;]
+    T[&quot;target t&quot;] --&gt; L
+    L -. &quot;dL/dy (upstream)&quot; .-&gt; M2
+    M2 -. &quot;dL/du = dL/dy · 2u&quot; .-&gt; M1
+    M1 -. &quot;dL/dw = dL/du · x&quot; .-&gt; W
 </pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
 <p>The solid arrows are the forward pass. The dashed arrows are the backward pass. Each backward arrow multiplies the upstream gradient by a local gradient. That is the entire algorithm.</p>
 <p>Why it is efficient: the forward pass already computed <code>u</code>, <code>x</code>, and <code>y</code>. The backward pass reuses them, so each edge costs one small multiplication instead of a fresh forward evaluation.</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th></th>
-<th>Numeric gradient</th>
-<th>Backpropagation</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Cost per parameter</td>
-<td>two forward passes</td>
-<td>shared, ~one extra backward pass total</td>
-</tr>
-<tr class="even">
-<td>Accuracy</td>
-<td>approximate, depends on ε</td>
-<td>exact (up to floating point)</td>
-</tr>
-<tr class="odd">
-<td>Use</td>
-<td>checking correctness</td>
-<td>all real training</td>
-</tr>
-<tr class="even">
-<td>Scale</td>
-<td>tiny models only</td>
-<td>billions of parameters</td>
-</tr>
-</tbody>
-</table>
+<div class="table-wrapper"><table><thead><tr><th></th><th>Numeric gradient</th><th>Backpropagation</th></tr></thead><tbody>
+<tr><td>Cost per parameter</td><td>two forward passes</td><td>shared, ~one extra backward pass total</td></tr>
+<tr><td>Accuracy</td><td>approximate, depends on ε</td><td>exact (up to floating point)</td></tr>
+<tr><td>Use</td><td>checking correctness</td><td>all real training</td></tr>
+<tr><td>Scale</td><td>tiny models only</td><td>billions of parameters</td></tr>
+</tbody></table>
+</div>
 <p>The table is the reason training uses backpropagation and only ever uses numeric gradients as a test.</p>
-</section>
-<section id="how-it-works" class="level2">
-<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
-<ol type="1">
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
 <li><strong>Mark the leaves.</strong> Model parameters are created with <code>requires_grad=True</code>. Anything else is a constant unless you say otherwise.</li>
 <li><strong>Run the forward pass.</strong> Each operation takes its inputs, computes its output, and, if any input requires grad, attaches a <code>grad_fn</code> that knows how to differentiate the operation.</li>
 <li><strong>Store what backward will need.</strong> For <code>y = x * w</code>, the backward step needs <code>x</code> to compute <code>dL/dw</code>; autograd saves the values (or a way to recompute them) as it goes.</li>
@@ -1198,158 +248,157 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Store on leaves.</strong> When the walk reaches a leaf such as a weight, the accumulated value is written to <code>weight.grad</code>. Intermediate tensors get no <code>.grad</code> by default.</li>
 <li><strong>Update.</strong> The optimizer reads <code>.grad</code>, computes a step, and adjusts the parameters. Then <code>zero_grad()</code> clears the gradients for the next iteration.</li>
 </ol>
-<div class="callout callout-style-default callout-warning callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Warning
-</div>
-</div>
-<div class="callout-body-container callout-body">
+<blockquote>
+<p><strong>Warning:</strong></p>
 <p><strong>Gradients accumulate by default.</strong> Every <code>backward()</code> adds into <code>.grad</code>. That is what makes gradient accumulation possible, and also why forgetting <code>zero_grad()</code> silently poisons training: step two would use the sum of step one and step two gradients.</p>
-</div>
-</div>
-</section>
-<section id="the-syntax-you-will-use" class="level2">
-<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+</blockquote>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
 <p><strong>A minimal backward pass.</strong> The gradient of <code>w² + 2w</code> is <code>2w + 2</code>, which is 8 at <code>w = 3</code>.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>w <span class="op">=</span> torch.tensor(<span class="fl">3.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> w <span class="op">*</span> w <span class="op">+</span> <span class="dv">2</span> <span class="op">*</span> w</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>y.backward()</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(w.grad)          <span class="co"># tensor(8.)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import torch
+
+w = torch.tensor(3.0, requires_grad=True)
+y = w * w + 2 * w
+y.backward()
+print(w.grad)          # tensor(8.)
+</code></pre>
 <p><strong>Scalar loss from a batch.</strong> Reduce to one number before calling <code>backward()</code>.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> model(x)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>loss <span class="op">=</span> ((pred <span class="op">-</span> target) <span class="op">**</span> <span class="dv">2</span>).mean()   <span class="co"># mean makes it a scalar</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>loss.backward()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">pred = model(x)
+loss = ((pred - target) ** 2).mean()   # mean makes it a scalar
+loss.backward()
+</code></pre>
 <p><strong>Zero the gradients.</strong> By default this sets <code>.grad</code> to <code>None</code>, not to zeros.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>optimizer.zero_grad()                  <span class="co"># .grad becomes None</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>optimizer.zero_grad(set_to_none<span class="op">=</span><span class="va">False</span>) <span class="co"># .grad becomes a zero tensor</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">optimizer.zero_grad()                  # .grad becomes None
+optimizer.zero_grad(set_to_none=False) # .grad becomes a zero tensor
+</code></pre>
 <p><strong>Stop tracking.</strong> <code>detach()</code> returns a tensor sharing data but with no graph history.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> torch.no_grad():</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    pred <span class="op">=</span> model(x)          <span class="co"># no graph is built; faster, less memory</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> pred.detach()       <span class="co"># treat pred as a constant</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">with torch.no_grad():
+    pred = model(x)          # no graph is built; faster, less memory
+
+target = pred.detach()       # treat pred as a constant
+</code></pre>
 <p><strong>Gradient accumulation.</strong> Sum gradients over several micro-batches, then step once.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>optimizer.zero_grad()</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, micro_batch <span class="kw">in</span> <span class="bu">enumerate</span>(batches):</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    loss <span class="op">=</span> compute_loss(model, micro_batch) <span class="op">/</span> accumulation_steps</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    loss.backward()          <span class="co"># gradients add up</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (i <span class="op">+</span> <span class="dv">1</span>) <span class="op">%</span> accumulation_steps <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        optimizer.step()</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        optimizer.zero_grad()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">optimizer.zero_grad()
+for i, micro_batch in enumerate(batches):
+    loss = compute_loss(model, micro_batch) / accumulation_steps
+    loss.backward()          # gradients add up
+    if (i + 1) % accumulation_steps == 0:
+        optimizer.step()
+        optimizer.zero_grad()
+</code></pre>
 <p><strong>Gradient clipping.</strong> Rescale when the gradient norm is too large.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm<span class="op">=</span><span class="fl">1.0</span>)   <span class="co"># clip by total norm</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>torch.nn.utils.clip_grad_value_(model.parameters(), clip_value<span class="op">=</span><span class="fl">1.0</span>)  <span class="co"># clip each element</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)   # clip by total norm
+torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=1.0)  # clip each element
+</code></pre>
 <p><strong>Gradients on demand.</strong> Get a gradient without calling <code>backward()</code> on the loss.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>grads <span class="op">=</span> torch.autograd.grad(loss, [w1, w2])   <span class="co"># returns a tuple</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">grads = torch.autograd.grad(loss, [w1, w2])   # returns a tuple
+</code></pre>
 <p><strong>Correctness check.</strong> <code>gradcheck</code> compares autograd against numeric gradients.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>torch.autograd.gradcheck(fn, inputs)   <span class="co"># True if they agree within tolerance</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
-<section id="examples-simple-to-real" class="level2">
-<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<pre><code class="language-python">torch.autograd.gradcheck(fn, inputs)   # True if they agree within tolerance
+</code></pre>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
 <p><strong>Example 1 — forward as function composition.</strong> Two operations, two local derivatives.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> torch.tensor(<span class="fl">2.0</span>)</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>w <span class="op">=</span> torch.tensor(<span class="fl">3.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> torch.tensor(<span class="fl">1.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>u <span class="op">=</span> w <span class="op">*</span> x <span class="op">+</span> b     <span class="co"># u = 7</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> u <span class="op">**</span> <span class="dv">2</span>        <span class="co"># y = 49</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>y.backward()</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co"># dy/dw = 2·u·x = 2·7·2 = 28</span></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># dy/db = 2·u   = 14</span></span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co"># w.grad -&gt; 28.0, b.grad -&gt; 14.0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">x = torch.tensor(2.0)
+w = torch.tensor(3.0, requires_grad=True)
+b = torch.tensor(1.0, requires_grad=True)
+
+u = w * x + b     # u = 7
+y = u ** 2        # y = 49
+y.backward()
+
+# dy/dw = 2·u·x = 2·7·2 = 28
+# dy/db = 2·u   = 14
+# w.grad -&gt; 28.0, b.grad -&gt; 14.0
+</code></pre>
 <p>The computation is small enough to check by hand, which is exactly why it is a good first example.</p>
 <p><strong>Example 2 — the chain rule by hand.</strong> Two layers, one ReLU, squared error.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> torch.tensor(<span class="fl">1.0</span>)</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>W1 <span class="op">=</span> torch.tensor(<span class="fl">2.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>W2 <span class="op">=</span> torch.tensor(<span class="fl">3.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>z1 <span class="op">=</span> W1 <span class="op">*</span> x          <span class="co"># 2</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>h <span class="op">=</span> torch.relu(z1)   <span class="co"># 2</span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> W2 <span class="op">*</span> h           <span class="co"># 6</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>loss <span class="op">=</span> (y <span class="op">-</span> <span class="fl">1.0</span>) <span class="op">**</span> <span class="dv">2</span>   <span class="co"># 25</span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>loss.backward()</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co"># dL/dy  = 2(y-1) = 10</span></span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="co"># dL/dW2 = dL/dy · h = 10 · 2 = 20</span></span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="co"># dL/dh  = dL/dy · W2 = 10 · 3 = 30</span></span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="co"># dL/dW1 = dL/dh · relu'(z1) · x = 30 · 1 · 1 = 30</span></span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="co"># W2.grad -&gt; 20.0, W1.grad -&gt; 30.0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">x = torch.tensor(1.0)
+W1 = torch.tensor(2.0, requires_grad=True)
+W2 = torch.tensor(3.0, requires_grad=True)
+
+z1 = W1 * x          # 2
+h = torch.relu(z1)   # 2
+y = W2 * h           # 6
+loss = (y - 1.0) ** 2   # 25
+
+loss.backward()
+# dL/dy  = 2(y-1) = 10
+# dL/dW2 = dL/dy · h = 10 · 2 = 20
+# dL/dh  = dL/dy · W2 = 10 · 3 = 30
+# dL/dW1 = dL/dh · relu'(z1) · x = 30 · 1 · 1 = 30
+# W2.grad -&gt; 20.0, W1.grad -&gt; 30.0
+</code></pre>
 <p>Reading the comments top to bottom <strong>is</strong> backpropagation: each line multiplies the gradient so far by one local derivative.</p>
 <p><strong>Example 3 — numeric check of autograd.</strong> Compare the analytic gradient with a finite difference.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> torch.tensor(<span class="fl">2.0</span>)   <span class="co"># re-set from Example 2, where x was 1.0</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>loss_fn <span class="op">=</span> <span class="kw">lambda</span> w, b: (w <span class="op">*</span> x <span class="op">+</span> b) <span class="op">**</span> <span class="dv">2</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>eps <span class="op">=</span> <span class="fl">1e-4</span></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>num_dw <span class="op">=</span> (loss_fn(torch.tensor(<span class="fl">3.0</span> <span class="op">+</span> eps), torch.tensor(<span class="fl">1.0</span>))</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>          <span class="op">-</span> loss_fn(torch.tensor(<span class="fl">3.0</span> <span class="op">-</span> eps), torch.tensor(<span class="fl">1.0</span>))) <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> eps)</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co"># numeric dw ≈ 27.96   vs autograd 28.0</span></span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># numeric db ≈ 14.02   vs autograd 14.0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import torch
+
+x = torch.tensor(2.0)   # re-set from Example 2, where x was 1.0
+loss_fn = lambda w, b: (w * x + b) ** 2
+eps = 1e-4
+
+num_dw = (loss_fn(torch.tensor(3.0 + eps), torch.tensor(1.0))
+          - loss_fn(torch.tensor(3.0 - eps), torch.tensor(1.0))) / (2 * eps)
+# numeric dw ≈ 27.96   vs autograd 28.0
+# numeric db ≈ 14.02   vs autograd 14.0
+</code></pre>
 <p>They agree to about two decimal places. The small gap is float32 rounding and the size of <code>ε</code>; shrinking <code>ε</code> too far makes cancellation worse. This is why real checks use <code>float64</code> and a tolerance.</p>
 <p><strong>Example 4 — <code>gradcheck</code> on a real module.</strong> The same idea, automated across every parameter.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> torch.nn.Sequential(</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    torch.nn.Linear(<span class="dv">4</span>, <span class="dv">5</span>), torch.nn.Tanh(), torch.nn.Linear(<span class="dv">5</span>, <span class="dv">2</span>)</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>).double()</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> torch.randn(<span class="dv">3</span>, <span class="dv">4</span>, dtype<span class="op">=</span>torch.float64)</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> net(<span class="op">*</span>params):</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># replay the module forward pass using the supplied parameter tensors</span></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    w1, b1, w2, b2 <span class="op">=</span> params</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    h <span class="op">=</span> torch.tanh(x <span class="op">@</span> w1.T <span class="op">+</span> b1)</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> h <span class="op">@</span> w2.T <span class="op">+</span> b2</span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>torch.autograd.gradcheck(net, <span class="bu">tuple</span>(model.parameters()))</span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="co"># True</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import torch
+
+model = torch.nn.Sequential(
+    torch.nn.Linear(4, 5), torch.nn.Tanh(), torch.nn.Linear(5, 2)
+).double()
+x = torch.randn(3, 4, dtype=torch.float64)
+
+def net(*params):
+    # replay the module forward pass using the supplied parameter tensors
+    w1, b1, w2, b2 = params
+    h = torch.tanh(x @ w1.T + b1)
+    return h @ w2.T + b2
+
+torch.autograd.gradcheck(net, tuple(model.parameters()))
+# True
+</code></pre>
 <p>If <code>gradcheck</code> fails, your custom backward is wrong. Frameworks run it in their test suites for exactly this reason.</p>
 <p><strong>Example 5 — gradient accumulation.</strong> Two micro-batches can act like one larger batch.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> torch.nn.Linear(<span class="dv">3</span>, <span class="dv">1</span>)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>x1, x2 <span class="op">=</span> torch.randn(<span class="dv">4</span>, <span class="dv">3</span>), torch.randn(<span class="dv">4</span>, <span class="dv">3</span>)</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>y1, y2 <span class="op">=</span> torch.randn(<span class="dv">4</span>, <span class="dv">1</span>), torch.randn(<span class="dv">4</span>, <span class="dv">1</span>)</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="co"># path A: two backward passes, each micro-batch loss weighted by 1/2</span></span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>model.zero_grad()</span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>loss1 <span class="op">=</span> ((model(x1) <span class="op">-</span> y1) <span class="op">**</span> <span class="dv">2</span>).mean()</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>loss2 <span class="op">=</span> ((model(x2) <span class="op">-</span> y2) <span class="op">**</span> <span class="dv">2</span>).mean()</span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>(<span class="fl">0.5</span> <span class="op">*</span> loss1).backward()</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>(<span class="fl">0.5</span> <span class="op">*</span> loss2).backward()</span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>accumulated <span class="op">=</span> model.weight.grad.clone()</span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="co"># path B: one combined loss over the full batch</span></span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>model.zero_grad()</span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>combined <span class="op">=</span> ((model(torch.cat([x1, x2])) <span class="op">-</span> torch.cat([y1, y2])) <span class="op">**</span> <span class="dv">2</span>).mean()</span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>combined.backward()</span>
-<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="co"># gradients match to float32 rounding: True (measured max difference ~3e-8)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import torch
+
+torch.manual_seed(0)
+model = torch.nn.Linear(3, 1)
+x1, x2 = torch.randn(4, 3), torch.randn(4, 3)
+y1, y2 = torch.randn(4, 1), torch.randn(4, 1)
+
+# path A: two backward passes, each micro-batch loss weighted by 1/2
+model.zero_grad()
+loss1 = ((model(x1) - y1) ** 2).mean()
+loss2 = ((model(x2) - y2) ** 2).mean()
+(0.5 * loss1).backward()
+(0.5 * loss2).backward()
+accumulated = model.weight.grad.clone()
+
+# path B: one combined loss over the full batch
+model.zero_grad()
+combined = ((model(torch.cat([x1, x2])) - torch.cat([y1, y2])) ** 2).mean()
+combined.backward()
+
+# gradients match to float32 rounding: True (measured max difference ~3e-8)
+</code></pre>
 <p>This is how you train with a batch larger than GPU memory. The gradients are mathematically identical; only the peak memory differs.</p>
 <p><strong>Example 6 — vanishing, exploding, clipping.</strong> These are not three topics; they are three symptoms of the same multiplication.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># vanishing: 20 sigmoids in a row, each derivative ≤ 0.25</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># sigmoid^20 gradient at the input: 1.14e-13</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co"># a 10-layer sigmoid network: first-layer grad norm 1.2e-09, last-layer 1.2e-01</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co"># ratio ≈ 1e-8 — the early layers barely move</span></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co"># exploding: multiply by 3 twenty times</span></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co"># gradient of x·3^20: 3.49e+09 (exactly 3^20)</span></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="co"># clipping a huge gradient</span></span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co"># norm before: 3.48e+06   -&gt;   norm after clip_grad_norm_(..., 1.0): 1.0 (total, across params)</span></span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="co"># clip_grad_value_ caps every element at 0.59 in this example</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python"># vanishing: 20 sigmoids in a row, each derivative ≤ 0.25
+# sigmoid^20 gradient at the input: 1.14e-13
+
+# a 10-layer sigmoid network: first-layer grad norm 1.2e-09, last-layer 1.2e-01
+# ratio ≈ 1e-8 — the early layers barely move
+
+# exploding: multiply by 3 twenty times
+# gradient of x·3^20: 3.49e+09 (exactly 3^20)
+
+# clipping a huge gradient
+# norm before: 3.48e+06   -&gt;   norm after clip_grad_norm_(..., 1.0): 1.0 (total, across params)
+# clip_grad_value_ caps every element at 0.59 in this example
+</code></pre>
 <p>The fix for vanishing is architectural (residual connections, better activations, normalisation) or training-related (shorter paths, careful initialisation). The fix for exploding is clipping plus a smaller learning rate.</p>
-</section>
-<section id="in-production" class="level2">
-<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
 <ul>
 <li><strong>Always call <code>zero_grad()</code> before <code>backward()</code>.</strong> Gradients accumulate by default; a missing clear makes each step combine several gradients and training diverges without an obvious error.</li>
 <li><strong>Gradients accumulate for a reason.</strong> Deliberately accumulating over micro-batches gives you a large effective batch on small hardware. Divide each loss by the accumulation count so the scale matches a true large batch.</li>
@@ -1364,60 +413,40 @@ Warning
 <li><strong>Gradient values are per-batch, not per-sample.</strong> With a mean-reduced loss, each parameter’s gradient is the average over the batch. Changing batch size changes the effective learning rate, so retune it when you change batch size.</li>
 <li><strong>Checkpointing trades compute for memory.</strong> Gradient checkpointing recomputes activations during the backward pass instead of storing them, cutting memory at the cost of roughly one extra forward pass.</li>
 </ul>
-</section>
-<section id="interview-questions" class="level2">
-<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
-<section id="what-is-backpropagation" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-backpropagation">1. What is backpropagation?</h3>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-what-is-backpropagation"><a class="header" href="#1-what-is-backpropagation">1. What is backpropagation?</a></h3>
 <p><strong>Answer.</strong> Backpropagation is an efficient algorithm for computing the gradient of a scalar loss with respect to every parameter, using the chain rule over the computation graph the forward pass recorded. It walks the graph backward, multiplying each operation’s local derivative by the upstream gradient, and reuses values saved during the forward pass. The total cost is about one extra forward pass, regardless of the number of parameters.</p>
 <p><strong>Follow-up: “Why not compute gradients numerically?”</strong> A numeric gradient needs two forward passes per parameter, which is billions of times too slow for a real model. Numeric gradients are only used to check that backpropagation is implemented correctly.</p>
 <p><strong>Trap.</strong> Calling backpropagation a learning algorithm. It only computes gradients; the parameter update is the optimizer’s job (SGD, Adam, and so on).</p>
-</section>
-<section id="what-is-a-computation-graph" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-a-computation-graph">2. What is a computation graph?</h3>
+<h3 id="2-what-is-a-computation-graph"><a class="header" href="#2-what-is-a-computation-graph">2. What is a computation graph?</a></h3>
 <p><strong>Answer.</strong> It is the record of operations from the forward pass: tensors are nodes, operations are edges, and each edge knows how to compute its local derivative. It exists only while gradients are required. Autograd uses it to do the reverse sweep and frees it afterward unless you pass <code>retain_graph=True</code>.</p>
 <p><strong>Follow-up: “Why is the graph freed?”</strong> The saved intermediate activations are the main memory cost of training. Keeping them alive after backward would waste GPU memory, so PyTorch releases them by default.</p>
 <p><strong>Trap.</strong> Thinking the graph is built at model definition time. It is created fresh on every forward pass, which is why you must call <code>zero_grad()</code> each iteration.</p>
-</section>
-<section id="why-does-loss-have-to-be-a-scalar-for-backward" class="level3">
-<h3 class="anchored" data-anchor-id="why-does-loss-have-to-be-a-scalar-for-backward">3. Why does <code>loss</code> have to be a scalar for <code>backward()</code>?</h3>
+<h3 id="3-why-does-loss-have-to-be-a-scalar-for-backward"><a class="header" href="#3-why-does-loss-have-to-be-a-scalar-for-backward">3. Why does <code>loss</code> have to be a scalar for <code>backward()</code>?</a></h3>
 <p><strong>Answer.</strong> A gradient is defined for a scalar output. When the loss is a vector, <code>backward()</code> needs an external gradient saying how each element contributes, because there is no single “the derivative”. In practice this is handled by reducing with <code>.mean()</code> or <code>.sum()</code>, which is why every training loss ends in one of those.</p>
 <p><strong>Follow-up: “Can you call <code>backward()</code> on a non-scalar?”</strong> Yes, by passing a <code>gradient</code> argument of the same shape: <code>out.backward(torch.ones_like(out))</code> means “sum the outputs”. That is what happens implicitly after a <code>.sum()</code>.</p>
 <p><strong>Trap.</strong> Forgetting that <code>backward()</code> on a non-scalar without a gradient argument raises, and assuming the loss must be a Python float. It must be a scalar tensor, not a float.</p>
-</section>
-<section id="what-does-optimizer.zero_grad-do-and-what-happens-if-you-skip-it" class="level3">
-<h3 class="anchored" data-anchor-id="what-does-optimizer.zero_grad-do-and-what-happens-if-you-skip-it">4. What does <code>optimizer.zero_grad()</code> do, and what happens if you skip it?</h3>
+<h3 id="4-what-does-optimizerzero_grad-do-and-what-happens-if-you-skip-it"><a class="header" href="#4-what-does-optimizerzero_grad-do-and-what-happens-if-you-skip-it">4. What does <code>optimizer.zero_grad()</code> do, and what happens if you skip it?</a></h3>
 <p><strong>Answer.</strong> It clears the gradients stored on the parameters. By default it sets <code>.grad</code> to <code>None</code> (<code>set_to_none=True</code>); with <code>set_to_none=False</code> it writes zeros. If you skip it, the next backward pass adds to the previous gradients, so each step uses the sum of all gradients since the last clear and training diverges.</p>
 <p><strong>Follow-up: “Why does accumulation exist at all?”</strong> Because summing gradients across micro-batches is how you simulate a large batch on limited memory. The default accumulation behavior makes that free; you just step and clear less often.</p>
 <p><strong>Trap.</strong> Saying <code>zero_grad()</code> writes zeros. In current PyTorch the default is <code>None</code>, which is slightly faster and saves memory.</p>
-</section>
-<section id="what-is-the-difference-between-gradient-accumulation-and-a-larger-batch" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-the-difference-between-gradient-accumulation-and-a-larger-batch">5. What is the difference between gradient accumulation and a larger batch?</h3>
+<h3 id="5-what-is-the-difference-between-gradient-accumulation-and-a-larger-batch"><a class="header" href="#5-what-is-the-difference-between-gradient-accumulation-and-a-larger-batch">5. What is the difference between gradient accumulation and a larger batch?</a></h3>
 <p><strong>Answer.</strong> Mathematically they are the same when the per-micro-batch losses are scaled by <code>1/accumulation_steps</code>: the summed gradients equal the gradient of the combined batch. The practical difference is memory and speed: accumulation needs less peak GPU memory but runs more forward passes serially, so it is slower than a true large batch.</p>
-<p><strong>Follow-up: “Does batch normalisation behave the same?”</strong> No.&nbsp;Batch norm computes statistics per forward pass, so micro-batches give different statistics than one large batch. Layer norm, used in transformers, has no such problem.</p>
+<p><strong>Follow-up: “Does batch normalisation behave the same?”</strong> No. Batch norm computes statistics per forward pass, so micro-batches give different statistics than one large batch. Layer norm, used in transformers, has no such problem.</p>
 <p><strong>Trap.</strong> Forgetting to divide by the accumulation count, which silently multiplies the effective learning rate.</p>
-</section>
-<section id="what-are-vanishing-and-exploding-gradients" class="level3">
-<h3 class="anchored" data-anchor-id="what-are-vanishing-and-exploding-gradients">6. What are vanishing and exploding gradients?</h3>
+<h3 id="6-what-are-vanishing-and-exploding-gradients"><a class="header" href="#6-what-are-vanishing-and-exploding-gradients">6. What are vanishing and exploding gradients?</a></h3>
 <p><strong>Answer.</strong> Both come from multiplying many local derivatives in a long chain. If each factor is below 1, the gradient shrinks toward zero as it travels back and early layers barely learn — vanishing. If each factor is above 1, it grows exponentially and produces <code>NaN</code> — exploding. Saturating activations like sigmoid contribute factors below 1, while large weights and deep multiplicative chains push factors above 1.</p>
 <p><strong>Follow-up: “How do you fix them?”</strong> Vanishing: residual connections, ReLU/GELU, normalisation, and careful initialisation. Exploding: gradient clipping, a smaller learning rate, and mixed-precision loss scaling. Architecture matters more than hyperparameters for vanishing.</p>
 <p><strong>Trap.</strong> Treating them as unrelated problems. They are the same phenomenon, and both are diagnosed by looking at per-layer gradient norms.</p>
-</section>
-<section id="how-does-gradient-clipping-work" class="level3">
-<h3 class="anchored" data-anchor-id="how-does-gradient-clipping-work">7. How does gradient clipping work?</h3>
+<h3 id="7-how-does-gradient-clipping-work"><a class="header" href="#7-how-does-gradient-clipping-work">7. How does gradient clipping work?</a></h3>
 <p><strong>Answer.</strong> <code>clip_grad_norm_</code> computes the total norm of all gradients in the group and, if it exceeds <code>max_norm</code>, scales every gradient by <code>max_norm / total_norm</code>. That preserves the direction of the update and only reduces its length. <code>clip_grad_value_</code> instead clips each element independently, which is simpler but can change the direction.</p>
 <p><strong>Follow-up: “When do you clip?”</strong> Before <code>optimizer.step()</code>, every iteration, especially with recurrent networks, transformers, and mixed precision. A common <code>max_norm</code> is 1.0.</p>
 <p><strong>Trap.</strong> Clipping after the optimizer step, or assuming clipping fixes a bad learning rate. Clipping bounds rare spikes; it does not fix a systematically too-large step.</p>
-</section>
-<section id="how-do-you-verify-a-backpropagation-implementation" class="level3">
-<h3 class="anchored" data-anchor-id="how-do-you-verify-a-backpropagation-implementation">8. How do you verify a backpropagation implementation?</h3>
+<h3 id="8-how-do-you-verify-a-backpropagation-implementation"><a class="header" href="#8-how-do-you-verify-a-backpropagation-implementation">8. How do you verify a backpropagation implementation?</a></h3>
 <p><strong>Answer.</strong> Compare the analytic gradient with a numeric one using central differences, ideally in <code>float64</code>, and assert they agree within a tolerance. PyTorch automates this with <code>torch.autograd.gradcheck</code>. If they disagree, the custom backward is wrong. This is the standard test for any hand-written layer or loss.</p>
 <p><strong>Follow-up: “Why is <code>float64</code> used?”</strong> Finite differences subtract two nearly equal numbers, so <code>float32</code> rounding dominates the estimate. Double precision keeps the cancellation error small enough to detect real bugs.</p>
 <p><strong>Trap.</strong> Picking <code>ε</code> that is too small. Below roughly <code>1e-6</code>, floating-point cancellation makes the numeric gradient worse, not better.</p>
-</section>
-</section>
-<section id="remember-this" class="level2">
-<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
 <ul>
 <li>The forward pass computes values and builds a graph; the backward pass applies the <strong>chain rule</strong> to that graph.</li>
 <li>Backpropagation costs about <strong>one extra forward pass</strong>, no matter how many parameters exist.</li>
@@ -1426,438 +455,58 @@ Warning
 <li><strong>Clip before the step</strong>, and use <code>gradcheck</code> or a numeric gradient to verify any hand-written backward.</li>
 </ul>
 
+                    </main>
 
-</section>
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
-</main> <!-- /main -->
-<script id="quarto-html-after-body" type="application/javascript">
-  window.document.addEventListener("DOMContentLoaded", function (event) {
-    // Ensure there is a toggle, if there isn't float one in the top right
-    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
-      const a = window.document.createElement('a');
-      a.classList.add('top-right');
-      a.classList.add('quarto-color-scheme-toggle');
-      a.href = "";
-      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
-      const i = window.document.createElement("i");
-      i.classList.add('bi');
-      a.appendChild(i);
-      window.document.body.appendChild(a);
-    }
-    setColorSchemeToggle(hasAlternateSentinel())
-    const icon = "";
-    const anchorJS = new window.AnchorJS();
-    anchorJS.options = {
-      placement: 'right',
-      icon: icon
-    };
-    anchorJS.add('.anchored');
-    const isCodeAnnotation = (el) => {
-      for (const clz of el.classList) {
-        if (clz.startsWith('code-annotation-')) {                     
-          return true;
-        }
-      }
-      return false;
-    }
-    const onCopySuccess = function(e) {
-      // button target
-      const button = e.trigger;
-      // don't keep focus
-      button.blur();
-      // flash "checked"
-      button.classList.add('code-copy-button-checked');
-      var currentTitle = button.getAttribute("title");
-      button.setAttribute("title", "Copied!");
-      let tooltip;
-      if (window.bootstrap) {
-        button.setAttribute("data-bs-toggle", "tooltip");
-        button.setAttribute("data-bs-placement", "left");
-        button.setAttribute("data-bs-title", "Copied!");
-        tooltip = new bootstrap.Tooltip(button, 
-          { trigger: "manual", 
-            customClass: "code-copy-button-tooltip",
-            offset: [0, -8]});
-        tooltip.show();    
-      }
-      setTimeout(function() {
-        if (tooltip) {
-          tooltip.hide();
-          button.removeAttribute("data-bs-title");
-          button.removeAttribute("data-bs-toggle");
-          button.removeAttribute("data-bs-placement");
-        }
-        button.setAttribute("title", currentTitle);
-        button.classList.remove('code-copy-button-checked');
-      }, 1000);
-      // clear code selection
-      e.clearSelection();
-    }
-    const getTextToCopy = function(trigger) {
-      const outerScaffold = trigger.parentElement.cloneNode(true);
-      const codeEl = outerScaffold.querySelector('code');
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-      text: getTextToCopy
-    });
-    clipboard.on('success', onCopySuccess);
-    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-        text: getTextToCopy,
-        container: window.document.getElementById('quarto-embedded-source-code-modal')
-      });
-      clipboardModal.on('success', onCopySuccess);
-    }
-      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-      var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
-      var isInternal = (href) => {
-          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
-      }
-      // Inspect non-navigation links and adorn them if external
-     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-      for (var i=0; i<links.length; i++) {
-        const link = links[i];
-        if (!isInternal(link.href)) {
-          // undo the damage that might have been done by quarto-nav.js in the case of
-          // links that we want to consider external
-          if (link.dataset.originalHref !== undefined) {
-            link.href = link.dataset.originalHref;
-          }
-        }
-      }
-    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-      const config = {
-        allowHTML: true,
-        maxWidth: 500,
-        delay: 100,
-        arrow: false,
-        appendTo: function(el) {
-            return el.parentElement;
-        },
-        interactive: true,
-        interactiveBorder: 10,
-        theme: 'quarto',
-        placement: 'bottom-start',
-      };
-      if (contentFn) {
-        config.content = contentFn;
-      }
-      if (onTriggerFn) {
-        config.onTrigger = onTriggerFn;
-      }
-      if (onUntriggerFn) {
-        config.onUntrigger = onUntriggerFn;
-      }
-      window.tippy(el, config); 
-    }
-    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-    for (var i=0; i<noterefs.length; i++) {
-      const ref = noterefs[i];
-      tippyHover(ref, function() {
-        // use id or data attribute instead here
-        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-        try { href = new URL(href).hash; } catch {}
-        const id = href.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note) {
-          return note.innerHTML;
-        } else {
-          return "";
-        }
-      });
-    }
-    const xrefs = window.document.querySelectorAll('a.quarto-xref');
-    const processXRef = (id, note) => {
-      // Strip column container classes
-      const stripColumnClz = (el) => {
-        el.classList.remove("page-full", "page-columns");
-        if (el.children) {
-          for (const child of el.children) {
-            stripColumnClz(child);
-          }
-        }
-      }
-      stripColumnClz(note)
-      if (id === null || id.startsWith('sec-')) {
-        // Special case sections, only their first couple elements
-        const container = document.createElement("div");
-        if (note.children && note.children.length > 2) {
-          container.appendChild(note.children[0].cloneNode(true));
-          for (let i = 1; i < note.children.length; i++) {
-            const child = note.children[i];
-            if (child.tagName === "P" && child.innerText === "") {
-              continue;
-            } else {
-              container.appendChild(child.cloneNode(true));
-              break;
-            }
-          }
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(container);
-          }
-          return container.innerHTML
-        } else {
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(note);
-          }
-          return note.innerHTML;
-        }
-      } else {
-        // Remove any anchor links if they are present
-        const anchorLink = note.querySelector('a.anchorjs-link');
-        if (anchorLink) {
-          anchorLink.remove();
-        }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(note);
-        }
-        if (note.classList.contains("callout")) {
-          return note.outerHTML;
-        } else {
-          return note.innerHTML;
-        }
-      }
-    }
-    for (var i=0; i<xrefs.length; i++) {
-      const xref = xrefs[i];
-      tippyHover(xref, undefined, function(instance) {
-        instance.disable();
-        let url = xref.getAttribute('href');
-        let hash = undefined; 
-        if (url.startsWith('#')) {
-          hash = url;
-        } else {
-          try { hash = new URL(url).hash; } catch {}
-        }
-        if (hash) {
-          const id = hash.replace(/^#\/?/, "");
-          const note = window.document.getElementById(id);
-          if (note !== null) {
-            try {
-              const html = processXRef(id, note.cloneNode(true));
-              instance.setContent(html);
-            } finally {
-              instance.enable();
-              instance.show();
-            }
-          } else {
-            // See if we can fetch this
-            fetch(url.split('#')[0])
-            .then(res => res.text())
-            .then(html => {
-              const parser = new DOMParser();
-              const htmlDoc = parser.parseFromString(html, "text/html");
-              const note = htmlDoc.getElementById(id);
-              if (note !== null) {
-                const html = processXRef(id, note);
-                instance.setContent(html);
-              } 
-            }).finally(() => {
-              instance.enable();
-              instance.show();
-            });
-          }
-        } else {
-          // See if we can fetch a full url (with no hash to target)
-          // This is a special case and we should probably do some content thinning / targeting
-          fetch(url)
-          .then(res => res.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.querySelector('main.content');
-            if (note !== null) {
-              // This should only happen for chapter cross references
-              // (since there is no id in the URL)
-              // remove the first header
-              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-                note.children[0].remove();
-              }
-              const html = processXRef(null, note);
-              instance.setContent(html);
-            } 
-          }).finally(() => {
-            instance.enable();
-            instance.show();
-          });
-        }
-      }, function(instance) {
-      });
-    }
-        let selectedAnnoteEl;
-        const selectorForAnnotation = ( cell, annotation) => {
-          let cellAttr = 'data-code-cell="' + cell + '"';
-          let lineAttr = 'data-code-annotation="' +  annotation + '"';
-          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-          return selector;
-        }
-        const selectCodeLines = (annoteEl) => {
-          const doc = window.document;
-          const targetCell = annoteEl.getAttribute("data-target-cell");
-          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-          const lineIds = lines.map((line) => {
-            return targetCell + "-" + line;
-          })
-          let top = null;
-          let height = null;
-          let parent = null;
-          if (lineIds.length > 0) {
-              //compute the position of the single el (top and bottom and make a div)
-              const el = window.document.getElementById(lineIds[0]);
-              top = el.offsetTop;
-              height = el.offsetHeight;
-              parent = el.parentElement.parentElement;
-            if (lineIds.length > 1) {
-              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-              height = bottom - top;
-            }
-            if (top !== null && height !== null && parent !== null) {
-              // cook up a div (if necessary) and position it 
-              let div = window.document.getElementById("code-annotation-line-highlight");
-              if (div === null) {
-                div = window.document.createElement("div");
-                div.setAttribute("id", "code-annotation-line-highlight");
-                div.style.position = 'absolute';
-                parent.appendChild(div);
-              }
-              div.style.top = top - 2 + "px";
-              div.style.height = height + 4 + "px";
-              div.style.left = 0;
-              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-              if (gutterDiv === null) {
-                gutterDiv = window.document.createElement("div");
-                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-                gutterDiv.style.position = 'absolute';
-                const codeCell = window.document.getElementById(targetCell);
-                const gutter = codeCell.querySelector('.code-annotation-gutter');
-                gutter.appendChild(gutterDiv);
-              }
-              gutterDiv.style.top = top - 2 + "px";
-              gutterDiv.style.height = height + 4 + "px";
-            }
-            selectedAnnoteEl = annoteEl;
-          }
-        };
-        const unselectCodeLines = () => {
-          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-          elementsIds.forEach((elId) => {
-            const div = window.document.getElementById(elId);
-            if (div) {
-              div.remove();
-            }
-          });
-          selectedAnnoteEl = undefined;
-        };
-          // Handle positioning of the toggle
-      window.addEventListener(
-        "resize",
-        throttle(() => {
-          elRect = undefined;
-          if (selectedAnnoteEl) {
-            selectCodeLines(selectedAnnoteEl);
-          }
-        }, 10)
-      );
-      function throttle(fn, ms) {
-      let throttle = false;
-      let timer;
-        return (...args) => {
-          if(!throttle) { // first call gets through
-              fn.apply(this, args);
-              throttle = true;
-          } else { // all the others get throttled
-              if(timer) clearTimeout(timer); // cancel #2
-              timer = setTimeout(() => {
-                fn.apply(this, args);
-                timer = throttle = false;
-              }, ms);
-          }
-        };
-      }
-        // Attach click handler to the DT
-        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-        for (const annoteDlNode of annoteDls) {
-          annoteDlNode.addEventListener('click', (event) => {
-            const clickedEl = event.target;
-            if (clickedEl !== selectedAnnoteEl) {
-              unselectCodeLines();
-              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-              if (activeEl) {
-                activeEl.classList.remove('code-annotation-active');
-              }
-              selectCodeLines(clickedEl);
-              clickedEl.classList.add('code-annotation-active');
-            } else {
-              // Unselect the line
-              unselectCodeLines();
-              clickedEl.classList.remove('code-annotation-active');
-            }
-          });
-        }
-    const findCites = (el) => {
-      const parentEl = el.parentElement;
-      if (parentEl) {
-        const cites = parentEl.dataset.cites;
-        if (cites) {
-          return {
-            el,
-            cites: cites.split(' ')
-          };
-        } else {
-          return findCites(el.parentElement)
-        }
-      } else {
-        return undefined;
-      }
-    };
-    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-    for (var i=0; i<bibliorefs.length; i++) {
-      const ref = bibliorefs[i];
-      const citeInfo = findCites(ref);
-      if (citeInfo) {
-        tippyHover(citeInfo.el, function() {
-          var popup = window.document.createElement('div');
-          citeInfo.cites.forEach(function(cite) {
-            var citeDiv = window.document.createElement('div');
-            citeDiv.classList.add('hanging-indent');
-            citeDiv.classList.add('csl-entry');
-            var biblioDiv = window.document.getElementById('ref-' + cite);
-            if (biblioDiv) {
-              citeDiv.innerHTML = biblioDiv.innerHTML;
-            }
-            popup.appendChild(citeDiv);
-          });
-          return popup.innerHTML;
-        });
-      }
-    }
-  });
-  </script>
-<nav class="page-navigation">
-  <div class="nav-page nav-page-previous">
-      <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="pagination-link" aria-label="Tensors and PyTorch">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Tensors and PyTorch</span></span>
-      </a>          
-  </div>
-  <div class="nav-page nav-page-next">
-      <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="pagination-link" aria-label="Attention and Self-Attention">
-        <span class="nav-page-text"><span class="chapter-title">Attention and Self-Attention</span></span> <i class="bi bi-arrow-right-short"></i>
-      </a>
-  </div>
-</nav>
-</div> <!-- /content -->
+                            <a rel="next prefetch" href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
 
 
 
 
-</body></html>
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom.js"></script>
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

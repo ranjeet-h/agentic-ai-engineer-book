@@ -1,1038 +1,198 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
-
-<meta charset="utf-8">
-<meta name="generator" content="quarto-1.10.18">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-
-
-<title>Iterators and Generators – Agentic AI Engineering Study Book</title>
-<style>
-/* Default styles provided by pandoc.
-** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
-*/
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: 1.5em;}
-div.column{flex: auto;}
-@media screen {
-div.columns{gap: min(4vw, 1.5em);}
-div.column{overflow-x: auto;}
-}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-ul.task-list{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-  width: 0.8em;
-  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
-  vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-</style>
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Iterators and Generators - Agentic AI Engineering Study Book</title>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<link href="../phase-01-production-python/06-context-managers.html" rel="next">
-<link href="../phase-01-production-python/04-decorators.html" rel="prev">
-<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-012e79344040a4a328ea85a5b0a60384.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-d84a0d611e1de1507791ffd4dad004b1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
-<script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
-  "copy-button": false,
-  "collapse-after": 3,
-  "panel-placement": "start",
-  "type": "textbox",
-  "limit": 50,
-  "keyboard-shortcut": [
-    "f",
-    "/",
-    "s"
-  ],
-  "show-item-context": false,
-  "language": {
-    "search-no-results-text": "No results",
-    "search-matching-documents-text": "matching documents",
-    "search-copy-link-title": "Copy link to search",
-    "search-hide-matches-text": "Hide additional matches",
-    "search-more-match-text": "more match in this document",
-    "search-more-matches-text": "more matches in this document",
-    "search-clear-button-title": "Clear",
-    "search-text-placeholder": "",
-    "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit",
-    "search-label": "Search"
-  }
-}</script>
-<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
-<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
-<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../assets/fonts/fonts.css">
+        <link rel="stylesheet" href="../theme/custom.css">
 
 
-<link rel="stylesheet" href="../assets/fonts/fonts.css">
-<link rel="stylesheet" href="../styles/custom.css">
-</head>
-
-<body class="nav-sidebar floating quarto-light"><script id="quarto-html-before-body" type="application/javascript">
-    const toggleBodyColorMode = (bsSheetEl) => {
-      const mode = bsSheetEl.getAttribute("data-mode");
-      const bodyEl = window.document.querySelector("body");
-      if (mode === "dark") {
-        bodyEl.classList.add("quarto-dark");
-        bodyEl.classList.remove("quarto-light");
-      } else {
-        bodyEl.classList.add("quarto-light");
-        bodyEl.classList.remove("quarto-dark");
-      }
-    }
-    const toggleBodyColorPrimary = () => {
-      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
-      if (bsSheetEl) {
-        toggleBodyColorMode(bsSheetEl);
-      }
-    }
-    const setColorSchemeToggle = (alternate) => {
-      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
-      for (let i=0; i < toggles.length; i++) {
-        const toggle = toggles[i];
-        if (toggle) {
-          if (alternate) {
-            toggle.classList.add("alternate");
-          } else {
-            toggle.classList.remove("alternate");
-          }
-        }
-      }
-    };
-    const toggleColorMode = (alternate) => {
-      // Switch the stylesheets
-      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
-      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
-      manageTransitions('#quarto-margin-sidebar .nav-link', false);
-      if (alternate) {
-        // note: dark is layered on light, we don't disable primary!
-        enableStylesheet(alternateStylesheets);
-        for (const sheetNode of alternateStylesheets) {
-          if (sheetNode.id === "quarto-bootstrap") {
-            toggleBodyColorMode(sheetNode);
-          }
-        }
-      } else {
-        disableStylesheet(alternateStylesheets);
-        enableStylesheet(primaryStylesheets)
-        toggleBodyColorPrimary();
-      }
-      manageTransitions('#quarto-margin-sidebar .nav-link', true);
-      // Switch the toggles
-      setColorSchemeToggle(alternate)
-      // Hack to workaround the fact that safari doesn't
-      // properly recolor the scrollbar when toggling (#1455)
-      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
-        manageTransitions("body", false);
-        window.scrollTo(0, 1);
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          manageTransitions("body", true);
-        }, 40);
-      }
-    }
-    const disableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        stylesheet.rel = 'disabled-stylesheet';
-      }
-    }
-    const enableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
-          stylesheet.rel = 'stylesheet';
-        }
-      }
-    }
-    const manageTransitions = (selector, allowTransitions) => {
-      const els = window.document.querySelectorAll(selector);
-      for (let i=0; i < els.length; i++) {
-        const el = els[i];
-        if (allowTransitions) {
-          el.classList.remove('notransition');
-        } else {
-          el.classList.add('notransition');
-        }
-      }
-    }
-    const isFileUrl = () => {
-      return window.location.protocol === 'file:';
-    }
-    const hasAlternateSentinel = () => {
-      let styleSentinel = getColorSchemeSentinel();
-      if (styleSentinel !== null) {
-        return styleSentinel === "alternate";
-      } else {
-        return false;
-      }
-    }
-    const setStyleSentinel = (alternate) => {
-      const value = alternate ? "alternate" : "default";
-      if (!isFileUrl()) {
-        window.localStorage.setItem("quarto-color-scheme", value);
-      } else {
-        localAlternateSentinel = value;
-      }
-    }
-    const getColorSchemeSentinel = () => {
-      if (!isFileUrl()) {
-        const storageValue = window.localStorage.getItem("quarto-color-scheme");
-        return storageValue != null ? storageValue : localAlternateSentinel;
-      } else {
-        return localAlternateSentinel;
-      }
-    }
-    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
-      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
-      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
-      let newTheme = '';
-      if(authorPrefersDark) {
-        newTheme = isAlternate ? baseTheme : alternateTheme;
-      } else {
-        newTheme = isAlternate ? alternateTheme : baseTheme;
-      }
-      const changeGiscusTheme = () => {
-        // From: https://github.com/giscus/giscus/issues/336
-        const sendMessage = (message) => {
-          const iframe = document.querySelector('iframe.giscus-frame');
-          if (!iframe) return;
-          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
-        }
-        sendMessage({
-          setConfig: {
-            theme: newTheme
-          }
-        });
-      }
-      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
-      if (isGiscussLoaded) {
-        changeGiscusTheme();
-      }
-    };
-    const authorPrefersDark = false;
-    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    const darkModeDefault = queryPrefersDark.matches;
-      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
-    // Dark / light mode switch
-    window.quartoToggleColorScheme = () => {
-      // Read the current dark / light value
-      let toAlternate = !hasAlternateSentinel();
-      toggleColorMode(toAlternate);
-      setStyleSentinel(toAlternate);
-      toggleGiscusIfUsed(toAlternate, darkModeDefault);
-      window.dispatchEvent(new Event('resize'));
-    };
-    queryPrefersDark.addEventListener("change", e => {
-      if(window.localStorage.getItem("quarto-color-scheme") !== null)
-        return;
-      const alternate = e.matches
-      toggleColorMode(alternate);
-      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
-      toggleGiscusIfUsed(alternate, darkModeDefault);
-    });
-    // Switch to dark mode if need be
-    if (hasAlternateSentinel()) {
-      toggleColorMode(true);
-    } else {
-      toggleColorMode(false);
-    }
-  </script>
-
-<div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
-  <nav class="quarto-secondary-nav">
-    <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
-        <i class="bi bi-layout-text-sidebar-reverse"></i>
-      </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/05-iterators-and-generators.html"><span class="chapter-title">Iterators and Generators</span></a></li></ol></nav>
-        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-        </a>
-      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
-        <i class="bi bi-search"></i>
-      </button>
-    </div>
-  </nav>
-</header>
-<!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
-<!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header">
-    <div class="sidebar-title mb-0 py-0">
-      <a href="../">Agentic AI Engineering Study Book</a> 
-        <div class="sidebar-tools-main">
-  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
-</div>
-    </div>
-      </div>
-        <div class="mt-2 flex-shrink-0 align-items-center">
-        <div class="sidebar-search">
-        <div id="quarto-search" class="" title="Search"></div>
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
         </div>
-        </div>
-    <div class="sidebar-menu-container"> 
-    <ul class="list-unstyled mt-1">
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
-  </div>
-</li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 1 — Production Python</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Iterators and Generators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 3 — RAG Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-04-agentic-ai-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 4 — Agentic AI Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/01-what-an-ai-agent-is.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">What an AI Agent Is</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/02-the-agent-loop.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Agent Loop</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/03-tool-execution-and-result-validation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Execution and Result Validation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/04-agent-memory-short-term-and-working.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Short-Term and Working</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/05-agent-memory-long-term-episodic-semantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Long-Term, Episodic, and Semantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/06-planning-decomposition-and-routing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Planning, Decomposition, and Routing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/07-reflection-and-self-correction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reflection and Self-Correction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/08-retries-termination-and-loop-detection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retries, Termination, and Loop Detection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/09-state-management-and-persistence.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">State Management and Persistence</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/10-checkpointing-and-durable-execution.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Checkpointing and Durable Execution</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/11-human-in-the-loop-and-approvals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Human-in-the-Loop and Approvals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/12-guardrails.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Guardrails</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/13-structured-agent-outputs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Agent Outputs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/14-tool-schemas-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Schemas and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/15-tool-permissions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Permissions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/16-parallel-and-conditional-workflows.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parallel and Conditional Workflows</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/17-long-running-and-background-agents.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Long-Running and Background Agents</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/18-langgraph-graphs-and-state.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Graphs and State</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/19-langgraph-checkpoints-interrupts-subgraphs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Checkpoints, Interrupts, and Subgraphs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/20-openai-agents-sdk.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">OpenAI Agents SDK</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/21-agent-orchestration-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Orchestration Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/22-agent-reliability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Reliability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-05-mcp-tool-ecosystems/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 5 — MCP and Tool Ecosystems</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/01-mcp-fundamentals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Fundamentals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/02-mcp-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/03-mcp-transports.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Transports</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/04-mcp-tools-resources-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tools, Resources, and Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/05-tool-and-capability-discovery.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool and Capability Discovery</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/06-mcp-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/07-sessions-and-stateful-stateless-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sessions and Stateful vs Stateless Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/08-building-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/09-building-mcp-clients.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Clients</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/10-database-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Database MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/11-github-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">GitHub MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/12-filesystem-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Filesystem MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/13-browser-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Browser MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/14-internal-api-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Internal API MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/15-enterprise-mcp-gateways.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Enterprise MCP Gateways</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/16-mcp-security-and-permission-boundaries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Security and Permission Boundaries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/17-mcp-observability-and-audit-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Observability and Audit Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/18-mcp-tool-versioning-and-registries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tool Versioning and Registries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/19-agent-to-agent-communication-and-a2a.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent-to-Agent Communication and A2A</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/20-agent-capability-discovery-and-interoperability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Capability Discovery and Interoperability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-    </ul>
     </div>
-</nav>
-<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
-<!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">Table of contents</h2>
-   
-  <ul class="collapse">
-  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
-  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
-  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
-  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
-  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
-  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
-  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
-  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
-  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
-  </ul>
-</nav>
-    </div>
-<!-- main -->
-<main class="content" id="quarto-document-content">
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/05-iterators-and-generators.html"><span class="chapter-title">Iterators and Generators</span></a></li></ol></nav>
-<div class="quarto-title">
-<h1 class="title"><span class="chapter-title">Iterators and Generators</span></h1>
-</div>
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
 
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
 
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
-<div class="quarto-title-meta">
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
 
-    
-  
-    
-  </div>
-  
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
 
+        <div id="page-wrapper" class="page-wrapper">
 
-</header>
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
 
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
 
-<blockquote class="blockquote">
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="iterators-and-generators"><a class="header" href="#iterators-and-generators">Iterators and Generators</a></h1>
+<blockquote>
 <p><strong>Interview answer (say this first).</strong> An iterable is something you can loop over; an iterator is the cursor that produces the values one at a time. A generator is a simple way to build an iterator: a function that uses <code>yield</code> pauses at each value and resumes when the next one is asked for, so you never need to hold the whole sequence in memory.</p>
 </blockquote>
-<section id="why-this-exists" class="level2">
-<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
 <p>Imagine you must find the first line in a 20 GB log file that contains <code>"ERROR"</code>. The obvious approach is:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"huge.log"</span>) <span class="im">as</span> f:</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    lines <span class="op">=</span> f.readlines()      <span class="co"># loads the entire file into memory</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> line <span class="kw">in</span> lines:</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="st">"ERROR"</span> <span class="kw">in</span> line:</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(line)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">with open("huge.log") as f:
+    lines = f.readlines()      # loads the entire file into memory
+for line in lines:
+    if "ERROR" in line:
+        print(line)
+        break
+</code></pre>
 <p>This may crash before it finds anything. <code>readlines()</code> builds a list of every line, so a 20 GB file needs roughly 20 GB of memory, even though you only wanted one line.</p>
 <p>The real problem is deeper than this one example. Most data work is about <strong>sequences that are too large, too slow, or infinite to build all at once</strong>:</p>
 <ul>
@@ -1042,105 +202,52 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>pages from an API you fetch one at a time.</li>
 </ul>
 <p>In every case you want to process items one at a time and stop when you are done. Python’s iterator protocol is the mechanism that makes this possible, and generators are the easy way to use it.</p>
-</section>
-<section id="start-from-zero" class="level2">
-<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Word</th>
-<th>Plain meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Iteration</strong></td>
-<td>Going through a sequence of values, one after another.</td>
-</tr>
-<tr class="even">
-<td><strong>Iterable</strong></td>
-<td>Anything you can loop over with <code>for</code>. A list, string, dict, file, set, or generator.</td>
-</tr>
-<tr class="odd">
-<td><strong>Iterator</strong></td>
-<td>The object that actually produces values and remembers where it is. Think of a cursor.</td>
-</tr>
-<tr class="even">
-<td><strong>Lazy</strong></td>
-<td>Producing a value only when it is asked for.</td>
-</tr>
-<tr class="odd">
-<td><strong>Eager</strong></td>
-<td>Producing all values up front. <code>list()</code> is eager.</td>
-</tr>
-<tr class="even">
-<td><strong>Generator</strong></td>
-<td>A function containing <code>yield</code>, or a generator expression. It produces an iterator.</td>
-</tr>
-<tr class="odd">
-<td><strong><code>yield</code></strong></td>
-<td>“Pause here and hand this value out.” The function freezes until the next value is requested.</td>
-</tr>
-<tr class="even">
-<td><strong>Exhausted</strong></td>
-<td>A generator or iterator that has no values left; asking again raises <code>StopIteration</code>.</td>
-</tr>
-<tr class="odd">
-<td><strong>Delegation</strong></td>
-<td>Passing iteration to another iterable with <code>yield from</code>.</td>
-</tr>
-</tbody>
-</table>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Iteration</strong></td><td>Going through a sequence of values, one after another.</td></tr>
+<tr><td><strong>Iterable</strong></td><td>Anything you can loop over with <code>for</code>. A list, string, dict, file, set, or generator.</td></tr>
+<tr><td><strong>Iterator</strong></td><td>The object that actually produces values and remembers where it is. Think of a cursor.</td></tr>
+<tr><td><strong>Lazy</strong></td><td>Producing a value only when it is asked for.</td></tr>
+<tr><td><strong>Eager</strong></td><td>Producing all values up front. <code>list()</code> is eager.</td></tr>
+<tr><td><strong>Generator</strong></td><td>A function containing <code>yield</code>, or a generator expression. It produces an iterator.</td></tr>
+<tr><td><strong><code>yield</code></strong></td><td>“Pause here and hand this value out.” The function freezes until the next value is requested.</td></tr>
+<tr><td><strong>Exhausted</strong></td><td>A generator or iterator that has no values left; asking again raises <code>StopIteration</code>.</td></tr>
+<tr><td><strong>Delegation</strong></td><td>Passing iteration to another iterable with <code>yield from</code>.</td></tr>
+</tbody></table>
+</div>
 <p>Two pairs of words cause most of the confusion, so fix them now:</p>
 <ul>
 <li><strong>Iterable vs iterator.</strong> An iterable can produce an iterator; an iterator <em>is</em> the thing being consumed. A list is iterable but not an iterator. You can loop over a list many times. A generator is both iterable and its own iterator, and it can be consumed only once.</li>
 <li><strong>Lazy vs eager.</strong> Lazy means “compute on demand.” Eager means “compute now, store everything.”</li>
 </ul>
 <p>The <code>for</code> loop is the piece that ties them together. When you write <code>for x in something:</code>, Python is not doing anything magical — it is calling the iterator protocol, which you can drive yourself:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>nums <span class="op">=</span> [<span class="dv">10</span>, <span class="dv">20</span>]</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>it <span class="op">=</span> <span class="bu">iter</span>(nums)     <span class="co"># get an iterator</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">next</span>(it)            <span class="co"># 10</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="bu">next</span>(it)            <span class="co"># 20</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="bu">next</span>(it)            <span class="co"># StopIteration</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">nums = [10, 20]
+it = iter(nums)     # get an iterator
+next(it)            # 10
+next(it)            # 20
+next(it)            # StopIteration
+</code></pre>
 <p>That is the entire foundation. Everything else is a convenience built on it.</p>
-</section>
-<section id="the-core-idea" class="level2">
-<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Picture unloading a delivery truck.</p>
 <ul>
 <li><strong>Eager</strong> is carrying every box into the warehouse before you open any of them. Fast to look things up later, but you need space for everything at once.</li>
 <li><strong>Lazy</strong> is a conveyor belt: one box arrives, you handle it, then the next. You need space for one box.</li>
 </ul>
 <p>The iterator is the <strong>conveyor belt’s position</strong> — it knows which box is next. The generator is the <strong>motor</strong> that produces boxes on demand.</p>
-<blockquote class="blockquote">
+<blockquote>
 <p><strong>A generator does not run when you define it. It runs only when you ask for the next value.</strong></p>
 </blockquote>
 <p>That sentence explains the most surprising behaviour in this topic. Calling a generator function does not execute a single line of its body. It returns a generator object, and each <code>next()</code> runs the code up to the next <code>yield</code> and then pauses.</p>
-<div class="cell" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart LR
-  A["writer()"] --&gt; B["generator object&lt;br/&gt;(nothing has run yet)"]
-  B --&gt;|"next()"| C["runs until first yield&lt;br/&gt;pauses, returns 1"]
-  C --&gt;|"next()"| D["resumes&lt;br/&gt;pauses, returns 2"]
-  D --&gt;|"next()"| E["function returns&lt;br/&gt;StopIteration"]
+<pre class="mermaid">flowchart LR
+  A[&quot;writer()&quot;] --&gt; B[&quot;generator object&lt;br/&gt;(nothing has run yet)&quot;]
+  B --&gt;|&quot;next()&quot;| C[&quot;runs until first yield&lt;br/&gt;pauses, returns 1&quot;]
+  C --&gt;|&quot;next()&quot;| D[&quot;resumes&lt;br/&gt;pauses, returns 2&quot;]
+  D --&gt;|&quot;next()&quot;| E[&quot;function returns&lt;br/&gt;StopIteration&quot;]
 </pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
 <p>The generator’s local variables survive between pauses, which is why it can remember its position without you writing a state machine.</p>
-</section>
-<section id="how-it-works" class="level2">
-<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
-<ol type="1">
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
 <li><strong>A <code>for</code> loop calls <code>iter()</code> on the iterable</strong> to get an iterator.</li>
 <li><strong>It calls <code>next()</code> repeatedly.</strong> Each call returns the next value.</li>
 <li><strong>When there are no values left, the iterator raises <code>StopIteration</code>.</strong> The <code>for</code> loop catches that silently and ends. You never write the check.</li>
@@ -1151,139 +258,136 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong><code>yield from other</code> delegates iteration</strong> to another iterable, forwarding each value and finally the return value.</li>
 <li><strong>A generator expression</strong> is the compact form, <code>(x * 2 for x in items)</code>.</li>
 </ol>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
+<blockquote>
+<p><strong>Note:</strong></p>
 <p><strong>The <code>StopIteration</code> contract.</strong> <code>StopIteration</code> is not an error; it is the agreed signal that an iterator is finished. This is why raising it yourself outside an iterator, or letting it leak out of a generator, causes confusing behaviour — a generator that raises <code>StopIteration</code> internally is treated as simply ending.</p>
-</div>
-</div>
-</section>
-<section id="the-syntax-you-will-use" class="level2">
-<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+</blockquote>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
 <p><strong>Generators are the easy path.</strong> Any function with <code>yield</code> becomes a generator function.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> count_up_to(n):</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, n <span class="op">+</span> <span class="dv">1</span>):</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">yield</span> i</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(count_up_to(<span class="dv">3</span>))    <span class="co"># [1, 2, 3]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def count_up_to(n):
+    for i in range(1, n + 1):
+        yield i
+
+list(count_up_to(3))    # [1, 2, 3]
+</code></pre>
 <p><strong>Generator expressions.</strong> Like a list comprehension, but with parentheses and no list built.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>squares <span class="op">=</span> (x <span class="op">*</span> x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1_000_000</span>))   <span class="co"># cheap to create</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>total <span class="op">=</span> <span class="bu">sum</span>(squares)                          <span class="co"># values produced one by one</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">squares = (x * x for x in range(1_000_000))   # cheap to create
+total = sum(squares)                          # values produced one by one
+</code></pre>
 <p><strong><code>yield from</code> for delegation.</strong> It flattens nested generators.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> inner():</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">yield</span> <span class="dv">1</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">yield</span> <span class="dv">2</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> outer():</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">yield</span> <span class="dv">0</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">yield</span> <span class="cf">from</span> inner()</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">yield</span> <span class="dv">3</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(outer())    <span class="co"># [0, 1, 2, 3]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def inner():
+    yield 1
+    yield 2
+
+def outer():
+    yield 0
+    yield from inner()
+    yield 3
+
+list(outer())    # [0, 1, 2, 3]
+</code></pre>
 <p><strong>A hand-written iterator.</strong> This is what generators replace. Know it, because interviewers ask.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Counter:</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, limit):</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.limit <span class="op">=</span> limit</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.current <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__iter__</span>(<span class="va">self</span>):          <span class="co"># iterable: return the iterator</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__next__</span>(<span class="va">self</span>):          <span class="co"># iterator: produce the next value</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.current <span class="op">&gt;=</span> <span class="va">self</span>.limit:</span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">raise</span> <span class="pp">StopIteration</span></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.current <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.current</span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(Counter(<span class="dv">3</span>))    <span class="co"># [1, 2, 3]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">class Counter:
+    def __init__(self, limit):
+        self.limit = limit
+        self.current = 0
+
+    def __iter__(self):          # iterable: return the iterator
+        return self
+
+    def __next__(self):          # iterator: produce the next value
+        if self.current &gt;= self.limit:
+            raise StopIteration
+        self.current += 1
+        return self.current
+
+list(Counter(3))    # [1, 2, 3]
+</code></pre>
 <p><strong><code>send()</code> and return values.</strong> A generator can receive values back, and can return a final value.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> accumulate():</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="va">True</span>:</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        value <span class="op">=</span> <span class="cf">yield</span> total      <span class="co"># receives a value, yields the new total</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> value <span class="kw">is</span> <span class="va">None</span>:</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> total</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        total <span class="op">+=</span> value</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>acc <span class="op">=</span> accumulate()</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="bu">next</span>(acc)          <span class="co"># start it: 0</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>acc.send(<span class="dv">10</span>)       <span class="co"># 10</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>acc.send(<span class="dv">5</span>)        <span class="co"># 15</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def accumulate():
+    total = 0
+    while True:
+        value = yield total      # receives a value, yields the new total
+        if value is None:
+            return total
+        total += value
+
+acc = accumulate()
+next(acc)          # start it: 0
+acc.send(10)       # 10
+acc.send(5)        # 15
+</code></pre>
 <p>You will rarely write this by hand, but it is the foundation of older async frameworks, so it is worth recognising.</p>
 <p><strong>Generators are single-use.</strong> This is the most common practical mistake.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> (x <span class="cf">for</span> x <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>])</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(g)     <span class="co"># [1, 2]</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(g)     <span class="co"># []  — already exhausted</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">g = (x for x in [1, 2])
+list(g)     # [1, 2]
+list(g)     # []  — already exhausted
+</code></pre>
 <p><strong><code>itertools</code> gives you lazy building blocks.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> itertools</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.islice(itertools.count(<span class="dv">10</span>), <span class="dv">3</span>))   <span class="co"># [10, 11, 12]</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.chain([<span class="dv">1</span>], [<span class="dv">2</span>, <span class="dv">3</span>]))               <span class="co"># [1, 2, 3]</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>[(k, <span class="bu">len</span>(<span class="bu">list</span>(v))) <span class="cf">for</span> k, v <span class="kw">in</span> itertools.groupby(<span class="st">"aabbbc"</span>)]</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># [('a', 2), ('b', 3), ('c', 1)]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
-<section id="examples-simple-to-real" class="level2">
-<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<pre><code class="language-python">import itertools
+
+list(itertools.islice(itertools.count(10), 3))   # [10, 11, 12]
+list(itertools.chain([1], [2, 3]))               # [1, 2, 3]
+[(k, len(list(v))) for k, v in itertools.groupby("aabbbc")]
+# [('a', 2), ('b', 3), ('c', 1)]
+</code></pre>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
 <p><strong>Example 1 — reading a huge file safely.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> error_lines(path):</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> <span class="bu">open</span>(path) <span class="im">as</span> f:</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> line <span class="kw">in</span> f:                 <span class="co"># the file object is itself lazy</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="st">"ERROR"</span> <span class="kw">in</span> line:</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                <span class="cf">yield</span> line.strip()</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> line <span class="kw">in</span> error_lines(<span class="st">"huge.log"</span>):</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(line)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def error_lines(path):
+    with open(path) as f:
+        for line in f:                 # the file object is itself lazy
+            if "ERROR" in line:
+                yield line.strip()
+
+for line in error_lines("huge.log"):
+    print(line)
+</code></pre>
 <p>A file object yields one line at a time, so memory stays flat no matter how big the file is. Materialising the lines with <code>readlines()</code> is what blows up.</p>
 <p><strong>Example 2 — proving the memory difference.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">sum</span>(x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1_000_000</span>))     <span class="co"># generator: peak memory is tiny</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">sum</span>([x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1_000_000</span>)])   <span class="co"># list: builds the whole list first</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">sum(x for x in range(1_000_000))     # generator: peak memory is tiny
+sum([x for x in range(1_000_000)])   # list: builds the whole list first
+</code></pre>
 <p>Measured on this machine, the generator path peaked at a few hundred bytes while the list path peaked at roughly 40 MB. Same answer, very different cost. The list version is sometimes faster if you need to iterate several times, which is the real trade-off.</p>
 <p><strong>Example 3 — a processing pipeline.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read(rows):</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> row <span class="kw">in</span> rows:</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">yield</span> row</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> parse(rows):</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> row <span class="kw">in</span> rows:</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">yield</span> row.strip().split(<span class="st">","</span>)</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> keep_valid(rows):</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> row <span class="kw">in</span> rows:</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">len</span>(row) <span class="op">==</span> <span class="dv">2</span>:</span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">yield</span> row</span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>pipeline <span class="op">=</span> keep_valid(parse(read(<span class="bu">open</span>(<span class="st">"data.csv"</span>))))</span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, age <span class="kw">in</span> pipeline:</span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(name, age)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def read(rows):
+    for row in rows:
+        yield row
+
+def parse(rows):
+    for row in rows:
+        yield row.strip().split(",")
+
+def keep_valid(rows):
+    for row in rows:
+        if len(row) == 2:
+            yield row
+
+pipeline = keep_valid(parse(read(open("data.csv"))))
+for name, age in pipeline:
+    print(name, age)
+</code></pre>
 <p>Each stage pulls from the one before, one item at a time. No stage holds the whole dataset, and you can reuse stages independently. This is the style behind large data-processing code.</p>
 <p><strong>Example 4 — pagination over an API.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> all_pages(client, url):</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> url:</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        response <span class="op">=</span> client.get(url)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> item <span class="kw">in</span> response[<span class="st">"items"</span>]:</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>            <span class="cf">yield</span> item</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        url <span class="op">=</span> response.get(<span class="st">"next"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def all_pages(client, url):
+    while url:
+        response = client.get(url)
+        for item in response["items"]:
+            yield item
+        url = response.get("next")
+</code></pre>
 <p>The caller loops over every item without knowing how many pages exist. This pattern is everywhere in AI tooling, where an API returns results in batches.</p>
 <p><strong>Example 5 — the mutate-while-iterating bug.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>nums <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>]</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> []</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n <span class="kw">in</span> nums:</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">%</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>        nums.remove(n)      <span class="co"># mutating the list you are iterating</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    result.append(n)</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(nums, result)         <span class="co"># [1, 3] [1, 2, 4]  — 3 was skipped!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">nums = [1, 2, 3, 4]
+result = []
+for n in nums:
+    if n % 2 == 0:
+        nums.remove(n)      # mutating the list you are iterating
+    result.append(n)
+
+print(nums, result)         # [1, 3] [1, 2, 4]  — 3 was skipped!
+</code></pre>
 <p>Removing item <code>2</code> shifts item <code>3</code> into the position the iterator just passed, so <code>3</code> is never seen. The lazy pointer and the eager removal disagree. Iterate over a copy, or build a new list instead.</p>
-</section>
-<section id="in-production" class="level2">
-<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
 <ul>
 <li><strong>Generators are single-use.</strong> Once exhausted, they stay empty. If you need the values twice, materialise them with <code>list()</code>, or make the function return a fresh generator each time it is called.</li>
 <li><strong>Flat memory is the point.</strong> Use generators for large files, database cursors, pagination, and long pipelines. Materialise only when you truly need random access or repeated passes.</li>
@@ -1296,60 +400,40 @@ Note
 <li><strong><code>itertools</code> beats hand-written loops.</strong> <code>islice</code>, <code>chain</code>, <code>groupby</code>, <code>takewhile</code>, and <code>product</code> are lazy, tested, and faster than the equivalent Python.</li>
 <li><strong>Pick the right tool for the shape.</strong> A generator for streaming, a list for repeated access, a generator expression for a one-pass computation, and <code>itertools</code> for composition.</li>
 </ul>
-</section>
-<section id="interview-questions" class="level2">
-<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
-<section id="what-is-the-difference-between-an-iterable-and-an-iterator" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-the-difference-between-an-iterable-and-an-iterator">1. What is the difference between an iterable and an iterator?</h3>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-what-is-the-difference-between-an-iterable-and-an-iterator"><a class="header" href="#1-what-is-the-difference-between-an-iterable-and-an-iterator">1. What is the difference between an iterable and an iterator?</a></h3>
 <p><strong>Answer.</strong> An iterable can produce an iterator; an iterator is the object being consumed. A list is iterable, and <code>iter(list)</code> gives an iterator. An iterator has <code>__next__</code> and remembers its position. Generators are iterators, and they are single-use; a list can be iterated many times.</p>
 <p><strong>Follow-up: “What does the <code>for</code> loop actually do?”</strong> It calls <code>iter()</code> to get an iterator, then calls <code>next()</code> in a loop, catching <code>StopIteration</code> to stop.</p>
 <p><strong>Trap.</strong> Saying a list is an iterator. It is iterable, but not an iterator — that is why you can loop over it twice.</p>
-</section>
-<section id="when-does-the-body-of-a-generator-function-run" class="level3">
-<h3 class="anchored" data-anchor-id="when-does-the-body-of-a-generator-function-run">2. When does the body of a generator function run?</h3>
+<h3 id="2-when-does-the-body-of-a-generator-function-run"><a class="header" href="#2-when-does-the-body-of-a-generator-function-run">2. When does the body of a generator function run?</a></h3>
 <p><strong>Answer.</strong> Not when it is called. Calling a generator function creates a generator object and runs nothing. The body runs on each <code>next()</code>, up to the next <code>yield</code>, then pauses with its local state preserved.</p>
 <p><strong>Follow-up: “How does it remember its position?”</strong> The paused frame is kept alive, including local variables. This is why a generator can hold state without an explicit state machine.</p>
 <p><strong>Trap.</strong> Adding a <code>print</code> at the top of a generator function and expecting it during definition. It appears only on the first <code>next()</code>.</p>
-</section>
-<section id="why-does-a-generator-appear-empty-the-second-time-i-use-it" class="level3">
-<h3 class="anchored" data-anchor-id="why-does-a-generator-appear-empty-the-second-time-i-use-it">3. Why does a generator appear empty the second time I use it?</h3>
+<h3 id="3-why-does-a-generator-appear-empty-the-second-time-i-use-it"><a class="header" href="#3-why-does-a-generator-appear-empty-the-second-time-i-use-it">3. Why does a generator appear empty the second time I use it?</a></h3>
 <p><strong>Answer.</strong> Generators are single-use iterators. Once exhausted, asking for more raises <code>StopIteration</code>, so a second <code>list()</code> returns <code>[]</code>. The generator is not “reset”; it is finished.</p>
 <p><strong>Follow-up: “How do you fix it?”</strong> Call the generator function again to get a fresh generator, or materialise the values into a list if you need multiple passes. Design APIs to return a new generator per call.</p>
 <p><strong>Trap.</strong> Assuming <code>for</code> loops somehow restart a generator. Each loop consumes more of the same exhausted iterator.</p>
-</section>
-<section id="what-is-the-difference-between-lazy-and-eager-evaluation-and-when-does-it-matter" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-the-difference-between-lazy-and-eager-evaluation-and-when-does-it-matter">4. What is the difference between lazy and eager evaluation, and when does it matter?</h3>
+<h3 id="4-what-is-the-difference-between-lazy-and-eager-evaluation-and-when-does-it-matter"><a class="header" href="#4-what-is-the-difference-between-lazy-and-eager-evaluation-and-when-does-it-matter">4. What is the difference between lazy and eager evaluation, and when does it matter?</a></h3>
 <p><strong>Answer.</strong> Lazy produces values on demand; eager produces them all up front. It matters for memory and for when work is performed. A lazy pipeline over a 20 GB file uses constant memory; an eager one needs the whole dataset. Lazy also defers side effects until consumption.</p>
 <p><strong>Follow-up: “When is eager better?”</strong> When you need random access, repeated iteration, or a stable snapshot; when the data is small; or when you want a failure to happen immediately rather than at consumption time.</p>
 <p><strong>Trap.</strong> Assuming lazy is always better. It adds per-item overhead, cannot be reused, and moves exceptions away from their cause.</p>
-</section>
-<section id="what-does-yield-from-do" class="level3">
-<h3 class="anchored" data-anchor-id="what-does-yield-from-do">5. What does <code>yield from</code> do?</h3>
+<h3 id="5-what-does-yield-from-do"><a class="header" href="#5-what-does-yield-from-do">5. What does <code>yield from</code> do?</a></h3>
 <p><strong>Answer.</strong> It delegates iteration to another iterable, yielding each of its values in turn. It also forwards <code>send()</code> values down and propagates the sub-iterable’s return value, which makes it the clean way to compose generators.</p>
 <p><strong>Follow-up: “How does it differ from a <code>for</code> loop with <code>yield</code>?”</strong> For plain iteration the result is the same. <code>yield from</code> additionally handles <code>send</code>, <code>throw</code>, and the inner return value, so it is the correct tool for generator delegation.</p>
 <p><strong>Trap.</strong> Thinking <code>yield from</code> returns a list. It produces values lazily, one at a time, just like the delegation target.</p>
-</section>
-<section id="what-happens-to-a-return-value-inside-a-generator" class="level3">
-<h3 class="anchored" data-anchor-id="what-happens-to-a-return-value-inside-a-generator">6. What happens to a <code>return</code> value inside a generator?</h3>
+<h3 id="6-what-happens-to-a-return-value-inside-a-generator"><a class="header" href="#6-what-happens-to-a-return-value-inside-a-generator">6. What happens to a <code>return</code> value inside a generator?</a></h3>
 <p><strong>Answer.</strong> It ends the generator and is delivered as the <code>value</code> attribute of the <code>StopIteration</code> that terminates it. A normal <code>for</code> loop discards it; you see it only when driving the generator manually.</p>
 <p><strong>Follow-up: “How would you expose a final result cleanly?”</strong> Yield it as one more value, or return it and read <code>StopIteration.value</code>. Most code simply yields every value and lets the loop end.</p>
 <p><strong>Trap.</strong> Expecting <code>return x</code> to produce <code>x</code> in a <code>for</code> loop. The loop stops before the value is ever visible.</p>
-</section>
-<section id="what-is-the-bug-in-removing-items-from-a-list-while-iterating-it" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-the-bug-in-removing-items-from-a-list-while-iterating-it">7. What is the bug in removing items from a list while iterating it?</h3>
+<h3 id="7-what-is-the-bug-in-removing-items-from-a-list-while-iterating-it"><a class="header" href="#7-what-is-the-bug-in-removing-items-from-a-list-while-iterating-it">7. What is the bug in removing items from a list while iterating it?</a></h3>
 <p><strong>Answer.</strong> The iterator holds a position, but removal shifts later items into positions already passed. Some items are skipped and others may be visited twice. The result is silently wrong rather than an error.</p>
 <p><strong>Follow-up: “What is the fix?”</strong> Build a new list with a comprehension, or iterate over a copy (<code>for x in list(items)</code>). For in-place edits, collect the items to remove, then remove them after the loop.</p>
 <p><strong>Trap.</strong> Believing the loop raises an error. It does not; it quietly skips elements, which makes the bug hard to find.</p>
-</section>
-<section id="why-can-a-generator-keep-a-file-or-connection-open" class="level3">
-<h3 class="anchored" data-anchor-id="why-can-a-generator-keep-a-file-or-connection-open">8. Why can a generator keep a file or connection open?</h3>
+<h3 id="8-why-can-a-generator-keep-a-file-or-connection-open"><a class="header" href="#8-why-can-a-generator-keep-a-file-or-connection-open">8. Why can a generator keep a file or connection open?</a></h3>
 <p><strong>Answer.</strong> A generator paused inside a <code>with</code> block holds the whole frame, including the open resource, until it is exhausted or closed. If the consumer stops early, the cleanup may never run.</p>
 <p><strong>Follow-up: “How do you guarantee cleanup?”</strong> Wrap the body in <code>try/finally</code> so the <code>finally</code> runs on <code>.close()</code> or garbage collection, or avoid holding resources across <code>yield</code> when possible.</p>
 <p><strong>Trap.</strong> Assuming leaving a <code>for</code> loop early closes the generator. The generator object may stay alive and open until it is collected.</p>
-</section>
-</section>
-<section id="remember-this" class="level2">
-<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
 <ul>
 <li><strong>Iterable produces an iterator; an iterator is the cursor.</strong> The <code>for</code> loop drives it with <code>iter()</code> and <code>next()</code>.</li>
 <li>A generator <strong>runs only on demand</strong>, pauses at <code>yield</code>, and keeps its local state.</li>
@@ -1358,438 +442,58 @@ Note
 <li>Use <strong><code>itertools</code></strong> for lazy composition and <strong>materialise</strong> only when you need repeated access.</li>
 </ul>
 
+                    </main>
 
-</section>
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-01-production-python/04-decorators.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
-</main> <!-- /main -->
-<script id="quarto-html-after-body" type="application/javascript">
-  window.document.addEventListener("DOMContentLoaded", function (event) {
-    // Ensure there is a toggle, if there isn't float one in the top right
-    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
-      const a = window.document.createElement('a');
-      a.classList.add('top-right');
-      a.classList.add('quarto-color-scheme-toggle');
-      a.href = "";
-      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
-      const i = window.document.createElement("i");
-      i.classList.add('bi');
-      a.appendChild(i);
-      window.document.body.appendChild(a);
-    }
-    setColorSchemeToggle(hasAlternateSentinel())
-    const icon = "";
-    const anchorJS = new window.AnchorJS();
-    anchorJS.options = {
-      placement: 'right',
-      icon: icon
-    };
-    anchorJS.add('.anchored');
-    const isCodeAnnotation = (el) => {
-      for (const clz of el.classList) {
-        if (clz.startsWith('code-annotation-')) {                     
-          return true;
-        }
-      }
-      return false;
-    }
-    const onCopySuccess = function(e) {
-      // button target
-      const button = e.trigger;
-      // don't keep focus
-      button.blur();
-      // flash "checked"
-      button.classList.add('code-copy-button-checked');
-      var currentTitle = button.getAttribute("title");
-      button.setAttribute("title", "Copied!");
-      let tooltip;
-      if (window.bootstrap) {
-        button.setAttribute("data-bs-toggle", "tooltip");
-        button.setAttribute("data-bs-placement", "left");
-        button.setAttribute("data-bs-title", "Copied!");
-        tooltip = new bootstrap.Tooltip(button, 
-          { trigger: "manual", 
-            customClass: "code-copy-button-tooltip",
-            offset: [0, -8]});
-        tooltip.show();    
-      }
-      setTimeout(function() {
-        if (tooltip) {
-          tooltip.hide();
-          button.removeAttribute("data-bs-title");
-          button.removeAttribute("data-bs-toggle");
-          button.removeAttribute("data-bs-placement");
-        }
-        button.setAttribute("title", currentTitle);
-        button.classList.remove('code-copy-button-checked');
-      }, 1000);
-      // clear code selection
-      e.clearSelection();
-    }
-    const getTextToCopy = function(trigger) {
-      const outerScaffold = trigger.parentElement.cloneNode(true);
-      const codeEl = outerScaffold.querySelector('code');
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-      text: getTextToCopy
-    });
-    clipboard.on('success', onCopySuccess);
-    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-        text: getTextToCopy,
-        container: window.document.getElementById('quarto-embedded-source-code-modal')
-      });
-      clipboardModal.on('success', onCopySuccess);
-    }
-      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-      var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
-      var isInternal = (href) => {
-          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
-      }
-      // Inspect non-navigation links and adorn them if external
-     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-      for (var i=0; i<links.length; i++) {
-        const link = links[i];
-        if (!isInternal(link.href)) {
-          // undo the damage that might have been done by quarto-nav.js in the case of
-          // links that we want to consider external
-          if (link.dataset.originalHref !== undefined) {
-            link.href = link.dataset.originalHref;
-          }
-        }
-      }
-    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-      const config = {
-        allowHTML: true,
-        maxWidth: 500,
-        delay: 100,
-        arrow: false,
-        appendTo: function(el) {
-            return el.parentElement;
-        },
-        interactive: true,
-        interactiveBorder: 10,
-        theme: 'quarto',
-        placement: 'bottom-start',
-      };
-      if (contentFn) {
-        config.content = contentFn;
-      }
-      if (onTriggerFn) {
-        config.onTrigger = onTriggerFn;
-      }
-      if (onUntriggerFn) {
-        config.onUntrigger = onUntriggerFn;
-      }
-      window.tippy(el, config); 
-    }
-    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-    for (var i=0; i<noterefs.length; i++) {
-      const ref = noterefs[i];
-      tippyHover(ref, function() {
-        // use id or data attribute instead here
-        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-        try { href = new URL(href).hash; } catch {}
-        const id = href.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note) {
-          return note.innerHTML;
-        } else {
-          return "";
-        }
-      });
-    }
-    const xrefs = window.document.querySelectorAll('a.quarto-xref');
-    const processXRef = (id, note) => {
-      // Strip column container classes
-      const stripColumnClz = (el) => {
-        el.classList.remove("page-full", "page-columns");
-        if (el.children) {
-          for (const child of el.children) {
-            stripColumnClz(child);
-          }
-        }
-      }
-      stripColumnClz(note)
-      if (id === null || id.startsWith('sec-')) {
-        // Special case sections, only their first couple elements
-        const container = document.createElement("div");
-        if (note.children && note.children.length > 2) {
-          container.appendChild(note.children[0].cloneNode(true));
-          for (let i = 1; i < note.children.length; i++) {
-            const child = note.children[i];
-            if (child.tagName === "P" && child.innerText === "") {
-              continue;
-            } else {
-              container.appendChild(child.cloneNode(true));
-              break;
-            }
-          }
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(container);
-          }
-          return container.innerHTML
-        } else {
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(note);
-          }
-          return note.innerHTML;
-        }
-      } else {
-        // Remove any anchor links if they are present
-        const anchorLink = note.querySelector('a.anchorjs-link');
-        if (anchorLink) {
-          anchorLink.remove();
-        }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(note);
-        }
-        if (note.classList.contains("callout")) {
-          return note.outerHTML;
-        } else {
-          return note.innerHTML;
-        }
-      }
-    }
-    for (var i=0; i<xrefs.length; i++) {
-      const xref = xrefs[i];
-      tippyHover(xref, undefined, function(instance) {
-        instance.disable();
-        let url = xref.getAttribute('href');
-        let hash = undefined; 
-        if (url.startsWith('#')) {
-          hash = url;
-        } else {
-          try { hash = new URL(url).hash; } catch {}
-        }
-        if (hash) {
-          const id = hash.replace(/^#\/?/, "");
-          const note = window.document.getElementById(id);
-          if (note !== null) {
-            try {
-              const html = processXRef(id, note.cloneNode(true));
-              instance.setContent(html);
-            } finally {
-              instance.enable();
-              instance.show();
-            }
-          } else {
-            // See if we can fetch this
-            fetch(url.split('#')[0])
-            .then(res => res.text())
-            .then(html => {
-              const parser = new DOMParser();
-              const htmlDoc = parser.parseFromString(html, "text/html");
-              const note = htmlDoc.getElementById(id);
-              if (note !== null) {
-                const html = processXRef(id, note);
-                instance.setContent(html);
-              } 
-            }).finally(() => {
-              instance.enable();
-              instance.show();
-            });
-          }
-        } else {
-          // See if we can fetch a full url (with no hash to target)
-          // This is a special case and we should probably do some content thinning / targeting
-          fetch(url)
-          .then(res => res.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.querySelector('main.content');
-            if (note !== null) {
-              // This should only happen for chapter cross references
-              // (since there is no id in the URL)
-              // remove the first header
-              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-                note.children[0].remove();
-              }
-              const html = processXRef(null, note);
-              instance.setContent(html);
-            } 
-          }).finally(() => {
-            instance.enable();
-            instance.show();
-          });
-        }
-      }, function(instance) {
-      });
-    }
-        let selectedAnnoteEl;
-        const selectorForAnnotation = ( cell, annotation) => {
-          let cellAttr = 'data-code-cell="' + cell + '"';
-          let lineAttr = 'data-code-annotation="' +  annotation + '"';
-          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-          return selector;
-        }
-        const selectCodeLines = (annoteEl) => {
-          const doc = window.document;
-          const targetCell = annoteEl.getAttribute("data-target-cell");
-          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-          const lineIds = lines.map((line) => {
-            return targetCell + "-" + line;
-          })
-          let top = null;
-          let height = null;
-          let parent = null;
-          if (lineIds.length > 0) {
-              //compute the position of the single el (top and bottom and make a div)
-              const el = window.document.getElementById(lineIds[0]);
-              top = el.offsetTop;
-              height = el.offsetHeight;
-              parent = el.parentElement.parentElement;
-            if (lineIds.length > 1) {
-              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-              height = bottom - top;
-            }
-            if (top !== null && height !== null && parent !== null) {
-              // cook up a div (if necessary) and position it 
-              let div = window.document.getElementById("code-annotation-line-highlight");
-              if (div === null) {
-                div = window.document.createElement("div");
-                div.setAttribute("id", "code-annotation-line-highlight");
-                div.style.position = 'absolute';
-                parent.appendChild(div);
-              }
-              div.style.top = top - 2 + "px";
-              div.style.height = height + 4 + "px";
-              div.style.left = 0;
-              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-              if (gutterDiv === null) {
-                gutterDiv = window.document.createElement("div");
-                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-                gutterDiv.style.position = 'absolute';
-                const codeCell = window.document.getElementById(targetCell);
-                const gutter = codeCell.querySelector('.code-annotation-gutter');
-                gutter.appendChild(gutterDiv);
-              }
-              gutterDiv.style.top = top - 2 + "px";
-              gutterDiv.style.height = height + 4 + "px";
-            }
-            selectedAnnoteEl = annoteEl;
-          }
-        };
-        const unselectCodeLines = () => {
-          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-          elementsIds.forEach((elId) => {
-            const div = window.document.getElementById(elId);
-            if (div) {
-              div.remove();
-            }
-          });
-          selectedAnnoteEl = undefined;
-        };
-          // Handle positioning of the toggle
-      window.addEventListener(
-        "resize",
-        throttle(() => {
-          elRect = undefined;
-          if (selectedAnnoteEl) {
-            selectCodeLines(selectedAnnoteEl);
-          }
-        }, 10)
-      );
-      function throttle(fn, ms) {
-      let throttle = false;
-      let timer;
-        return (...args) => {
-          if(!throttle) { // first call gets through
-              fn.apply(this, args);
-              throttle = true;
-          } else { // all the others get throttled
-              if(timer) clearTimeout(timer); // cancel #2
-              timer = setTimeout(() => {
-                fn.apply(this, args);
-                timer = throttle = false;
-              }, ms);
-          }
-        };
-      }
-        // Attach click handler to the DT
-        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-        for (const annoteDlNode of annoteDls) {
-          annoteDlNode.addEventListener('click', (event) => {
-            const clickedEl = event.target;
-            if (clickedEl !== selectedAnnoteEl) {
-              unselectCodeLines();
-              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-              if (activeEl) {
-                activeEl.classList.remove('code-annotation-active');
-              }
-              selectCodeLines(clickedEl);
-              clickedEl.classList.add('code-annotation-active');
-            } else {
-              // Unselect the line
-              unselectCodeLines();
-              clickedEl.classList.remove('code-annotation-active');
-            }
-          });
-        }
-    const findCites = (el) => {
-      const parentEl = el.parentElement;
-      if (parentEl) {
-        const cites = parentEl.dataset.cites;
-        if (cites) {
-          return {
-            el,
-            cites: cites.split(' ')
-          };
-        } else {
-          return findCites(el.parentElement)
-        }
-      } else {
-        return undefined;
-      }
-    };
-    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-    for (var i=0; i<bibliorefs.length; i++) {
-      const ref = bibliorefs[i];
-      const citeInfo = findCites(ref);
-      if (citeInfo) {
-        tippyHover(citeInfo.el, function() {
-          var popup = window.document.createElement('div');
-          citeInfo.cites.forEach(function(cite) {
-            var citeDiv = window.document.createElement('div');
-            citeDiv.classList.add('hanging-indent');
-            citeDiv.classList.add('csl-entry');
-            var biblioDiv = window.document.getElementById('ref-' + cite);
-            if (biblioDiv) {
-              citeDiv.innerHTML = biblioDiv.innerHTML;
-            }
-            popup.appendChild(citeDiv);
-          });
-          return popup.innerHTML;
-        });
-      }
-    }
-  });
-  </script>
-<nav class="page-navigation">
-  <div class="nav-page nav-page-previous">
-      <a href="../phase-01-production-python/04-decorators.html" class="pagination-link" aria-label="Decorators">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Decorators</span></span>
-      </a>          
-  </div>
-  <div class="nav-page nav-page-next">
-      <a href="../phase-01-production-python/06-context-managers.html" class="pagination-link" aria-label="Context Managers">
-        <span class="nav-page-text"><span class="chapter-title">Context Managers</span></span> <i class="bi bi-arrow-right-short"></i>
-      </a>
-  </div>
-</nav>
-</div> <!-- /content -->
+                            <a rel="next prefetch" href="../phase-01-production-python/06-context-managers.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-01-production-python/04-decorators.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-01-production-python/06-context-managers.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
 
 
 
 
-</body></html>
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom.js"></script>
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

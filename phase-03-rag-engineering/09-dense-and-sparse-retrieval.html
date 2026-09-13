@@ -1,1324 +1,279 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
-
-<meta charset="utf-8">
-<meta name="generator" content="quarto-1.10.18">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-
-
-<title>Dense and Sparse Retrieval – Agentic AI Engineering Study Book</title>
-<style>
-/* Default styles provided by pandoc.
-** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
-*/
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: 1.5em;}
-div.column{flex: auto;}
-@media screen {
-div.columns{gap: min(4vw, 1.5em);}
-div.column{overflow-x: auto;}
-}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-ul.task-list{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-  width: 0.8em;
-  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
-  vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-</style>
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Dense and Sparse Retrieval - Agentic AI Engineering Study Book</title>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<link href="../phase-03-rag-engineering/10-hybrid-search.html" rel="next">
-<link href="../phase-03-rag-engineering/08-postgresql-pgvector.html" rel="prev">
-<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-012e79344040a4a328ea85a5b0a60384.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-d84a0d611e1de1507791ffd4dad004b1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
-<script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
-  "copy-button": false,
-  "collapse-after": 3,
-  "panel-placement": "start",
-  "type": "textbox",
-  "limit": 50,
-  "keyboard-shortcut": [
-    "f",
-    "/",
-    "s"
-  ],
-  "show-item-context": false,
-  "language": {
-    "search-no-results-text": "No results",
-    "search-matching-documents-text": "matching documents",
-    "search-copy-link-title": "Copy link to search",
-    "search-hide-matches-text": "Hide additional matches",
-    "search-more-match-text": "more match in this document",
-    "search-more-matches-text": "more matches in this document",
-    "search-clear-button-title": "Clear",
-    "search-text-placeholder": "",
-    "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit",
-    "search-label": "Search"
-  }
-}</script>
-<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
-<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
-<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+        <!-- Custom HTML head -->
 
-  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
 
-<script type="text/javascript">
-const typesetMath = (el) => {
-  if (window.MathJax) {
-    // MathJax Typeset
-    window.MathJax.typeset([el]);
-  } else if (window.katex) {
-    // KaTeX Render
-    var mathElements = el.getElementsByClassName("math");
-    var macros = [];
-    for (var i = 0; i < mathElements.length; i++) {
-      var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
-        window.katex.render(texText.data, mathElements[i], {
-          displayMode: mathElements[i].classList.contains('display'),
-          throwOnError: false,
-          macros: macros,
-          fleqn: false
-        });
-      }
-    }
-  }
-}
-window.Quarto = {
-  typesetMath
-};
-</script>
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
 
-<link rel="stylesheet" href="../assets/fonts/fonts.css">
-<link rel="stylesheet" href="../styles/custom.css">
-</head>
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
 
-<body class="nav-sidebar floating quarto-light"><script id="quarto-html-before-body" type="application/javascript">
-    const toggleBodyColorMode = (bsSheetEl) => {
-      const mode = bsSheetEl.getAttribute("data-mode");
-      const bodyEl = window.document.querySelector("body");
-      if (mode === "dark") {
-        bodyEl.classList.add("quarto-dark");
-        bodyEl.classList.remove("quarto-light");
-      } else {
-        bodyEl.classList.add("quarto-light");
-        bodyEl.classList.remove("quarto-dark");
-      }
-    }
-    const toggleBodyColorPrimary = () => {
-      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
-      if (bsSheetEl) {
-        toggleBodyColorMode(bsSheetEl);
-      }
-    }
-    const setColorSchemeToggle = (alternate) => {
-      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
-      for (let i=0; i < toggles.length; i++) {
-        const toggle = toggles[i];
-        if (toggle) {
-          if (alternate) {
-            toggle.classList.add("alternate");
-          } else {
-            toggle.classList.remove("alternate");
-          }
-        }
-      }
-    };
-    const toggleColorMode = (alternate) => {
-      // Switch the stylesheets
-      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
-      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
-      manageTransitions('#quarto-margin-sidebar .nav-link', false);
-      if (alternate) {
-        // note: dark is layered on light, we don't disable primary!
-        enableStylesheet(alternateStylesheets);
-        for (const sheetNode of alternateStylesheets) {
-          if (sheetNode.id === "quarto-bootstrap") {
-            toggleBodyColorMode(sheetNode);
-          }
-        }
-      } else {
-        disableStylesheet(alternateStylesheets);
-        enableStylesheet(primaryStylesheets)
-        toggleBodyColorPrimary();
-      }
-      manageTransitions('#quarto-margin-sidebar .nav-link', true);
-      // Switch the toggles
-      setColorSchemeToggle(alternate)
-      // Hack to workaround the fact that safari doesn't
-      // properly recolor the scrollbar when toggling (#1455)
-      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
-        manageTransitions("body", false);
-        window.scrollTo(0, 1);
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          manageTransitions("body", true);
-        }, 40);
-      }
-    }
-    const disableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        stylesheet.rel = 'disabled-stylesheet';
-      }
-    }
-    const enableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
-          stylesheet.rel = 'stylesheet';
-        }
-      }
-    }
-    const manageTransitions = (selector, allowTransitions) => {
-      const els = window.document.querySelectorAll(selector);
-      for (let i=0; i < els.length; i++) {
-        const el = els[i];
-        if (allowTransitions) {
-          el.classList.remove('notransition');
-        } else {
-          el.classList.add('notransition');
-        }
-      }
-    }
-    const isFileUrl = () => {
-      return window.location.protocol === 'file:';
-    }
-    const hasAlternateSentinel = () => {
-      let styleSentinel = getColorSchemeSentinel();
-      if (styleSentinel !== null) {
-        return styleSentinel === "alternate";
-      } else {
-        return false;
-      }
-    }
-    const setStyleSentinel = (alternate) => {
-      const value = alternate ? "alternate" : "default";
-      if (!isFileUrl()) {
-        window.localStorage.setItem("quarto-color-scheme", value);
-      } else {
-        localAlternateSentinel = value;
-      }
-    }
-    const getColorSchemeSentinel = () => {
-      if (!isFileUrl()) {
-        const storageValue = window.localStorage.getItem("quarto-color-scheme");
-        return storageValue != null ? storageValue : localAlternateSentinel;
-      } else {
-        return localAlternateSentinel;
-      }
-    }
-    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
-      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
-      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
-      let newTheme = '';
-      if(authorPrefersDark) {
-        newTheme = isAlternate ? baseTheme : alternateTheme;
-      } else {
-        newTheme = isAlternate ? alternateTheme : baseTheme;
-      }
-      const changeGiscusTheme = () => {
-        // From: https://github.com/giscus/giscus/issues/336
-        const sendMessage = (message) => {
-          const iframe = document.querySelector('iframe.giscus-frame');
-          if (!iframe) return;
-          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
-        }
-        sendMessage({
-          setConfig: {
-            theme: newTheme
-          }
-        });
-      }
-      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
-      if (isGiscussLoaded) {
-        changeGiscusTheme();
-      }
-    };
-    const authorPrefersDark = false;
-    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    const darkModeDefault = queryPrefersDark.matches;
-      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
-    // Dark / light mode switch
-    window.quartoToggleColorScheme = () => {
-      // Read the current dark / light value
-      let toAlternate = !hasAlternateSentinel();
-      toggleColorMode(toAlternate);
-      setStyleSentinel(toAlternate);
-      toggleGiscusIfUsed(toAlternate, darkModeDefault);
-      window.dispatchEvent(new Event('resize'));
-    };
-    queryPrefersDark.addEventListener("change", e => {
-      if(window.localStorage.getItem("quarto-color-scheme") !== null)
-        return;
-      const alternate = e.matches
-      toggleColorMode(alternate);
-      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
-      toggleGiscusIfUsed(alternate, darkModeDefault);
-    });
-    // Switch to dark mode if need be
-    if (hasAlternateSentinel()) {
-      toggleColorMode(true);
-    } else {
-      toggleColorMode(false);
-    }
-  </script>
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
 
-<div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
-  <nav class="quarto-secondary-nav">
-    <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
-        <i class="bi bi-layout-text-sidebar-reverse"></i>
-      </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html"><span class="chapter-title">Dense and Sparse Retrieval</span></a></li></ol></nav>
-        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-        </a>
-      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
-        <i class="bi bi-search"></i>
-      </button>
-    </div>
-  </nav>
-</header>
-<!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
-<!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header">
-    <div class="sidebar-title mb-0 py-0">
-      <a href="../">Agentic AI Engineering Study Book</a> 
-        <div class="sidebar-tools-main">
-  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
-</div>
-    </div>
-      </div>
-        <div class="mt-2 flex-shrink-0 align-items-center">
-        <div class="sidebar-search">
-        <div id="quarto-search" class="" title="Search"></div>
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../assets/fonts/fonts.css">
+        <link rel="stylesheet" href="../theme/custom.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
         </div>
-        </div>
-    <div class="sidebar-menu-container"> 
-    <ul class="list-unstyled mt-1">
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
-  </div>
-</li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 1 — Production Python</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 3 — RAG Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Evaluation and Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-04-agentic-ai-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 4 — Agentic AI Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/01-what-an-ai-agent-is.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">What an AI Agent Is</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/02-the-agent-loop.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Agent Loop</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/03-tool-execution-and-result-validation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Execution and Result Validation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/04-agent-memory-short-term-and-working.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Short-Term and Working</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/05-agent-memory-long-term-episodic-semantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Long-Term, Episodic, and Semantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/06-planning-decomposition-and-routing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Planning, Decomposition, and Routing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/07-reflection-and-self-correction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reflection and Self-Correction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/08-retries-termination-and-loop-detection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retries, Termination, and Loop Detection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/09-state-management-and-persistence.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">State Management and Persistence</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/10-checkpointing-and-durable-execution.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Checkpointing and Durable Execution</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/11-human-in-the-loop-and-approvals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Human-in-the-Loop and Approvals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/12-guardrails.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Guardrails</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/13-structured-agent-outputs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Agent Outputs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/14-tool-schemas-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Schemas and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/15-tool-permissions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Permissions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/16-parallel-and-conditional-workflows.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parallel and Conditional Workflows</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/17-long-running-and-background-agents.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Long-Running and Background Agents</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/18-langgraph-graphs-and-state.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Graphs and State</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/19-langgraph-checkpoints-interrupts-subgraphs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Checkpoints, Interrupts, and Subgraphs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/20-openai-agents-sdk.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">OpenAI Agents SDK</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/21-agent-orchestration-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Orchestration Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/22-agent-reliability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Reliability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-05-mcp-tool-ecosystems/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 5 — MCP and Tool Ecosystems</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/01-mcp-fundamentals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Fundamentals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/02-mcp-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/03-mcp-transports.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Transports</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/04-mcp-tools-resources-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tools, Resources, and Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/05-tool-and-capability-discovery.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool and Capability Discovery</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/06-mcp-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/07-sessions-and-stateful-stateless-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sessions and Stateful vs Stateless Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/08-building-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/09-building-mcp-clients.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Clients</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/10-database-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Database MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/11-github-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">GitHub MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/12-filesystem-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Filesystem MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/13-browser-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Browser MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/14-internal-api-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Internal API MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/15-enterprise-mcp-gateways.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Enterprise MCP Gateways</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/16-mcp-security-and-permission-boundaries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Security and Permission Boundaries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/17-mcp-observability-and-audit-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Observability and Audit Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/18-mcp-tool-versioning-and-registries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tool Versioning and Registries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/19-agent-to-agent-communication-and-a2a.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent-to-Agent Communication and A2A</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/20-agent-capability-discovery-and-interoperability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Capability Discovery and Interoperability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-    </ul>
     </div>
-</nav>
-<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
-<!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">Table of contents</h2>
-   
-  <ul class="collapse">
-  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
-  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
-  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
-  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
-  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
-  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
-  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
-  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
-  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
-  </ul>
-</nav>
-    </div>
-<!-- main -->
-<main class="content" id="quarto-document-content">
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html"><span class="chapter-title">Dense and Sparse Retrieval</span></a></li></ol></nav>
-<div class="quarto-title">
-<h1 class="title"><span class="chapter-title">Dense and Sparse Retrieval</span></h1>
-</div>
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
 
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
 
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
-<div class="quarto-title-meta">
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
 
-    
-  
-    
-  </div>
-  
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
 
+        <div id="page-wrapper" class="page-wrapper">
 
-</header>
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
 
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
 
-<blockquote class="blockquote">
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="dense-and-sparse-retrieval"><a class="header" href="#dense-and-sparse-retrieval">Dense and Sparse Retrieval</a></h1>
+<blockquote>
 <p><strong>Interview answer (say this first).</strong> Dense retrieval embeds the query and the documents, then searches by meaning, so it matches paraphrases and synonyms. Sparse retrieval matches exact terms and ranks them with BM25, so it is precise for names, codes, acronyms, and rare words. They fail in opposite ways, which is why production systems usually run both.</p>
 </blockquote>
-<section id="why-this-exists" class="level2">
-<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
 <p>Imagine a support search box. Two users type two different things, and the system fails both of them for opposite reasons.</p>
 <p><strong>Failure one: good meaning, no shared words.</strong> The user asks:</p>
-<pre class="text"><code>how do I stop the service from dying</code></pre>
+<pre><code class="language-text">how do I stop the service from dying
+</code></pre>
 <p>The best document says:</p>
-<pre class="text"><code>Handling uncaught exceptions so the application does not terminate</code></pre>
+<pre><code class="language-text">Handling uncaught exceptions so the application does not terminate
+</code></pre>
 <p>A keyword search finds almost nothing. The words <code>dying</code> and <code>uncaught exceptions</code> do not overlap at all. The document has the answer; the search box never shows it. This is the <strong>lexical gap</strong>: the user and the document describe the same thing with different words.</p>
 <p><strong>Failure two: exact token, blurred meaning.</strong> A second user asks about a specific error:</p>
-<pre class="text"><code>what does ERR-4032 mean</code></pre>
+<pre><code class="language-text">what does ERR-4032 mean
+</code></pre>
 <p>An embedding model turns <code>ERR-4032</code> into a vector. That vector points roughly at “error” and “code”, because the model saw those words during training. It does not have a precise direction for this one identifier. So the semantic search returns ten generic error pages, and the one page that actually contains <code>ERR-4032</code> may rank low. Embeddings deliberately smooth away rare exact strings.</p>
 <p>Now the important part: <strong>the two failures need opposite fixes.</strong> Failure one needs meaning. Failure two needs exact matching. A retrieval system that only does one of them will keep failing the other. That is why engineers say retrieval is a <strong>portfolio</strong> of methods, not a single method.</p>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
+<blockquote>
+<p><strong>Note:</strong></p>
 <p><strong>The one-sentence purpose.</strong> Dense retrieval searches by meaning; sparse retrieval searches by exact terms. You need to know which failure mode your queries have before choosing. Agents hit the same split: looking up a tool or error code needs exact matching, while recalling past conversation needs meaning.</p>
-</div>
-</div>
-</section>
-<section id="start-from-zero" class="level2">
-<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
 <p>Before going further, here are the words this topic keeps using.</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Word</th>
-<th>Plain meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Retrieval</strong></td>
-<td>Finding the documents most likely to answer a query.</td>
-</tr>
-<tr class="even">
-<td><strong>Corpus</strong></td>
-<td>The whole collection of documents you search.</td>
-</tr>
-<tr class="odd">
-<td><strong>Document</strong></td>
-<td>One item in the corpus: a page, a ticket, a paragraph. Often split into chunks.</td>
-</tr>
-<tr class="even">
-<td><strong>Chunk</strong></td>
-<td>A small piece of a document, stored and retrieved as one unit.</td>
-</tr>
-<tr class="odd">
-<td><strong>Token</strong></td>
-<td>One unit of text after splitting, usually a word or a sub-word.</td>
-</tr>
-<tr class="even">
-<td><strong>Tokenization</strong></td>
-<td>Splitting text into tokens.</td>
-</tr>
-<tr class="odd">
-<td><strong>Normalisation</strong></td>
-<td>Cleaning text before indexing: lowercasing, removing punctuation, collapsing spaces.</td>
-</tr>
-<tr class="even">
-<td><strong>Stemming</strong></td>
-<td>Cutting a word to a rough root, so <code>running</code> becomes <code>run</code>. Crude but fast.</td>
-</tr>
-<tr class="odd">
-<td><strong>Lemmatization</strong></td>
-<td>Reducing a word to its dictionary form using grammar knowledge: <code>ran</code> becomes <code>run</code>.</td>
-</tr>
-<tr class="even">
-<td><strong>Stop word</strong></td>
-<td>A very common word (<code>the</code>, <code>is</code>, <code>and</code>) that is often dropped from the index.</td>
-</tr>
-<tr class="odd">
-<td><strong>Term</strong></td>
-<td>A token as stored in the index, after normalisation and stemming.</td>
-</tr>
-<tr class="even">
-<td><strong>Term frequency (tf)</strong></td>
-<td>How many times a term appears in one document.</td>
-</tr>
-<tr class="odd">
-<td><strong>Document frequency (df)</strong></td>
-<td>How many documents in the corpus contain the term.</td>
-</tr>
-<tr class="even">
-<td><strong>Inverse document frequency (idf)</strong></td>
-<td>A weight that is high for rare terms and low for common ones.</td>
-</tr>
-<tr class="odd">
-<td><strong>Inverted index</strong></td>
-<td>A map from each term to the list of documents that contain it. This is what makes keyword search fast.</td>
-</tr>
-<tr class="even">
-<td><strong>Postings list</strong></td>
-<td>The entries stored under one term: which documents, and often where and how often.</td>
-</tr>
-<tr class="odd">
-<td><strong>Sparse vector</strong></td>
-<td>A vector where almost every entry is zero, e.g.&nbsp;one slot per vocabulary word.</td>
-</tr>
-<tr class="even">
-<td><strong>Dense vector</strong></td>
-<td>A short vector where most entries are non-zero. An embedding.</td>
-</tr>
-<tr class="odd">
-<td><strong>Embedding</strong></td>
-<td>A learned dense vector that places similar meanings near each other.</td>
-</tr>
-<tr class="even">
-<td><strong>Cosine similarity</strong></td>
-<td>The cosine of the angle between two vectors, ignoring their length. Range <code>[-1, 1]</code>.</td>
-</tr>
-<tr class="odd">
-<td><strong>BM25</strong></td>
-<td>“Best Matching 25”, the standard sparse ranking formula. Ranks documents for a set of query terms.</td>
-</tr>
-<tr class="even">
-<td><strong><code>k1</code></strong></td>
-<td>BM25’s term-frequency knob. Controls how quickly repeated terms stop adding score.</td>
-</tr>
-<tr class="odd">
-<td><strong><code>b</code></strong></td>
-<td>BM25’s length-normalisation knob. Controls how much long documents are penalised.</td>
-</tr>
-<tr class="even">
-<td><strong>GIN index</strong></td>
-<td>PostgreSQL’s inverted index type, used for <code>tsvector</code> columns.</td>
-</tr>
-<tr class="odd">
-<td><strong><code>tsvector</code></strong></td>
-<td>A PostgreSQL value holding a document’s normalised terms and positions.</td>
-</tr>
-<tr class="even">
-<td><strong><code>tsquery</code></strong></td>
-<td>A PostgreSQL value holding a parsed query: terms joined with AND (<code>&amp;</code>), OR, NOT (<code>!</code>), and adjacency (<code>&lt;-&gt;</code>).</td>
-</tr>
-<tr class="odd">
-<td><strong>Recall</strong></td>
-<td>Of all the truly relevant documents, the fraction that was retrieved.</td>
-</tr>
-<tr class="even">
-<td><strong>Precision</strong></td>
-<td>Of the documents retrieved, the fraction that was truly relevant.</td>
-</tr>
-</tbody>
-</table>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Retrieval</strong></td><td>Finding the documents most likely to answer a query.</td></tr>
+<tr><td><strong>Corpus</strong></td><td>The whole collection of documents you search.</td></tr>
+<tr><td><strong>Document</strong></td><td>One item in the corpus: a page, a ticket, a paragraph. Often split into chunks.</td></tr>
+<tr><td><strong>Chunk</strong></td><td>A small piece of a document, stored and retrieved as one unit.</td></tr>
+<tr><td><strong>Token</strong></td><td>One unit of text after splitting, usually a word or a sub-word.</td></tr>
+<tr><td><strong>Tokenization</strong></td><td>Splitting text into tokens.</td></tr>
+<tr><td><strong>Normalisation</strong></td><td>Cleaning text before indexing: lowercasing, removing punctuation, collapsing spaces.</td></tr>
+<tr><td><strong>Stemming</strong></td><td>Cutting a word to a rough root, so <code>running</code> becomes <code>run</code>. Crude but fast.</td></tr>
+<tr><td><strong>Lemmatization</strong></td><td>Reducing a word to its dictionary form using grammar knowledge: <code>ran</code> becomes <code>run</code>.</td></tr>
+<tr><td><strong>Stop word</strong></td><td>A very common word (<code>the</code>, <code>is</code>, <code>and</code>) that is often dropped from the index.</td></tr>
+<tr><td><strong>Term</strong></td><td>A token as stored in the index, after normalisation and stemming.</td></tr>
+<tr><td><strong>Term frequency (tf)</strong></td><td>How many times a term appears in one document.</td></tr>
+<tr><td><strong>Document frequency (df)</strong></td><td>How many documents in the corpus contain the term.</td></tr>
+<tr><td><strong>Inverse document frequency (idf)</strong></td><td>A weight that is high for rare terms and low for common ones.</td></tr>
+<tr><td><strong>Inverted index</strong></td><td>A map from each term to the list of documents that contain it. This is what makes keyword search fast.</td></tr>
+<tr><td><strong>Postings list</strong></td><td>The entries stored under one term: which documents, and often where and how often.</td></tr>
+<tr><td><strong>Sparse vector</strong></td><td>A vector where almost every entry is zero, e.g. one slot per vocabulary word.</td></tr>
+<tr><td><strong>Dense vector</strong></td><td>A short vector where most entries are non-zero. An embedding.</td></tr>
+<tr><td><strong>Embedding</strong></td><td>A learned dense vector that places similar meanings near each other.</td></tr>
+<tr><td><strong>Cosine similarity</strong></td><td>The cosine of the angle between two vectors, ignoring their length. Range <code>[-1, 1]</code>.</td></tr>
+<tr><td><strong>BM25</strong></td><td>“Best Matching 25”, the standard sparse ranking formula. Ranks documents for a set of query terms.</td></tr>
+<tr><td><strong><code>k1</code></strong></td><td>BM25’s term-frequency knob. Controls how quickly repeated terms stop adding score.</td></tr>
+<tr><td><strong><code>b</code></strong></td><td>BM25’s length-normalisation knob. Controls how much long documents are penalised.</td></tr>
+<tr><td><strong>GIN index</strong></td><td>PostgreSQL’s inverted index type, used for <code>tsvector</code> columns.</td></tr>
+<tr><td><strong><code>tsvector</code></strong></td><td>A PostgreSQL value holding a document’s normalised terms and positions.</td></tr>
+<tr><td><strong><code>tsquery</code></strong></td><td>A PostgreSQL value holding a parsed query: terms joined with AND (<code>&amp;</code>), OR, NOT (<code>!</code>), and adjacency (<code>&lt;-&gt;</code>).</td></tr>
+<tr><td><strong>Recall</strong></td><td>Of all the truly relevant documents, the fraction that was retrieved.</td></tr>
+<tr><td><strong>Precision</strong></td><td>Of the documents retrieved, the fraction that was truly relevant.</td></tr>
+</tbody></table>
+</div>
 <p>Two confusions cause most mistakes, so pin them down now:</p>
 <ul>
 <li><strong>Sparse vs dense is about the vector shape, not the quality.</strong> Sparse means “one slot per vocabulary item, almost all zeros”. Dense means “a short learned vector, mostly non-zero”. Both can be good.</li>
 <li><strong>The index retrieves; the scorer ranks.</strong> The inverted index finds candidate documents that contain the query terms. BM25 then puts them in order. They are two separate jobs.</li>
 </ul>
-</section>
-<section id="the-core-idea" class="level2">
-<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Picture a library with two very different librarians.</p>
 <p>The first librarian keeps a <strong>concordance</strong>: an alphabetical list of every word in every book, with page numbers. Ask “which books contain the word <code>ERR-4032</code>?” and she answers instantly and exactly. Ask “which books are about crashing services?” and she is stuck, because she only knows words, not ideas. She is <strong>sparse retrieval</strong>.</p>
 <p>The second librarian has read everything and remembers themes. Ask about a crashing service and she points you at the chapter on uncaught exceptions, even though it never uses the word “dying”. She is wonderful with meaning, but if you ask for the exact string <code>ERR-4032</code> she shrugs, because she remembers the gist, not the characters. She is <strong>dense retrieval</strong>.</p>
 <p>You want both librarians at the desk, and you compare their answers.</p>
-<div class="cell" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart LR
-    Q["Query"] --&gt; SP["Sparse path&lt;br/&gt;tokenize + stemming"]
-    Q --&gt; DP["Dense path&lt;br/&gt;embedding model"]
-    SP --&gt; SI["Inverted index&lt;br/&gt;term -&gt; postings"]
-    SI --&gt; SB["BM25 score&lt;br/&gt;lexical match"]
-    DP --&gt; DV["Query vector"]
-    DV --&gt; DS["ANN search&lt;br/&gt;cosine similarity"]
-    SB --&gt; R["Two candidate lists"]
+<pre class="mermaid">flowchart LR
+    Q[&quot;Query&quot;] --&gt; SP[&quot;Sparse path&lt;br/&gt;tokenize + stemming&quot;]
+    Q --&gt; DP[&quot;Dense path&lt;br/&gt;embedding model&quot;]
+    SP --&gt; SI[&quot;Inverted index&lt;br/&gt;term -&gt; postings&quot;]
+    SI --&gt; SB[&quot;BM25 score&lt;br/&gt;lexical match&quot;]
+    DP --&gt; DV[&quot;Query vector&quot;]
+    DV --&gt; DS[&quot;ANN search&lt;br/&gt;cosine similarity&quot;]
+    SB --&gt; R[&quot;Two candidate lists&quot;]
     DS --&gt; R
-    R --&gt; M["Merge (hybrid search)"]
+    R --&gt; M[&quot;Merge (hybrid search)&quot;]
 </pre>
+<div class="table-wrapper"><table><thead><tr><th>Property</th><th>Sparse retrieval</th><th>Dense retrieval</th></tr></thead><tbody>
+<tr><td>Unit of matching</td><td>Terms.</td><td>Meaning.</td></tr>
+<tr><td>Representation</td><td>One slot per vocabulary item</td><td>A short learned vector</td></tr>
+<tr><td>Query and document</td><td>Compared through shared terms</td><td>Embedded separately, compared by distance</td></tr>
+<tr><td>Handles synonyms</td><td>No, unless expanded</td><td>Yes</td></tr>
+<tr><td>Handles word order</td><td>Only with phrases/proximity</td><td>Partially, through training</td></tr>
+<tr><td>Exact IDs and codes</td><td>Excellent</td><td>Poor</td></tr>
+<tr><td>Rare terms</td><td>Weighted up by IDF</td><td>Blurred into a general meaning</td></tr>
+<tr><td>Unseen vocabulary</td><td>Fails (no index entry)</td><td>Often works from context</td></tr>
+<tr><td>Interpretability</td><td>High: you can see the matched terms</td><td>Low: a similarity number</td></tr>
+<tr><td>Typical store</td><td>Inverted index (GIN, Lucene)</td><td>Vector index (HNSW, IVFFlat)</td></tr>
+<tr><td>Typical score</td><td>BM25</td><td>Cosine or dot product</td></tr>
+</tbody></table>
 </div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Property</th>
-<th>Sparse retrieval</th>
-<th>Dense retrieval</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Unit of matching</td>
-<td>Terms.</td>
-<td>Meaning.</td>
-</tr>
-<tr class="even">
-<td>Representation</td>
-<td>One slot per vocabulary item</td>
-<td>A short learned vector</td>
-</tr>
-<tr class="odd">
-<td>Query and document</td>
-<td>Compared through shared terms</td>
-<td>Embedded separately, compared by distance</td>
-</tr>
-<tr class="even">
-<td>Handles synonyms</td>
-<td>No, unless expanded</td>
-<td>Yes</td>
-</tr>
-<tr class="odd">
-<td>Handles word order</td>
-<td>Only with phrases/proximity</td>
-<td>Partially, through training</td>
-</tr>
-<tr class="even">
-<td>Exact IDs and codes</td>
-<td>Excellent</td>
-<td>Poor</td>
-</tr>
-<tr class="odd">
-<td>Rare terms</td>
-<td>Weighted up by IDF</td>
-<td>Blurred into a general meaning</td>
-</tr>
-<tr class="even">
-<td>Unseen vocabulary</td>
-<td>Fails (no index entry)</td>
-<td>Often works from context</td>
-</tr>
-<tr class="odd">
-<td>Interpretability</td>
-<td>High: you can see the matched terms</td>
-<td>Low: a similarity number</td>
-</tr>
-<tr class="even">
-<td>Typical store</td>
-<td>Inverted index (GIN, Lucene)</td>
-<td>Vector index (HNSW, IVFFlat)</td>
-</tr>
-<tr class="odd">
-<td>Typical score</td>
-<td>BM25</td>
-<td>Cosine or dot product</td>
-</tr>
-</tbody>
-</table>
 <p>That table <em>is</em> the topic. Everything else is detail about the two columns.</p>
-</section>
-<section id="how-it-works" class="level2">
-<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
-<section id="the-sparse-path" class="level3">
-<h3 class="anchored" data-anchor-id="the-sparse-path">The sparse path</h3>
-<ol type="1">
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<h3 id="the-sparse-path"><a class="header" href="#the-sparse-path">The sparse path</a></h3>
+<ol>
 <li><strong>Tokenize.</strong> Split each document into tokens.</li>
 <li><strong>Normalise.</strong> Lowercase, drop punctuation, and usually remove stop words.</li>
 <li><strong>Stem or lemmatize.</strong> Reduce <code>running</code>, <code>runs</code>, and <code>ran</code> toward <code>run</code>, so different forms match.</li>
@@ -1328,9 +283,9 @@ Note
 <li><strong>Rank with BM25.</strong> Score each candidate and return the top ones.</li>
 </ol>
 <p><strong>The BM25 formula.</strong> For a query <code>q</code> and document <code>d</code>:</p>
-<p><span class="math display">\[ \text{BM25}(q,d) = \sum_{t \in q} \text{IDF}(t) \cdot \frac{tf(t,d)\,(k_1+1)}{tf(t,d) + k_1\left(1-b+b\,\frac{|d|}{\text{avgdl}}\right)} \]</span></p>
+<p>$$ \text{BM25}(q,d) = \sum_{t \in q} \text{IDF}(t) \cdot \frac{tf(t,d),(k_1+1)}{tf(t,d) + k_1\left(1-b+b,\frac{|d|}{\text{avgdl}}\right)} $$</p>
 <p>with</p>
-<p><span class="math display">\[ \text{IDF}(t) = \ln\!\left(1 + \frac{N - n(t) + 0.5}{n(t) + 0.5}\right) \]</span></p>
+<p>$$ \text{IDF}(t) = \ln!\left(1 + \frac{N - n(t) + 0.5}{n(t) + 0.5}\right) $$</p>
 <p>Read each piece in plain words:</p>
 <ul>
 <li><strong><code>tf(t,d)</code> is how often the term appears in this document.</strong> More occurrences usually means more relevant.</li>
@@ -1339,23 +294,12 @@ Note
 <li><strong><code>IDF(t)</code> weights rare terms more.</strong> A term in almost every document gets a low weight; a term in one document gets a high weight. This is why BM25 is precise on codes and names.</li>
 <li><strong><code>N</code> is the number of documents and <code>n(t)</code> is how many contain the term.</strong> The <code>+0.5</code> smoothing stops the value from exploding when a term is very rare or very common.</li>
 </ul>
-<div class="callout callout-style-default callout-warning callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Warning
-</div>
-</div>
-<div class="callout-body-container callout-body">
+<blockquote>
+<p><strong>Warning:</strong></p>
 <p><strong>PostgreSQL’s <code>ts_rank</code> is not BM25.</strong> PostgreSQL ranks a document against a query <em>locally</em>. It has no corpus-wide document frequency at query time, so it cannot compute IDF. Add more documents and <code>ts_rank</code> for the same document does not change. If you need real BM25 inside PostgreSQL, use an extension such as ParadeDB’s <code>pg_search</code> or put the index in a dedicated search engine.</p>
-</div>
-</div>
-</section>
-<section id="the-dense-path" class="level3">
-<h3 class="anchored" data-anchor-id="the-dense-path">The dense path</h3>
-<ol type="1">
+</blockquote>
+<h3 id="the-dense-path"><a class="header" href="#the-dense-path">The dense path</a></h3>
+<ol>
 <li><strong>Choose an embedding model.</strong> It fixes the vector dimension and the whole index.</li>
 <li><strong>Embed every chunk once.</strong> Store the vector next to the text and metadata.</li>
 <li><strong>Build a vector index.</strong> HNSW or IVFFlat lets you search a large collection approximately, without comparing every vector.</li>
@@ -1364,91 +308,94 @@ Warning
 <li><strong>Return the top-k chunks.</strong> These become candidates for the answer.</li>
 </ol>
 <p>The two paths are independent. They use different indexes, different scores, and different failure modes — which is exactly why merging them later (hybrid search) works.</p>
-</section>
-</section>
-<section id="the-syntax-you-will-use" class="level2">
-<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
 <p><strong>Sparse: build a <code>tsvector</code> and a GIN index in PostgreSQL.</strong> A <code>tsvector</code> stores the document’s normalised terms and their positions. A GIN index makes <code>@@</code> lookups fast.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> docs <span class="kw">ADD</span> <span class="kw">COLUMN</span> tsv tsvector <span class="kw">GENERATED</span> ALWAYS <span class="kw">AS</span> (</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  to_tsvector(<span class="st">'english'</span>, <span class="fu">coalesce</span>(title,<span class="st">''</span>) <span class="op">||</span> <span class="st">' '</span> <span class="op">||</span> <span class="fu">coalesce</span>(<span class="kw">body</span>,<span class="st">''</span>))</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>) STORED;</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> docs_tsv_gin <span class="kw">ON</span> docs <span class="kw">USING</span> GIN (tsv);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-sql">ALTER TABLE docs ADD COLUMN tsv tsvector GENERATED ALWAYS AS (
+  to_tsvector('english', coalesce(title,'') || ' ' || coalesce(body,''))
+) STORED;
+
+CREATE INDEX docs_tsv_gin ON docs USING GIN (tsv);
+</code></pre>
 <p>The generated column updates itself on write, so you never forget to re-index a row.</p>
 <p><strong>Sparse: parse queries into <code>tsquery</code>.</strong> Different functions produce different operator shapes.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> plainto_tsquery(<span class="st">'english'</span>, <span class="st">'reset password'</span>);       <span class="co">-- 'reset' &amp; 'password'</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> phraseto_tsquery(<span class="st">'english'</span>, <span class="st">'reset password'</span>);      <span class="co">-- 'reset' &lt;-&gt; 'password'</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> websearch_to_tsquery(<span class="st">'english'</span>, <span class="st">'reset password'</span>);  <span class="co">-- 'reset' &amp; 'password'</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> websearch_to_tsquery(<span class="st">'english'</span>, <span class="st">'"reset password"'</span>);<span class="co">-- 'reset' &lt;-&gt; 'password'</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> websearch_to_tsquery(<span class="st">'english'</span>, <span class="st">'reset OR password'</span>);<span class="co">-- 'reset' | 'password'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-sql">SELECT plainto_tsquery('english', 'reset password');       -- 'reset' &amp; 'password'
+SELECT phraseto_tsquery('english', 'reset password');      -- 'reset' &lt;-&gt; 'password'
+SELECT websearch_to_tsquery('english', 'reset password');  -- 'reset' &amp; 'password'
+SELECT websearch_to_tsquery('english', '"reset password"');-- 'reset' &lt;-&gt; 'password'
+SELECT websearch_to_tsquery('english', 'reset OR password');-- 'reset' | 'password'
+</code></pre>
 <p><code>websearch_to_tsquery</code> is the safest default: it mirrors search-engine syntax, including quotes, <code>OR</code>, and leading <code>-</code> for exclusion.</p>
 <p><strong>Sparse: match and rank.</strong> <code>@@</code> is the match operator; <code>ts_rank</code> and <code>ts_rank_cd</code> score the match.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span>, title</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> docs</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> tsv @@ websearch_to_tsquery(<span class="st">'english'</span>, <span class="st">'reset password'</span>)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> ts_rank(tsv, websearch_to_tsquery(<span class="st">'english'</span>, <span class="st">'reset password'</span>)) <span class="kw">DESC</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-sql">SELECT id, title
+FROM docs
+WHERE tsv @@ websearch_to_tsquery('english', 'reset password')
+ORDER BY ts_rank(tsv, websearch_to_tsquery('english', 'reset password')) DESC;
+</code></pre>
 <p><code>ts_rank_cd</code> uses “cover density”: it rewards query terms that appear close together. <code>ts_rank</code> only counts occurrences and weights.</p>
 <p><strong>Sparse: weight important columns.</strong> Terms in the title should count more than terms in the body. <code>setweight</code> labels positions with A–D, and the ranking function can weight those labels.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> setweight(to_tsvector(<span class="st">'english'</span>, title), <span class="st">'A'</span>) <span class="op">||</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>       setweight(to_tsvector(<span class="st">'english'</span>, <span class="kw">body</span>),  <span class="st">'B'</span>);</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- 'password':3A 'reset':1A ... (A = title, B = body)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-sql">SELECT setweight(to_tsvector('english', title), 'A') ||
+       setweight(to_tsvector('english', body),  'B');
+-- 'password':3A 'reset':1A ... (A = title, B = body)
+</code></pre>
 <p>Then pass weights to the ranker: <code>ts_rank('{0.1,0.2,0.4,1.0}', tsv, query)</code> maps D, C, B, A.</p>
 <p><strong>Sparse: BM25 in plain Python.</strong> This is the formula above, written out. It is the mental model you should be able to reproduce on a whiteboard.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> Counter</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>corpus <span class="op">=</span> [<span class="st">"python tutorial for beginners"</span>,</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>          <span class="st">"advanced python tutorial with decorators and generators"</span>,</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>          <span class="st">"a short python tutorial"</span>,</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>          <span class="st">"python python python tutorial"</span>,</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>          <span class="st">"javascript guide for beginners"</span>]</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>tokenized <span class="op">=</span> [doc.split() <span class="cf">for</span> doc <span class="kw">in</span> corpus]</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>N <span class="op">=</span> <span class="bu">len</span>(tokenized)</span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>avgdl <span class="op">=</span> <span class="bu">sum</span>(<span class="bu">len</span>(d) <span class="cf">for</span> d <span class="kw">in</span> tokenized) <span class="op">/</span> N          <span class="co"># 4.6</span></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> idf(term: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> <span class="bu">sum</span>(<span class="dv">1</span> <span class="cf">for</span> d <span class="kw">in</span> tokenized <span class="cf">if</span> term <span class="kw">in</span> d)</span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> math.log(<span class="dv">1</span> <span class="op">+</span> (N <span class="op">-</span> df <span class="op">+</span> <span class="fl">0.5</span>) <span class="op">/</span> (df <span class="op">+</span> <span class="fl">0.5</span>))  <span class="co"># Lucene variant</span></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bm25(query: <span class="bu">str</span>, k1: <span class="bu">float</span> <span class="op">=</span> <span class="fl">1.5</span>, b: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.75</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">tuple</span>[<span class="bu">int</span>, <span class="bu">float</span>]]:</span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    scores <span class="op">=</span> []</span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, doc <span class="kw">in</span> <span class="bu">enumerate</span>(tokenized):</span>
-<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        tf, dl <span class="op">=</span> Counter(doc), <span class="bu">len</span>(doc)</span>
-<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        score <span class="op">=</span> <span class="fl">0.0</span></span>
-<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> term <span class="kw">in</span> query.split():</span>
-<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> term <span class="kw">not</span> <span class="kw">in</span> tf:</span>
-<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
-<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>            numerator <span class="op">=</span> tf[term] <span class="op">*</span> (k1 <span class="op">+</span> <span class="dv">1</span>)</span>
-<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>            denominator <span class="op">=</span> tf[term] <span class="op">+</span> k1 <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> b <span class="op">+</span> b <span class="op">*</span> dl <span class="op">/</span> avgdl)</span>
-<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>            score <span class="op">+=</span> idf(term) <span class="op">*</span> numerator <span class="op">/</span> denominator</span>
-<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>        scores.append((i, score))</span>
-<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sorted</span>(scores, key<span class="op">=</span><span class="kw">lambda</span> pair: <span class="op">-</span>pair[<span class="dv">1</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import math
+from collections import Counter
+
+corpus = ["python tutorial for beginners",
+          "advanced python tutorial with decorators and generators",
+          "a short python tutorial",
+          "python python python tutorial",
+          "javascript guide for beginners"]
+tokenized = [doc.split() for doc in corpus]
+N = len(tokenized)
+avgdl = sum(len(d) for d in tokenized) / N          # 4.6
+
+def idf(term: str) -&gt; float:
+    df = sum(1 for d in tokenized if term in d)
+    return math.log(1 + (N - df + 0.5) / (df + 0.5))  # Lucene variant
+
+def bm25(query: str, k1: float = 1.5, b: float = 0.75) -&gt; list[tuple[int, float]]:
+    scores = []
+    for i, doc in enumerate(tokenized):
+        tf, dl = Counter(doc), len(doc)
+        score = 0.0
+        for term in query.split():
+            if term not in tf:
+                continue
+            numerator = tf[term] * (k1 + 1)
+            denominator = tf[term] + k1 * (1 - b + b * dl / avgdl)
+            score += idf(term) * numerator / denominator
+        scores.append((i, score))
+    return sorted(scores, key=lambda pair: -pair[1])
+</code></pre>
 <p><strong>Dense: embed and search in Python.</strong> The model turns text into vectors; cosine similarity turns vectors into a ranking.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sentence_transformers <span class="im">import</span> SentenceTransformer</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> SentenceTransformer(<span class="st">"all-MiniLM-L6-v2"</span>)</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>docs <span class="op">=</span> [<span class="st">"How to reset your password"</span>, <span class="st">"Factory reset the router"</span>]</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>doc_vecs <span class="op">=</span> model.encode(docs, normalize_embeddings<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>q <span class="op">=</span> model.encode([<span class="st">"I forgot my login"</span>], normalize_embeddings<span class="op">=</span><span class="va">True</span>)[<span class="dv">0</span>]</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> doc_vecs <span class="op">@</span> q                 <span class="co"># normalized vectors: dot == cosine</span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>best <span class="op">=</span> <span class="bu">int</span>(np.argmax(scores))         <span class="co"># 0 -&gt; the password document</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">from sentence_transformers import SentenceTransformer
+import numpy as np
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+docs = ["How to reset your password", "Factory reset the router"]
+doc_vecs = model.encode(docs, normalize_embeddings=True)
+
+q = model.encode(["I forgot my login"], normalize_embeddings=True)[0]
+scores = doc_vecs @ q                 # normalized vectors: dot == cosine
+best = int(np.argmax(scores))         # 0 -&gt; the password document
+</code></pre>
 <p><strong>Dense: search in PostgreSQL with pgvector.</strong> <code>&lt;=&gt;</code> is cosine distance (lower is closer). Create an HNSW index for large tables.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> chunks_vec_hnsw <span class="kw">ON</span> chunks <span class="kw">USING</span> hnsw (embedding vector_cosine_ops);</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">id</span>, content, embedding <span class="op">&lt;=&gt;</span> <span class="ch">:query_vector</span> <span class="kw">AS</span> distance</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> chunks</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> distance</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">5</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-sql">CREATE INDEX chunks_vec_hnsw ON chunks USING hnsw (embedding vector_cosine_ops);
+
+SELECT id, content, embedding &lt;=&gt; :query_vector AS distance
+FROM chunks
+ORDER BY distance
+LIMIT 5;
+</code></pre>
 <p><strong>IDs and acronyms: pick the right text-search config.</strong> <code>english</code> stems words; <code>simple</code> only lowercases. For identifiers, <code>simple</code> keeps the token intact.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> to_tsvector(<span class="st">'english'</span>, <span class="st">'running runs ran'</span>);  <span class="co">-- 'ran':3 'run':1,2</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> to_tsvector(<span class="st">'simple'</span>,  <span class="st">'running runs ran'</span>);  <span class="co">-- 'ran':3 'running':1 'runs':2</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
-<section id="examples-simple-to-real" class="level2">
-<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<pre><code class="language-sql">SELECT to_tsvector('english', 'running runs ran');  -- 'ran':3 'run':1,2
+SELECT to_tsvector('simple',  'running runs ran');  -- 'ran':3 'running':1 'runs':2
+</code></pre>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
 <p><strong>Example 1 — run BM25 and watch IDF and term frequency work.</strong> Using the corpus above, <code>python</code> appears in 4 of 5 documents and <code>javascript</code> in 1.</p>
-<pre class="text"><code>idf(python)     = 0.2877     (common term, low weight)
+<pre><code class="language-text">idf(python)     = 0.2877     (common term, low weight)
 idf(javascript) = 1.3863     (rare term, high weight)
 
 query "python tutorial":
@@ -1456,95 +403,54 @@ query "python tutorial":
   doc0: 0.6112
   doc2: 0.6112
   doc1: 0.4660   # longer document, so length normalisation lowers it
-  doc4: 0.0000   # no query term at all</code></pre>
+  doc4: 0.0000   # no query term at all
+</code></pre>
 <p><code>doc1</code> is the longest document. It contains both query terms once, exactly like <code>doc0</code>, but its score is lower because of <code>b</code>. <code>doc3</code> repeats <code>python</code> and rises to the top. That is term frequency and length normalisation visible in numbers.</p>
 <p><strong>Example 2 — the length-normalisation knob <code>b</code>.</strong> Same query <code>python tutorial</code>, same corpus, only <code>b</code> changes:</p>
-<pre class="text"><code>b=0.00 -&gt; doc3=0.767  doc0=0.575  doc2=0.575  doc1=0.575
+<pre><code class="language-text">b=0.00 -&gt; doc3=0.767  doc0=0.575  doc2=0.575  doc1=0.575
 b=0.75 -&gt; doc3=0.801  doc0=0.611  doc2=0.611  doc1=0.466
-b=1.00 -&gt; doc3=0.813  doc0=0.624  doc2=0.624  doc1=0.438</code></pre>
+b=1.00 -&gt; doc3=0.813  doc0=0.624  doc2=0.624  doc1=0.438
+</code></pre>
 <p>At <code>b=0</code> all documents with one occurrence tie, no matter how long they are. As <code>b</code> grows, the long document sinks. <code>b=0.75</code> is the usual compromise.</p>
 <p><strong>Example 3 — the lexical gap in action.</strong> Sparse retrieval with TF-IDF, no expansion. The query shares no words with the right document.</p>
-<pre class="text"><code>original query: the service keeps dying unexpectedly
+<pre><code class="language-text">original query: the service keeps dying unexpectedly
   top 3: d4 0.0000, d3 0.0000, d2 0.0000     # no term overlap at all
 
 expanded query: the service keeps dying unexpectedly exceptions errors crash failure
-  top 3: d0 0.4082, d4 0.0000, d3 0.0000     # d0 is "handle uncaught exceptions..."</code></pre>
+  top 3: d0 0.4082, d4 0.0000, d3 0.0000     # d0 is "handle uncaught exceptions..."
+</code></pre>
 <p>A pure term matcher cannot cross the lexical gap. You bridge it by expanding the query, or by using dense retrieval, as Example 4 shows.</p>
 <p><strong>Example 4 — dense retrieval crosses the gap.</strong> A sentence embedding model places “I forgot my login” near “How to reset your password” even though the words differ. Both vectors are 384-dimensional; the cosine similarity is high because the sentences mean similar things. This is the failure one fix.</p>
 <p><strong>Example 5 — exact identifiers need sparse.</strong> Stemming changes tokens, but identifiers survive best under the <code>simple</code> config.</p>
-<pre class="text"><code>to_tsvector('english', 'SKU-4032 API v2 error XJ-9')
+<pre><code class="language-text">to_tsvector('english', 'SKU-4032 API v2 error XJ-9')
   -&gt; '-4032':2 '-9':7 'api':3 'error':5 'sku':1 'v2':4 'xj':6
 to_tsvector('simple',  'SKU-4032 API v2 error XJ-9')
-  -&gt; '-4032':2 '-9':7 'api':3 'error':5 'sku':1 'v2':4 'xj':6</code></pre>
+  -&gt; '-4032':2 '-9':7 'api':3 'error':5 'sku':1 'v2':4 'xj':6
+</code></pre>
 <p>Both configs keep <code>4032</code> and <code>xj</code> searchable. An embedding model, in contrast, has no dedicated direction for <code>ERR-4032</code>; it returns generic error text. For codes, ticket numbers, and product SKUs, sparse wins by a wide margin.</p>
 <p><strong>Example 6 — PostgreSQL’s rank does not use the corpus.</strong> Add 500 more documents, all containing <code>password</code>, and re-run <code>ts_rank</code> on the original row:</p>
-<pre class="text"><code>rank before (4 documents total)        = 0.31284000
+<pre><code class="language-text">rank before (4 documents total)        = 0.31284000
 rank after  (504 documents, 503 with   = 0.31284000   # unchanged!
-             the term "password")</code></pre>
+             the term "password")
+</code></pre>
 <p><code>ts_rank</code> is identical because it never looks at the rest of the corpus. BM25’s IDF for the same term collapses as the corpus grows:</p>
-<pre class="text"><code>idf("password") with N=4,   df=4   = 0.105361
-idf("password") with N=504, df=503 = 0.002975   # 35x smaller</code></pre>
+<pre><code class="language-text">idf("password") with N=4,   df=4   = 0.105361
+idf("password") with N=504, df=503 = 0.002975   # 35x smaller
+</code></pre>
 <p>This is the single most important practical difference between PostgreSQL’s built-in full-text search and a real BM25 engine.</p>
 <p><strong>Example 7 — choose by query type.</strong> This is the decision table to reconstruct in an interview.</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Query looks like</th>
-<th>Winner</th>
-<th>Why</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>“how do I stop the app crashing”</td>
-<td>Dense</td>
-<td>Paraphrase, no shared words</td>
-</tr>
-<tr class="even">
-<td>“ERR-4032”</td>
-<td>Sparse</td>
-<td>Exact rare token</td>
-</tr>
-<tr class="odd">
-<td>“SOC 2 compliance”</td>
-<td>Sparse</td>
-<td>Acronym must match exactly</td>
-</tr>
-<tr class="even">
-<td>“reset password”</td>
-<td>Both</td>
-<td>Words and meaning agree</td>
-</tr>
-<tr class="odd">
-<td>“OAuth token expiry”</td>
-<td>Sparse</td>
-<td>Rare jargon term</td>
-</tr>
-<tr class="even">
-<td>“my account is locked”</td>
-<td>Dense</td>
-<td>Colloquial phrasing</td>
-</tr>
-<tr class="odd">
-<td>A long natural-language question</td>
-<td>Dense</td>
-<td>Meaning dominates</td>
-</tr>
-<tr class="even">
-<td>A product model number</td>
-<td>Sparse</td>
-<td>Identifiers must be exact</td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="in-production" class="level2">
-<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<div class="table-wrapper"><table><thead><tr><th>Query looks like</th><th>Winner</th><th>Why</th></tr></thead><tbody>
+<tr><td>“how do I stop the app crashing”</td><td>Dense</td><td>Paraphrase, no shared words</td></tr>
+<tr><td>“ERR-4032”</td><td>Sparse</td><td>Exact rare token</td></tr>
+<tr><td>“SOC 2 compliance”</td><td>Sparse</td><td>Acronym must match exactly</td></tr>
+<tr><td>“reset password”</td><td>Both</td><td>Words and meaning agree</td></tr>
+<tr><td>“OAuth token expiry”</td><td>Sparse</td><td>Rare jargon term</td></tr>
+<tr><td>“my account is locked”</td><td>Dense</td><td>Colloquial phrasing</td></tr>
+<tr><td>A long natural-language question</td><td>Dense</td><td>Meaning dominates</td></tr>
+<tr><td>A product model number</td><td>Sparse</td><td>Identifiers must be exact</td></tr>
+</tbody></table>
+</div>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
 <ul>
 <li><strong>Measure both, then decide.</strong> Build a small labelled query set, run dense and sparse separately, and record Recall@K and MRR for each. Choosing by intuition is how teams ship the wrong retriever.</li>
 <li><strong>The query mix decides the architecture.</strong> A support desk full of error codes needs strong sparse. A consumer assistant full of casual questions needs strong dense. Most real systems are a mix, which is the argument for hybrid search.</li>
@@ -1559,73 +465,44 @@ idf("password") with N=504, df=503 = 0.002975   # 35x smaller</code></pre>
 <li><strong>Dense retrieval has no vocabulary limit but a real input limit.</strong> Text beyond the model’s max length is silently truncated, so a long chunk may be embedded from its first part only.</li>
 <li><strong>Version the embedding model with the index.</strong> Re-embedding is expensive and changing the model without re-embedding silently returns wrong neighbours.</li>
 </ul>
-<div class="callout callout-style-default callout-tip callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Tip
-</div>
-</div>
-<div class="callout-body-container callout-body">
+<blockquote>
+<p><strong>Tip:</strong></p>
 <p><strong>Debugging shortcut.</strong> If a clearly relevant document is missing entirely, ask: does the query share a term with it (sparse), and does the embedding model place it near the query (dense)? Which question fails tells you which path is broken.</p>
-</div>
-</div>
-</section>
-<section id="interview-questions" class="level2">
-<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
-<section id="what-is-the-difference-between-dense-and-sparse-retrieval" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-the-difference-between-dense-and-sparse-retrieval">1. What is the difference between dense and sparse retrieval?</h3>
+</blockquote>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-what-is-the-difference-between-dense-and-sparse-retrieval"><a class="header" href="#1-what-is-the-difference-between-dense-and-sparse-retrieval">1. What is the difference between dense and sparse retrieval?</a></h3>
 <p><strong>Answer.</strong> Sparse retrieval represents text as a high-dimensional vector with one slot per vocabulary item, almost all zero, and matches on shared exact terms. BM25 ranks those matches. Dense retrieval represents text as a short learned embedding and matches on meaning, so it can find paraphrases and synonyms. Sparse is precise on rare tokens; dense is robust to wording.</p>
 <p><strong>Follow-up: “Which one is better?”</strong> Neither. They have opposite failure modes, so the honest answer is “it depends on the query mix”, and the common production answer is both, fused by hybrid search.</p>
 <p><strong>Trap.</strong> Saying dense is “more advanced, so it replaces sparse”. Embeddings are bad at exact identifiers, and sparse is often cheaper and more interpretable. Dense did not replace sparse; it joined it.</p>
-</section>
-<section id="explain-bm25." class="level3">
-<h3 class="anchored" data-anchor-id="explain-bm25.">2. Explain BM25.</h3>
+<h3 id="2-explain-bm25"><a class="header" href="#2-explain-bm25">2. Explain BM25.</a></h3>
 <p><strong>Answer.</strong> BM25 scores a document for a set of query terms by summing, over each term, three things: the term’s IDF (rare terms weigh more), a saturating term-frequency factor (repeats help, but with diminishing returns), and a length-normalisation factor (long documents are penalised). The two knobs are <code>k1</code> for saturation and <code>b</code> for length normalisation.</p>
 <p><strong>Follow-up: “Why saturate term frequency?”</strong> Because the tenth occurrence of a word says much less than the second. A linear term-frequency score lets one repeated word dominate. The <code>(k1+1)</code> numerator over <code>tf + k1*(...)</code> compresses the curve.</p>
 <p><strong>Trap.</strong> Claiming PostgreSQL’s <code>ts_rank</code> is BM25. It is not; it has no corpus-wide IDF. You need a BM25 extension or a search engine for true BM25.</p>
-</section>
-<section id="what-do-k1-and-b-control-and-what-are-good-defaults" class="level3">
-<h3 class="anchored" data-anchor-id="what-do-k1-and-b-control-and-what-are-good-defaults">3. What do <code>k1</code> and <code>b</code> control, and what are good defaults?</h3>
+<h3 id="3-what-do-k1-and-b-control-and-what-are-good-defaults"><a class="header" href="#3-what-do-k1-and-b-control-and-what-are-good-defaults">3. What do <code>k1</code> and <code>b</code> control, and what are good defaults?</a></h3>
 <p><strong>Answer.</strong> <code>k1</code> controls how quickly extra occurrences stop helping; higher values let repetition keep adding score. <code>b</code> controls length normalisation; <code>b=0</code> ignores length and <code>b=1</code> applies the full penalty. Typical defaults are <code>k1=1.5</code> and <code>b=0.75</code>, then tune on labelled data.</p>
 <p><strong>Follow-up: “When would you change them?”</strong> Short fragments such as titles may want less length normalisation. Corpora where repetition is meaningful may want a higher <code>k1</code>. Tune with retrieval metrics, not vibes.</p>
 <p><strong>Trap.</strong> Treating the defaults as laws. They are starting points, and the best values depend on your documents and queries.</p>
-</section>
-<section id="why-does-dense-retrieval-fail-on-identifiers-like-err-4032" class="level3">
-<h3 class="anchored" data-anchor-id="why-does-dense-retrieval-fail-on-identifiers-like-err-4032">4. Why does dense retrieval fail on identifiers like <code>ERR-4032</code>?</h3>
+<h3 id="4-why-does-dense-retrieval-fail-on-identifiers-like-err-4032"><a class="header" href="#4-why-does-dense-retrieval-fail-on-identifiers-like-err-4032">4. Why does dense retrieval fail on identifiers like <code>ERR-4032</code>?</a></h3>
 <p><strong>Answer.</strong> The embedding model maps text into a continuous space trained on general language. It has no special direction for one rare identifier, so it places <code>ERR-4032</code> near the general concept “error” and returns all error pages. Sparse retrieval indexes the exact token, so it can require it.</p>
 <p><strong>Follow-up: “How would you fix it?”</strong> Keep an exact-match path: index identifiers in a <code>simple</code>-config <code>tsvector</code> column, or a keyword field in a search engine, and boost it. Some teams also prepend the identifier to the chunk before embedding.</p>
 <p><strong>Trap.</strong> Assuming a bigger embedding model fixes it. Scale does not create a precise direction for an arbitrary string.</p>
-</section>
-<section id="what-is-an-inverted-index-and-why-is-it-fast" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-an-inverted-index-and-why-is-it-fast">5. What is an inverted index, and why is it fast?</h3>
+<h3 id="5-what-is-an-inverted-index-and-why-is-it-fast"><a class="header" href="#5-what-is-an-inverted-index-and-why-is-it-fast">5. What is an inverted index, and why is it fast?</a></h3>
 <p><strong>Answer.</strong> It maps each term to a postings list of the documents that contain it. A query only looks up its own terms and skips documents that cannot match, instead of scanning every document. That is sublinear in the corpus size, which is why keyword search scales.</p>
 <p><strong>Follow-up: “What does a postings list store?”</strong> At minimum document ids. Often positions for phrase and proximity queries, and term frequencies for scoring. PostgreSQL’s <code>tsvector</code> stores positions with A–D weight labels.</p>
 <p><strong>Trap.</strong> Confusing the inverted index (the data structure that finds candidates) with BM25 (the formula that ranks them). They are separate.</p>
-</section>
-<section id="when-does-sparse-retrieval-beat-dense" class="level3">
-<h3 class="anchored" data-anchor-id="when-does-sparse-retrieval-beat-dense">6. When does sparse retrieval beat dense?</h3>
+<h3 id="6-when-does-sparse-retrieval-beat-dense"><a class="header" href="#6-when-does-sparse-retrieval-beat-dense">6. When does sparse retrieval beat dense?</a></h3>
 <p><strong>Answer.</strong> When the query turns on an exact token: error codes, product SKUs, ticket numbers, names, acronyms, and rare technical terms. Sparse also wins when the vocabulary is out of domain, because an embedding model may never have learned it. And sparse is more interpretable: you can show which terms matched.</p>
 <p><strong>Follow-up: “And when does dense win?”</strong> When the user paraphrases, uses synonyms, or writes a full natural-language question. Dense also handles typos and morphology more gracefully than exact matching.</p>
 <p><strong>Trap.</strong> Forgetting the cold-start vocabulary problem. A brand-new product name is not in the embedding model but is trivially indexed by sparse retrieval.</p>
-</section>
-<section id="how-would-you-decide-between-dense-and-sparse-for-a-new-system" class="level3">
-<h3 class="anchored" data-anchor-id="how-would-you-decide-between-dense-and-sparse-for-a-new-system">7. How would you decide between dense and sparse for a new system?</h3>
+<h3 id="7-how-would-you-decide-between-dense-and-sparse-for-a-new-system"><a class="header" href="#7-how-would-you-decide-between-dense-and-sparse-for-a-new-system">7. How would you decide between dense and sparse for a new system?</a></h3>
 <p><strong>Answer.</strong> Collect a representative query set with known relevant documents. Run both retrievers, and measure Recall@K and MRR separately. Look at which queries each one fails. If the failures are disjoint, which they usually are, plan for hybrid search rather than picking one.</p>
 <p><strong>Follow-up: “What if you have no labelled data?”</strong> Sample real query logs, have a human mark the best few documents per query, and grow the set. Even 50 labelled queries expose the pattern.</p>
 <p><strong>Trap.</strong> Benchmarking on a public dataset whose queries look nothing like yours. Retrieval quality is domain-specific.</p>
-</section>
-<section id="what-is-the-lexical-gap-and-what-are-two-ways-to-bridge-it" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-the-lexical-gap-and-what-are-two-ways-to-bridge-it">8. What is the lexical gap, and what are two ways to bridge it?</h3>
+<h3 id="8-what-is-the-lexical-gap-and-what-are-two-ways-to-bridge-it"><a class="header" href="#8-what-is-the-lexical-gap-and-what-are-two-ways-to-bridge-it">8. What is the lexical gap, and what are two ways to bridge it?</a></h3>
 <p><strong>Answer.</strong> The lexical gap is when a query and a relevant document mean the same thing but share no words. Two fixes: use dense retrieval, which compares meaning rather than terms; or transform the query, by adding synonyms and related terms (query expansion) so the sparse index can match. Production systems often do both.</p>
 <p><strong>Follow-up: “What is a risk of query expansion?”</strong> Adding the wrong synonyms drifts the query and lowers precision. Expansion should be measured, not assumed.</p>
 <p><strong>Trap.</strong> Thinking the lexical gap is solved forever by embeddings. Embeddings reduce it for common language but do not remove it, especially for jargon and new terms.</p>
-</section>
-</section>
-<section id="remember-this" class="level2">
-<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
 <ul>
 <li><strong>Sparse matches terms; dense matches meaning.</strong> They fail in opposite ways, so know your query mix.</li>
 <li><strong>BM25 = IDF × saturating term frequency × length normalisation</strong>, with knobs <code>k1</code> (saturation) and <code>b</code> (length).</li>
@@ -1634,438 +511,58 @@ Tip
 <li><strong>Debug by asking which path failed</strong>: no shared term (sparse) or far-away embedding (dense).</li>
 </ul>
 
+                    </main>
 
-</section>
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
-</main> <!-- /main -->
-<script id="quarto-html-after-body" type="application/javascript">
-  window.document.addEventListener("DOMContentLoaded", function (event) {
-    // Ensure there is a toggle, if there isn't float one in the top right
-    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
-      const a = window.document.createElement('a');
-      a.classList.add('top-right');
-      a.classList.add('quarto-color-scheme-toggle');
-      a.href = "";
-      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
-      const i = window.document.createElement("i");
-      i.classList.add('bi');
-      a.appendChild(i);
-      window.document.body.appendChild(a);
-    }
-    setColorSchemeToggle(hasAlternateSentinel())
-    const icon = "";
-    const anchorJS = new window.AnchorJS();
-    anchorJS.options = {
-      placement: 'right',
-      icon: icon
-    };
-    anchorJS.add('.anchored');
-    const isCodeAnnotation = (el) => {
-      for (const clz of el.classList) {
-        if (clz.startsWith('code-annotation-')) {                     
-          return true;
-        }
-      }
-      return false;
-    }
-    const onCopySuccess = function(e) {
-      // button target
-      const button = e.trigger;
-      // don't keep focus
-      button.blur();
-      // flash "checked"
-      button.classList.add('code-copy-button-checked');
-      var currentTitle = button.getAttribute("title");
-      button.setAttribute("title", "Copied!");
-      let tooltip;
-      if (window.bootstrap) {
-        button.setAttribute("data-bs-toggle", "tooltip");
-        button.setAttribute("data-bs-placement", "left");
-        button.setAttribute("data-bs-title", "Copied!");
-        tooltip = new bootstrap.Tooltip(button, 
-          { trigger: "manual", 
-            customClass: "code-copy-button-tooltip",
-            offset: [0, -8]});
-        tooltip.show();    
-      }
-      setTimeout(function() {
-        if (tooltip) {
-          tooltip.hide();
-          button.removeAttribute("data-bs-title");
-          button.removeAttribute("data-bs-toggle");
-          button.removeAttribute("data-bs-placement");
-        }
-        button.setAttribute("title", currentTitle);
-        button.classList.remove('code-copy-button-checked');
-      }, 1000);
-      // clear code selection
-      e.clearSelection();
-    }
-    const getTextToCopy = function(trigger) {
-      const outerScaffold = trigger.parentElement.cloneNode(true);
-      const codeEl = outerScaffold.querySelector('code');
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-      text: getTextToCopy
-    });
-    clipboard.on('success', onCopySuccess);
-    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-        text: getTextToCopy,
-        container: window.document.getElementById('quarto-embedded-source-code-modal')
-      });
-      clipboardModal.on('success', onCopySuccess);
-    }
-      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-      var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
-      var isInternal = (href) => {
-          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
-      }
-      // Inspect non-navigation links and adorn them if external
-     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-      for (var i=0; i<links.length; i++) {
-        const link = links[i];
-        if (!isInternal(link.href)) {
-          // undo the damage that might have been done by quarto-nav.js in the case of
-          // links that we want to consider external
-          if (link.dataset.originalHref !== undefined) {
-            link.href = link.dataset.originalHref;
-          }
-        }
-      }
-    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-      const config = {
-        allowHTML: true,
-        maxWidth: 500,
-        delay: 100,
-        arrow: false,
-        appendTo: function(el) {
-            return el.parentElement;
-        },
-        interactive: true,
-        interactiveBorder: 10,
-        theme: 'quarto',
-        placement: 'bottom-start',
-      };
-      if (contentFn) {
-        config.content = contentFn;
-      }
-      if (onTriggerFn) {
-        config.onTrigger = onTriggerFn;
-      }
-      if (onUntriggerFn) {
-        config.onUntrigger = onUntriggerFn;
-      }
-      window.tippy(el, config); 
-    }
-    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-    for (var i=0; i<noterefs.length; i++) {
-      const ref = noterefs[i];
-      tippyHover(ref, function() {
-        // use id or data attribute instead here
-        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-        try { href = new URL(href).hash; } catch {}
-        const id = href.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note) {
-          return note.innerHTML;
-        } else {
-          return "";
-        }
-      });
-    }
-    const xrefs = window.document.querySelectorAll('a.quarto-xref');
-    const processXRef = (id, note) => {
-      // Strip column container classes
-      const stripColumnClz = (el) => {
-        el.classList.remove("page-full", "page-columns");
-        if (el.children) {
-          for (const child of el.children) {
-            stripColumnClz(child);
-          }
-        }
-      }
-      stripColumnClz(note)
-      if (id === null || id.startsWith('sec-')) {
-        // Special case sections, only their first couple elements
-        const container = document.createElement("div");
-        if (note.children && note.children.length > 2) {
-          container.appendChild(note.children[0].cloneNode(true));
-          for (let i = 1; i < note.children.length; i++) {
-            const child = note.children[i];
-            if (child.tagName === "P" && child.innerText === "") {
-              continue;
-            } else {
-              container.appendChild(child.cloneNode(true));
-              break;
-            }
-          }
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(container);
-          }
-          return container.innerHTML
-        } else {
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(note);
-          }
-          return note.innerHTML;
-        }
-      } else {
-        // Remove any anchor links if they are present
-        const anchorLink = note.querySelector('a.anchorjs-link');
-        if (anchorLink) {
-          anchorLink.remove();
-        }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(note);
-        }
-        if (note.classList.contains("callout")) {
-          return note.outerHTML;
-        } else {
-          return note.innerHTML;
-        }
-      }
-    }
-    for (var i=0; i<xrefs.length; i++) {
-      const xref = xrefs[i];
-      tippyHover(xref, undefined, function(instance) {
-        instance.disable();
-        let url = xref.getAttribute('href');
-        let hash = undefined; 
-        if (url.startsWith('#')) {
-          hash = url;
-        } else {
-          try { hash = new URL(url).hash; } catch {}
-        }
-        if (hash) {
-          const id = hash.replace(/^#\/?/, "");
-          const note = window.document.getElementById(id);
-          if (note !== null) {
-            try {
-              const html = processXRef(id, note.cloneNode(true));
-              instance.setContent(html);
-            } finally {
-              instance.enable();
-              instance.show();
-            }
-          } else {
-            // See if we can fetch this
-            fetch(url.split('#')[0])
-            .then(res => res.text())
-            .then(html => {
-              const parser = new DOMParser();
-              const htmlDoc = parser.parseFromString(html, "text/html");
-              const note = htmlDoc.getElementById(id);
-              if (note !== null) {
-                const html = processXRef(id, note);
-                instance.setContent(html);
-              } 
-            }).finally(() => {
-              instance.enable();
-              instance.show();
-            });
-          }
-        } else {
-          // See if we can fetch a full url (with no hash to target)
-          // This is a special case and we should probably do some content thinning / targeting
-          fetch(url)
-          .then(res => res.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.querySelector('main.content');
-            if (note !== null) {
-              // This should only happen for chapter cross references
-              // (since there is no id in the URL)
-              // remove the first header
-              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-                note.children[0].remove();
-              }
-              const html = processXRef(null, note);
-              instance.setContent(html);
-            } 
-          }).finally(() => {
-            instance.enable();
-            instance.show();
-          });
-        }
-      }, function(instance) {
-      });
-    }
-        let selectedAnnoteEl;
-        const selectorForAnnotation = ( cell, annotation) => {
-          let cellAttr = 'data-code-cell="' + cell + '"';
-          let lineAttr = 'data-code-annotation="' +  annotation + '"';
-          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-          return selector;
-        }
-        const selectCodeLines = (annoteEl) => {
-          const doc = window.document;
-          const targetCell = annoteEl.getAttribute("data-target-cell");
-          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-          const lineIds = lines.map((line) => {
-            return targetCell + "-" + line;
-          })
-          let top = null;
-          let height = null;
-          let parent = null;
-          if (lineIds.length > 0) {
-              //compute the position of the single el (top and bottom and make a div)
-              const el = window.document.getElementById(lineIds[0]);
-              top = el.offsetTop;
-              height = el.offsetHeight;
-              parent = el.parentElement.parentElement;
-            if (lineIds.length > 1) {
-              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-              height = bottom - top;
-            }
-            if (top !== null && height !== null && parent !== null) {
-              // cook up a div (if necessary) and position it 
-              let div = window.document.getElementById("code-annotation-line-highlight");
-              if (div === null) {
-                div = window.document.createElement("div");
-                div.setAttribute("id", "code-annotation-line-highlight");
-                div.style.position = 'absolute';
-                parent.appendChild(div);
-              }
-              div.style.top = top - 2 + "px";
-              div.style.height = height + 4 + "px";
-              div.style.left = 0;
-              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-              if (gutterDiv === null) {
-                gutterDiv = window.document.createElement("div");
-                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-                gutterDiv.style.position = 'absolute';
-                const codeCell = window.document.getElementById(targetCell);
-                const gutter = codeCell.querySelector('.code-annotation-gutter');
-                gutter.appendChild(gutterDiv);
-              }
-              gutterDiv.style.top = top - 2 + "px";
-              gutterDiv.style.height = height + 4 + "px";
-            }
-            selectedAnnoteEl = annoteEl;
-          }
-        };
-        const unselectCodeLines = () => {
-          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-          elementsIds.forEach((elId) => {
-            const div = window.document.getElementById(elId);
-            if (div) {
-              div.remove();
-            }
-          });
-          selectedAnnoteEl = undefined;
-        };
-          // Handle positioning of the toggle
-      window.addEventListener(
-        "resize",
-        throttle(() => {
-          elRect = undefined;
-          if (selectedAnnoteEl) {
-            selectCodeLines(selectedAnnoteEl);
-          }
-        }, 10)
-      );
-      function throttle(fn, ms) {
-      let throttle = false;
-      let timer;
-        return (...args) => {
-          if(!throttle) { // first call gets through
-              fn.apply(this, args);
-              throttle = true;
-          } else { // all the others get throttled
-              if(timer) clearTimeout(timer); // cancel #2
-              timer = setTimeout(() => {
-                fn.apply(this, args);
-                timer = throttle = false;
-              }, ms);
-          }
-        };
-      }
-        // Attach click handler to the DT
-        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-        for (const annoteDlNode of annoteDls) {
-          annoteDlNode.addEventListener('click', (event) => {
-            const clickedEl = event.target;
-            if (clickedEl !== selectedAnnoteEl) {
-              unselectCodeLines();
-              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-              if (activeEl) {
-                activeEl.classList.remove('code-annotation-active');
-              }
-              selectCodeLines(clickedEl);
-              clickedEl.classList.add('code-annotation-active');
-            } else {
-              // Unselect the line
-              unselectCodeLines();
-              clickedEl.classList.remove('code-annotation-active');
-            }
-          });
-        }
-    const findCites = (el) => {
-      const parentEl = el.parentElement;
-      if (parentEl) {
-        const cites = parentEl.dataset.cites;
-        if (cites) {
-          return {
-            el,
-            cites: cites.split(' ')
-          };
-        } else {
-          return findCites(el.parentElement)
-        }
-      } else {
-        return undefined;
-      }
-    };
-    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-    for (var i=0; i<bibliorefs.length; i++) {
-      const ref = bibliorefs[i];
-      const citeInfo = findCites(ref);
-      if (citeInfo) {
-        tippyHover(citeInfo.el, function() {
-          var popup = window.document.createElement('div');
-          citeInfo.cites.forEach(function(cite) {
-            var citeDiv = window.document.createElement('div');
-            citeDiv.classList.add('hanging-indent');
-            citeDiv.classList.add('csl-entry');
-            var biblioDiv = window.document.getElementById('ref-' + cite);
-            if (biblioDiv) {
-              citeDiv.innerHTML = biblioDiv.innerHTML;
-            }
-            popup.appendChild(citeDiv);
-          });
-          return popup.innerHTML;
-        });
-      }
-    }
-  });
-  </script>
-<nav class="page-navigation">
-  <div class="nav-page nav-page-previous">
-      <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="pagination-link" aria-label="PostgreSQL pgvector">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">PostgreSQL pgvector</span></span>
-      </a>          
-  </div>
-  <div class="nav-page nav-page-next">
-      <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="pagination-link" aria-label="Hybrid Search">
-        <span class="nav-page-text"><span class="chapter-title">Hybrid Search</span></span> <i class="bi bi-arrow-right-short"></i>
-      </a>
-  </div>
-</nav>
-</div> <!-- /content -->
+                            <a rel="next prefetch" href="../phase-03-rag-engineering/10-hybrid-search.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-03-rag-engineering/10-hybrid-search.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
 
 
 
 
-</body></html>
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom.js"></script>
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,1031 +1,190 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
-
-<meta charset="utf-8">
-<meta name="generator" content="quarto-1.10.18">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-
-
-<title>RAG Evaluation and Testing – Agentic AI Engineering Study Book</title>
-<style>
-/* Default styles provided by pandoc.
-** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
-*/
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: 1.5em;}
-div.column{flex: auto;}
-@media screen {
-div.columns{gap: min(4vw, 1.5em);}
-div.column{overflow-x: auto;}
-}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-ul.task-list{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-  width: 0.8em;
-  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
-  vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-</style>
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>RAG Evaluation and Testing - Agentic AI Engineering Study Book</title>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<link href="../phase-03-rag-engineering/20-multi-tenant-rag.html" rel="next">
-<link href="../phase-03-rag-engineering/18-generation-quality-metrics.html" rel="prev">
-<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-012e79344040a4a328ea85a5b0a60384.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-d84a0d611e1de1507791ffd4dad004b1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
-<script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
-  "copy-button": false,
-  "collapse-after": 3,
-  "panel-placement": "start",
-  "type": "textbox",
-  "limit": 50,
-  "keyboard-shortcut": [
-    "f",
-    "/",
-    "s"
-  ],
-  "show-item-context": false,
-  "language": {
-    "search-no-results-text": "No results",
-    "search-matching-documents-text": "matching documents",
-    "search-copy-link-title": "Copy link to search",
-    "search-hide-matches-text": "Hide additional matches",
-    "search-more-match-text": "more match in this document",
-    "search-more-matches-text": "more matches in this document",
-    "search-clear-button-title": "Clear",
-    "search-text-placeholder": "",
-    "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit",
-    "search-label": "Search"
-  }
-}</script>
-<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
-<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
-<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../assets/fonts/fonts.css">
+        <link rel="stylesheet" href="../theme/custom.css">
 
 
-<link rel="stylesheet" href="../assets/fonts/fonts.css">
-<link rel="stylesheet" href="../styles/custom.css">
-</head>
-
-<body class="nav-sidebar floating quarto-light"><script id="quarto-html-before-body" type="application/javascript">
-    const toggleBodyColorMode = (bsSheetEl) => {
-      const mode = bsSheetEl.getAttribute("data-mode");
-      const bodyEl = window.document.querySelector("body");
-      if (mode === "dark") {
-        bodyEl.classList.add("quarto-dark");
-        bodyEl.classList.remove("quarto-light");
-      } else {
-        bodyEl.classList.add("quarto-light");
-        bodyEl.classList.remove("quarto-dark");
-      }
-    }
-    const toggleBodyColorPrimary = () => {
-      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
-      if (bsSheetEl) {
-        toggleBodyColorMode(bsSheetEl);
-      }
-    }
-    const setColorSchemeToggle = (alternate) => {
-      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
-      for (let i=0; i < toggles.length; i++) {
-        const toggle = toggles[i];
-        if (toggle) {
-          if (alternate) {
-            toggle.classList.add("alternate");
-          } else {
-            toggle.classList.remove("alternate");
-          }
-        }
-      }
-    };
-    const toggleColorMode = (alternate) => {
-      // Switch the stylesheets
-      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
-      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
-      manageTransitions('#quarto-margin-sidebar .nav-link', false);
-      if (alternate) {
-        // note: dark is layered on light, we don't disable primary!
-        enableStylesheet(alternateStylesheets);
-        for (const sheetNode of alternateStylesheets) {
-          if (sheetNode.id === "quarto-bootstrap") {
-            toggleBodyColorMode(sheetNode);
-          }
-        }
-      } else {
-        disableStylesheet(alternateStylesheets);
-        enableStylesheet(primaryStylesheets)
-        toggleBodyColorPrimary();
-      }
-      manageTransitions('#quarto-margin-sidebar .nav-link', true);
-      // Switch the toggles
-      setColorSchemeToggle(alternate)
-      // Hack to workaround the fact that safari doesn't
-      // properly recolor the scrollbar when toggling (#1455)
-      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
-        manageTransitions("body", false);
-        window.scrollTo(0, 1);
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          manageTransitions("body", true);
-        }, 40);
-      }
-    }
-    const disableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        stylesheet.rel = 'disabled-stylesheet';
-      }
-    }
-    const enableStylesheet = (stylesheets) => {
-      for (let i=0; i < stylesheets.length; i++) {
-        const stylesheet = stylesheets[i];
-        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
-          stylesheet.rel = 'stylesheet';
-        }
-      }
-    }
-    const manageTransitions = (selector, allowTransitions) => {
-      const els = window.document.querySelectorAll(selector);
-      for (let i=0; i < els.length; i++) {
-        const el = els[i];
-        if (allowTransitions) {
-          el.classList.remove('notransition');
-        } else {
-          el.classList.add('notransition');
-        }
-      }
-    }
-    const isFileUrl = () => {
-      return window.location.protocol === 'file:';
-    }
-    const hasAlternateSentinel = () => {
-      let styleSentinel = getColorSchemeSentinel();
-      if (styleSentinel !== null) {
-        return styleSentinel === "alternate";
-      } else {
-        return false;
-      }
-    }
-    const setStyleSentinel = (alternate) => {
-      const value = alternate ? "alternate" : "default";
-      if (!isFileUrl()) {
-        window.localStorage.setItem("quarto-color-scheme", value);
-      } else {
-        localAlternateSentinel = value;
-      }
-    }
-    const getColorSchemeSentinel = () => {
-      if (!isFileUrl()) {
-        const storageValue = window.localStorage.getItem("quarto-color-scheme");
-        return storageValue != null ? storageValue : localAlternateSentinel;
-      } else {
-        return localAlternateSentinel;
-      }
-    }
-    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
-      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
-      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
-      let newTheme = '';
-      if(authorPrefersDark) {
-        newTheme = isAlternate ? baseTheme : alternateTheme;
-      } else {
-        newTheme = isAlternate ? alternateTheme : baseTheme;
-      }
-      const changeGiscusTheme = () => {
-        // From: https://github.com/giscus/giscus/issues/336
-        const sendMessage = (message) => {
-          const iframe = document.querySelector('iframe.giscus-frame');
-          if (!iframe) return;
-          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
-        }
-        sendMessage({
-          setConfig: {
-            theme: newTheme
-          }
-        });
-      }
-      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
-      if (isGiscussLoaded) {
-        changeGiscusTheme();
-      }
-    };
-    const authorPrefersDark = false;
-    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    const darkModeDefault = queryPrefersDark.matches;
-      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
-    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
-    // Dark / light mode switch
-    window.quartoToggleColorScheme = () => {
-      // Read the current dark / light value
-      let toAlternate = !hasAlternateSentinel();
-      toggleColorMode(toAlternate);
-      setStyleSentinel(toAlternate);
-      toggleGiscusIfUsed(toAlternate, darkModeDefault);
-      window.dispatchEvent(new Event('resize'));
-    };
-    queryPrefersDark.addEventListener("change", e => {
-      if(window.localStorage.getItem("quarto-color-scheme") !== null)
-        return;
-      const alternate = e.matches
-      toggleColorMode(alternate);
-      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
-      toggleGiscusIfUsed(alternate, darkModeDefault);
-    });
-    // Switch to dark mode if need be
-    if (hasAlternateSentinel()) {
-      toggleColorMode(true);
-    } else {
-      toggleColorMode(false);
-    }
-  </script>
-
-<div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
-  <nav class="quarto-secondary-nav">
-    <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
-        <i class="bi bi-layout-text-sidebar-reverse"></i>
-      </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html"><span class="chapter-title">RAG Evaluation and Testing</span></a></li></ol></nav>
-        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-        </a>
-      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
-        <i class="bi bi-search"></i>
-      </button>
-    </div>
-  </nav>
-</header>
-<!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
-<!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header">
-    <div class="sidebar-title mb-0 py-0">
-      <a href="../">Agentic AI Engineering Study Book</a> 
-        <div class="sidebar-tools-main">
-  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
-</div>
-    </div>
-      </div>
-        <div class="mt-2 flex-shrink-0 align-items-center">
-        <div class="sidebar-search">
-        <div id="quarto-search" class="" title="Search"></div>
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
         </div>
-        </div>
-    <div class="sidebar-menu-container"> 
-    <ul class="list-unstyled mt-1">
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
-  </div>
-</li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 1 — Production Python</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-03-rag-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 3 — RAG Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/01-rag-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/02-document-ingestion-and-parsing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Document Ingestion and Parsing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/03-chunking-strategies.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Chunking Strategies</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/04-metadata-extraction-and-filtering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Metadata Extraction and Filtering</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/05-embedding-models-and-dimensions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embedding Models and Dimensions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/06-similarity-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Similarity Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/07-vector-databases-and-ann-indexes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Vector Databases and ANN Indexes</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/08-postgresql-pgvector.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL pgvector</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/09-dense-and-sparse-retrieval.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dense and Sparse Retrieval</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/10-hybrid-search.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hybrid Search</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/11-query-transformation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Query Transformation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/12-reranking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reranking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/13-context-construction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Construction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/14-citations-and-grounded-generation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Citations and Grounded Generation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/15-knowledge-base-versioning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Knowledge-Base Versioning</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/16-rag-caching-and-latency.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Caching and Latency</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/17-retrieval-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retrieval Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Generation Quality Metrics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">RAG Evaluation and Testing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Multi-Tenant RAG</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-03-rag-engineering/21-rag-security-and-access-control.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RAG Security and Access Control</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-04-agentic-ai-engineering/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 4 — Agentic AI Engineering</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/01-what-an-ai-agent-is.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">What an AI Agent Is</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/02-the-agent-loop.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Agent Loop</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/03-tool-execution-and-result-validation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Execution and Result Validation</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/04-agent-memory-short-term-and-working.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Short-Term and Working</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/05-agent-memory-long-term-episodic-semantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Memory: Long-Term, Episodic, and Semantic</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/06-planning-decomposition-and-routing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Planning, Decomposition, and Routing</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/07-reflection-and-self-correction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Reflection and Self-Correction</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/08-retries-termination-and-loop-detection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Retries, Termination, and Loop Detection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/09-state-management-and-persistence.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">State Management and Persistence</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/10-checkpointing-and-durable-execution.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Checkpointing and Durable Execution</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/11-human-in-the-loop-and-approvals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Human-in-the-Loop and Approvals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/12-guardrails.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Guardrails</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/13-structured-agent-outputs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Agent Outputs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/14-tool-schemas-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Schemas and Selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/15-tool-permissions.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool Permissions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/16-parallel-and-conditional-workflows.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parallel and Conditional Workflows</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/17-long-running-and-background-agents.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Long-Running and Background Agents</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/18-langgraph-graphs-and-state.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Graphs and State</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/19-langgraph-checkpoints-interrupts-subgraphs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">LangGraph: Checkpoints, Interrupts, and Subgraphs</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/20-openai-agents-sdk.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">OpenAI Agents SDK</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/21-agent-orchestration-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Orchestration Patterns</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-04-agentic-ai-engineering/22-agent-reliability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Reliability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a href="../phase-05-mcp-tool-ecosystems/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Phase 5 — MCP and Tool Ecosystems</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/01-mcp-fundamentals.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Fundamentals</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/02-mcp-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Architecture</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/03-mcp-transports.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Transports</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/04-mcp-tools-resources-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tools, Resources, and Prompts</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/05-tool-and-capability-discovery.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tool and Capability Discovery</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/06-mcp-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Authentication and Authorization</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/07-sessions-and-stateful-stateless-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sessions and Stateful vs Stateless Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/08-building-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/09-building-mcp-clients.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Building MCP Clients</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/10-database-mcp-servers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Database MCP Servers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/11-github-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">GitHub MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/12-filesystem-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Filesystem MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/13-browser-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Browser MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/14-internal-api-mcp-integration.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Internal API MCP Integration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/15-enterprise-mcp-gateways.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Enterprise MCP Gateways</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/16-mcp-security-and-permission-boundaries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Security and Permission Boundaries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/17-mcp-observability-and-audit-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Observability and Audit Logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/18-mcp-tool-versioning-and-registries.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">MCP Tool Versioning and Registries</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/19-agent-to-agent-communication-and-a2a.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent-to-Agent Communication and A2A</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../phase-05-mcp-tool-ecosystems/20-agent-capability-discovery-and-interoperability.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Agent Capability Discovery and Interoperability</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-    </ul>
     </div>
-</nav>
-<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
-<!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">Table of contents</h2>
-   
-  <ul class="collapse">
-  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
-  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
-  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
-  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
-  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
-  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
-  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
-  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
-  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
-  </ul>
-</nav>
-    </div>
-<!-- main -->
-<main class="content" id="quarto-document-content">
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/index.html">Phase 3 — RAG Engineering</a></li><li class="breadcrumb-item"><a href="../phase-03-rag-engineering/19-rag-evaluation-and-testing.html"><span class="chapter-title">RAG Evaluation and Testing</span></a></li></ol></nav>
-<div class="quarto-title">
-<h1 class="title"><span class="chapter-title">RAG Evaluation and Testing</span></h1>
-</div>
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
 
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
 
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
-<div class="quarto-title-meta">
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
 
-    
-  
-    
-  </div>
-  
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
 
+        <div id="page-wrapper" class="page-wrapper">
 
-</header>
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
 
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
 
-<blockquote class="blockquote">
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="rag-evaluation-and-testing"><a class="header" href="#rag-evaluation-and-testing">RAG Evaluation and Testing</a></h1>
+<blockquote>
 <p><strong>Interview answer (say this first).</strong> Evaluation is how you know a RAG system works and keeps working. You keep a labelled <strong>offline set</strong> built from real user questions plus reviewed synthetic ones, evaluate components separately for attribution and end-to-end for the user outcome, and run the suite in CI with thresholds so a regression fails the build. In production you watch <strong>online signals</strong>. When something breaks, the metrics tell you whether retrieval or generation is at fault instead of leaving you to guess.</p>
 </blockquote>
-<section id="why-this-exists" class="level2">
-<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
 <p>You ship a RAG feature. The demo works. Then, over three weeks, four things happen:</p>
 <ul>
 <li>Someone swaps the embedding model. Answers get subtly worse, and nobody can prove it.</li>
@@ -1040,383 +199,259 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Generation</strong> had the evidence and still answered badly.</li>
 </ul>
 <p>These have different fixes, different costs, and different owners. Without measurement, teams spend days editing prompts when the real bug is that the retriever never returned the right chunk. Evaluation exists to answer one question fast: <em>which stage failed, and by how much?</em></p>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
+<blockquote>
+<p><strong>Note:</strong></p>
 <p><strong>The one-sentence purpose.</strong> Evaluation turns “it feels better” into a repeatable number, and splits every failure into a retrieval fault or a generation fault.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Evaluation</strong></td><td>Running a system against known inputs and measuring the outputs.</td></tr>
+<tr><td><strong>Offline evaluation</strong></td><td>Running against a fixed saved dataset, before release. Fast, cheap, repeatable.</td></tr>
+<tr><td><strong>Online evaluation</strong></td><td>Measuring real traffic in production. The truth, but slow and noisy.</td></tr>
+<tr><td><strong>Evaluation set</strong></td><td>The saved collection of questions and expected behaviour used for offline runs. Also called an <strong>eval set</strong>.</td></tr>
+<tr><td><strong>Golden set</strong></td><td>An eval set with trusted, human-checked labels.</td></tr>
+<tr><td><strong>Held-out set</strong></td><td>A part of the data you never tune on, so the final number is honest.</td></tr>
+<tr><td><strong>Synthetic data</strong></td><td>Questions generated by a model rather than written by a person. Must be reviewed before it counts.</td></tr>
+<tr><td><strong>Regression</strong></td><td>A change that makes something that used to work stop working.</td></tr>
+<tr><td><strong>Regression suite</strong></td><td>The eval set run automatically on every change to catch regressions.</td></tr>
+<tr><td><strong>CI gate</strong></td><td>A threshold in the build pipeline. If the metric drops below it, the build fails and the change cannot merge.</td></tr>
+<tr><td><strong>Snapshot</strong></td><td>A saved recorded output or metric value from a known-good run, used as the comparison baseline.</td></tr>
+<tr><td><strong>Component evaluation</strong></td><td>Testing one stage alone: the retriever, the reranker, or the generator.</td></tr>
+<tr><td><strong>End-to-end evaluation</strong></td><td>Testing the whole pipeline from question to final answer.</td></tr>
+<tr><td><strong>Error analysis</strong></td><td>Reading the actual failures and grouping them into causes. The most valuable form of evaluation.</td></tr>
+<tr><td><strong>Slice</strong></td><td>A subgroup of the eval set, such as multi-hop questions or a specific product.</td></tr>
+<tr><td><strong>Hard negative</strong></td><td>A retrieved document that looks relevant but is not, used to test precision.</td></tr>
+<tr><td><strong>Unanswerable question</strong></td><td>A question whose answer is not in the corpus. The correct behaviour is to say so.</td></tr>
+<tr><td><strong>Abstention</strong></td><td>Refusing to answer when the evidence is missing. Also called a <strong>refusal</strong>.</td></tr>
+<tr><td><strong>Bootstrap</strong></td><td>Randomly resampling your results many times to estimate how much the metric would bounce around on new data.</td></tr>
+<tr><td><strong>Confidence interval</strong></td><td>A range that is likely to contain the true value. Wide means “not enough data”.</td></tr>
+<tr><td><strong>Drift</strong></td><td>The world changing under you: new documents, new question styles, so old scores stop predicting new ones.</td></tr>
+<tr><td><strong>Canary</strong></td><td>Sending a small share of real traffic to a new version while watching its metrics.</td></tr>
+<tr><td><strong>Shadow traffic</strong></td><td>Running a new version on real requests without showing the user its output.</td></tr>
+</tbody></table>
 </div>
-</div>
-</section>
-<section id="start-from-zero" class="level2">
-<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Word</th>
-<th>Plain meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Evaluation</strong></td>
-<td>Running a system against known inputs and measuring the outputs.</td>
-</tr>
-<tr class="even">
-<td><strong>Offline evaluation</strong></td>
-<td>Running against a fixed saved dataset, before release. Fast, cheap, repeatable.</td>
-</tr>
-<tr class="odd">
-<td><strong>Online evaluation</strong></td>
-<td>Measuring real traffic in production. The truth, but slow and noisy.</td>
-</tr>
-<tr class="even">
-<td><strong>Evaluation set</strong></td>
-<td>The saved collection of questions and expected behaviour used for offline runs. Also called an <strong>eval set</strong>.</td>
-</tr>
-<tr class="odd">
-<td><strong>Golden set</strong></td>
-<td>An eval set with trusted, human-checked labels.</td>
-</tr>
-<tr class="even">
-<td><strong>Held-out set</strong></td>
-<td>A part of the data you never tune on, so the final number is honest.</td>
-</tr>
-<tr class="odd">
-<td><strong>Synthetic data</strong></td>
-<td>Questions generated by a model rather than written by a person. Must be reviewed before it counts.</td>
-</tr>
-<tr class="even">
-<td><strong>Regression</strong></td>
-<td>A change that makes something that used to work stop working.</td>
-</tr>
-<tr class="odd">
-<td><strong>Regression suite</strong></td>
-<td>The eval set run automatically on every change to catch regressions.</td>
-</tr>
-<tr class="even">
-<td><strong>CI gate</strong></td>
-<td>A threshold in the build pipeline. If the metric drops below it, the build fails and the change cannot merge.</td>
-</tr>
-<tr class="odd">
-<td><strong>Snapshot</strong></td>
-<td>A saved recorded output or metric value from a known-good run, used as the comparison baseline.</td>
-</tr>
-<tr class="even">
-<td><strong>Component evaluation</strong></td>
-<td>Testing one stage alone: the retriever, the reranker, or the generator.</td>
-</tr>
-<tr class="odd">
-<td><strong>End-to-end evaluation</strong></td>
-<td>Testing the whole pipeline from question to final answer.</td>
-</tr>
-<tr class="even">
-<td><strong>Error analysis</strong></td>
-<td>Reading the actual failures and grouping them into causes. The most valuable form of evaluation.</td>
-</tr>
-<tr class="odd">
-<td><strong>Slice</strong></td>
-<td>A subgroup of the eval set, such as multi-hop questions or a specific product.</td>
-</tr>
-<tr class="even">
-<td><strong>Hard negative</strong></td>
-<td>A retrieved document that looks relevant but is not, used to test precision.</td>
-</tr>
-<tr class="odd">
-<td><strong>Unanswerable question</strong></td>
-<td>A question whose answer is not in the corpus. The correct behaviour is to say so.</td>
-</tr>
-<tr class="even">
-<td><strong>Abstention</strong></td>
-<td>Refusing to answer when the evidence is missing. Also called a <strong>refusal</strong>.</td>
-</tr>
-<tr class="odd">
-<td><strong>Bootstrap</strong></td>
-<td>Randomly resampling your results many times to estimate how much the metric would bounce around on new data.</td>
-</tr>
-<tr class="even">
-<td><strong>Confidence interval</strong></td>
-<td>A range that is likely to contain the true value. Wide means “not enough data”.</td>
-</tr>
-<tr class="odd">
-<td><strong>Drift</strong></td>
-<td>The world changing under you: new documents, new question styles, so old scores stop predicting new ones.</td>
-</tr>
-<tr class="even">
-<td><strong>Canary</strong></td>
-<td>Sending a small share of real traffic to a new version while watching its metrics.</td>
-</tr>
-<tr class="odd">
-<td><strong>Shadow traffic</strong></td>
-<td>Running a new version on real requests without showing the user its output.</td>
-</tr>
-</tbody>
-</table>
 <p>Three distinctions do most of the work:</p>
 <ul>
 <li><strong>Offline vs online.</strong> Offline is fast and controlled and can be wrong about what users care about. Online is real and slow and noisy. You need both, in that order.</li>
 <li><strong>Component vs end-to-end.</strong> Components tell you <em>where</em> a failure is. End-to-end tells you <em>whether</em> users are served. Run both.</li>
 <li><strong>Average vs slice.</strong> A single average hides the failures that matter. Always look at the hardest slice.</li>
 </ul>
-</section>
-<section id="the-core-idea" class="level2">
-<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think about how a backend team tests a web service. They do not click around the UI and call it tested. They write unit tests for each function, integration tests for the wiring, and a smoke test for the real endpoint. CI runs all of it on every commit. Production has dashboards for errors and latency. That is a mature test strategy, and RAG needs exactly the same shape.</p>
 <p>RAG evaluation has two loops that connect:</p>
-<div class="cell" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart TD
-    subgraph Offline["Offline (every change, in CI)"]
-        Q["Eval set&lt;br/&gt;real + synthetic questions"] --&gt; R["Run pipeline"]
-        R --&gt; M["Retrieval metrics&lt;br/&gt;+ generation metrics"]
-        M --&gt; G{"Gate: did any metric&lt;br/&gt;regress below threshold?"}
-        G --&gt;|yes| F["Fail the build&lt;br/&gt;block the merge"]
-        G --&gt;|no| P["Merge and deploy"]
+<pre class="mermaid">flowchart TD
+    subgraph Offline[&quot;Offline (every change, in CI)&quot;]
+        Q[&quot;Eval set&lt;br/&gt;real + synthetic questions&quot;] --&gt; R[&quot;Run pipeline&quot;]
+        R --&gt; M[&quot;Retrieval metrics&lt;br/&gt;+ generation metrics&quot;]
+        M --&gt; G{&quot;Gate: did any metric&lt;br/&gt;regress below threshold?&quot;}
+        G --&gt;|yes| F[&quot;Fail the build&lt;br/&gt;block the merge&quot;]
+        G --&gt;|no| P[&quot;Merge and deploy&quot;]
     end
-    P --&gt; O["Production traffic"]
-    O --&gt; S["Online signals&lt;br/&gt;thumbs, escalations,&lt;br/&gt;refusal rate, latency"]
-    S --&gt; A["Collect failures&lt;br/&gt;into new eval questions"]
+    P --&gt; O[&quot;Production traffic&quot;]
+    O --&gt; S[&quot;Online signals&lt;br/&gt;thumbs, escalations,&lt;br/&gt;refusal rate, latency&quot;]
+    S --&gt; A[&quot;Collect failures&lt;br/&gt;into new eval questions&quot;]
     A --&gt; Q
 </pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
 <p>The arrow from production back into the eval set is what makes the system improve. Every real failure becomes a permanent test, so the same bug cannot return. This is exactly how a good software team turns an incident into a regression test.</p>
 <p>Inside the pipeline, measurement points give you attribution. This is the part interviewers care about most:</p>
-<div class="cell" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart LR
-    Q["Question"] --&gt; R["Retrieve"]
-    R --&gt; RM["Retrieval metrics&lt;br/&gt;Recall@K, NDCG@K"]
-    RM --&gt; RR["Rerank"]
-    RR --&gt; C["Build context"]
-    C --&gt; CM["Context relevance"]
-    CM --&gt; G["Generate"]
-    G --&gt; GM["Faithfulness,&lt;br/&gt;answer relevance"]
-    GM --&gt; V{"Wrong answer?"}
-    V --&gt;|recall low| F1["Retrieval fault:&lt;br/&gt;fix index, chunking, query"]
-    V --&gt;|recall good,&lt;br/&gt;faithfulness low| F2["Generation fault:&lt;br/&gt;fix prompt, model, context"]
+<pre class="mermaid">flowchart LR
+    Q[&quot;Question&quot;] --&gt; R[&quot;Retrieve&quot;]
+    R --&gt; RM[&quot;Retrieval metrics&lt;br/&gt;Recall@K, NDCG@K&quot;]
+    RM --&gt; RR[&quot;Rerank&quot;]
+    RR --&gt; C[&quot;Build context&quot;]
+    C --&gt; CM[&quot;Context relevance&quot;]
+    CM --&gt; G[&quot;Generate&quot;]
+    G --&gt; GM[&quot;Faithfulness,&lt;br/&gt;answer relevance&quot;]
+    GM --&gt; V{&quot;Wrong answer?&quot;}
+    V --&gt;|recall low| F1[&quot;Retrieval fault:&lt;br/&gt;fix index, chunking, query&quot;]
+    V --&gt;|recall good,&lt;br/&gt;faithfulness low| F2[&quot;Generation fault:&lt;br/&gt;fix prompt, model, context&quot;]
 </pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
 <p>That decision tree is the single most useful thing on this page. <strong>Check recall first.</strong> It is cheap, it is upstream, and it eliminates a whole class of causes.</p>
-</section>
-<section id="how-it-works" class="level2">
-<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
-<ol type="1">
-<li><p><strong>Define what “good” means before you build the set.</strong> Pick the metrics (recall, NDCG, faithfulness, answer relevance), the thresholds, and the slices. Metrics chosen after seeing results are how teams accidentally measure what they built instead of what they wanted.</p></li>
-<li><p><strong>Collect questions from three sources.</strong> Real user questions from logs and support tickets (the most valuable), domain experts writing edge cases, and synthetic questions generated from documents and then human-reviewed. Mix them so the set covers real phrasing and rare-but-important cases.</p></li>
-<li><p><strong>Label each question.</strong> Store the relevant document IDs for retrieval metrics and, where possible, a reference answer or a set of acceptable answers. Also mark unanswerable questions explicitly. Keep labels independent of the system you are testing.</p></li>
-<li><p><strong>Stratify the set.</strong> Tag each question by intent and difficulty: exact lookup, multi-hop, comparison, acronym, no-answer. Report metrics per slice, not only overall. A set that is 90% easy lookups will look great and predict nothing.</p></li>
-<li><p><strong>Evaluate components.</strong> Run the retriever alone on the labelled queries and compute Recall@K and NDCG@K. Run the reranker on the retriever’s candidate set. Run the generator with a fixed context and measure faithfulness. Fixed inputs make each stage’s number meaningful.</p></li>
-<li><p><strong>Evaluate end-to-end.</strong> Run the real pipeline, question to answer, and measure both retrieval and generation metrics on the same run. This catches integration bugs that component tests miss.</p></li>
-<li><p><strong>Store results as a baseline.</strong> Save the metric values (and the raw outputs) from a known-good run. Every later run is compared to this snapshot, so “regression” has a concrete meaning.</p></li>
-<li><p><strong>Add statistical honesty.</strong> A small set gives a noisy mean. Bootstrap your per-query scores to get a confidence interval, and compare two runs on the same questions. A one-point drop on 20 questions is usually noise.</p></li>
-<li><p><strong>Run it in CI with a gate.</strong> Re-run the suite on changes to prompts, models, chunking, embeddings, or parsing. Fail the build when a metric drops below its threshold. Keep the fast subset fast so the gate does not block every commit for an hour.</p></li>
-<li><p><strong>Watch online signals after deploy.</strong> Thumbs up and down, escalation to a human, follow-up-question rate, refusal rate, latency, and cost. Online is the ground truth the offline set is trying to predict.</p></li>
-<li><p><strong>Do error analysis on a schedule.</strong> Read 20–50 real failures by hand. Group them into causes. This is where you find the failure mode no metric was defined for.</p></li>
-<li><p><strong>Feed failures back into the set.</strong> Every confirmed bug becomes a new eval case. Version the eval set like code, and note why each case was added.</p></li>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
+<li>
+<p><strong>Define what “good” means before you build the set.</strong> Pick the metrics (recall, NDCG, faithfulness, answer relevance), the thresholds, and the slices. Metrics chosen after seeing results are how teams accidentally measure what they built instead of what they wanted.</p>
+</li>
+<li>
+<p><strong>Collect questions from three sources.</strong> Real user questions from logs and support tickets (the most valuable), domain experts writing edge cases, and synthetic questions generated from documents and then human-reviewed. Mix them so the set covers real phrasing and rare-but-important cases.</p>
+</li>
+<li>
+<p><strong>Label each question.</strong> Store the relevant document IDs for retrieval metrics and, where possible, a reference answer or a set of acceptable answers. Also mark unanswerable questions explicitly. Keep labels independent of the system you are testing.</p>
+</li>
+<li>
+<p><strong>Stratify the set.</strong> Tag each question by intent and difficulty: exact lookup, multi-hop, comparison, acronym, no-answer. Report metrics per slice, not only overall. A set that is 90% easy lookups will look great and predict nothing.</p>
+</li>
+<li>
+<p><strong>Evaluate components.</strong> Run the retriever alone on the labelled queries and compute Recall@K and NDCG@K. Run the reranker on the retriever’s candidate set. Run the generator with a fixed context and measure faithfulness. Fixed inputs make each stage’s number meaningful.</p>
+</li>
+<li>
+<p><strong>Evaluate end-to-end.</strong> Run the real pipeline, question to answer, and measure both retrieval and generation metrics on the same run. This catches integration bugs that component tests miss.</p>
+</li>
+<li>
+<p><strong>Store results as a baseline.</strong> Save the metric values (and the raw outputs) from a known-good run. Every later run is compared to this snapshot, so “regression” has a concrete meaning.</p>
+</li>
+<li>
+<p><strong>Add statistical honesty.</strong> A small set gives a noisy mean. Bootstrap your per-query scores to get a confidence interval, and compare two runs on the same questions. A one-point drop on 20 questions is usually noise.</p>
+</li>
+<li>
+<p><strong>Run it in CI with a gate.</strong> Re-run the suite on changes to prompts, models, chunking, embeddings, or parsing. Fail the build when a metric drops below its threshold. Keep the fast subset fast so the gate does not block every commit for an hour.</p>
+</li>
+<li>
+<p><strong>Watch online signals after deploy.</strong> Thumbs up and down, escalation to a human, follow-up-question rate, refusal rate, latency, and cost. Online is the ground truth the offline set is trying to predict.</p>
+</li>
+<li>
+<p><strong>Do error analysis on a schedule.</strong> Read 20–50 real failures by hand. Group them into causes. This is where you find the failure mode no metric was defined for.</p>
+</li>
+<li>
+<p><strong>Feed failures back into the set.</strong> Every confirmed bug becomes a new eval case. Version the eval set like code, and note why each case was added.</p>
+</li>
 </ol>
 <p>A useful rule for the gate: <strong>gate on the metric, not on the average alone.</strong> Check the overall number and the worst slice. A change that raises the average while destroying one slice is not an improvement.</p>
-</section>
-<section id="the-syntax-you-will-use" class="level2">
-<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
 <p><strong>One eval case as data.</strong> Keep the question, the labels, and the expected answer together. A dataclass is enough; you do not need a framework to start.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dataclasses <span class="im">import</span> dataclass</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Item:</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    question: <span class="bu">str</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    relevant: <span class="bu">set</span>[<span class="bu">str</span>]        <span class="co"># labelled relevant document IDs</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    answer: <span class="bu">str</span>               <span class="co"># the system's answer</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    context: <span class="bu">str</span>              <span class="co"># the context it was given</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">from dataclasses import dataclass
+
+@dataclass
+class Item:
+    question: str
+    relevant: set[str]        # labelled relevant document IDs
+    answer: str               # the system's answer
+    context: str              # the context it was given
+</code></pre>
 <p><strong>A retriever you can swap.</strong> The harness calls an interface, not a specific vector store, so you can evaluate any retriever.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> retrieve(question: <span class="bu">str</span>, k: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">str</span>]:</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> FAKE_INDEX[question][:k]      <span class="co"># replace with your real retriever</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def retrieve(question: str, k: int) -&gt; list[str]:
+    return FAKE_INDEX[question][:k]      # replace with your real retriever
+</code></pre>
 <p><strong>Retrieval metrics.</strong> The functions from the retrieval chapter, reused unchanged.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> recall_at_k(retrieved, relevant, k):</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> relevant:</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">None</span>                 <span class="co"># unanswerable item: no denominator, skip</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(<span class="dv">1</span> <span class="cf">for</span> d <span class="kw">in</span> retrieved[:k] <span class="cf">if</span> d <span class="kw">in</span> relevant) <span class="op">/</span> <span class="bu">len</span>(relevant)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> precision_at_k(retrieved, relevant, k):</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(<span class="dv">1</span> <span class="cf">for</span> d <span class="kw">in</span> retrieved[:k] <span class="cf">if</span> d <span class="kw">in</span> relevant) <span class="op">/</span> k</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def recall_at_k(retrieved, relevant, k):
+    if not relevant:
+        return None                 # unanswerable item: no denominator, skip
+    return sum(1 for d in retrieved[:k] if d in relevant) / len(relevant)
+
+def precision_at_k(retrieved, relevant, k):
+    return sum(1 for d in retrieved[:k] if d in relevant) / k
+</code></pre>
 <p><strong>A per-query loop that attributes the fault.</strong> The order of the checks is the whole trick: retrieval before generation.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fault_for(recall, faith):</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> recall <span class="op">&lt;</span> <span class="fl">1.0</span>:</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"retrieval"</span>        <span class="co"># the evidence never arrived</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> faith <span class="op">&lt;</span> <span class="fl">1.0</span>:</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"generation"</span>       <span class="co"># the evidence arrived, the answer ignored it</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="st">"ok"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def fault_for(recall, faith):
+    if recall &lt; 1.0:
+        return "retrieval"        # the evidence never arrived
+    if faith &lt; 1.0:
+        return "generation"       # the evidence arrived, the answer ignored it
+    return "ok"
+</code></pre>
 <p><strong>The evaluation loop.</strong> It calls the retrieval metrics from the retrieval chapter, the faithfulness function from the generation chapter, and records a fault label on every row.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> evaluate(items, k):</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    rows <span class="op">=</span> []</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> item <span class="kw">in</span> items:</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        retrieved <span class="op">=</span> retrieve(item.question, k)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        faith, _ <span class="op">=</span> faithfulness(item.answer, item.context)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> item.relevant:</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Unanswerable item: retrieval metrics have no denominator. Skip them</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>            <span class="co"># (the guarded functions from chapter 17 return None) and score abstention separately.</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>            rows.append({</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>                <span class="st">"question"</span>: item.question,</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>                <span class="st">"recall"</span>: <span class="va">None</span>,</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>                <span class="st">"precision"</span>: <span class="va">None</span>,</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>                <span class="st">"mrr"</span>: <span class="va">None</span>,</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>                <span class="st">"ndcg"</span>: <span class="va">None</span>,</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>                <span class="st">"faithfulness"</span>: faith,</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>                <span class="st">"fault"</span>: <span class="st">"unanswerable"</span>,</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>            })</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        recall <span class="op">=</span> recall_at_k(retrieved, item.relevant, k)</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        rows.append({</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>            <span class="st">"question"</span>: item.question,</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>            <span class="st">"recall"</span>: recall,</span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>            <span class="st">"precision"</span>: precision_at_k(retrieved, item.relevant, k),</span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>            <span class="st">"mrr"</span>: reciprocal_rank(retrieved, item.relevant),</span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>            <span class="st">"ndcg"</span>: ndcg_at_k(retrieved, {d: <span class="dv">1</span> <span class="cf">for</span> d <span class="kw">in</span> item.relevant}, k),</span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>            <span class="st">"faithfulness"</span>: faith,</span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>            <span class="st">"fault"</span>: fault_for(recall, faith),</span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>        })</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> rows</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def evaluate(items, k):
+    rows = []
+    for item in items:
+        retrieved = retrieve(item.question, k)
+        faith, _ = faithfulness(item.answer, item.context)
+        if not item.relevant:
+            # Unanswerable item: retrieval metrics have no denominator. Skip them
+            # (the guarded functions from chapter 17 return None) and score abstention separately.
+            rows.append({
+                "question": item.question,
+                "recall": None,
+                "precision": None,
+                "mrr": None,
+                "ndcg": None,
+                "faithfulness": faith,
+                "fault": "unanswerable",
+            })
+            continue
+        recall = recall_at_k(retrieved, item.relevant, k)
+        rows.append({
+            "question": item.question,
+            "recall": recall,
+            "precision": precision_at_k(retrieved, item.relevant, k),
+            "mrr": reciprocal_rank(retrieved, item.relevant),
+            "ndcg": ndcg_at_k(retrieved, {d: 1 for d in item.relevant}, k),
+            "faithfulness": faith,
+            "fault": fault_for(recall, faith),
+        })
+    return rows
+</code></pre>
 <p><strong>Bootstrap confidence interval.</strong> Resample the per-query scores with replacement and read the 2.5th and 97.5th percentiles.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statistics <span class="im">import</span> mean</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bootstrap_ci(scores, n<span class="op">=</span><span class="dv">2000</span>, seed<span class="op">=</span><span class="dv">0</span>, alpha<span class="op">=</span><span class="fl">0.05</span>):</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> random.Random(seed)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    means <span class="op">=</span> <span class="bu">sorted</span>(mean(rng.choices(scores, k<span class="op">=</span><span class="bu">len</span>(scores))) <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(n))</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> means[<span class="bu">int</span>(alpha <span class="op">/</span> <span class="dv">2</span> <span class="op">*</span> n)], means[<span class="bu">int</span>((<span class="dv">1</span> <span class="op">-</span> alpha <span class="op">/</span> <span class="dv">2</span>) <span class="op">*</span> n) <span class="op">-</span> <span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">import random
+from statistics import mean
+
+def bootstrap_ci(scores, n=2000, seed=0, alpha=0.05):
+    rng = random.Random(seed)
+    means = sorted(mean(rng.choices(scores, k=len(scores))) for _ in range(n))
+    return means[int(alpha / 2 * n)], means[int((1 - alpha / 2) * n) - 1]
+</code></pre>
 <p><code>seed</code> makes the run reproducible, which a CI gate needs. <code>rng.choices(..., k=len(scores))</code> samples with replacement, which is what “pretend we collected a new set like this” means.</p>
 <p><strong>A CI gate.</strong> Express it as an assertion so <code>pytest</code> and the build pipeline understand it.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>THRESHOLDS <span class="op">=</span> {<span class="st">"recall"</span>: <span class="fl">0.9</span>, <span class="st">"faithfulness"</span>: <span class="fl">0.9</span>}</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gate(summary):</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> metric, threshold <span class="kw">in</span> THRESHOLDS.items():</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">assert</span> summary[metric] <span class="op">&gt;=</span> threshold, <span class="ss">f"</span><span class="sc">{</span>metric<span class="sc">}</span><span class="ss">=</span><span class="sc">{</span>summary[metric]<span class="sc">:.3f}</span><span class="ss"> &lt; </span><span class="sc">{</span>threshold<span class="sc">}</span><span class="ss">"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">THRESHOLDS = {"recall": 0.9, "faithfulness": 0.9}
+
+def gate(summary):
+    for metric, threshold in THRESHOLDS.items():
+        assert summary[metric] &gt;= threshold, f"{metric}={summary[metric]:.3f} &lt; {threshold}"
+</code></pre>
 <p><strong>A pytest wrapper.</strong> Mark the full suite slow and run the fast subset on every commit.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> test_retrieval_gate():</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    rows <span class="op">=</span> evaluate(GOLDEN, k<span class="op">=</span><span class="dv">4</span>)</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Skip None from unanswerable items so a zero-relevant case cannot crash the gate.</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    summary <span class="op">=</span> {m: mean(r[m] <span class="cf">for</span> r <span class="kw">in</span> rows <span class="cf">if</span> r[m] <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>) <span class="cf">for</span> m <span class="kw">in</span> THRESHOLDS}</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    gate(summary)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def test_retrieval_gate():
+    rows = evaluate(GOLDEN, k=4)
+    # Skip None from unanswerable items so a zero-relevant case cannot crash the gate.
+    summary = {m: mean(r[m] for r in rows if r[m] is not None) for m in THRESHOLDS}
+    gate(summary)
+</code></pre>
 <p><strong>A synthetic-question prompt.</strong> Generate from a document, then review. Never label synthetic data with the model that produced it.</p>
-<pre class="text"><code>Read the document below. Write 3 questions a real user might ask that
+<pre><code class="language-text">Read the document below. Write 3 questions a real user might ask that
 this document answers, and 1 question it does NOT answer.
 For each, list the sentence(s) that support the answer.
 
-Document: {chunk}</code></pre>
+Document: {chunk}
+</code></pre>
 <p>Ask for the supporting sentences so a reviewer can check the label cheaply, and ask for one unanswerable question so the set covers abstention.</p>
-</section>
-<section id="examples-simple-to-real" class="level2">
-<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
 <p><strong>Example 1 — the smallest useful check.</strong></p>
 <p>One query, one labelled document, one metric:</p>
-<pre class="text"><code>question: "refund window"
+<pre><code class="language-text">question: "refund window"
 relevant: {d1}
 retrieved: [d1, d9, d3, d8]
-Recall@4 = 1/1 = 1.0</code></pre>
+Recall@4 = 1/1 = 1.0
+</code></pre>
 <p>This already catches the worst bug: the document is not found at all. It takes ten lines of code.</p>
 <p><strong>Example 2 — grow it into a dataset and a mean.</strong></p>
 <p>Four questions with labels, run together. The harness prints one line per query:</p>
-<pre class="text"><code>refund window  recall=1.00 faith=0.50 ndcg=0.92 -&gt; generation
+<pre><code class="language-text">refund window  recall=1.00 faith=0.50 ndcg=0.92 -&gt; generation
 trial length   recall=1.00 faith=1.00 ndcg=0.63 -&gt; ok
 support hours  recall=0.50 faith=1.00 ndcg=0.61 -&gt; retrieval
-cancel policy  recall=1.00 faith=1.00 ndcg=1.00 -&gt; ok</code></pre>
+cancel policy  recall=1.00 faith=1.00 ndcg=1.00 -&gt; ok
+</code></pre>
 <p>Now failures have names. The refund answer invented a shipping refund the context explicitly denied; that is a <strong>generation</strong> fault. The support answer missed a relevant document; that is a <strong>retrieval</strong> fault. Two different tickets, two different fixes.</p>
 <p><strong>Example 3 — averaging without hedging is a trap.</strong></p>
 <p>The same four rows give these means:</p>
-<pre class="text"><code>recall       mean=0.875  95% CI=[0.625, 1.000]
+<pre><code class="language-text">recall       mean=0.875  95% CI=[0.625, 1.000]
 precision    mean=0.312  95% CI=[0.250, 0.438]
 mrr          mean=0.875  95% CI=[0.625, 1.000]
 ndcg         mean=0.791  95% CI=[0.622, 0.960]
-faithfulness mean=0.875  95% CI=[0.625, 1.000]</code></pre>
+faithfulness mean=0.875  95% CI=[0.625, 1.000]
+</code></pre>
 <p>The recall mean is <code>0.875</code>, but the confidence interval spans <code>0.625</code> to <code>1.000</code>. On four questions, that interval is so wide it barely rules anything out. This is the honest way to present a small eval set: <strong>the mean, plus how uncertain it is.</strong> A dashboard that shows <code>0.875</code> with no interval invites teams to over-react to noise.</p>
 <p><strong>Example 4 — the CI gate catches the regression.</strong></p>
 <p>With thresholds of <code>0.9</code> for recall and faithfulness, the gate raises on the first metric that fails:</p>
-<pre class="text"><code>GATE FAIL: recall=0.875 &lt; 0.9</code></pre>
+<pre><code class="language-text">GATE FAIL: recall=0.875 &lt; 0.9
+</code></pre>
 <p>The build fails, the merge is blocked, and the pull request must either fix the regression or justify lowering the threshold in review. Faithfulness is also below <code>0.9</code> in this run, so a gate that reports every failure rather than stopping at the first gives a more complete picture. Either way, the threshold is a decision made in advance, not a story told afterwards.</p>
 <p><strong>Example 5 — a gate that is honest about noise.</strong></p>
 <p>A better gate compares the new run to the stored baseline and only fails on a drop that is larger than the interval:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> regressed(baseline_scores, new_scores, tolerance<span class="op">=</span><span class="fl">0.0</span>):</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    base_lo, _ <span class="op">=</span> bootstrap_ci(baseline_scores)</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    new_mean <span class="op">=</span> mean(new_scores)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> new_mean <span class="op">&lt;</span> base_lo <span class="op">-</span> tolerance</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre><code class="language-python">def regressed(baseline_scores, new_scores, tolerance=0.0):
+    base_lo, _ = bootstrap_ci(baseline_scores)
+    new_mean = mean(new_scores)
+    return new_mean &lt; base_lo - tolerance
+</code></pre>
 <p>This fails only when the new mean falls below the baseline’s lower bound. It is slower to react to small true improvements and much less likely to fail the build on noise, which matters because a gate that cries wolf gets ignored.</p>
 <p><strong>Example 6 — error analysis in one table.</strong></p>
 <p>Read the raw outputs, not just the numbers, and group them. A simple log does the job:</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Question</th>
-<th>Recall</th>
-<th>Faithfulness</th>
-<th>Fault</th>
-<th>Root cause</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>refund window</td>
-<td>1.0</td>
-<td>0.5</td>
-<td>generation</td>
-<td>Answer added a claim the context denied</td>
-</tr>
-<tr class="even">
-<td>support hours</td>
-<td>0.5</td>
-<td>1.0</td>
-<td>retrieval</td>
-<td>Parser dropped the weekend-hours section</td>
-</tr>
-<tr class="odd">
-<td>trial length</td>
-<td>1.0</td>
-<td>1.0</td>
-<td>ok</td>
-<td>—</td>
-</tr>
-<tr class="even">
-<td>cancel policy</td>
-<td>1.0</td>
-<td>1.0</td>
-<td>ok</td>
-<td>—</td>
-</tr>
-</tbody>
-</table>
+<div class="table-wrapper"><table><thead><tr><th>Question</th><th>Recall</th><th>Faithfulness</th><th>Fault</th><th>Root cause</th></tr></thead><tbody>
+<tr><td>refund window</td><td>1.0</td><td>0.5</td><td>generation</td><td>Answer added a claim the context denied</td></tr>
+<tr><td>support hours</td><td>0.5</td><td>1.0</td><td>retrieval</td><td>Parser dropped the weekend-hours section</td></tr>
+<tr><td>trial length</td><td>1.0</td><td>1.0</td><td>ok</td><td>—</td></tr>
+<tr><td>cancel policy</td><td>1.0</td><td>1.0</td><td>ok</td><td>—</td></tr>
+</tbody></table>
+</div>
 <p>Two failures, two owners, two fixes. Without the fault column, both look like “the AI is wrong”.</p>
-</section>
-<section id="in-production" class="level2">
-<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
 <ul>
 <li><strong>Start the eval set before you need it.</strong> The best time to label 30 questions is while building the feature, when you still remember what users ask. Retrofitting an eval set is slow and political.</li>
 <li><strong>Draw questions from real traffic.</strong> Synthetic questions inherit the phrasing of the source chunk and are too easy. Mix in real queries with typos, ambiguity, and multi-hop structure.</li>
@@ -1431,60 +466,40 @@ faithfulness mean=0.875  95% CI=[0.625, 1.000]</code></pre>
 <li><strong>Watch cost and latency as first-class metrics.</strong> A retrieval change that raises recall by three points and doubles latency may still be a regression. Gate on p95 latency too.</li>
 <li><strong>Treat online signals as noisy but real.</strong> A thumbs-down rate can move for reasons unrelated to quality. Use it to find candidates for error analysis, not as a precise score.</li>
 </ul>
-</section>
-<section id="interview-questions" class="level2">
-<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
-<section id="where-do-evaluation-questions-come-from" class="level3">
-<h3 class="anchored" data-anchor-id="where-do-evaluation-questions-come-from">1. Where do evaluation questions come from?</h3>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-where-do-evaluation-questions-come-from"><a class="header" href="#1-where-do-evaluation-questions-come-from">1. Where do evaluation questions come from?</a></h3>
 <p><strong>Answer.</strong> Three sources. Real user questions from logs and support tickets, which are the most valuable because they capture real phrasing. Expert-written questions for edge cases the logs do not reach yet. And synthetic questions generated from documents, then human-reviewed, to bootstrap coverage quickly. Mix them, and label the relevant documents for each.</p>
 <p><strong>Follow-up: “What is wrong with purely synthetic questions?”</strong> They are generated from a chunk, so they often reuse the chunk’s wording and are easier than real questions. They also miss the messy phrasing, typos, and multi-hop structure that users actually produce. They are useful for coverage, not for realism.</p>
 <p><strong>Trap.</strong> Generating questions and labels with the same model you are evaluating. The model will agree with itself, the score will look great, and you will have measured nothing.</p>
-</section>
-<section id="what-is-the-difference-between-component-and-end-to-end-evaluation" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-the-difference-between-component-and-end-to-end-evaluation">2. What is the difference between component and end-to-end evaluation?</h3>
+<h3 id="2-what-is-the-difference-between-component-and-end-to-end-evaluation"><a class="header" href="#2-what-is-the-difference-between-component-and-end-to-end-evaluation">2. What is the difference between component and end-to-end evaluation?</a></h3>
 <p><strong>Answer.</strong> Component evaluation tests one stage in isolation: the retriever against labelled relevant documents, the reranker against the candidate set, the generator against a fixed context. It gives fast, attributable feedback. End-to-end evaluation runs the whole pipeline and measures the user-facing outcome. Component scores tell you where the problem is; end-to-end tells you whether the system works. You need both.</p>
 <p><strong>Follow-up: “Why not just do end-to-end?”</strong> Because a bad end-to-end number does not tell you which of four stages broke. Without component metrics you debug by guessing. Component metrics narrow the search to one stage.</p>
 <p><strong>Trap.</strong> Testing components with hand-picked clean inputs and declaring victory, then being surprised when the glued-together pipeline fails on real data. Component tests must use realistic inputs.</p>
-</section>
-<section id="how-do-you-decide-whether-retrieval-or-generation-is-at-fault" class="level3">
-<h3 class="anchored" data-anchor-id="how-do-you-decide-whether-retrieval-or-generation-is-at-fault">3. How do you decide whether retrieval or generation is at fault?</h3>
+<h3 id="3-how-do-you-decide-whether-retrieval-or-generation-is-at-fault"><a class="header" href="#3-how-do-you-decide-whether-retrieval-or-generation-is-at-fault">3. How do you decide whether retrieval or generation is at fault?</a></h3>
 <p><strong>Answer.</strong> Check retrieval first. If Recall@candidate_K is low, the evidence never reached the model, so it is a retrieval fault: fix indexing, chunking, query transformation, or the candidate K. If recall is good but faithfulness is low, the model had the evidence and went beyond it, so it is a generation fault: fix the prompt, the model, or the context construction. If both are good and users still complain, the problem is usually relevance or UX, not correctness.</p>
 <p><strong>Follow-up: “What if recall is good and faithfulness is good but the answer is still wrong?”</strong> Then either the retrieved context itself is wrong or outdated, or the question needs reasoning across documents rather than extraction. That points at the corpus and at the agent’s multi-step reasoning, not at the retriever.</p>
 <p><strong>Trap.</strong> Jumping straight to prompt edits. Prompt changes are slow to validate and often fix a retrieval problem at the wrong layer.</p>
-</section>
-<section id="how-do-you-set-up-a-ci-gate-without-constant-false-alarms" class="level3">
-<h3 class="anchored" data-anchor-id="how-do-you-set-up-a-ci-gate-without-constant-false-alarms">4. How do you set up a CI gate without constant false alarms?</h3>
+<h3 id="4-how-do-you-set-up-a-ci-gate-without-constant-false-alarms"><a class="header" href="#4-how-do-you-set-up-a-ci-gate-without-constant-false-alarms">4. How do you set up a CI gate without constant false alarms?</a></h3>
 <p><strong>Answer.</strong> Compare each run to a stored baseline on the same questions, and include a statistical margin. Bootstrap the per-query scores and fail only when the new mean drops below the baseline’s lower confidence bound. Threshold the overall metric and the worst slice, keep the fast suite small enough to run on every commit, and pin the judge and dataset versions so the comparison is fair.</p>
 <p><strong>Follow-up: “What makes a gate untrustworthy?”</strong> Flaky metrics, a changing eval set, a silent model upgrade, or a threshold no one believes. Once a team learns to ignore red builds, the gate is worse than no gate.</p>
 <p><strong>Trap.</strong> Gating on a single absolute number with no baseline. The number drifts with the dataset and the judge, so the gate either never fires or fires constantly.</p>
-</section>
-<section id="offline-versus-online-evaluation-what-does-each-give-you" class="level3">
-<h3 class="anchored" data-anchor-id="offline-versus-online-evaluation-what-does-each-give-you">5. Offline versus online evaluation: what does each give you?</h3>
+<h3 id="5-offline-versus-online-evaluation-what-does-each-give-you"><a class="header" href="#5-offline-versus-online-evaluation-what-does-each-give-you">5. Offline versus online evaluation: what does each give you?</a></h3>
 <p><strong>Answer.</strong> Offline is fast, cheap, reproducible, and safe; it is how you catch regressions before release. Online is the real distribution, real phrasing, and real consequences; it is how you learn what offline missed. Offline cannot tell you if users are satisfied, and online is too slow and noisy to catch a subtle regression before release. Use offline to decide whether to ship, and online to confirm that shipping helped.</p>
 <p><strong>Follow-up: “How do you connect them?”</strong> Feed production failures back into the offline set, and use offline metrics to predict online signals. If offline says a change is better but online signals do not move, your eval set is measuring the wrong thing.</p>
 <p><strong>Trap.</strong> Treating a thumbs-up rate as a precise metric. It is noisy, biased toward vocal users, and driven by factors beyond answer quality.</p>
-</section>
-<section id="how-many-evaluation-examples-do-you-need" class="level3">
-<h3 class="anchored" data-anchor-id="how-many-evaluation-examples-do-you-need">6. How many evaluation examples do you need?</h3>
+<h3 id="6-how-many-evaluation-examples-do-you-need"><a class="header" href="#6-how-many-evaluation-examples-do-you-need">6. How many evaluation examples do you need?</a></h3>
 <p><strong>Answer.</strong> It depends on the metric and the size of the effect you care about. More examples per metric than you think: a mean over 20 questions can swing several points from noise alone. Compute a bootstrap confidence interval and size the set so the interval is narrow enough to detect the change you care about. For per-slice decisions you need examples within each slice, not only overall.</p>
 <p><strong>Follow-up: “What is the cheapest way to get more examples?”</strong> Harvest real queries and review labels in batches, and add every confirmed production failure as a permanent case. Both grow the set while keeping it realistic.</p>
 <p><strong>Trap.</strong> Reporting a mean with no uncertainty and treating a one-point difference as real. On a small set, that difference is usually noise.</p>
-</section>
-<section id="how-do-you-evaluate-abstention-and-unanswerable-questions" class="level3">
-<h3 class="anchored" data-anchor-id="how-do-you-evaluate-abstention-and-unanswerable-questions">7. How do you evaluate abstention and unanswerable questions?</h3>
+<h3 id="7-how-do-you-evaluate-abstention-and-unanswerable-questions"><a class="header" href="#7-how-do-you-evaluate-abstention-and-unanswerable-questions">7. How do you evaluate abstention and unanswerable questions?</a></h3>
 <p><strong>Answer.</strong> Include questions whose answer is not in the corpus and label them as unanswerable. The correct behaviour is a clear refusal or a statement that the documents do not cover it. Score refusals as their own category, and separately measure <strong>over-refusal</strong> (refusing answerable questions) and <strong>under-refusal</strong> (inventing answers to unanswerable ones). Those two errors have very different costs.</p>
 <p><strong>Follow-up: “Why do naive metrics mishandle refusals?”</strong> Faithfulness and answer-relevance scores reward producing a grounded answer, so a correct refusal can look like a low score. Without a refusal category, you punish the safest behaviour.</p>
 <p><strong>Trap.</strong> Only testing answerable questions. That trains the system to always answer, which is exactly the failure mode users lose trust over.</p>
-</section>
-<section id="how-do-you-keep-the-evaluation-set-from-going-stale-or-being-overfit" class="level3">
-<h3 class="anchored" data-anchor-id="how-do-you-keep-the-evaluation-set-from-going-stale-or-being-overfit">8. How do you keep the evaluation set from going stale or being overfit?</h3>
+<h3 id="8-how-do-you-keep-the-evaluation-set-from-going-stale-or-being-overfit"><a class="header" href="#8-how-do-you-keep-the-evaluation-set-from-going-stale-or-being-overfit">8. How do you keep the evaluation set from going stale or being overfit?</a></h3>
 <p><strong>Answer.</strong> Version it like code, audit labels on a schedule, and retire cases that no longer match the product. Feed in fresh real queries regularly. Keep a private, rarely used held-out set for the final number, and never tune on it. Add every confirmed production failure as a new case. When the eval set changes, recompute the baseline in the same change.</p>
 <p><strong>Follow-up: “What is the sign that the set is overfit?”</strong> Offline metrics keep improving while online signals stay flat. That means the system is learning the quirks of the set rather than getting better at the task.</p>
 <p><strong>Trap.</strong> Tuning until the test set improves, then calling that number a held-out result. It is now a training metric, however much you liked the old name.</p>
-</section>
-</section>
-<section id="remember-this" class="level2">
-<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
 <ul>
 <li><strong>Build the eval set from real questions</strong>, add reviewed synthetic ones for coverage, label unanswerable cases, and version the whole set.</li>
 <li><strong>Components for attribution, end-to-end for truth.</strong> Check recall first, then faithfulness: that one split names the failing stage.</li>
@@ -1493,438 +508,58 @@ faithfulness mean=0.875  95% CI=[0.625, 1.000]</code></pre>
 <li><strong>Read the failures.</strong> Error analysis finds the bug no metric was written for.</li>
 </ul>
 
+                    </main>
 
-</section>
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
-</main> <!-- /main -->
-<script id="quarto-html-after-body" type="application/javascript">
-  window.document.addEventListener("DOMContentLoaded", function (event) {
-    // Ensure there is a toggle, if there isn't float one in the top right
-    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
-      const a = window.document.createElement('a');
-      a.classList.add('top-right');
-      a.classList.add('quarto-color-scheme-toggle');
-      a.href = "";
-      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
-      const i = window.document.createElement("i");
-      i.classList.add('bi');
-      a.appendChild(i);
-      window.document.body.appendChild(a);
-    }
-    setColorSchemeToggle(hasAlternateSentinel())
-    const icon = "";
-    const anchorJS = new window.AnchorJS();
-    anchorJS.options = {
-      placement: 'right',
-      icon: icon
-    };
-    anchorJS.add('.anchored');
-    const isCodeAnnotation = (el) => {
-      for (const clz of el.classList) {
-        if (clz.startsWith('code-annotation-')) {                     
-          return true;
-        }
-      }
-      return false;
-    }
-    const onCopySuccess = function(e) {
-      // button target
-      const button = e.trigger;
-      // don't keep focus
-      button.blur();
-      // flash "checked"
-      button.classList.add('code-copy-button-checked');
-      var currentTitle = button.getAttribute("title");
-      button.setAttribute("title", "Copied!");
-      let tooltip;
-      if (window.bootstrap) {
-        button.setAttribute("data-bs-toggle", "tooltip");
-        button.setAttribute("data-bs-placement", "left");
-        button.setAttribute("data-bs-title", "Copied!");
-        tooltip = new bootstrap.Tooltip(button, 
-          { trigger: "manual", 
-            customClass: "code-copy-button-tooltip",
-            offset: [0, -8]});
-        tooltip.show();    
-      }
-      setTimeout(function() {
-        if (tooltip) {
-          tooltip.hide();
-          button.removeAttribute("data-bs-title");
-          button.removeAttribute("data-bs-toggle");
-          button.removeAttribute("data-bs-placement");
-        }
-        button.setAttribute("title", currentTitle);
-        button.classList.remove('code-copy-button-checked');
-      }, 1000);
-      // clear code selection
-      e.clearSelection();
-    }
-    const getTextToCopy = function(trigger) {
-      const outerScaffold = trigger.parentElement.cloneNode(true);
-      const codeEl = outerScaffold.querySelector('code');
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-      text: getTextToCopy
-    });
-    clipboard.on('success', onCopySuccess);
-    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-        text: getTextToCopy,
-        container: window.document.getElementById('quarto-embedded-source-code-modal')
-      });
-      clipboardModal.on('success', onCopySuccess);
-    }
-      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-      var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
-      var isInternal = (href) => {
-          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
-      }
-      // Inspect non-navigation links and adorn them if external
-     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-      for (var i=0; i<links.length; i++) {
-        const link = links[i];
-        if (!isInternal(link.href)) {
-          // undo the damage that might have been done by quarto-nav.js in the case of
-          // links that we want to consider external
-          if (link.dataset.originalHref !== undefined) {
-            link.href = link.dataset.originalHref;
-          }
-        }
-      }
-    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-      const config = {
-        allowHTML: true,
-        maxWidth: 500,
-        delay: 100,
-        arrow: false,
-        appendTo: function(el) {
-            return el.parentElement;
-        },
-        interactive: true,
-        interactiveBorder: 10,
-        theme: 'quarto',
-        placement: 'bottom-start',
-      };
-      if (contentFn) {
-        config.content = contentFn;
-      }
-      if (onTriggerFn) {
-        config.onTrigger = onTriggerFn;
-      }
-      if (onUntriggerFn) {
-        config.onUntrigger = onUntriggerFn;
-      }
-      window.tippy(el, config); 
-    }
-    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-    for (var i=0; i<noterefs.length; i++) {
-      const ref = noterefs[i];
-      tippyHover(ref, function() {
-        // use id or data attribute instead here
-        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-        try { href = new URL(href).hash; } catch {}
-        const id = href.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note) {
-          return note.innerHTML;
-        } else {
-          return "";
-        }
-      });
-    }
-    const xrefs = window.document.querySelectorAll('a.quarto-xref');
-    const processXRef = (id, note) => {
-      // Strip column container classes
-      const stripColumnClz = (el) => {
-        el.classList.remove("page-full", "page-columns");
-        if (el.children) {
-          for (const child of el.children) {
-            stripColumnClz(child);
-          }
-        }
-      }
-      stripColumnClz(note)
-      if (id === null || id.startsWith('sec-')) {
-        // Special case sections, only their first couple elements
-        const container = document.createElement("div");
-        if (note.children && note.children.length > 2) {
-          container.appendChild(note.children[0].cloneNode(true));
-          for (let i = 1; i < note.children.length; i++) {
-            const child = note.children[i];
-            if (child.tagName === "P" && child.innerText === "") {
-              continue;
-            } else {
-              container.appendChild(child.cloneNode(true));
-              break;
-            }
-          }
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(container);
-          }
-          return container.innerHTML
-        } else {
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(note);
-          }
-          return note.innerHTML;
-        }
-      } else {
-        // Remove any anchor links if they are present
-        const anchorLink = note.querySelector('a.anchorjs-link');
-        if (anchorLink) {
-          anchorLink.remove();
-        }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(note);
-        }
-        if (note.classList.contains("callout")) {
-          return note.outerHTML;
-        } else {
-          return note.innerHTML;
-        }
-      }
-    }
-    for (var i=0; i<xrefs.length; i++) {
-      const xref = xrefs[i];
-      tippyHover(xref, undefined, function(instance) {
-        instance.disable();
-        let url = xref.getAttribute('href');
-        let hash = undefined; 
-        if (url.startsWith('#')) {
-          hash = url;
-        } else {
-          try { hash = new URL(url).hash; } catch {}
-        }
-        if (hash) {
-          const id = hash.replace(/^#\/?/, "");
-          const note = window.document.getElementById(id);
-          if (note !== null) {
-            try {
-              const html = processXRef(id, note.cloneNode(true));
-              instance.setContent(html);
-            } finally {
-              instance.enable();
-              instance.show();
-            }
-          } else {
-            // See if we can fetch this
-            fetch(url.split('#')[0])
-            .then(res => res.text())
-            .then(html => {
-              const parser = new DOMParser();
-              const htmlDoc = parser.parseFromString(html, "text/html");
-              const note = htmlDoc.getElementById(id);
-              if (note !== null) {
-                const html = processXRef(id, note);
-                instance.setContent(html);
-              } 
-            }).finally(() => {
-              instance.enable();
-              instance.show();
-            });
-          }
-        } else {
-          // See if we can fetch a full url (with no hash to target)
-          // This is a special case and we should probably do some content thinning / targeting
-          fetch(url)
-          .then(res => res.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.querySelector('main.content');
-            if (note !== null) {
-              // This should only happen for chapter cross references
-              // (since there is no id in the URL)
-              // remove the first header
-              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-                note.children[0].remove();
-              }
-              const html = processXRef(null, note);
-              instance.setContent(html);
-            } 
-          }).finally(() => {
-            instance.enable();
-            instance.show();
-          });
-        }
-      }, function(instance) {
-      });
-    }
-        let selectedAnnoteEl;
-        const selectorForAnnotation = ( cell, annotation) => {
-          let cellAttr = 'data-code-cell="' + cell + '"';
-          let lineAttr = 'data-code-annotation="' +  annotation + '"';
-          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-          return selector;
-        }
-        const selectCodeLines = (annoteEl) => {
-          const doc = window.document;
-          const targetCell = annoteEl.getAttribute("data-target-cell");
-          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-          const lineIds = lines.map((line) => {
-            return targetCell + "-" + line;
-          })
-          let top = null;
-          let height = null;
-          let parent = null;
-          if (lineIds.length > 0) {
-              //compute the position of the single el (top and bottom and make a div)
-              const el = window.document.getElementById(lineIds[0]);
-              top = el.offsetTop;
-              height = el.offsetHeight;
-              parent = el.parentElement.parentElement;
-            if (lineIds.length > 1) {
-              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-              height = bottom - top;
-            }
-            if (top !== null && height !== null && parent !== null) {
-              // cook up a div (if necessary) and position it 
-              let div = window.document.getElementById("code-annotation-line-highlight");
-              if (div === null) {
-                div = window.document.createElement("div");
-                div.setAttribute("id", "code-annotation-line-highlight");
-                div.style.position = 'absolute';
-                parent.appendChild(div);
-              }
-              div.style.top = top - 2 + "px";
-              div.style.height = height + 4 + "px";
-              div.style.left = 0;
-              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-              if (gutterDiv === null) {
-                gutterDiv = window.document.createElement("div");
-                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-                gutterDiv.style.position = 'absolute';
-                const codeCell = window.document.getElementById(targetCell);
-                const gutter = codeCell.querySelector('.code-annotation-gutter');
-                gutter.appendChild(gutterDiv);
-              }
-              gutterDiv.style.top = top - 2 + "px";
-              gutterDiv.style.height = height + 4 + "px";
-            }
-            selectedAnnoteEl = annoteEl;
-          }
-        };
-        const unselectCodeLines = () => {
-          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-          elementsIds.forEach((elId) => {
-            const div = window.document.getElementById(elId);
-            if (div) {
-              div.remove();
-            }
-          });
-          selectedAnnoteEl = undefined;
-        };
-          // Handle positioning of the toggle
-      window.addEventListener(
-        "resize",
-        throttle(() => {
-          elRect = undefined;
-          if (selectedAnnoteEl) {
-            selectCodeLines(selectedAnnoteEl);
-          }
-        }, 10)
-      );
-      function throttle(fn, ms) {
-      let throttle = false;
-      let timer;
-        return (...args) => {
-          if(!throttle) { // first call gets through
-              fn.apply(this, args);
-              throttle = true;
-          } else { // all the others get throttled
-              if(timer) clearTimeout(timer); // cancel #2
-              timer = setTimeout(() => {
-                fn.apply(this, args);
-                timer = throttle = false;
-              }, ms);
-          }
-        };
-      }
-        // Attach click handler to the DT
-        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-        for (const annoteDlNode of annoteDls) {
-          annoteDlNode.addEventListener('click', (event) => {
-            const clickedEl = event.target;
-            if (clickedEl !== selectedAnnoteEl) {
-              unselectCodeLines();
-              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-              if (activeEl) {
-                activeEl.classList.remove('code-annotation-active');
-              }
-              selectCodeLines(clickedEl);
-              clickedEl.classList.add('code-annotation-active');
-            } else {
-              // Unselect the line
-              unselectCodeLines();
-              clickedEl.classList.remove('code-annotation-active');
-            }
-          });
-        }
-    const findCites = (el) => {
-      const parentEl = el.parentElement;
-      if (parentEl) {
-        const cites = parentEl.dataset.cites;
-        if (cites) {
-          return {
-            el,
-            cites: cites.split(' ')
-          };
-        } else {
-          return findCites(el.parentElement)
-        }
-      } else {
-        return undefined;
-      }
-    };
-    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-    for (var i=0; i<bibliorefs.length; i++) {
-      const ref = bibliorefs[i];
-      const citeInfo = findCites(ref);
-      if (citeInfo) {
-        tippyHover(citeInfo.el, function() {
-          var popup = window.document.createElement('div');
-          citeInfo.cites.forEach(function(cite) {
-            var citeDiv = window.document.createElement('div');
-            citeDiv.classList.add('hanging-indent');
-            citeDiv.classList.add('csl-entry');
-            var biblioDiv = window.document.getElementById('ref-' + cite);
-            if (biblioDiv) {
-              citeDiv.innerHTML = biblioDiv.innerHTML;
-            }
-            popup.appendChild(citeDiv);
-          });
-          return popup.innerHTML;
-        });
-      }
-    }
-  });
-  </script>
-<nav class="page-navigation">
-  <div class="nav-page nav-page-previous">
-      <a href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="pagination-link" aria-label="Generation Quality Metrics">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Generation Quality Metrics</span></span>
-      </a>          
-  </div>
-  <div class="nav-page nav-page-next">
-      <a href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="pagination-link" aria-label="Multi-Tenant RAG">
-        <span class="nav-page-text"><span class="chapter-title">Multi-Tenant RAG</span></span> <i class="bi bi-arrow-right-short"></i>
-      </a>
-  </div>
-</nav>
-</div> <!-- /content -->
+                            <a rel="next prefetch" href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-03-rag-engineering/18-generation-quality-metrics.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-03-rag-engineering/20-multi-tenant-rag.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
 
 
 
 
-</body></html>
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom.js"></script>
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
