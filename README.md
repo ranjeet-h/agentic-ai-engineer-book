@@ -119,7 +119,7 @@ The repository publishes to GitHub Pages from the `gh-pages` branch through [`.g
 
 Every push to `master` (or a manual workflow dispatch) runs the same release path:
 
-1. Install pinned Rust `mdbook` and `mdbook-mermaid` binaries.
+1. Install pinned Rust `mdbook`.
 2. Build the Markdown source into the ignored `book/` directory.
 3. Publish `book/` to `gh-pages` with Jekyll disabled.
 
@@ -129,12 +129,9 @@ GitHub Pages then serves the static `gh-pages` branch at:
 
 ## Local preview
 
-The repository uses mdBook `0.4.52` with mdBook Mermaid `0.16.2`. These versions must match: Mermaid `0.17.x` uses the newer mdBook preprocessor protocol and makes `mdbook serve` fail with `Unable to parse the input`.
-
-Install the pinned Mermaid preprocessor once, then serve from the repository root:
+Mermaid is rendered in the browser, matching the setup used by the sibling mdBooks. No Mermaid preprocessor is required, so the local server only needs mdBook:
 
 ```bash
-cargo install mdbook-mermaid --version 0.16.2 --locked --force
 mdbook serve
 ```
 
