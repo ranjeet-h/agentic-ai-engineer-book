@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Sampling: Temperature, Top-K, Top-P – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" rel="next">
+<link href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> A language model outputs a raw score called a logit for every token in its vocabulary, and softmax turns those scores into a probability distribution. Greedy decoding always takes the highest-probability token; sampling draws a token from the distribution. Temperature rescales the logits to sharpen or flatten the distribution, top-k keeps only the k most likely tokens, and top-p (nucleus) keeps the smallest set of tokens whose probabilities add up to p.&nbsp;They are applied in order — penalties, then temperature, then top-k, then top-p — before one token is drawn.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>An LLM does not write a sentence. It predicts <strong>one next token</strong>, appends it, and predicts again. At each step the model produces a score for every token it knows — often 100,000 or more — and something has to choose one.</p>
+<p>The simplest choice is <strong>greedy decoding</strong>: always take the highest score. It is deterministic, but it fails in a specific and obvious way. Ask a model to list ideas and greedy decoding often loops:</p>
+<pre class="text"><code>Q: Name three animals.
+Greedy:  Dog, dog, dog, dog, dog, ...</code></pre>
+<p>The highest-probability token after “Dog, dog, dog,” really is another “dog”, so the loop is the model being <em>consistent</em> with its own output. Greedy decoding also produces flat, repetitive text and gets stuck in dead ends.</p>
+<p>The opposite extreme is to sample from the full distribution. That fixes repetition but lets the model pick a wildly unlikely token, which can derail the whole answer with one bad word. Real systems need a dial between “always the safest token” and “anything goes”.</p>
+<p>Temperature, top-k, and top-p are that dial. They do not change the model’s knowledge. They change <strong>how the model chooses among the tokens it already scored</strong>, and they are the difference between a reliable extraction pipeline and a creative writing assistant.</p>
+<p>This matters for agents directly: tool-calling and JSON output need near-deterministic choices, while brainstorming and copywriting want variety. The same model, with different sampling settings, behaves like two different products.</p>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<p>Assume you have never seen these words. Here is every term this page uses.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Token</strong></td>
+<td>A chunk of text — a word, part of a word, or punctuation. Models read and write tokens, not characters.</td>
+</tr>
+<tr class="even">
+<td><strong>Vocabulary</strong></td>
+<td>The fixed set of all tokens the model can produce. Its size is the number of possible next tokens.</td>
+</tr>
+<tr class="odd">
+<td><strong>Logit</strong></td>
+<td>The model’s raw, unbounded score for one token before any probability is computed. Higher means more likely.</td>
+</tr>
+<tr class="even">
+<td><strong>Softmax</strong></td>
+<td>The function that turns a list of logits into probabilities that are positive and sum to 1.</td>
+</tr>
+<tr class="odd">
+<td><strong>Distribution</strong></td>
+<td>A set of probabilities over all tokens that sums to 1.</td>
+</tr>
+<tr class="even">
+<td><strong>Greedy decoding</strong></td>
+<td>Always choose the token with the highest probability. Also called <code>argmax</code>. No randomness.</td>
+</tr>
+<tr class="odd">
+<td><strong>Sampling</strong></td>
+<td>Draw a token at random, where each token’s chance equals its probability.</td>
+</tr>
+<tr class="even">
+<td><strong>Temperature (<code>T</code>)</strong></td>
+<td>A number that divides the logits before softmax. Below 1 sharpens the distribution; above 1 flattens it.</td>
+</tr>
+<tr class="odd">
+<td><strong>Top-k</strong></td>
+<td>Keep only the <code>k</code> tokens with the highest logits, discard the rest, then renormalise.</td>
+</tr>
+<tr class="even">
+<td><strong>Top-p (nucleus)</strong></td>
+<td>Keep the smallest set of highest-probability tokens whose probabilities sum to at least <code>p</code>, then renormalise.</td>
+</tr>
+<tr class="odd">
+<td><strong>Renormalise</strong></td>
+<td>Rescale the kept probabilities so they add up to 1 again after some tokens were removed.</td>
+</tr>
+<tr class="even">
+<td><strong>Repetition penalty</strong></td>
+<td>A penalty applied to tokens that already appeared, to discourage repeating them.</td>
+</tr>
+<tr class="odd">
+<td><strong>Frequency penalty</strong></td>
+<td>A penalty proportional to how <em>many</em> times a token already appeared.</td>
+</tr>
+<tr class="even">
+<td><strong>Presence penalty</strong></td>
+<td>A fixed penalty applied once to any token that already appeared at least once.</td>
+</tr>
+<tr class="odd">
+<td><strong>Seed</strong></td>
+<td>A number that initialises the random generator, so the same draw can be repeated.</td>
+</tr>
+<tr class="even">
+<td><strong>Determinism</strong></td>
+<td>Getting the exact same output twice from the same input and settings.</td>
+</tr>
+<tr class="odd">
+<td><strong>Logprobs</strong></td>
+<td>The log of the probabilities the model assigned; some APIs return them for inspection.</td>
+</tr>
+</tbody>
+</table>
+<p>Two ideas cause most confusion, so pin them down now.</p>
+<ul>
+<li><strong>Logits are not probabilities.</strong> They can be negative, and they do not sum to anything. Softmax is what turns them into probabilities.</li>
+<li><strong>Temperature changes the shape; top-k and top-p change the set.</strong> Temperature re-weights all tokens. Top-k and top-p delete tokens entirely.</li>
+</ul>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Picture a raffle with one bucket per possible next token. Each bucket holds colored balls, and the number of balls is proportional to that token’s probability. To pick a token, you draw one ball at random. That draw <strong>is</strong> sampling.</p>
+<p>Now the three controls:</p>
+<ul>
+<li><strong>Temperature</strong> reshapes the piles. A low temperature moves balls toward the already-biggest pile. A high temperature spreads balls more evenly.</li>
+<li><strong>Top-k</strong> throws away all buckets except the <code>k</code> biggest, then re-divides the balls among the survivors.</li>
+<li><strong>Top-p</strong> throws away buckets starting from the smallest, and stops as soon as the surviving balls are at least fraction <code>p</code> of the total.</li>
+</ul>
+<p>Greedy decoding is a different game: never draw, just always take the biggest pile.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A["logits&lt;br/&gt;raw scores"] --&gt; B["penalties&lt;br/&gt;repetition / frequency"]
+    B --&gt; C["temperature&lt;br/&gt;divide logits by T"]
+    C --&gt; D["top-k&lt;br/&gt;keep k best"]
+    D --&gt; E["top-p&lt;br/&gt;keep smallest set summing to p"]
+    E --&gt; F["softmax&lt;br/&gt;scores to probabilities"]
+    F --&gt; G{"greedy?"}
+    G --&gt;|yes| H["argmax&lt;br/&gt;highest probability"]
+    G --&gt;|no| I["sample&lt;br/&gt;draw from distribution"]
+    H --&gt; J["append token"]
+    I --&gt; J
+    J --&gt;|"repeat"| A
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The order matters, and this is a favourite interview question. Penalties act on the raw scores first, temperature rescales next, and the two truncation steps come after. Top-k is <strong>invariant to temperature</strong> — dividing every logit by the same positive number does not change which <code>k</code> tokens are largest. Top-p is <strong>not</strong> invariant: a lower temperature concentrates probability mass, so the same <code>p</code> keeps fewer tokens.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>What it changes</th>
+<th>Random?</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Greedy / <code>argmax</code></td>
+<td>Nothing; takes the best token</td>
+<td>No</td>
+<td>Extraction, classification, code, tests</td>
+</tr>
+<tr class="even">
+<td>Temperature only</td>
+<td>Shape of the whole distribution</td>
+<td>Yes</td>
+<td>Creative writing with a single dial</td>
+</tr>
+<tr class="odd">
+<td>Top-k</td>
+<td>Removes the long tail, keeps exactly <code>k</code></td>
+<td>Yes</td>
+<td>Stable sampling when tail is dangerous</td>
+</tr>
+<tr class="even">
+<td>Top-p (nucleus)</td>
+<td>Removes the tail adaptively by mass</td>
+<td>Yes</td>
+<td>General chat; adapts to how confident the model is</td>
+</tr>
+<tr class="odd">
+<td>Top-k + top-p</td>
+<td>Both limits together</td>
+<td>Yes</td>
+<td>Most production chat defaults</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>The model produces logits.</strong> One score per token in the vocabulary for the current position. These come from the final layer of the transformer.</li>
+<li><strong>Apply logit penalties.</strong> Repetition, frequency, or presence penalties adjust the scores of tokens that already appeared. This happens before temperature because penalties are defined on the raw scores.</li>
+<li><strong>Apply temperature.</strong> Divide every logit by <code>T</code>. Values below 1 make the gaps bigger, so the top token wins more; values above 1 shrink the gaps, so unlikely tokens get more chance.</li>
+<li><strong>Apply top-k.</strong> Sort the logits, keep the <code>k</code> largest, and set all others to negative infinity. No token outside the top <code>k</code> can ever be chosen.</li>
+<li><strong>Apply top-p.</strong> Sort the remaining tokens by score, convert them to probabilities with softmax, add them up, and keep the smallest prefix whose sum reaches <code>p</code>. Drop the rest. This adapts to confidence: a confident model keeps few tokens, an unsure model keeps many.</li>
+<li><strong>Softmax.</strong> Turn the surviving scores into probabilities that sum to 1. Steps 3–5 are sometimes written with the softmax applied first, so truncation happens in probability space instead of logit space. Softmax is monotonic and renormalises over whatever it is given, so truncating before it (logit space, as drawn above) or after it (probability space) keeps the same set and yields the same final probabilities, as long as the kept probabilities are renormalised.</li>
+<li><strong>Choose.</strong> If greedy, take <code>argmax</code>. Otherwise draw one token from the distribution — the standard choice is <code>numpy.random.Generator.choice</code> or <code>torch.multinomial</code>.</li>
+<li><strong>Append and repeat.</strong> The chosen token becomes part of the input, and the loop runs again until a stop token or a length limit.</li>
+</ol>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The subtlety that separates a good answer from a great one.</strong> Top-k and top-p are applied <em>before</em> the final softmax in most libraries, and the kept set is renormalised. That is logit space, and it is what the diagram shows; some codebases instead softmax first and truncate in probability space, which produces the same kept set and the same final probabilities, because softmax ranks tokens identically either way. Temperature is a monotonic rescale of logits, so it never changes the top-k <em>set</em>. It does change the top-p set, because top-p depends on the actual probability mass.</p>
+</div>
+</div>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p>You almost never hand-write the loop in production, but writing it once makes every API parameter obvious.</p>
+<p><strong>The pipeline by hand, in numpy.</strong> This is the whole topic in nine lines.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> softmax(logits, temperature<span class="op">=</span><span class="fl">1.0</span>):</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    z <span class="op">=</span> np.asarray(logits, dtype<span class="op">=</span><span class="bu">float</span>) <span class="op">/</span> temperature</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    z <span class="op">=</span> z <span class="op">-</span> z.<span class="bu">max</span>()                 <span class="co"># subtract the max for numerical stability</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    e <span class="op">=</span> np.exp(z)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> e <span class="op">/</span> e.<span class="bu">sum</span>()</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>tokens <span class="op">=</span> [<span class="st">"cat"</span>, <span class="st">"dog"</span>, <span class="st">"fish"</span>, <span class="st">"bird"</span>, <span class="st">"rock"</span>, <span class="st">"tree"</span>]</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>logits <span class="op">=</span> np.array([<span class="fl">2.0</span>, <span class="fl">1.0</span>, <span class="fl">0.5</span>, <span class="fl">0.1</span>, <span class="op">-</span><span class="fl">1.0</span>, <span class="op">-</span><span class="fl">2.0</span>])</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>probs <span class="op">=</span> softmax(logits, temperature<span class="op">=</span><span class="fl">1.0</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>next_token <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>).choice(<span class="bu">len</span>(tokens), p<span class="op">=</span>probs)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tokens[next_token])           <span class="co"># dog — one draw from the distribution</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>OpenAI Chat Completions.</strong> <code>temperature</code>, <code>top_p</code>, penalties, <code>seed</code>, and <code>logprobs</code> are supported. There is <strong>no <code>top_k</code></strong> in this API.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>resp <span class="op">=</span> client.chat.completions.create(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">"gpt-4o-mini"</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    messages<span class="op">=</span>[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"Name three animals."</span>}],</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    temperature<span class="op">=</span><span class="fl">0.7</span>,          <span class="co"># 0 to 2; lower is more focused</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    top_p<span class="op">=</span><span class="fl">0.9</span>,                <span class="co"># keep the top 90% of probability mass</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    frequency_penalty<span class="op">=</span><span class="fl">0.2</span>,    <span class="co"># -2.0 to 2.0; reduce word repetition</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    presence_penalty<span class="op">=</span><span class="fl">0.0</span>,     <span class="co"># -2.0 to 2.0; discourage new topics</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">42</span>,                  <span class="co"># best-effort determinism, not a guarantee</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>OpenAI recommends changing <strong>either</strong> <code>temperature</code> <strong>or</strong> <code>top_p</code>, not both, because the two interact and make results hard to reason about.</p>
+<p><strong>Anthropic Messages.</strong> This API historically exposed <code>top_k</code> as well as <code>temperature</code> and <code>top_p</code>. Newer Claude models are deprecating these controls: any <code>temperature</code> other than <code>1.0</code>, any <code>top_p</code> below <code>0.99</code>, and any <code>top_k</code> are rejected with a 400 error on models released after Claude Opus 4.6. Treat provider sampling controls as version-dependent and check the docs.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>resp <span class="op">=</span> client.messages.create(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">"claude-sonnet-4-5"</span>,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    max_tokens<span class="op">=</span><span class="dv">256</span>,</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    temperature<span class="op">=</span><span class="fl">0.7</span>,          <span class="co"># pick temperature OR top_p, never both: Anthropic returns HTTP 400</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    top_k<span class="op">=</span><span class="dv">50</span>,                 <span class="co"># older models only; newer models reject top_k</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    messages<span class="op">=</span>[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"Name three animals."</span>}],</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Hugging Face <code>transformers</code>.</strong> Local models expose the full set, including top-k and repetition penalty.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> AutoModelForCausalLM, AutoTokenizer</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>tok <span class="op">=</span> AutoTokenizer.from_pretrained(<span class="st">"gpt2"</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> AutoModelForCausalLM.from_pretrained(<span class="st">"gpt2"</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)          <span class="co"># seed the sampler for repeatable draws</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>out <span class="op">=</span> model.generate(</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>tok(<span class="st">"Name three animals:"</span>, return_tensors<span class="op">=</span><span class="st">"pt"</span>),</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    do_sample<span class="op">=</span><span class="va">True</span>,             <span class="co"># do_sample=False means greedy</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    temperature<span class="op">=</span><span class="fl">0.7</span>,</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    top_k<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    top_p<span class="op">=</span><span class="fl">0.9</span>,</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    repetition_penalty<span class="op">=</span><span class="fl">1.1</span>,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    max_new_tokens<span class="op">=</span><span class="dv">64</span>,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tok.decode(out[<span class="dv">0</span>], skip_special_tokens<span class="op">=</span><span class="va">True</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>vLLM, for serving.</strong> Sampling settings are passed per request as a <code>SamplingParams</code> object.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vllm <span class="im">import</span> LLM, SamplingParams</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>params <span class="op">=</span> SamplingParams(</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    temperature<span class="op">=</span><span class="fl">0.7</span>, top_p<span class="op">=</span><span class="fl">0.9</span>, top_k<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    repetition_penalty<span class="op">=</span><span class="fl">1.1</span>, seed<span class="op">=</span><span class="dv">0</span>, max_tokens<span class="op">=</span><span class="dv">256</span>,</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>llm <span class="op">=</span> LLM(model<span class="op">=</span><span class="st">"meta-llama/Llama-3.1-8B-Instruct"</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>outputs <span class="op">=</span> llm.generate([<span class="st">"Name three animals."</span>], params)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — from logits to a decision, and how temperature changes it.</strong> Start with a fixed six-token vocabulary and logit vector.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># logits: [2.0, 1.0, 0.5, 0.1, -1.0, -2.0]  over [cat, dog, fish, bird, rock, tree]</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># measured: softmax at T=1.0</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   cat 0.5529  dog 0.2034  fish 0.1234  bird 0.0827  rock 0.0275  tree 0.0101</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"># greedy (argmax) -&gt; cat</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># measured p(cat) and p(rock) as temperature changes:</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   T=0.5   p(cat)=0.8262   p(rock)=0.0020   (sharper, near-greedy)</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   T=1.0   p(cat)=0.5529   p(rock)=0.0275   (the model's native shape)</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#   T=2.0   p(cat)=0.3541   p(rock)=0.0790   (flatter, more surprising)</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   T=5.0   p(cat)=0.2358   p(rock)=0.1294   (nearly uniform, often nonsense)</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">#   T=0.01  p(cat)=1.0000   (numerically the same as greedy)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>“cat” is the single best answer, but there is real mass elsewhere: about 45% is spread over the other five tokens. Sampling is how that mass is used. Notice too that even at <code>T=5.0</code> “cat” is still the most likely token. Temperature does not change the ranking; it changes how much the ranking matters.</p>
+<p><strong>Example 2 — top-k removes the long tail.</strong> Keep only the two best logits and renormalise.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># top-k=2 keeps logits [2.0, 1.0] and sets the rest to -inf</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># measured renormalised probabilities: cat 0.7311, dog 0.2689, all others 0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Top-k is a hard safety rail. No matter how flat the distribution becomes, a token outside the top <code>k</code> has probability zero.</p>
+<p><strong>Example 3 — top-p adapts to confidence.</strong> Keep the smallest set whose mass reaches <code>p</code>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Same logits at T=1.0:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   top-p=0.50 keeps 1 token: cat</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   top-p=0.90 keeps 4 tokens: cat, dog, fish, bird</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   top-p=0.99 keeps 6 tokens: everything</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Same top-p=0.90 but different temperature:</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   T=0.5 -&gt; keeps 2 tokens: cat, dog</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   T=1.0 -&gt; keeps 4 tokens: cat, dog, fish, bird</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">#   T=2.0 -&gt; keeps 5 tokens: cat, dog, fish, bird, rock</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This is why top-p is called <strong>adaptive</strong>. When the model is confident, top-p keeps a tiny set, like top-k with a small <code>k</code>. When the model is unsure, top-p keeps a large set. A fixed top-k cannot do that.</p>
+<p><strong>Example 4 — order matters, and here is proof.</strong> Take logits <code>[10, 9, 8, 7, 0, 0]</code> over <code>[a, b, c, d, e, f]</code> and combine top-k=3 with top-p=0.9.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># measured:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   top-k=3 THEN top-p=0.9 keeps: a, b</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   top-p=0.9 THEN top-k=3 keeps: a, b, c</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>After top-k=3, the surviving probabilities are renormalised and the top two already cross 0.9, so top-p cuts the third. Applied the other way, top-p allows three and top-k does not remove any. Same two parameters, different results. Most engines fix an order (typically top-k, then top-p); do not assume every provider uses the same one.</p>
+<p><strong>Example 5 — seeds give repeatable draws.</strong> Sampling is random, but a seed makes the randomness replayable.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># measured draws of 5 tokens from the T=1.0 distribution:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   seed=0 -&gt; dog, cat, cat, cat, fish</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   seed=1 -&gt; cat, bird, cat, bird, cat</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   seed=0 -&gt; dog, cat, cat, cat, fish   (same seed, same result)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This is reproducibility, not determinism. The seed controls <em>your</em> random number generator; the provider’s hardware and batching can still introduce differences. That is why OpenAI calls its <code>seed</code> “best effort” and exposes a <code>system_fingerprint</code> you can monitor.</p>
+<p><strong>Example 6 — frequency penalty pushes down repeated tokens.</strong> Suppose “cat” has already appeared three times and “bird” once.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># measured p(cat) as the frequency penalty rises (raw logits, no temperature):</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   penalty 0.0 -&gt; p(cat)=0.5529</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   penalty 0.5 -&gt; p(cat)=0.2293</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   penalty 1.0 -&gt; p(cat)=0.0652</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co">#   penalty 2.0 -&gt; p(cat)=0.0036</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>A frequency penalty subtracts <code>penalty * count</code> from each logit. A presence penalty subtracts a flat amount once per token that appeared. Both are blunt instruments: too much and the model avoids necessary words such as “the” or a required key name.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Do not tune temperature and top-p at the same time.</strong> They both reshape the distribution, so their effects are hard to separate. Pick one dial, usually temperature, and leave the other at its default.</li>
+<li><strong>Temperature 0 is not a determinism guarantee.</strong> Even with temperature 0 or greedy decoding, GPU kernels, floating-point summation order, and batching can change tiny values enough to flip an argmax. Use seeds and accept “approximately repeatable”.</li>
+<li><strong>Reasoning models may ignore sampling parameters.</strong> Some newer models only accept their default temperature and reject or silently ignore <code>top_p</code> and <code>top_k</code>. Always check model-specific support before shipping a config.</li>
+<li><strong>Top-p is the safer single knob for chat.</strong> It adapts to confidence, so it does not force a fixed number of candidates when the model is very sure or very unsure.</li>
+<li><strong><code>top_k</code> is not portable.</strong> OpenAI’s Chat Completions API does not expose it; Anthropic is deprecating it; local and open-source stacks expose it. A config written for vLLM will not transfer unchanged to a hosted API.</li>
+<li><strong>Repetition penalties break structured output.</strong> If a JSON object legitimately repeats a key or a token, a penalty can corrupt it. Lower the penalty for tool-calling and extraction workloads, or drop it entirely.</li>
+<li><strong>Sampling cannot fix a bad prompt.</strong> High temperature on a vague prompt produces creative nonsense; low temperature on a vague prompt produces confident nonsense. Fix the prompt first.</li>
+<li><strong>Sampling and hallucination are orthogonal.</strong> Temperature changes how surprising the wording is, not whether the facts are true. A model can hallucinate at temperature 0 and be accurate at temperature 1.</li>
+<li><strong>Cache keys must include sampling settings.</strong> If you cache responses by prompt text alone, a later request with different temperature gets a stale answer with the wrong creativity. Include model, temperature, top-p, and seed in the cache key.</li>
+<li><strong>Logprobs are your debugging tool.</strong> Requesting log probabilities shows whether the model was confident or torn. A low-probability answer is a warning sign even when it looks fluent.</li>
+<li><strong>Per-task defaults beat one global setting.</strong> Extraction and classification: temperature 0-0.2. Chat and RAG answers: 0.2-0.7. Brainstorming and copy: 0.7-1.0. Make the setting part of the task definition, not a hard-coded global.</li>
+<li><strong>Record the seed and settings in your traces.</strong> When an agent behaves differently on two runs, the sampling config is one of the first things to compare.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="what-is-the-difference-between-greedy-decoding-and-sampling" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-greedy-decoding-and-sampling">1. What is the difference between greedy decoding and sampling?</h3>
+<p><strong>Answer.</strong> Greedy decoding always picks the highest-probability token, so it is deterministic and tends to be repetitive and prone to loops. Sampling draws a token according to the probability distribution, so it can choose lower-probability tokens and produce more varied text. Most production chat uses sampling with a low temperature or a top-p cutoff, and uses greedy for tasks where there is one right answer.</p>
+<p><strong>Follow-up: “When is greedy the right choice?”</strong> Classification, extraction, and structured output, where you want the single most likely answer and any variation is a bug.</p>
+<p><strong>Trap.</strong> Saying sampling is “more accurate”. Sampling is more varied. Accuracy comes from the model and the prompt, not from randomness.</p>
+</section>
+<section id="what-does-temperature-actually-do-to-the-logits" class="level3">
+<h3 class="anchored" data-anchor-id="what-does-temperature-actually-do-to-the-logits">2. What does temperature actually do to the logits?</h3>
+<p><strong>Answer.</strong> It divides every logit by <code>T</code> before softmax. Since <code>T</code> is a single positive number, it does not change the ranking of tokens. Below 1 it widens the gaps between logits, so the top token gets more probability; above 1 it shrinks the gaps, moving the distribution toward uniform. At <code>T</code> near 0 it approaches greedy.</p>
+<p><strong>Follow-up: “Does temperature change which tokens top-k keeps?”</strong> No.&nbsp;Dividing all logits by the same positive number preserves order, so the top-k set is identical at every temperature. It does change the top-p set, because top-p depends on the probability mass.</p>
+<p><strong>Trap.</strong> Claiming temperature “makes the model more creative” as if it changes knowledge. It only changes the choice among tokens the model already scored.</p>
+</section>
+<section id="how-does-top-p-nucleus-sampling-differ-from-top-k" class="level3">
+<h3 class="anchored" data-anchor-id="how-does-top-p-nucleus-sampling-differ-from-top-k">3. How does top-p (nucleus) sampling differ from top-k?</h3>
+<p><strong>Answer.</strong> Top-k keeps a fixed number of tokens, <code>k</code>, regardless of how confident the model is. Top-p keeps the smallest set of tokens whose probabilities sum to at least <code>p</code>, so the set size changes with confidence. A confident model keeps a few tokens; an unsure model keeps many. That adaptivity is why top-p is popular for chat.</p>
+<p><strong>Follow-up: “Can you use both?”</strong> Yes, and many engines do, applying top-k first and top-p second. The order is implementation-defined, and as this page’s example shows, the order changes the result.</p>
+<p><strong>Trap.</strong> Thinking top-p=0.9 means “90% of the tokens”. It means “the tokens that together account for 90% of the probability mass”, which may be two tokens or two hundred.</p>
+</section>
+<section id="in-what-order-are-penalties-temperature-top-k-and-top-p-applied" class="level3">
+<h3 class="anchored" data-anchor-id="in-what-order-are-penalties-temperature-top-k-and-top-p-applied">4. In what order are penalties, temperature, top-k, and top-p applied?</h3>
+<p><strong>Answer.</strong> Penalties first, on the raw logits, because they are defined on those scores. Then temperature, which rescales all logits. Then top-k, then top-p, each removing tokens and renormalising. Finally softmax and the draw. Implementations vary, but this is the common order and the one to state in an interview.</p>
+<p><strong>Follow-up: “Why does the order matter?”</strong> Because truncation and renormalisation are not commutative. Cutting to three tokens and then applying top-p can keep a different set than applying top-p and then cutting to three.</p>
+<p><strong>Trap.</strong> Assuming every provider uses the same order or the same semantics. A config tuned on one stack may not reproduce on another.</p>
+</section>
+<section id="why-is-a-seed-not-a-determinism-guarantee" class="level3">
+<h3 class="anchored" data-anchor-id="why-is-a-seed-not-a-determinism-guarantee">5. Why is a seed not a determinism guarantee?</h3>
+<p><strong>Answer.</strong> A seed controls your random number generator, so the same seed and the same probability distribution produce the same draw. But it does not control the model’s logits. GPU non-determinism, different kernel implementations, batch composition, and provider-side version changes can all alter the logits slightly. OpenAI therefore calls <code>seed</code> best effort and exposes <code>system_fingerprint</code> so you can detect backend changes.</p>
+<p><strong>Follow-up: “How do you test a stochastic system then?”</strong> Fix the seed where you can, but assert on properties rather than exact strings — valid JSON, correct tool name, fact present — and run enough samples to see the distribution.</p>
+<p><strong>Trap.</strong> Writing tests that compare exact output strings from a sampled model. They will flake.</p>
+</section>
+<section id="what-is-the-difference-between-frequency-and-presence-penalties" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-frequency-and-presence-penalties">6. What is the difference between frequency and presence penalties?</h3>
+<p><strong>Answer.</strong> A frequency penalty subtracts an amount proportional to how many times a token has already appeared, so repeated tokens are penalised more each time. A presence penalty subtracts a fixed amount once for any token that has appeared at least once, which encourages the model to introduce new topics. Both are added to the logits before temperature.</p>
+<p><strong>Follow-up: “When do they backfire?”</strong> In structured output and code, where repeating the same key or identifier is correct. A penalty can push the model away from the exact token the schema requires.</p>
+<p><strong>Trap.</strong> Treating them as a fix for repetition. Repetition is often a prompt or decoding problem; penalties add a second, blunter failure mode.</p>
+</section>
+<section id="how-would-you-choose-sampling-settings-for-a-new-production-task" class="level3">
+<h3 class="anchored" data-anchor-id="how-would-you-choose-sampling-settings-for-a-new-production-task">7. How would you choose sampling settings for a new production task?</h3>
+<p><strong>Answer.</strong> Start low and raise only if needed. For extraction, classification, and tool calls, use temperature 0 to 0.2 and no repetition penalty. For grounded question answering, use 0.2 to 0.7 with top-p around 0.9. For ideation and marketing copy, use 0.7 to 1.0. Then evaluate on a fixed set of prompts at each setting and pick the lowest randomness that meets the quality bar.</p>
+<p><strong>Follow-up: “What do you change first if answers are too repetitive?”</strong> Check the prompt and the stop conditions before raising temperature; a good prompt with greedy decoding often beats a vague prompt with high temperature.</p>
+<p><strong>Trap.</strong> Copying a temperature from a blog post without evaluating it on your own task and model.</p>
+</section>
+<section id="why-can-one-bad-token-ruin-an-answer-and-how-do-the-controls-prevent-it" class="level3">
+<h3 class="anchored" data-anchor-id="why-can-one-bad-token-ruin-an-answer-and-how-do-the-controls-prevent-it">8. Why can one bad token ruin an answer, and how do the controls prevent it?</h3>
+<p><strong>Answer.</strong> Generation is autoregressive: each token becomes context for the next, so one unlikely token can pull the model into a region of low-quality continuations it cannot escape. Top-k and top-p cut off the low-probability tail so those tokens are never drawn, and a low temperature reduces their chance further. That is why a small amount of truncation makes long outputs much more stable.</p>
+<p><strong>Follow-up: “What is the cost of aggressive truncation?”</strong> Diversity. Cut too hard and the model produces the same safe phrasing every time, which is a real problem for brainstorming and a non-issue for extraction.</p>
+<p><strong>Trap.</strong> Believing truncation makes the model more truthful. It makes the output more typical; typical text can still be wrong.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li><strong>Logits → softmax → probabilities.</strong> Temperature rescales logits; top-k and top-p delete tokens; then one is drawn.</li>
+<li><strong>Greedy is <code>argmax</code>; sampling draws.</strong> Greedy for extraction, sampling for conversation and creativity.</li>
+<li><strong>Temperature changes shape, not ranking.</strong> Top-k is temperature-invariant; top-p is not.</li>
+<li><strong>Order is penalties → temperature → top-k → top-p</strong>, and the order can change the result.</li>
+<li><strong>Seeds are best effort.</strong> Fix them for tests and traces, but assert on properties, not exact strings.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="pagination-link" aria-label="Logits, Softmax, and Next-Token Prediction">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="pagination-link" aria-label="Training vs Inference and Batching">
+        <span class="nav-page-text"><span class="chapter-title">Training vs Inference and Batching</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

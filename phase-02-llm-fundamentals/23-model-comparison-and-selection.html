@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Model Comparison and Selection – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" rel="next">
+<link href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html"><span class="chapter-title">Model Comparison and Selection</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Model Comparison and Selection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html"><span class="chapter-title">Model Comparison and Selection</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Model Comparison and Selection</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> Model selection is a constrained optimisation, not a leaderboard lookup. You first filter by hard constraints — context window, tool and structured-output support, license, privacy, and availability — then compare the survivors on your own task-specific eval, measured on quality, latency, and cost. Public benchmarks are a weak signal, because they are often contaminated and rarely match your task. Pick a primary model, add a fallback and routing, and re-evaluate as models and prices change.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>Almost every team gets this wrong in one of two directions.</p>
+<p>The first mistake is choosing purely on reputation. The biggest, newest model wins a public leaderboard, so it becomes the default. Then the bill arrives and it costs many times more per request, it is slower, and on the actual task — say, extracting three fields from an invoice — a much smaller model is just as accurate.</p>
+<p>The second mistake is choosing purely on price. The cheapest model is fast and cheap, until you discover it cannot reliably emit a valid JSON object, or it ignores a tool schema, or its context window is too small for your retrieval payload. Now you have built a whole system around a model that cannot do the job.</p>
+<p>The real world is a <strong>Pareto frontier</strong>: no single model is best on quality, latency, cost, context, and licensing at the same time. Selection is the work of finding the best trade-off <em>for your task under your constraints</em>, and proving it with your own measurements.</p>
+<p>This page gives you the axes, the honest limits of benchmarks, and the practical machinery — evals, routing, fallback, and total cost of ownership — that interviewers expect you to know.</p>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Model</strong></td>
+<td>The trained network you call to generate text.</td>
+</tr>
+<tr class="even">
+<td><strong>Checkpoint / version</strong></td>
+<td>A specific snapshot of a model. <code>gpt-x-2024-08</code> style names pin behaviour.</td>
+</tr>
+<tr class="odd">
+<td><strong>Parameters</strong></td>
+<td>The learned numbers inside the model. Bigger is not automatically better for your task.</td>
+</tr>
+<tr class="even">
+<td><strong>Quality</strong></td>
+<td>How often the model produces a correct, useful answer for your task. Always task-specific.</td>
+</tr>
+<tr class="odd">
+<td><strong>Latency</strong></td>
+<td>Wall-clock time for a request. Usually split into <strong>time to first token (TTFT)</strong> and total time.</td>
+</tr>
+<tr class="even">
+<td><strong>TTFT</strong></td>
+<td>How long before the first streamed token appears. Drives perceived speed in chat UIs.</td>
+</tr>
+<tr class="odd">
+<td><strong>Throughput</strong></td>
+<td>Tokens produced per second once generation starts.</td>
+</tr>
+<tr class="even">
+<td><strong>p50 / p95 / p99</strong></td>
+<td>Percentiles of a latency distribution. p95 = 95% of requests were at least this fast.</td>
+</tr>
+<tr class="odd">
+<td><strong>Cost per token</strong></td>
+<td>Price for input and output tokens, quoted per million tokens by most providers.</td>
+</tr>
+<tr class="even">
+<td><strong>Context window</strong></td>
+<td>Maximum tokens the model can attend to in one call. Input plus output.</td>
+</tr>
+<tr class="odd">
+<td><strong>Max output tokens</strong></td>
+<td>The cap on how much the model may generate in one response.</td>
+</tr>
+<tr class="even">
+<td><strong>Tool calling</strong></td>
+<td>The model can emit a structured request to run a function you defined.</td>
+</tr>
+<tr class="odd">
+<td><strong>Structured output</strong></td>
+<td>The model can be constrained to follow a JSON schema or grammar.</td>
+</tr>
+<tr class="even">
+<td><strong>License</strong></td>
+<td>The legal terms for using the model or its weights.</td>
+</tr>
+<tr class="odd">
+<td><strong>Privacy / data residency</strong></td>
+<td>Where data is processed and whether the provider trains on it.</td>
+</tr>
+<tr class="even">
+<td><strong>Availability</strong></td>
+<td>Uptime, rate limits, and regional deployment.</td>
+</tr>
+<tr class="odd">
+<td><strong>Benchmark</strong></td>
+<td>A fixed test set used to compare models across versions.</td>
+</tr>
+<tr class="even">
+<td><strong>Contamination</strong></td>
+<td>Benchmark data leaking into a model’s training data, inflating its score.</td>
+</tr>
+<tr class="odd">
+<td><strong>Leaderboard</strong></td>
+<td>A public ranking, often built from benchmarks or human votes.</td>
+</tr>
+<tr class="even">
+<td><strong>Eval</strong></td>
+<td>Your own test set and scoring for <em>your</em> task. The only signal that truly matters.</td>
+</tr>
+<tr class="odd">
+<td><strong>Golden set</strong></td>
+<td>A curated, human-verified eval set with known-correct answers.</td>
+</tr>
+<tr class="even">
+<td><strong>Routing</strong></td>
+<td>Sending each request to the model best suited for it.</td>
+</tr>
+<tr class="odd">
+<td><strong>Fallback</strong></td>
+<td>A backup model used when the primary fails or times out.</td>
+</tr>
+<tr class="even">
+<td><strong>TCO</strong></td>
+<td>Total cost of ownership: inference, engineering, hosting, and on-call.</td>
+</tr>
+</tbody>
+</table>
+<p>The distinction that decides most arguments is <strong>benchmark vs eval</strong>. A benchmark is someone else’s task. An eval is your task. Interviewers want to hear that you trust your own eval over a public ranking.</p>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Think of a model as a point in a multidimensional space. Each axis is a property you care about.</p>
+<pre class="text"><code>quality ↑   ·  flagship
+        │        ·  mid
+        │   ·  small-fast
+        └──────────────────→ cost →</code></pre>
+<p>There is a <strong>Pareto frontier</strong>: the set of models where you cannot improve one axis without giving up another. Your job is not to find the single best model in the universe. Your job is to find the best point <strong>for your task, under your constraints</strong>.</p>
+<p>Start by eliminating, not by ranking. Hard constraints create a feasible set:</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    A["Define the task and the success metric"] --&gt; B["Apply hard constraints:&lt;br/&gt;context window, tools,&lt;br/&gt;license, privacy, availability"]
+    B --&gt; C{"Any models left?"}
+    C -- "no" --&gt; D["Relax a constraint:&lt;br/&gt;change task, host it yourself,&lt;br/&gt;or split the workflow"]
+    C -- "yes" --&gt; E["Run your own eval&lt;br/&gt;on the shortlist"]
+    E --&gt; F["Measure quality,&lt;br/&gt;p50/p95 latency, cost per task"]
+    F --&gt; G["Choose primary&lt;br/&gt;+ fallback + routing"]
+    G --&gt; H["Monitor in production,&lt;br/&gt;re-evaluate on change"]
+    H --&gt; E
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The comparison axes, grouped by what kind of decision they inform:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Axis</th>
+<th>What to ask</th>
+<th>Where it bites</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Quality</td>
+<td>Does it get <em>my</em> task right?</td>
+<td>Wrong answers, rework, trust</td>
+</tr>
+<tr class="even">
+<td>Latency</td>
+<td>Is TTFT and total time acceptable?</td>
+<td>Users abandon slow UIs; timeouts</td>
+</tr>
+<tr class="odd">
+<td>Throughput</td>
+<td>Tokens per second</td>
+<td>Long generations feel stuck</td>
+</tr>
+<tr class="even">
+<td>Cost</td>
+<td>Price per input and output token</td>
+<td>Margin, abuse, scale surprises</td>
+</tr>
+<tr class="odd">
+<td>Context window</td>
+<td>Does my payload fit?</td>
+<td>Truncated retrieval, silent errors</td>
+</tr>
+<tr class="even">
+<td>Max output</td>
+<td>Can it finish the answer?</td>
+<td>Cut-off responses, failed JSON</td>
+</tr>
+<tr class="odd">
+<td>Tool calling</td>
+<td>Does it emit valid tool calls?</td>
+<td>Agents loop or stall</td>
+</tr>
+<tr class="even">
+<td>Structured output</td>
+<td>Can it follow a schema?</td>
+<td>Parsing failures downstream</td>
+</tr>
+<tr class="odd">
+<td>License</td>
+<td>Can I use it commercially?</td>
+<td>Legal risk, forced rework</td>
+</tr>
+<tr class="even">
+<td>Privacy</td>
+<td>Where does my data go?</td>
+<td>Compliance, customer trust</td>
+</tr>
+<tr class="odd">
+<td>Availability</td>
+<td>Uptime, limits, regions</td>
+<td>Outages, throttling</td>
+</tr>
+<tr class="even">
+<td>Ecosystem</td>
+<td>SDKs, docs, community</td>
+<td>Slower delivery, hard debugging</td>
+</tr>
+</tbody>
+</table>
+<p>The benchmarks you will hear named, and what each one is actually good for:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Benchmark</th>
+<th>What it measures</th>
+<th>Main limit</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>MMLU</td>
+<td>Multiple-choice knowledge across many school subjects</td>
+<td>Widely saturated; contamination inflates scores</td>
+</tr>
+<tr class="even">
+<td>GPQA</td>
+<td>Hard graduate-level science questions</td>
+<td>Small set; still multiple-choice, not free-form</td>
+</tr>
+<tr class="odd">
+<td>HumanEval</td>
+<td>Writing small Python functions from docstrings</td>
+<td>Tiny and Python-only; very likely in training data</td>
+</tr>
+<tr class="even">
+<td>SWE-bench</td>
+<td>Resolving real GitHub issues end to end</td>
+<td>Expensive to run; repository mix changes over time</td>
+</tr>
+<tr class="odd">
+<td>LMArena</td>
+<td>Human pairwise preference votes from a public crowd</td>
+<td>Crowd taste, not your task; style can beat correctness</td>
+</tr>
+<tr class="even">
+<td>LiveBench / LiveCodeBench</td>
+<td>Freshly rotated, contamination-resistant sets</td>
+<td>Narrower coverage than older suites</td>
+</tr>
+</tbody>
+</table>
+<p>Two habits separate strong candidates from weak ones. First, <strong>weight the axes for your product</strong>: for an interactive copilot, latency and quality dominate; for an overnight batch summarizer, cost dominates and p95 latency barely matters. Second, <strong>measure cost per completed task</strong>, not cost per token, because retries and failures are part of the real cost.</p>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>Define the task and the success metric.</strong> “Extract line items from receipts” with an accuracy target and a latency budget. Vague goals produce vague comparisons.</li>
+<li><strong>Build a representative eval set.</strong> Collect real, varied examples, including hard and adversarial ones, and have a human verify the expected answers. Fifty to a few hundred good examples beat thousands of sloppy ones.</li>
+<li><strong>Apply hard constraints first.</strong> Filter the catalog by context window, tool and schema support, license, privacy, region, and current availability. This is a yes/no filter, not a score.</li>
+<li><strong>Run a blind bake-off.</strong> Send the <em>same</em> prompts to every shortlisted model and score the outputs with the same rubric. Do not let the model’s brand influence the grader; where possible, grade automatically with a deterministic check.</li>
+<li><strong>Measure latency as percentiles.</strong> Record TTFT and total time per request and report p50 and p95. Averages hide the slow tail that users actually complain about.</li>
+<li><strong>Compute cost per completed task.</strong> Include input tokens (which can dwarf output when you paste large contexts), output tokens, retries, and failed calls. Use real traffic, not a guess.</li>
+<li><strong>Check the non-model costs.</strong> Engineering time to integrate, evaluation harness maintenance, prompt tuning, and ongoing monitoring all count toward total cost of ownership.</li>
+<li><strong>Choose a primary plus a fallback.</strong> A fallback in a different failure domain (another provider or region) protects you from an outage. Define the trigger and the timeout.</li>
+<li><strong>Add routing if the traffic is mixed.</strong> Easy requests to a small cheap model, hard ones to the flagship. Routing can cut cost substantially with little quality loss.</li>
+<li><strong>Pin versions and monitor.</strong> Record the exact model version in every log. Providers deprecate and silently update models; your eval is how you notice quality drift.</li>
+<li><strong>Re-evaluate on change.</strong> New model release, new price, new prompt, new data distribution. Re-run the same eval so the comparison stays fair.</li>
+</ol>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The one sentence to remember.</strong> Constraints filter; your eval decides; cost, latency, and quality break the tie — and you re-run it all when anything changes.</p>
+</div>
+</div>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>1. Cost per request from token prices.</strong> Prices are quoted per million tokens, and input and output are priced differently.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dataclasses <span class="im">import</span> dataclass</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span>(frozen<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Price:</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    input_per_mtok: <span class="bu">float</span>    <span class="co"># USD per 1,000,000 input tokens</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    output_per_mtok: <span class="bu">float</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> request_cost(price: Price, input_tokens: <span class="bu">int</span>, output_tokens: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (input_tokens <span class="op">/</span> <span class="dv">1_000_000</span>) <span class="op">*</span> price.input_per_mtok <span class="op">\</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>         <span class="op">+</span> (output_tokens <span class="op">/</span> <span class="dv">1_000_000</span>) <span class="op">*</span> price.output_per_mtok</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>2. Percentiles for latency.</strong> Never rely on the mean.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> percentile(values: <span class="bu">list</span>[<span class="bu">float</span>], p: <span class="bu">float</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    ordered <span class="op">=</span> <span class="bu">sorted</span>(values)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> ordered:</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"no samples"</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    index <span class="op">=</span> <span class="bu">min</span>(<span class="bu">len</span>(ordered) <span class="op">-</span> <span class="dv">1</span>, <span class="bu">int</span>(<span class="bu">round</span>((p <span class="op">/</span> <span class="dv">100</span>) <span class="op">*</span> (<span class="bu">len</span>(ordered) <span class="op">-</span> <span class="dv">1</span>))))</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ordered[index]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>3. A weighted score across axes.</strong> Normalise each axis to 0–1, invert “lower is better” axes such as cost and latency, then weight by product priority.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> score(model: <span class="bu">dict</span>, weights: <span class="bu">dict</span>[<span class="bu">str</span>, <span class="bu">float</span>]) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(model[axis] <span class="op">*</span> weight <span class="cf">for</span> axis, weight <span class="kw">in</span> weights.items())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>4. A routing decision.</strong> Rules, not magic: cheap model for easy tasks, flagship for hard ones.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> choose_model(task: <span class="bu">str</span>, tokens: <span class="bu">int</span>, needs_tools: <span class="bu">bool</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> needs_tools <span class="kw">and</span> tokens <span class="op">&gt;</span> <span class="dv">100_000</span>:</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"long-context-tool-model"</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> task <span class="kw">in</span> {<span class="st">"classify"</span>, <span class="st">"extract"</span>} <span class="kw">and</span> tokens <span class="op">&lt;</span> <span class="dv">8_000</span>:</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"small-fast"</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> task <span class="kw">in</span> {<span class="st">"code"</span>, <span class="st">"reason"</span>}:</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"flagship"</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="st">"mid"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>5. A fallback chain.</strong> Try in order; move on when a provider fails.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> call_with_fallback(call, chain: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    errors <span class="op">=</span> []</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> name <span class="kw">in</span> chain:</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span>:</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> call(name)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">except</span> <span class="pp">RuntimeError</span> <span class="im">as</span> exc:</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>            errors.append(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>exc<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="st">"all providers failed: "</span> <span class="op">+</span> <span class="st">"; "</span>.join(errors))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>6. Rough token estimation.</strong> Useful for capacity planning before you have real usage.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> estimate_tokens(text: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">int</span>:</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Very rough English heuristic: about 4 characters per token.</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Use a real tokenizer when accuracy matters.</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">max</span>(<span class="dv">1</span>, <span class="bu">len</span>(text) <span class="op">//</span> <span class="dv">4</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — cost arithmetic across two models.</strong> The numbers below are round, made-up prices used only to show the arithmetic, not real quotes.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>cheap <span class="op">=</span> Price(<span class="fl">0.15</span>, <span class="fl">0.60</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>premium <span class="op">=</span> Price(<span class="fl">3.00</span>, <span class="fl">15.00</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>request_cost(cheap, <span class="dv">2000</span>, <span class="dv">500</span>)    <span class="co"># 0.0006</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>request_cost(premium, <span class="dv">2000</span>, <span class="dv">500</span>)  <span class="co"># 0.0135</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="bu">round</span>(request_cost(cheap, <span class="dv">2000</span>, <span class="dv">500</span>) <span class="op">*</span> <span class="dv">100_000</span>, <span class="dv">2</span>)    <span class="co"># 60.0 (raw float: 59.99999999999999)</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>request_cost(premium, <span class="dv">2000</span>, <span class="dv">500</span>) <span class="op">*</span> <span class="dv">100_000</span>  <span class="co"># 1350.0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Same task, same tokens, a 22.5x difference at this volume. This is the number that decides many selections.</p>
+<p><strong>Example 2 — why percentiles matter.</strong> Ten requests, one slow outlier.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>latencies <span class="op">=</span> [<span class="fl">0.42</span>, <span class="fl">0.51</span>, <span class="fl">0.47</span>, <span class="fl">0.60</span>, <span class="fl">1.10</span>, <span class="fl">0.55</span>, <span class="fl">0.49</span>, <span class="fl">0.53</span>, <span class="fl">0.58</span>, <span class="fl">2.40</span>]</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>percentile(latencies, <span class="dv">50</span>)   <span class="co"># 0.53</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>percentile(latencies, <span class="dv">95</span>)   <span class="co"># 2.4</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="bu">sum</span>(latencies) <span class="op">/</span> <span class="bu">len</span>(latencies)  <span class="co"># 0.765 — the mean hides the outlier</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The mean says “under a second”. The p95 says “one user in twenty waits 2.4 seconds”. Report both, and set timeouts from the tail.</p>
+<p><strong>Example 3 — a weighted shortlist.</strong> With weights reflecting a balanced product, the mid model wins even though the flagship is best on quality.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>weights <span class="op">=</span> {<span class="st">"quality"</span>: <span class="fl">0.5</span>, <span class="st">"latency"</span>: <span class="fl">0.2</span>, <span class="st">"cost"</span>: <span class="fl">0.2</span>, <span class="st">"tools"</span>: <span class="fl">0.1</span>}</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>candidates <span class="op">=</span> {</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"small-fast"</span>: {<span class="st">"quality"</span>: <span class="fl">0.62</span>, <span class="st">"latency"</span>: <span class="fl">0.95</span>, <span class="st">"cost"</span>: <span class="fl">0.98</span>, <span class="st">"tools"</span>: <span class="fl">0.60</span>},</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"mid"</span>:        {<span class="st">"quality"</span>: <span class="fl">0.82</span>, <span class="st">"latency"</span>: <span class="fl">0.75</span>, <span class="st">"cost"</span>: <span class="fl">0.70</span>, <span class="st">"tools"</span>: <span class="fl">0.90</span>},</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"flagship"</span>:   {<span class="st">"quality"</span>: <span class="fl">0.95</span>, <span class="st">"latency"</span>: <span class="fl">0.45</span>, <span class="st">"cost"</span>: <span class="fl">0.30</span>, <span class="st">"tools"</span>: <span class="fl">0.95</span>},</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Verified ranking:</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># mid         0.790</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co"># small-fast  0.756</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co"># flagship    0.720</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Change the weights and the winner changes. That is the point: the right model is a function of the product, not a universal truth. Always sanity-check the score against your eval; a weighting scheme can hide a model that fails a must-have.</p>
+<p><strong>Example 4 — routing by request shape.</strong> Mixed traffic rarely needs one model.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>choose_model(<span class="st">"classify"</span>, <span class="dv">500</span>, <span class="va">False</span>)      <span class="co"># 'small-fast'</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>choose_model(<span class="st">"code"</span>, <span class="dv">20_000</span>, <span class="va">True</span>)        <span class="co"># 'flagship'</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>choose_model(<span class="st">"summarize"</span>, <span class="dv">150_000</span>, <span class="va">True</span>)  <span class="co"># 'long-context-tool-model'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>A single classifier call and a 150k-token agent task have nothing in common. Routing them to the same model wastes money on one and quality on the other.</p>
+<p><strong>Example 5 — fallback keeps the product up.</strong> Availability is an axis you cannot ignore.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>availability <span class="op">=</span> {<span class="st">"primary"</span>: <span class="va">False</span>, <span class="st">"secondary"</span>: <span class="va">False</span>, <span class="st">"tertiary"</span>: <span class="va">True</span>}</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fake_call(name: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> availability[name]:</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="st">"503 unavailable"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f"answered by </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>call_with_fallback(fake_call, [<span class="st">"primary"</span>, <span class="st">"secondary"</span>, <span class="st">"tertiary"</span>])</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co"># 'answered by tertiary'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Two providers down, the request still succeeds. Prefer a fallback in a different failure domain; if both run on the same cloud region, one outage takes both.</p>
+<p><strong>Example 6 — total cost of ownership, not just tokens.</strong> Self-hosting is not automatically cheaper.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> api_cost(requests: <span class="bu">int</span>, unit_cost: <span class="bu">float</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> requests <span class="op">*</span> unit_cost</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> self_host_cost(gpu_hours: <span class="bu">float</span>, gpu_price: <span class="bu">float</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                   engineer_hours: <span class="bu">float</span>, rate: <span class="bu">float</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> gpu_hours <span class="op">*</span> gpu_price <span class="op">+</span> engineer_hours <span class="op">*</span> rate</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>api_cost(<span class="dv">1_000_000</span>, <span class="fl">0.003</span>)                       <span class="co"># 3000.0</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>self_host_cost(<span class="dv">24</span> <span class="op">*</span> <span class="dv">30</span>, <span class="fl">2.50</span>, <span class="dv">40</span>, <span class="dv">75</span>)            <span class="co"># 4800.0</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>self_host_cost(<span class="dv">24</span> <span class="op">*</span> <span class="dv">30</span>, <span class="fl">2.50</span>, <span class="dv">4</span>, <span class="dv">75</span>)             <span class="co"># 2100.0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>One million API calls can cost less than renting one GPU for a month once you count engineering time. Self-hosting wins on privacy, control, and very high steady volume — not by default on price. And a rented GPU bills even when idle.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Benchmarks are a screening tool, not a decision.</strong> They help you build a shortlist. Your eval decides. Saying this clearly is often the whole interview answer on model choice.</li>
+<li><strong>Watch for contamination.</strong> If a benchmark’s questions appeared in training data, the score measures memorization. Prefer fresh or private eval sets, or contamination-resistant benchmarks that rotate their data.</li>
+<li><strong>Leaderboards reflect crowds, not your users.</strong> Human-preference rankings reward pleasant prose; your users may need exact numbers, strict JSON, or a specific tone. Popularity is a weak proxy.</li>
+<li><strong>Beware benchmark saturation and Goodhart’s law.</strong> Once everyone optimizes a benchmark, it stops discriminating. When scores cluster near the ceiling, build a harder, task-specific set.</li>
+<li><strong>Pin exact model versions.</strong> Providers update models behind aliases. Without a pinned version in your logs, a quality regression is impossible to diagnose.</li>
+<li><strong>Measure cost per <em>completed</em> task.</strong> Retries, invalid structured output, and human fallbacks are real costs that per-token math misses.</li>
+<li><strong>Latency is a distribution, not a number.</strong> Track p50, p95, and p99; set timeouts and fallbacks from the tail. Streaming changes perceived latency by lowering TTFT even when total time is unchanged.</li>
+<li><strong>Route before you downgrade.</strong> Sending easy traffic to a small model usually beats forcing everyone onto a smaller model, and it keeps quality where it matters.</li>
+<li><strong>Fallbacks must be exercised.</strong> An untested fallback is a plan, not a capability. Run it in staging and periodically in production via a canary.</li>
+<li><strong>Prices and models change fast.</strong> Treat selection as a recurring process with a standing eval harness, not a one-off decision made at kickoff.</li>
+<li><strong>Total cost includes people.</strong> Integration, prompt maintenance, eval upkeep, and on-call can exceed inference cost. Self-hosting shifts spend from tokens to salaries and GPUs.</li>
+<li><strong>Check privacy and licensing before the bake-off.</strong> A model that wins on quality but cannot legally or contractually serve your data is not on the shortlist at all.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="how-do-you-choose-a-model-for-a-production-feature" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-choose-a-model-for-a-production-feature">1. How do you choose a model for a production feature?</h3>
+<p><strong>Answer.</strong> Start from the task and a success metric. Filter by hard constraints — context window, tool and structured-output support, license, privacy, region, availability — then run the surviving models on your own eval set. Compare quality, p95 latency, and cost per completed task, and ship a primary with a fallback and optional routing.</p>
+<p><strong>Follow-up: “What if two models are close on quality?”</strong> Let cost, latency, and operational risk break the tie. Prefer the simpler, cheaper, more available option, and keep the stronger model as a fallback or for routed hard cases.</p>
+<p><strong>Trap.</strong> Answering with a model name. The correct answer is always a process plus the constraints and measurements that drove the choice.</p>
+</section>
+<section id="why-can-a-public-benchmark-score-be-misleading" class="level3">
+<h3 class="anchored" data-anchor-id="why-can-a-public-benchmark-score-be-misleading">2. Why can a public benchmark score be misleading?</h3>
+<p><strong>Answer.</strong> Benchmarks are fixed test sets, so they can leak into training data (contamination) and inflate scores. They may not resemble your task, they can saturate as models improve, and they reward whatever they measure, which invites overfitting. A high score is weak evidence that a model is right for you.</p>
+<p><strong>Follow-up: “So why use them at all?”</strong> As a cheap filter to build a shortlist, and to spot obvious capability gaps. Then confirm with a private, task-specific eval.</p>
+<p><strong>Trap.</strong> Treating a leaderboard rank as a quality guarantee. Rankings also depend on the metric, the prompt format, and who voted.</p>
+</section>
+<section id="what-makes-a-good-eval-set" class="level3">
+<h3 class="anchored" data-anchor-id="what-makes-a-good-eval-set">3. What makes a good eval set?</h3>
+<p><strong>Answer.</strong> Real, representative examples with human-verified expected answers, covering common cases and hard edge cases. It should be large enough to separate close models, versioned so comparisons stay stable, and scored by a defined metric — exact match where possible, a rubric or LLM judge where not.</p>
+<p><strong>Follow-up: “How do you keep scoring honest?”</strong> Prefer deterministic checks for structured output. If you use a judge model, calibrate it against human labels and watch for position and style bias.</p>
+<p><strong>Trap.</strong> Using the same examples to tune prompts and to report quality. That leaks the answer key; hold out a test slice.</p>
+</section>
+<section id="how-do-latency-and-cost-interact-with-quality" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-latency-and-cost-interact-with-quality">4. How do latency and cost interact with quality?</h3>
+<p><strong>Answer.</strong> They trade off on a frontier. The largest model usually gives the best quality per call but costs and waits the most. You can move along the frontier with routing, caching, batching, streaming, and shorter prompts, or off it by choosing a model that fits the task better.</p>
+<p><strong>Follow-up: “Where would you optimize first?”</strong> Usually the input side. Long retrieval contexts multiply input-token cost and TTFT, so trimming context often improves both cost and speed with no quality loss.</p>
+<p><strong>Trap.</strong> Assuming the flagship is always safest. Extra quality you cannot measure for your task is just extra cost and latency.</p>
+</section>
+<section id="explain-routing-and-fallback." class="level3">
+<h3 class="anchored" data-anchor-id="explain-routing-and-fallback.">5. Explain routing and fallback.</h3>
+<p><strong>Answer.</strong> Routing sends each request to the model best suited to it — easy ones to a small cheap model, hard ones to a flagship — often using a classifier or simple rules. Fallback is the backup path when the primary errors, times out, or is throttled. Routing optimizes the average; fallback protects the worst case.</p>
+<p><strong>Follow-up: “What is the risk of routing?”</strong> A misrouted hard request gets a worse answer. Measure quality per route, and give yourself a way to escalate when confidence is low.</p>
+<p><strong>Trap.</strong> Confusing the two. Routing changes which model serves a healthy request; fallback reacts to failure.</p>
+</section>
+<section id="what-is-total-cost-of-ownership-for-an-llm-feature" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-total-cost-of-ownership-for-an-llm-feature">6. What is total cost of ownership for an LLM feature?</h3>
+<p><strong>Answer.</strong> Everything it takes to run the feature: inference tokens, retries, evaluation compute, engineering time to integrate and maintain prompts, hosting or GPU rental if self-hosted, observability, and on-call. Token price is only the visible part.</p>
+<p><strong>Follow-up: “When does self-hosting pay off?”</strong> At high, steady volume, with privacy or latency requirements that a hosted API cannot meet, or when you need to fine-tune and control the weights. Below that, the engineering and idle-GPU cost usually dominates.</p>
+<p><strong>Trap.</strong> Comparing a token price to a GPU price directly. The self-hosted side also carries salaries, utilization risk, and maintenance.</p>
+</section>
+<section id="how-do-you-handle-a-provider-outage-or-rate-limit" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-handle-a-provider-outage-or-rate-limit">7. How do you handle a provider outage or rate limit?</h3>
+<p><strong>Answer.</strong> Treat the provider as unreliable by design. Add timeouts and bounded retries with exponential backoff and jitter, cap concurrency to stay under rate limits, and keep a fallback model in a different failure domain. Queue non-urgent work instead of failing it, and surface a degraded mode to users.</p>
+<p><strong>Follow-up: “What about a fallback model with different output shape?”</strong> Normalize the outputs behind one internal interface so the rest of the app does not care which provider answered. That is the provider-agnostic interface from the APIs page.</p>
+<p><strong>Trap.</strong> Retrying without jitter. Synchronized retries create a thundering herd and make the rate limit worse.</p>
+</section>
+<section id="how-do-you-keep-a-model-choice-from-going-stale" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-keep-a-model-choice-from-going-stale">8. How do you keep a model choice from going stale?</h3>
+<p><strong>Answer.</strong> Version your prompts and evals, pin model versions, and log model, version, tokens, latency, and cost for every call. Monitor quality and cost dashboards, and re-run the standing eval whenever a model, price, prompt, or data distribution changes. Selection is a continuous process.</p>
+<p><strong>Follow-up: “What would trigger a re-evaluation?”</strong> A new model release, a price change, a quality or cost regression in monitoring, a latency shift, or a change in traffic mix.</p>
+<p><strong>Trap.</strong> Assuming a pinned version is permanent. Providers deprecate models; plan migrations and keep the eval ready to run against replacements.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li><strong>Constraints filter, your eval decides.</strong> Benchmarks build the shortlist; task-specific measurement picks the winner.</li>
+<li><strong>A leaderboard is not your task.</strong> Contamination, saturation, and differing goals make public scores weak evidence.</li>
+<li><strong>Measure cost per completed task, and latency as p95.</strong> Averages and per-token prices hide the real experience.</li>
+<li><strong>Ship a primary, a fallback, and routing.</strong> Optimize the average with routing; protect the worst case with fallback.</li>
+<li><strong>Re-evaluate on every change.</strong> Models, prices, prompts, and data all drift; selection is a loop, not a decision.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="pagination-link" aria-label="Prompt Injection and Context Poisoning">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Prompt Injection and Context Poisoning</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="pagination-link" aria-label="Provider APIs: OpenAI, Anthropic, Gemini">
+        <span class="nav-page-text"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Iterators and Generators – Agentic AI Engineering Study Book</title>
+<title>Logits, Softmax, and Next-Token Prediction – Agentic AI Engineering Study Book</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -71,8 +71,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../phase-01-production-python/06-context-managers.html" rel="next">
-<link href="../phase-01-production-python/04-decorators.html" rel="prev">
+<link href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" rel="next">
+<link href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
@@ -128,7 +128,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/05-iterators-and-generators.html"><span class="chapter-title">Iterators and Generators</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -189,7 +189,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Iterators and Generators</span></a>
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -365,7 +365,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -475,9 +475,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/05-iterators-and-generators.html"><span class="chapter-title">Iterators and Generators</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-title">Iterators and Generators</span></h1>
+<h1 class="title"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></h1>
 </div>
 
 
@@ -495,26 +495,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <blockquote class="blockquote">
-<p><strong>Interview answer (say this first).</strong> An iterable is something you can loop over; an iterator is the cursor that produces the values one at a time. A generator is a simple way to build an iterator: a function that uses <code>yield</code> pauses at each value and resumes when the next one is asked for, so you never need to hold the whole sequence in memory.</p>
+<p><strong>Interview answer (say this first).</strong> A language model outputs one raw score called a <strong>logit</strong> for every token in its vocabulary. <strong>Softmax</strong> turns those scores into a probability distribution, subtracting the maximum first so the exponentials do not overflow. Generation picks a token from that distribution, appends it to the input, and repeats — that autoregressive loop is all text generation is. Training compares the predicted distribution with the true next token using <strong>cross-entropy loss</strong>.</p>
 </blockquote>
 <section id="why-this-exists" class="level2">
 <h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
-<p>Imagine you must find the first line in a 20 GB log file that contains <code>"ERROR"</code>. The obvious approach is:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"huge.log"</span>) <span class="im">as</span> f:</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    lines <span class="op">=</span> f.readlines()      <span class="co"># loads the entire file into memory</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> line <span class="kw">in</span> lines:</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="st">"ERROR"</span> <span class="kw">in</span> line:</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(line)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This may crash before it finds anything. <code>readlines()</code> builds a list of every line, so a 20 GB file needs roughly 20 GB of memory, even though you only wanted one line.</p>
-<p>The real problem is deeper than this one example. Most data work is about <strong>sequences that are too large, too slow, or infinite to build all at once</strong>:</p>
+<p>The whole product is “predict the next token”. Everything a model appears to do — answering, coding, summarising, calling a tool — comes out of that one operation repeated.</p>
+<p>So look closely at the operation. After the transformer has processed the input, it has one vector of hidden numbers for the current position. That vector has to become a <strong>choice among tens of thousands of vocabulary tokens</strong>. The network produces a raw score for each candidate. The scores are arbitrary real numbers, positive or negative, large or small. They are not probabilities: they do not sum to one, and a score of <code>5.0</code> does not mean “five times as likely” as <code>1.0</code>.</p>
+<p>Without a normalisation step, you could not:</p>
 <ul>
-<li>a log file larger than memory,</li>
-<li>a database query returning millions of rows,</li>
-<li>an endless stream of events from a queue,</li>
-<li>pages from an API you fetch one at a time.</li>
+<li>Report a confidence.</li>
+<li>Compare two different positions fairly.</li>
+<li>Sample sensibly, because there is no “chance of winning”.</li>
+<li>Train with a loss that measures surprise.</li>
 </ul>
-<p>In every case you want to process items one at a time and stop when you are done. Python’s iterator protocol is the mechanism that makes this possible, and generators are the easy way to use it.</p>
+<p><strong>Softmax</strong> is that normalisation step. It converts the raw scores into a proper probability distribution: every value is between 0 and 1, and they sum to 1. Then you either take the largest (greedy) or sample from it (with temperature and other controls).</p>
+<p>This one page explains the model’s output, how training measures error, and why generation is a loop rather than a single answer. It is the bridge between the mathematics of the network and the text you actually see.</p>
 </section>
 <section id="start-from-zero" class="level2">
 <h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
@@ -531,99 +526,158 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </thead>
 <tbody>
 <tr class="odd">
-<td><strong>Iteration</strong></td>
-<td>Going through a sequence of values, one after another.</td>
+<td><strong>Logit</strong></td>
+<td>A raw, unnormalised score for one class or token. Can be any real number.</td>
 </tr>
 <tr class="even">
-<td><strong>Iterable</strong></td>
-<td>Anything you can loop over with <code>for</code>. A list, string, dict, file, set, or generator.</td>
+<td><strong>Logits vector</strong></td>
+<td>One score per vocabulary token, of length <code>V</code>.</td>
 </tr>
 <tr class="odd">
-<td><strong>Iterator</strong></td>
-<td>The object that actually produces values and remembers where it is. Think of a cursor.</td>
+<td><strong>Softmax</strong></td>
+<td>The function that turns a vector of scores into probabilities that sum to 1.</td>
 </tr>
 <tr class="even">
-<td><strong>Lazy</strong></td>
-<td>Producing a value only when it is asked for.</td>
+<td><strong>Probability distribution</strong></td>
+<td>A list of non-negative numbers that sum to 1.</td>
 </tr>
 <tr class="odd">
-<td><strong>Eager</strong></td>
-<td>Producing all values up front. <code>list()</code> is eager.</td>
+<td><strong>Argmax</strong></td>
+<td>The index of the largest value. Picking it is <strong>greedy decoding</strong>.</td>
 </tr>
 <tr class="even">
-<td><strong>Generator</strong></td>
-<td>A function containing <code>yield</code>, or a generator expression. It produces an iterator.</td>
+<td><strong>Sampling</strong></td>
+<td>Drawing a token randomly according to the probabilities.</td>
 </tr>
 <tr class="odd">
-<td><strong><code>yield</code></strong></td>
-<td>“Pause here and hand this value out.” The function freezes until the next value is requested.</td>
+<td><strong>Temperature</strong></td>
+<td>A number that divides the logits before softmax. Lower = sharper, higher = flatter.</td>
 </tr>
 <tr class="even">
-<td><strong>Exhausted</strong></td>
-<td>A generator or iterator that has no values left; asking again raises <code>StopIteration</code>.</td>
+<td><strong>Top-k</strong></td>
+<td>Keep only the <code>k</code> highest-probability tokens; discard the rest.</td>
 </tr>
 <tr class="odd">
-<td><strong>Delegation</strong></td>
-<td>Passing iteration to another iterable with <code>yield from</code>.</td>
+<td><strong>Top-p (nucleus)</strong></td>
+<td>Keep the smallest set of tokens whose probabilities add up to at least <code>p</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>Cross-entropy</strong></td>
+<td>A loss that measures how much probability the model gave the true answer. Lower is better.</td>
+</tr>
+<tr class="odd">
+<td><strong>Negative log-likelihood (NLL)</strong></td>
+<td><code>-log(p)</code> for the true token. Cross-entropy is the average NLL.</td>
+</tr>
+<tr class="even">
+<td><strong>Perplexity</strong></td>
+<td><code>exp(cross-entropy)</code>. Roughly, how many equally likely options the model is torn between.</td>
+</tr>
+<tr class="odd">
+<td><strong>Autoregressive</strong></td>
+<td>Each output token is fed back as input to predict the next one.</td>
+</tr>
+<tr class="even">
+<td><strong>Generation loop</strong></td>
+<td>The repeated “predict, pick, append” cycle that produces text.</td>
+</tr>
+<tr class="odd">
+<td><strong>Teacher forcing</strong></td>
+<td>Training with the true previous token as input, instead of the model’s own prediction.</td>
+</tr>
+<tr class="even">
+<td><strong>Prompt</strong></td>
+<td>The input tokens you supply.</td>
+</tr>
+<tr class="odd">
+<td><strong>Completion</strong></td>
+<td>The tokens the model generates.</td>
+</tr>
+<tr class="even">
+<td><strong>EOS</strong></td>
+<td>The end-of-sequence token; emitting it stops generation.</td>
+</tr>
+<tr class="odd">
+<td><strong>LM head</strong></td>
+<td>The final linear layer that projects the hidden state to vocabulary-sized logits.</td>
+</tr>
+<tr class="even">
+<td><strong>Weight tying</strong></td>
+<td>Reusing the embedding matrix as the LM head, saving parameters.</td>
 </tr>
 </tbody>
 </table>
-<p>Two pairs of words cause most of the confusion, so fix them now:</p>
+<p>Two contrasts matter:</p>
 <ul>
-<li><strong>Iterable vs iterator.</strong> An iterable can produce an iterator; an iterator <em>is</em> the thing being consumed. A list is iterable but not an iterator. You can loop over a list many times. A generator is both iterable and its own iterator, and it can be consumed only once.</li>
-<li><strong>Lazy vs eager.</strong> Lazy means “compute on demand.” Eager means “compute now, store everything.”</li>
+<li><strong>Logits vs probabilities.</strong> Logits are scores; probabilities are their softmax. Raw logits can be negative or greater than 1; probabilities cannot.</li>
+<li><strong>Training vs inference conditioning.</strong> Training feeds the true previous token (teacher forcing). Inference feeds the model’s own previous token. That difference is called <strong>exposure bias</strong>.</li>
 </ul>
-<p>The <code>for</code> loop is the piece that ties them together. When you write <code>for x in something:</code>, Python is not doing anything magical — it is calling the iterator protocol, which you can drive yourself:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>nums <span class="op">=</span> [<span class="dv">10</span>, <span class="dv">20</span>]</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>it <span class="op">=</span> <span class="bu">iter</span>(nums)     <span class="co"># get an iterator</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">next</span>(it)            <span class="co"># 10</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="bu">next</span>(it)            <span class="co"># 20</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="bu">next</span>(it)            <span class="co"># StopIteration</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>That is the entire foundation. Everything else is a convenience built on it.</p>
 </section>
 <section id="the-core-idea" class="level2">
 <h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
-<p>Picture unloading a delivery truck.</p>
-<ul>
-<li><strong>Eager</strong> is carrying every box into the warehouse before you open any of them. Fast to look things up later, but you need space for everything at once.</li>
-<li><strong>Lazy</strong> is a conveyor belt: one box arrives, you handle it, then the next. You need space for one box.</li>
-</ul>
-<p>The iterator is the <strong>conveyor belt’s position</strong> — it knows which box is next. The generator is the <strong>motor</strong> that produces boxes on demand.</p>
-<blockquote class="blockquote">
-<p><strong>A generator does not run when you define it. It runs only when you ask for the next value.</strong></p>
-</blockquote>
-<p>That sentence explains the most surprising behaviour in this topic. Calling a generator function does not execute a single line of its body. It returns a generator object, and each <code>next()</code> runs the code up to the next <code>yield</code> and then pauses.</p>
+<p>Think of a horse race. Each horse has a <strong>strength rating</strong> — that is the logit. The ratings are not probabilities; they are arbitrary numbers. To turn them into <strong>winning chances</strong>, you need a rule that maps strengths to shares that add up to 100%.</p>
+<p>Softmax is that rule. It exponentiates each rating and divides by the total. A horse rated much higher gets a much larger share, but no horse ever has a negative or zero chance.</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
 <p></p><figure class="figure"><p></p>
 <div>
 <pre class="mermaid mermaid-js">flowchart LR
-  A["writer()"] --&gt; B["generator object&lt;br/&gt;(nothing has run yet)"]
-  B --&gt;|"next()"| C["runs until first yield&lt;br/&gt;pauses, returns 1"]
-  C --&gt;|"next()"| D["resumes&lt;br/&gt;pauses, returns 2"]
-  D --&gt;|"next()"| E["function returns&lt;br/&gt;StopIteration"]
+    A["input tokens&lt;br/&gt;IDs"] --&gt; B["transformer&lt;br/&gt;+ LM head"]
+    B --&gt; C["logits&lt;br/&gt;one per vocab token"]
+    C --&gt; D["softmax&lt;br/&gt;- max, exp, / sum"]
+    D --&gt; E["probabilities&lt;br/&gt;sum = 1"]
+    E --&gt; F["choose&lt;br/&gt;argmax or sample"]
+    F --&gt; G["new token"]
+    G --&gt;|"append and repeat"| A
 </pre>
 </div>
 <p></p></figure><p></p>
 </div>
 </div>
 </div>
-<p>The generator’s local variables survive between pauses, which is why it can remember its position without you writing a state machine.</p>
+<p>That loop, top to bottom and back, is how every chat response is produced. Here is the same idea numerically:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Stage</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Logits</td>
+<td><code>[2.0, 1.0, 0.1]</code></td>
+</tr>
+<tr class="even">
+<td>After softmax</td>
+<td><code>[0.659, 0.242, 0.099]</code></td>
+</tr>
+<tr class="odd">
+<td>Sum</td>
+<td><code>1.000</code></td>
+</tr>
+<tr class="even">
+<td>Greedy pick</td>
+<td>index <code>0</code> (value <code>2.0</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>The model is not “deciding” in any human sense. It is computing a distribution and drawing from it.</p>
 </section>
 <section id="how-it-works" class="level2">
 <h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
 <ol type="1">
-<li><strong>A <code>for</code> loop calls <code>iter()</code> on the iterable</strong> to get an iterator.</li>
-<li><strong>It calls <code>next()</code> repeatedly.</strong> Each call returns the next value.</li>
-<li><strong>When there are no values left, the iterator raises <code>StopIteration</code>.</strong> The <code>for</code> loop catches that silently and ends. You never write the check.</li>
-<li><strong>A generator function returns a generator object immediately.</strong> None of its body runs yet.</li>
-<li><strong>On each <code>next()</code>, the body runs until it reaches <code>yield</code>.</strong> <code>yield</code> produces a value and freezes the function, keeping its local state.</li>
-<li><strong>The next <code>next()</code> resumes right after the <code>yield</code></strong> and continues.</li>
-<li><strong>When the function returns (or ends), the generator raises <code>StopIteration</code>.</strong> A <code>return value</code> even sets <code>StopIteration.value</code>.</li>
-<li><strong><code>yield from other</code> delegates iteration</strong> to another iterable, forwarding each value and finally the return value.</li>
-<li><strong>A generator expression</strong> is the compact form, <code>(x * 2 for x in items)</code>.</li>
+<li><strong>Run the forward pass.</strong> The transformer produces a hidden vector for the current position, of size <code>hidden_dim</code> (for example 4096).</li>
+<li><strong>Project to vocabulary size.</strong> The LM head is a linear layer with shape <code>hidden_dim × vocab_size</code>. It produces one logit per token in the vocabulary.</li>
+<li><strong>Stabilise.</strong> Subtract the maximum logit from every logit. This leaves the probabilities unchanged because softmax is invariant to adding or subtracting the same constant, but it prevents overflow.</li>
+<li><strong>Exponentiate and normalise.</strong> Compute <code>exp</code> of each adjusted logit, then divide by the sum. Now you have a probability distribution.</li>
+<li><strong>Choose a token.</strong> Greedy takes <code>argmax</code>. Sampling draws according to the probabilities, optionally after temperature, top-k, or top-p reshaping.</li>
+<li><strong>Append.</strong> Add the chosen token ID to the input sequence.</li>
+<li><strong>Repeat.</strong> Steps 1–6 run once per output token. This is the autoregressive loop. Stop at EOS or a token limit.</li>
+<li><strong>Train.</strong> During training, run one forward pass over a whole text sequence. At every position the model produces logits for the next token. Compare each with the true next token using cross-entropy, average over positions, backpropagate, and update the weights. Because the inputs are the true tokens, the whole sequence can be scored in parallel — that is teacher forcing.</li>
 </ol>
+<p>The training objective in one line: make the probability assigned to the <strong>actual</strong> next token as high as possible. Equivalently, minimise the negative log probability of the true token. Cross-entropy is exactly that average.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -634,201 +688,246 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><strong>The <code>StopIteration</code> contract.</strong> <code>StopIteration</code> is not an error; it is the agreed signal that an iterator is finished. This is why raising it yourself outside an iterator, or letting it leak out of a generator, causes confusing behaviour — a generator that raises <code>StopIteration</code> internally is treated as simply ending.</p>
+<p><strong>Logits are unnormalised log-probabilities.</strong> Because <code>log(softmax(z)[i]) = z[i] - logsumexp(z)</code>, where <code>logsumexp(z) = log(sum(exp(z)))</code>, cross-entropy can be computed straight from logits as <code>logsumexp(z) - z[target]</code>. Frameworks use this log-sum-exp form, which avoids materialising probabilities and stays numerically stable.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Softmax is invariant to shifts, not to scale.</strong> Subtracting the max is mathematically exact — it changes nothing about the result. Dividing the logits by a temperature <code>T</code> <strong>does</strong> change the result, deliberately: <code>T &lt; 1</code> sharpens the distribution and <code>T &gt; 1</code> flattens it. That is the subject of the next topic, sampling.</p>
 </div>
 </div>
 </section>
 <section id="the-syntax-you-will-use" class="level2">
 <h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
-<p><strong>Generators are the easy path.</strong> Any function with <code>yield</code> becomes a generator function.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> count_up_to(n):</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, n <span class="op">+</span> <span class="dv">1</span>):</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">yield</span> i</span>
+<p><strong>A numerically stable softmax.</strong> This is the function to know by heart.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> softmax(z):</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    z <span class="op">=</span> np.asarray(z, dtype<span class="op">=</span><span class="bu">float</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    z <span class="op">=</span> z <span class="op">-</span> np.<span class="bu">max</span>(z)        <span class="co"># subtract max: exact, and prevents overflow</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    e <span class="op">=</span> np.exp(z)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> e <span class="op">/</span> np.<span class="bu">sum</span>(e)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Subtracting the max keeps the largest exponent at <code>exp(0) = 1</code>, so nothing overflows.</p>
+<p><strong>Why the max matters.</strong> Without it, large logits overflow.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> softmax_naive(z):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    e <span class="op">=</span> np.exp(z)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> e <span class="op">/</span> np.<span class="bu">sum</span>(e)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>softmax_naive([<span class="fl">1000.0</span>, <span class="fl">1000.0</span>, <span class="fl">1000.0</span>])   <span class="co"># [nan, nan, nan]</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>softmax([<span class="fl">1000.0</span>, <span class="fl">1000.0</span>, <span class="fl">1000.0</span>])         <span class="co"># [0.333, 0.333, 0.333]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>exp(1000)</code> is <code>inf</code>, and <code>inf / inf</code> is <code>nan</code>. The stable version gives the correct uniform distribution.</p>
+<p><strong>Cross-entropy from logits.</strong> The loss for one position is the negative log probability of the true token.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> cross_entropy(logits, target_index):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> softmax(logits)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">-</span>np.log(p[target_index])</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(count_up_to(<span class="dv">3</span>))    <span class="co"># [1, 2, 3]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><strong>Generator expressions.</strong> Like a list comprehension, but with parentheses and no list built.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>squares <span class="op">=</span> (x <span class="op">*</span> x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1_000_000</span>))   <span class="co"># cheap to create</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>total <span class="op">=</span> <span class="bu">sum</span>(squares)                          <span class="co"># values produced one by one</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><strong><code>yield from</code> for delegation.</strong> It flattens nested generators.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> inner():</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">yield</span> <span class="dv">1</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">yield</span> <span class="dv">2</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> outer():</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">yield</span> <span class="dv">0</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">yield</span> <span class="cf">from</span> inner()</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">yield</span> <span class="dv">3</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(outer())    <span class="co"># [0, 1, 2, 3]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><strong>A hand-written iterator.</strong> This is what generators replace. Know it, because interviewers ask.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Counter:</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, limit):</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.limit <span class="op">=</span> limit</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.current <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__iter__</span>(<span class="va">self</span>):          <span class="co"># iterable: return the iterator</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__next__</span>(<span class="va">self</span>):          <span class="co"># iterator: produce the next value</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.current <span class="op">&gt;=</span> <span class="va">self</span>.limit:</span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">raise</span> <span class="pp">StopIteration</span></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.current <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.current</span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(Counter(<span class="dv">3</span>))    <span class="co"># [1, 2, 3]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><strong><code>send()</code> and return values.</strong> A generator can receive values back, and can return a final value.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> accumulate():</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="va">True</span>:</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        value <span class="op">=</span> <span class="cf">yield</span> total      <span class="co"># receives a value, yields the new total</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> value <span class="kw">is</span> <span class="va">None</span>:</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> total</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        total <span class="op">+=</span> value</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>acc <span class="op">=</span> accumulate()</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="bu">next</span>(acc)          <span class="co"># start it: 0</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>acc.send(<span class="dv">10</span>)       <span class="co"># 10</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>acc.send(<span class="dv">5</span>)        <span class="co"># 15</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>You will rarely write this by hand, but it is the foundation of older async frameworks, so it is worth recognising.</p>
-<p><strong>Generators are single-use.</strong> This is the most common practical mistake.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> (x <span class="cf">for</span> x <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>])</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(g)     <span class="co"># [1, 2]</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(g)     <span class="co"># []  — already exhausted</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><strong><code>itertools</code> gives you lazy building blocks.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> itertools</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.islice(itertools.count(<span class="dv">10</span>), <span class="dv">3</span>))   <span class="co"># [10, 11, 12]</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.chain([<span class="dv">1</span>], [<span class="dv">2</span>, <span class="dv">3</span>]))               <span class="co"># [1, 2, 3]</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>[(k, <span class="bu">len</span>(<span class="bu">list</span>(v))) <span class="cf">for</span> k, v <span class="kw">in</span> itertools.groupby(<span class="st">"aabbbc"</span>)]</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># [('a', 2), ('b', 3), ('c', 1)]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>cross_entropy([<span class="fl">2.0</span>, <span class="fl">1.0</span>, <span class="fl">0.1</span>], <span class="dv">0</span>)   <span class="co"># 0.4170 — true token was likely</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>cross_entropy([<span class="fl">2.0</span>, <span class="fl">1.0</span>, <span class="fl">0.1</span>], <span class="dv">2</span>)   <span class="co"># 2.3170 — true token was unlikely</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The loss is small when the model gave the true token a high probability, and large when it did not.</p>
+<p><strong>Greedy decoding with <code>argmax</code>.</strong> The simplest possible generation.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>next_id <span class="op">=</span> <span class="bu">int</span>(np.argmax(logits))          <span class="co"># most likely token</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>A minimal generation loop.</strong> This is the shape of every LLM call.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> generate(next_logits_fn, start_ids, max_new_tokens, eos_id):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    ids <span class="op">=</span> <span class="bu">list</span>(start_ids)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(max_new_tokens):</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        logits <span class="op">=</span> next_logits_fn(ids)      <span class="co"># forward pass</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        token <span class="op">=</span> <span class="bu">int</span>(np.argmax(logits))    <span class="co"># greedy choice</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> token <span class="op">==</span> eos_id:</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        ids.append(token)                 <span class="co"># append and continue</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ids</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>next_logits_fn</code> stands in for the model. The loop does not change when the model gets bigger.</p>
+<p><strong>Temperature.</strong> Divide the logits before softmax.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>logits <span class="op">=</span> np.asarray(logits, dtype<span class="op">=</span><span class="bu">float</span>)   <span class="co"># elementwise math needs an array</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>p_hot  <span class="op">=</span> softmax(logits <span class="op">/</span> <span class="fl">0.5</span>)   <span class="co"># sharper, more deterministic</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>p_base <span class="op">=</span> softmax(logits <span class="op">/</span> <span class="fl">1.0</span>)   <span class="co"># unchanged</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>p_cold <span class="op">=</span> softmax(logits <span class="op">/</span> <span class="fl">2.0</span>)   <span class="co"># flatter, more random</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Top-k and top-p, in one line each.</strong> Both reshape the distribution before sampling.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>logits <span class="op">=</span> np.asarray(logits, dtype<span class="op">=</span><span class="bu">float</span>)   <span class="co"># elementwise math needs an array</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> <span class="dv">50</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>top_k <span class="op">=</span> np.argsort(logits)[<span class="op">-</span>k:]            <span class="co"># keep the k largest logits</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> softmax(logits[top_k])                 <span class="co"># sample only among these</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Top-p keeps the smallest set of tokens whose cumulative probability reaches <code>p</code>. Both remove the long tail of low-probability tokens that causes bizarre outputs.</p>
+<p><strong>The decoding strategies side by side.</strong> These are the options you choose between in every API call:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Strategy</th>
+<th>Rule</th>
+<th>Typical effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Greedy</td>
+<td>take <code>argmax</code></td>
+<td>deterministic, can loop</td>
+</tr>
+<tr class="even">
+<td>Temperature</td>
+<td>divide logits by <code>T</code></td>
+<td>lower sharpens, higher flattens</td>
+</tr>
+<tr class="odd">
+<td>Top-k</td>
+<td>keep the <code>k</code> largest</td>
+<td>removes the tail, fixed size</td>
+</tr>
+<tr class="even">
+<td>Top-p</td>
+<td>keep smallest set reaching <code>p</code></td>
+<td>adapts to confidence</td>
+</tr>
+<tr class="odd">
+<td>Beam search</td>
+<td>keep <code>B</code> best sequences</td>
+<td>better for translation, slower</td>
+</tr>
+</tbody>
+</table>
+<p>Temperature, top-k, and top-p all operate on the same logits and can be combined. They do not change the model, only how you read its distribution.</p>
 </section>
 <section id="examples-simple-to-real" class="level2">
 <h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
-<p><strong>Example 1 — reading a huge file safely.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> error_lines(path):</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> <span class="bu">open</span>(path) <span class="im">as</span> f:</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> line <span class="kw">in</span> f:                 <span class="co"># the file object is itself lazy</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="st">"ERROR"</span> <span class="kw">in</span> line:</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                <span class="cf">yield</span> line.strip()</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> line <span class="kw">in</span> error_lines(<span class="st">"huge.log"</span>):</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(line)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>A file object yields one line at a time, so memory stays flat no matter how big the file is. Materialising the lines with <code>readlines()</code> is what blows up.</p>
-<p><strong>Example 2 — proving the memory difference.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">sum</span>(x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1_000_000</span>))     <span class="co"># generator: peak memory is tiny</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">sum</span>([x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1_000_000</span>)])   <span class="co"># list: builds the whole list first</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Measured on this machine, the generator path peaked at a few hundred bytes while the list path peaked at roughly 40 MB. Same answer, very different cost. The list version is sometimes faster if you need to iterate several times, which is the real trade-off.</p>
-<p><strong>Example 3 — a processing pipeline.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read(rows):</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> row <span class="kw">in</span> rows:</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">yield</span> row</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> parse(rows):</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> row <span class="kw">in</span> rows:</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">yield</span> row.strip().split(<span class="st">","</span>)</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> keep_valid(rows):</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> row <span class="kw">in</span> rows:</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">len</span>(row) <span class="op">==</span> <span class="dv">2</span>:</span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">yield</span> row</span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>pipeline <span class="op">=</span> keep_valid(parse(read(<span class="bu">open</span>(<span class="st">"data.csv"</span>))))</span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, age <span class="kw">in</span> pipeline:</span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(name, age)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Each stage pulls from the one before, one item at a time. No stage holds the whole dataset, and you can reuse stages independently. This is the style behind large data-processing code.</p>
-<p><strong>Example 4 — pagination over an API.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> all_pages(client, url):</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> url:</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        response <span class="op">=</span> client.get(url)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> item <span class="kw">in</span> response[<span class="st">"items"</span>]:</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>            <span class="cf">yield</span> item</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        url <span class="op">=</span> response.get(<span class="st">"next"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The caller loops over every item without knowing how many pages exist. This pattern is everywhere in AI tooling, where an API returns results in batches.</p>
-<p><strong>Example 5 — the mutate-while-iterating bug.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>nums <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>]</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> []</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n <span class="kw">in</span> nums:</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">%</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>        nums.remove(n)      <span class="co"># mutating the list you are iterating</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    result.append(n)</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(nums, result)         <span class="co"># [1, 3] [1, 2, 4]  — 3 was skipped!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Removing item <code>2</code> shifts item <code>3</code> into the position the iterator just passed, so <code>3</code> is never seen. The lazy pointer and the eager removal disagree. Iterate over a copy, or build a new list instead.</p>
+<p><strong>Example 1 — from scores to probabilities.</strong> A small, ordinary case.</p>
+<pre class="text"><code>logits  = [2.0, 1.0, 0.1]
+softmax = [0.659001, 0.242433, 0.098566]
+sum     = 1.0</code></pre>
+<p>The largest logit gets the largest probability, but the gap is softened by the exponential. A logit difference of 1.0 is meaningful but not overwhelming.</p>
+<p><strong>Example 2 — numerical stability is not optional.</strong> Three equal logits should give three equal probabilities.</p>
+<pre class="text"><code>naive softmax([1000, 1000, 1000])  = [nan, nan, nan]
+stable softmax([1000, 1000, 1000]) = [0.333333, 0.333333, 0.333333]</code></pre>
+<p>This is why every real implementation subtracts the max. In <code>float32</code>, overflow starts around <code>exp(89)</code>, because the largest float32 is about <code>3.4e38</code> and <code>ln(3.4e38) ≈ 88.7</code>.</p>
+<p><strong>Example 3 — cross-entropy measures surprise.</strong></p>
+<pre class="text"><code>logits=[2, 1, 0.1]  target=0 -&gt; loss=0.4170
+logits=[2, 1, 0.1]  target=2 -&gt; loss=2.3170
+logits=[10, 0, 0]   target=0 -&gt; loss=0.0001   (very confident and right)
+logits=[0, 10, 0]   target=0 -&gt; loss=10.0001  (very confident and wrong)</code></pre>
+<p>Confident and wrong is punished hardest. That asymmetry is what forces the model to be calibrated, and it is why cross-entropy dominates language-model training.</p>
+<p><strong>Example 4 — a tiny model and real greedy generation.</strong> Build a character-level bigram model by counting which character follows which in a small corpus. The normalised counts are the probabilities for the next character (equivalently, the log-counts act as the logits).</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>corpus <span class="op">=</span> <span class="st">"the cat sat on the mat. a rat ran to the man. a man sat on a mat. the cat ran to the man. a rat sat on the mat. the area has a cat. the sea has a name. the three cats sat on the mat."</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>counts <span class="op">=</span> {}</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> a, b <span class="kw">in</span> <span class="bu">zip</span>(corpus, corpus[<span class="dv">1</span>:]):</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    counts.setdefault(a, {})[b] <span class="op">=</span> counts.get(a, {}).get(b, <span class="dv">0</span>) <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> greedy(start, n):</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    out <span class="op">=</span> start</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        out <span class="op">+=</span> <span class="bu">max</span>(counts[out[<span class="op">-</span><span class="dv">1</span>]], key<span class="op">=</span>counts[out[<span class="op">-</span><span class="dv">1</span>]].get)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> out</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre class="text"><code>alphabet size: 12   chars: " .acehmnorst"
+after 'a', the next-char distribution is:
+   't': 0.4516
+   ' ': 0.2581
+   'n': 0.1613
+   's': 0.0645
+   'r': 0.0323
+   'm': 0.0323
+
+greedy from 't': 'the the the the the the th'
+greedy from 'a': 'athe the the the the the t'</code></pre>
+<p>The model learned nothing but local frequencies, yet the greedy loop produces plausible-looking text. That is the same loop GPT-class models run; only the function producing logits is bigger.</p>
+<p><strong>Example 5 — teacher forcing versus free running.</strong> Training conditions on the true previous token; inference conditions on the model’s own output. Using the bigram counts from Example 4:</p>
+<pre class="text"><code>reference sentence      : 'the cat sat on the mat.'
+teacher-forced loss     : 0.9711    (average CE over true prefixes)
+log P(reference)        : -21.3641  (sum over true prefixes)
+free-running generation : greedy('t', 25) = 'the the the the the the th'
+P(next='c' | prefix ends in a space) = 0.0870</code></pre>
+<p>The greedy loop produces a different, repetitive sentence. This toy bigram only looks at the previous character, so one mistake does not fully cascade. In a real transformer every generated token becomes part of the context for all later tokens, so a single wrong token can send the whole continuation off course. Training never shows the model these self-generated prefixes, which is <strong>exposure bias</strong>; in production it appears as repetition, drift, and self-correction.</p>
+<p><strong>Example 6 — perplexity makes the loss readable.</strong> Perplexity is <code>exp(loss)</code>.</p>
+<pre class="text"><code>loss=0.4170  -&gt; perplexity=1.52
+loss=10.0001 -&gt; perplexity=22028.47</code></pre>
+<p>A perplexity of 1.52 means the model is nearly certain; 22,028 means it is spread across a huge number of nearly equally likely options. Lower is better, and the scale is comparable across models that share a tokenizer — which is another reason tokenizers matter.</p>
 </section>
 <section id="in-production" class="level2">
 <h2 class="anchored" data-anchor-id="in-production">In production</h2>
 <ul>
-<li><strong>Generators are single-use.</strong> Once exhausted, they stay empty. If you need the values twice, materialise them with <code>list()</code>, or make the function return a fresh generator each time it is called.</li>
-<li><strong>Flat memory is the point.</strong> Use generators for large files, database cursors, pagination, and long pipelines. Materialise only when you truly need random access or repeated passes.</li>
-<li><strong>Do not mutate a collection while iterating it.</strong> Build a new collection, or take a copy. This bug is silent and produces wrong results, not errors.</li>
-<li><strong>A generator holds its frame and resources.</strong> A generator paused in the middle of a <code>with open(...)</code> block keeps the file open until it is exhausted or closed. Use <code>try/finally</code> inside generators, or call <code>.close()</code>, to release resources promptly.</li>
-<li><strong>Exceptions surface at the point of consumption.</strong> Because the body runs only when you call <code>next()</code>, a failure can appear far from the generator’s definition. Tracebacks and logging should account for that.</li>
-<li><strong>Do not use generators across threads without care.</strong> A generator is not thread-safe; two threads calling <code>next()</code> on the same generator can interleave unpredictably.</li>
-<li><strong><code>return</code> inside a generator ends it.</strong> The returned value is delivered as <code>StopIteration.value</code>, which a <code>for</code> loop ignores. Do not confuse it with yielding a final value.</li>
-<li><strong><code>len()</code> and indexing do not exist.</strong> Generators have no length and no <code>[i]</code>. If you need either, materialise them first.</li>
-<li><strong><code>itertools</code> beats hand-written loops.</strong> <code>islice</code>, <code>chain</code>, <code>groupby</code>, <code>takewhile</code>, and <code>product</code> are lazy, tested, and faster than the equivalent Python.</li>
-<li><strong>Pick the right tool for the shape.</strong> A generator for streaming, a list for repeated access, a generator expression for a one-pass computation, and <code>itertools</code> for composition.</li>
+<li><strong>Always subtract the max before <code>exp</code>.</strong> A naive softmax returns <code>nan</code> on large logits, and a <code>nan</code> loss destroys training. This is a real bug people ship.</li>
+<li><strong>Temperature is not a quality knob.</strong> Lower temperature makes output more repetitive and deterministic; higher makes it more creative and more likely to hallucinate. Pick per task and test.</li>
+<li><strong>Greedy decoding is reproducible but bland.</strong> Always taking <code>argmax</code> removes randomness and often loops. Most chat products sample with temperature above 0.</li>
+<li><strong>Cross-entropy is not the product metric.</strong> A lower training loss does not guarantee more useful answers. Evaluate on real tasks.</li>
+<li><strong>The vocabulary is huge, so the LM head is expensive.</strong> A 200k vocabulary produces 200k logits per position. Weight tying and efficient kernels reduce the cost.</li>
+<li><strong>Numerical precision changes results.</strong> The same logits in fp16 vs fp32 can produce slightly different probabilities, and occasionally different tokens. Reproducibility across hardware is not guaranteed.</li>
+<li><strong>Sampling needs a seed for tests.</strong> Temperature and top-p make outputs nondeterministic. Record the seed, or use temperature 0 for deterministic checks.</li>
+<li><strong>Top-p usually beats fixed top-k.</strong> The nucleus adapts to how confident the model is. A fixed <code>k</code> can cut off good options when the model is uncertain and include bad ones when it is sure.</li>
+<li><strong>EOS handling is a common bug.</strong> If the stop token is not handled, generation runs to the token limit, costing money and producing trailing junk.</li>
+<li><strong>Confidence is not correctness.</strong> A high-probability token can still be factually wrong. Softmax probabilities reflect the model’s training distribution, not truth.</li>
+<li><strong>Tokenizer and logits are coupled.</strong> The index of a token in the logits vector is its ID in that model’s tokenizer. Mixing them silently produces the wrong text.</li>
+<li><strong>Batch generation changes latency, not the math.</strong> Serving many requests at once uses the same softmax and picking, but scheduling and the KV cache decide the user-visible speed.</li>
 </ul>
 </section>
 <section id="interview-questions" class="level2">
 <h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
-<section id="what-is-the-difference-between-an-iterable-and-an-iterator" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-the-difference-between-an-iterable-and-an-iterator">1. What is the difference between an iterable and an iterator?</h3>
-<p><strong>Answer.</strong> An iterable can produce an iterator; an iterator is the object being consumed. A list is iterable, and <code>iter(list)</code> gives an iterator. An iterator has <code>__next__</code> and remembers its position. Generators are iterators, and they are single-use; a list can be iterated many times.</p>
-<p><strong>Follow-up: “What does the <code>for</code> loop actually do?”</strong> It calls <code>iter()</code> to get an iterator, then calls <code>next()</code> in a loop, catching <code>StopIteration</code> to stop.</p>
-<p><strong>Trap.</strong> Saying a list is an iterator. It is iterable, but not an iterator — that is why you can loop over it twice.</p>
+<section id="what-is-a-logit-and-how-is-it-different-from-a-probability" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-a-logit-and-how-is-it-different-from-a-probability">1. What is a logit, and how is it different from a probability?</h3>
+<p><strong>Answer.</strong> A logit is the raw, unnormalised score the model produces for a token. It can be any real number, and the logits do not sum to one. A probability is the result of applying softmax to the logits; probabilities are non-negative and sum to one. The model computes logits; the application converts them to probabilities to sample or report confidence.</p>
+<p><strong>Follow-up: “Can you read meaning directly from logits?”</strong> Only their relative order and spacing. The softmax conversion is what makes them comparable as chances, and even then they reflect the training distribution, not truth.</p>
+<p><strong>Trap.</strong> Calling logits “probabilities” or treating a logit of 5 as five times more likely than 1. The exponential in softmax makes the relationship nonlinear.</p>
 </section>
-<section id="when-does-the-body-of-a-generator-function-run" class="level3">
-<h3 class="anchored" data-anchor-id="when-does-the-body-of-a-generator-function-run">2. When does the body of a generator function run?</h3>
-<p><strong>Answer.</strong> Not when it is called. Calling a generator function creates a generator object and runs nothing. The body runs on each <code>next()</code>, up to the next <code>yield</code>, then pauses with its local state preserved.</p>
-<p><strong>Follow-up: “How does it remember its position?”</strong> The paused frame is kept alive, including local variables. This is why a generator can hold state without an explicit state machine.</p>
-<p><strong>Trap.</strong> Adding a <code>print</code> at the top of a generator function and expecting it during definition. It appears only on the first <code>next()</code>.</p>
+<section id="why-does-softmax-subtract-the-maximum" class="level3">
+<h3 class="anchored" data-anchor-id="why-does-softmax-subtract-the-maximum">2. Why does softmax subtract the maximum?</h3>
+<p><strong>Answer.</strong> For numerical stability. <code>exp</code> of a large number overflows to infinity, and dividing infinity by infinity gives <code>nan</code>. Subtracting the maximum keeps the largest exponent at <code>exp(0) = 1</code>. Because softmax is invariant to adding or subtracting the same constant from all logits, the result is mathematically identical to the naive version.</p>
+<p><strong>Follow-up: “Does it change the distribution?”</strong> No.&nbsp;It is an exact algebraic identity, not an approximation. It only changes floating-point behaviour.</p>
+<p><strong>Trap.</strong> Thinking the max subtraction is a normalisation that changes the answer. It is purely a numerical safeguard.</p>
 </section>
-<section id="why-does-a-generator-appear-empty-the-second-time-i-use-it" class="level3">
-<h3 class="anchored" data-anchor-id="why-does-a-generator-appear-empty-the-second-time-i-use-it">3. Why does a generator appear empty the second time I use it?</h3>
-<p><strong>Answer.</strong> Generators are single-use iterators. Once exhausted, asking for more raises <code>StopIteration</code>, so a second <code>list()</code> returns <code>[]</code>. The generator is not “reset”; it is finished.</p>
-<p><strong>Follow-up: “How do you fix it?”</strong> Call the generator function again to get a fresh generator, or materialise the values into a list if you need multiple passes. Design APIs to return a new generator per call.</p>
-<p><strong>Trap.</strong> Assuming <code>for</code> loops somehow restart a generator. Each loop consumes more of the same exhausted iterator.</p>
+<section id="what-is-cross-entropy-loss-in-language-modelling" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-cross-entropy-loss-in-language-modelling">3. What is cross-entropy loss in language modelling?</h3>
+<p><strong>Answer.</strong> It is the negative log probability the model assigned to the true next token, averaged over positions. Minimising it pushes the model to give the actual next token a high probability. A confident wrong prediction is penalised very heavily, which keeps the model calibrated.</p>
+<p><strong>Follow-up: “How does it relate to perplexity?”</strong> Perplexity is <code>exp(cross-entropy)</code>. It translates the loss into an interpretable “effective number of equally likely choices”.</p>
+<p><strong>Trap.</strong> Confusing cross-entropy with accuracy. Accuracy only cares whether the top token was right; cross-entropy also punishes being confidently wrong about the rest.</p>
 </section>
-<section id="what-is-the-difference-between-lazy-and-eager-evaluation-and-when-does-it-matter" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-the-difference-between-lazy-and-eager-evaluation-and-when-does-it-matter">4. What is the difference between lazy and eager evaluation, and when does it matter?</h3>
-<p><strong>Answer.</strong> Lazy produces values on demand; eager produces them all up front. It matters for memory and for when work is performed. A lazy pipeline over a 20 GB file uses constant memory; an eager one needs the whole dataset. Lazy also defers side effects until consumption.</p>
-<p><strong>Follow-up: “When is eager better?”</strong> When you need random access, repeated iteration, or a stable snapshot; when the data is small; or when you want a failure to happen immediately rather than at consumption time.</p>
-<p><strong>Trap.</strong> Assuming lazy is always better. It adds per-item overhead, cannot be reused, and moves exceptions away from their cause.</p>
+<section id="describe-the-autoregressive-generation-loop." class="level3">
+<h3 class="anchored" data-anchor-id="describe-the-autoregressive-generation-loop.">4. Describe the autoregressive generation loop.</h3>
+<p><strong>Answer.</strong> Run a forward pass to get logits, apply softmax, pick a token (greedy or by sampling), append it to the input, and repeat. Each new token conditions on all previous tokens. Generation stops at an end-of-sequence token or a maximum length. This loop is the only thing a text LLM does at inference.</p>
+<p><strong>Follow-up: “Why can the model produce long coherent text from one-token steps?”</strong> Because each step conditions on the gradually growing context, and the KV cache lets it reuse earlier computations instead of recomputing the prefix.</p>
+<p><strong>Trap.</strong> Thinking the model generates a whole sentence at once. It emits exactly one token per step.</p>
 </section>
-<section id="what-does-yield-from-do" class="level3">
-<h3 class="anchored" data-anchor-id="what-does-yield-from-do">5. What does <code>yield from</code> do?</h3>
-<p><strong>Answer.</strong> It delegates iteration to another iterable, yielding each of its values in turn. It also forwards <code>send()</code> values down and propagates the sub-iterable’s return value, which makes it the clean way to compose generators.</p>
-<p><strong>Follow-up: “How does it differ from a <code>for</code> loop with <code>yield</code>?”</strong> For plain iteration the result is the same. <code>yield from</code> additionally handles <code>send</code>, <code>throw</code>, and the inner return value, so it is the correct tool for generator delegation.</p>
-<p><strong>Trap.</strong> Thinking <code>yield from</code> returns a list. It produces values lazily, one at a time, just like the delegation target.</p>
+<section id="what-is-teacher-forcing-and-what-problem-does-it-cause" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-teacher-forcing-and-what-problem-does-it-cause">5. What is teacher forcing, and what problem does it cause?</h3>
+<p><strong>Answer.</strong> Teacher forcing means training on the true previous token at each position, so the whole sequence can be scored in one parallel forward pass. The problem is exposure bias: at inference the model sees its own possibly-wrong outputs, a situation it never saw in training. Errors can then compound.</p>
+<p><strong>Follow-up: “How is it mitigated?”</strong> Scheduled sampling, reinforcement learning from human feedback, and careful decoding all reduce the gap. Large-scale pretraining also makes the model robust to small prefix errors.</p>
+<p><strong>Trap.</strong> Saying teacher forcing is used at inference. It cannot be; the future tokens are unknown then.</p>
 </section>
-<section id="what-happens-to-a-return-value-inside-a-generator" class="level3">
-<h3 class="anchored" data-anchor-id="what-happens-to-a-return-value-inside-a-generator">6. What happens to a <code>return</code> value inside a generator?</h3>
-<p><strong>Answer.</strong> It ends the generator and is delivered as the <code>value</code> attribute of the <code>StopIteration</code> that terminates it. A normal <code>for</code> loop discards it; you see it only when driving the generator manually.</p>
-<p><strong>Follow-up: “How would you expose a final result cleanly?”</strong> Yield it as one more value, or return it and read <code>StopIteration.value</code>. Most code simply yields every value and lets the loop end.</p>
-<p><strong>Trap.</strong> Expecting <code>return x</code> to produce <code>x</code> in a <code>for</code> loop. The loop stops before the value is ever visible.</p>
+<section id="what-do-temperature-top-k-and-top-p-change" class="level3">
+<h3 class="anchored" data-anchor-id="what-do-temperature-top-k-and-top-p-change">6. What do temperature, top-k, and top-p change?</h3>
+<p><strong>Answer.</strong> Temperature divides the logits before softmax: below 1 sharpens the distribution toward the top token, above 1 flattens it. Top-k keeps only the <code>k</code> most likely tokens. Top-p keeps the smallest set of tokens whose probabilities sum to at least <code>p</code>. All three reshape the distribution before sampling; none of them change the model’s logits.</p>
+<p><strong>Follow-up: “Which do you use?”</strong> Often temperature plus top-p.&nbsp;Top-p adapts to model confidence, while fixed top-k can be too restrictive or too loose.</p>
+<p><strong>Trap.</strong> Believing temperature 0 is always best for factual work. Greedy output is deterministic but can be repetitive and is not necessarily more correct.</p>
 </section>
-<section id="what-is-the-bug-in-removing-items-from-a-list-while-iterating-it" class="level3">
-<h3 class="anchored" data-anchor-id="what-is-the-bug-in-removing-items-from-a-list-while-iterating-it">7. What is the bug in removing items from a list while iterating it?</h3>
-<p><strong>Answer.</strong> The iterator holds a position, but removal shifts later items into positions already passed. Some items are skipped and others may be visited twice. The result is silently wrong rather than an error.</p>
-<p><strong>Follow-up: “What is the fix?”</strong> Build a new list with a comprehension, or iterate over a copy (<code>for x in list(items)</code>). For in-place edits, collect the items to remove, then remove them after the loop.</p>
-<p><strong>Trap.</strong> Believing the loop raises an error. It does not; it quietly skips elements, which makes the bug hard to find.</p>
+<section id="why-is-the-lm-head-a-bottleneck-and-what-is-weight-tying" class="level3">
+<h3 class="anchored" data-anchor-id="why-is-the-lm-head-a-bottleneck-and-what-is-weight-tying">7. Why is the LM head a bottleneck, and what is weight tying?</h3>
+<p><strong>Answer.</strong> The LM head projects the hidden state to one logit per vocabulary token, so its cost scales with vocabulary size. Weight tying reuses the embedding matrix as the LM head, since both are <code>vocab_size × hidden_dim</code>. This removes a large parameter matrix and usually improves quality, especially for smaller models.</p>
+<p><strong>Follow-up: “Are there downsides?”</strong> Tying assumes embeddings and output logits should share a space, which is usually but not always best. Very large models sometimes untie for a small quality gain.</p>
+<p><strong>Trap.</strong> Forgetting that vocabulary size affects the final layer, not just the input. A bigger vocabulary raises compute on both ends.</p>
 </section>
-<section id="why-can-a-generator-keep-a-file-or-connection-open" class="level3">
-<h3 class="anchored" data-anchor-id="why-can-a-generator-keep-a-file-or-connection-open">8. Why can a generator keep a file or connection open?</h3>
-<p><strong>Answer.</strong> A generator paused inside a <code>with</code> block holds the whole frame, including the open resource, until it is exhausted or closed. If the consumer stops early, the cleanup may never run.</p>
-<p><strong>Follow-up: “How do you guarantee cleanup?”</strong> Wrap the body in <code>try/finally</code> so the <code>finally</code> runs on <code>.close()</code> or garbage collection, or avoid holding resources across <code>yield</code> when possible.</p>
-<p><strong>Trap.</strong> Assuming leaving a <code>for</code> loop early closes the generator. The generator object may stay alive and open until it is collected.</p>
+<section id="does-a-high-softmax-probability-mean-the-answer-is-correct" class="level3">
+<h3 class="anchored" data-anchor-id="does-a-high-softmax-probability-mean-the-answer-is-correct">8. Does a high softmax probability mean the answer is correct?</h3>
+<p><strong>Answer.</strong> No.&nbsp;Softmax reflects the model’s learned distribution over text, not truth. A model can be confidently wrong if its training data or reasoning is flawed, and probabilities are often poorly calibrated. Confidence is a signal about the model’s internal state, not a guarantee.</p>
+<p><strong>Follow-up: “Then how do you improve reliability?”</strong> Ground the model with retrieval, validate outputs, ask it to produce structured data, and use tools for anything that requires exactness. Treat probability as one input to a decision, not a proof.</p>
+<p><strong>Trap.</strong> Using “the model was 99% sure” as evidence. Softmax has no notion of factual truth.</p>
 </section>
 </section>
 <section id="remember-this" class="level2">
 <h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
 <ul>
-<li><strong>Iterable produces an iterator; an iterator is the cursor.</strong> The <code>for</code> loop drives it with <code>iter()</code> and <code>next()</code>.</li>
-<li>A generator <strong>runs only on demand</strong>, pauses at <code>yield</code>, and keeps its local state.</li>
-<li>Generators are <strong>single-use and lazy</strong> — flat memory, no <code>len()</code>, no indexing, no reuse.</li>
-<li><strong>Never mutate a collection while iterating it.</strong> Build a new one instead.</li>
-<li>Use <strong><code>itertools</code></strong> for lazy composition and <strong>materialise</strong> only when you need repeated access.</li>
+<li>The model outputs <strong>logits</strong> (raw scores); <strong>softmax</strong> turns them into probabilities that sum to 1.</li>
+<li><strong>Subtract the max</strong> before <code>exp</code> — it is exact and prevents <code>nan</code> from overflow.</li>
+<li><strong>Generation is an autoregressive loop</strong>: forward pass, softmax, pick, append, repeat.</li>
+<li><strong>Cross-entropy</strong> is the negative log probability of the true next token; <strong>perplexity</strong> is its exponential.</li>
+<li><strong>Teacher forcing</strong> trains on true tokens and creates <strong>exposure bias</strong> because inference feeds the model its own output.</li>
 </ul>
 
 
@@ -1237,13 +1336,13 @@ Note
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../phase-01-production-python/04-decorators.html" class="pagination-link" aria-label="Decorators">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Decorators</span></span>
+      <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="pagination-link" aria-label="Context Windows and the KV Cache">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Context Windows and the KV Cache</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../phase-01-production-python/06-context-managers.html" class="pagination-link" aria-label="Context Managers">
-        <span class="nav-page-text"><span class="chapter-title">Context Managers</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="pagination-link" aria-label="Sampling: Temperature, Top-K, Top-P">
+        <span class="nav-page-text"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

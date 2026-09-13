@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Tensors and PyTorch – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" rel="next">
+<link href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html"><span class="chapter-title">Tensors and PyTorch</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Tensors and PyTorch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html"><span class="chapter-title">Tensors and PyTorch</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Tensors and PyTorch</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> A tensor is an n-dimensional array of numbers with three key attributes: <strong>shape</strong> (the size of each dimension), <strong>dtype</strong> (the kind of number), and <strong>device</strong> (where it lives — CPU, CUDA, or MPS). PyTorch is the library that builds tensors, runs fast array maths on them, and records the operations so gradients can be computed automatically. Nearly every operation inside an LLM is a tensor reshape or a matrix multiplication.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>Everything a neural network does is arithmetic on arrays of numbers.</p>
+<pre class="text"><code>text  →  token ids  →  embedding matrix  →  hidden states  →  next-token scores
+        each arrow is just array maths on tensors</code></pre>
+<p>If you tried to do that with plain Python lists, two problems appear immediately.</p>
+<p>First, <strong>speed</strong>. A single transformer layer multiplies matrices with millions of numbers. A Python loop over every number would take minutes instead of milliseconds.</p>
+<p>Second, <strong>shape discipline</strong>. A language model tracks dozens of tensors at once: batch size, sequence length, hidden size, number of heads, head size. Getting one dimension wrong produces either a crash or, worse, a silently wrong answer.</p>
+<p>PyTorch solves both. It stores the numbers in one contiguous block, dispatches the maths to optimised C++ and GPU kernels, and checks the shapes of every operation. And it does one more thing that makes training possible at all: it <strong>remembers which operations you performed</strong>, so it can later compute the gradient automatically. That feature is what the next chapter, forward pass and backpropagation, is built on.</p>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<p>Every term below appears in every model file you will ever read.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Tensor</strong></td>
+<td>A container of numbers arranged in a grid of any number of dimensions. A scalar is 0-D, a vector 1-D, a matrix 2-D, a batch of images 4-D.</td>
+</tr>
+<tr class="even">
+<td><strong>Rank / ndim</strong></td>
+<td>How many dimensions the tensor has. <code>torch.randn(2, 3)</code> has rank 2.</td>
+</tr>
+<tr class="odd">
+<td><strong>Shape</strong></td>
+<td>The length of each dimension, written <code>torch.Size([2, 3])</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>Axis / dimension</strong></td>
+<td>One direction of the grid. Axis 0 is rows, axis 1 is columns, and so on.</td>
+</tr>
+<tr class="odd">
+<td><strong>Scalar</strong></td>
+<td>A single number: <code>torch.tensor(3.0)</code>, shape <code>()</code> and rank 0.</td>
+</tr>
+<tr class="even">
+<td><strong>Vector</strong></td>
+<td>A 1-D tensor, shape <code>(n,)</code>.</td>
+</tr>
+<tr class="odd">
+<td><strong>Matrix</strong></td>
+<td>A 2-D tensor, shape <code>(rows, cols)</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>dtype</strong></td>
+<td>The numeric type: <code>float32</code>, <code>float16</code>, <code>bfloat16</code>, <code>int64</code>, <code>bool</code>. It decides precision and memory per number.</td>
+</tr>
+<tr class="odd">
+<td><strong>device</strong></td>
+<td>Where the data physically lives: <code>cpu</code>, <code>cuda</code> (NVIDIA GPU), or <code>mps</code> (Apple GPU).</td>
+</tr>
+<tr class="even">
+<td><strong>Elementwise op</strong></td>
+<td>An operation applied number by number, such as <code>a + b</code> or <code>torch.relu(a)</code>. Shapes must broadcast.</td>
+</tr>
+<tr class="odd">
+<td><strong>Broadcasting</strong></td>
+<td>Rules that let tensors of different shapes combine by stretching size-1 dimensions.</td>
+</tr>
+<tr class="even">
+<td><strong>Matrix multiplication</strong></td>
+<td>The weighted-sum operation <code>A @ B</code>, also called <strong>matmul</strong> or <strong>GEMM</strong>.</td>
+</tr>
+<tr class="odd">
+<td><strong>Contiguous</strong></td>
+<td>The numbers are stored in one unbroken block in memory, in logical order.</td>
+</tr>
+<tr class="even">
+<td><strong>Autograd</strong></td>
+<td>PyTorch’s automatic differentiation engine. It records operations and computes gradients.</td>
+</tr>
+<tr class="odd">
+<td><strong>Gradient</strong></td>
+<td>How much the final loss changes when a tensor changes. Written <code>.grad</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>Module</strong></td>
+<td>A reusable block of layers with parameters, subclassing <code>torch.nn.Module</code>.</td>
+</tr>
+<tr class="odd">
+<td><strong>Parameter</strong></td>
+<td>A tensor the model learns, registered so the optimizer can update it.</td>
+</tr>
+<tr class="even">
+<td><strong>Buffer</strong></td>
+<td>A tensor that is part of the model but is not trained, such as running statistics.</td>
+</tr>
+<tr class="odd">
+<td><strong>Optimizer</strong></td>
+<td>The object that reads gradients and updates parameters.</td>
+</tr>
+</tbody>
+</table>
+<p>The most important distinction is <strong>shape vs dtype vs device</strong>: three independent properties, and a bug in any one of them breaks the whole model. Mixing a <code>float32</code> and a <code>float64</code> tensor behaves differently by operation: an elementwise op silently <strong>promotes</strong> the result to <code>float64</code> (<code>float64</code> wins), which is easy to miss, while matmul and <code>nn.Linear</code> raise a dtype error. A CPU tensor and an MPS tensor raise on every operation, because the data lives in different memory. Getting a shape wrong can either raise or quietly produce nonsense.</p>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>A tensor is a <strong>spreadsheet with any number of dimensions</strong>. A 2-D tensor is a normal spreadsheet. A 3-D tensor is a stack of spreadsheets. A 4-D tensor is a box of stacks of spreadsheets.</p>
+<p>That is the whole data model. Everything else is rules about how to combine them.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A["Tensor&lt;br/&gt;shape, dtype, device"] --&gt; B["Elementwise ops&lt;br/&gt;+ - * / relu&lt;br/&gt;same shape or broadcast"]
+    A --&gt; C["Matmul&lt;br/&gt;A @ B&lt;br/&gt;inner dimensions must match"]
+    A --&gt; D["Reshape / view&lt;br/&gt;same numbers, new grid"]
+    B --&gt; E["New tensor"]
+    C --&gt; E
+    D --&gt; E
+    E --&gt; F["Autograd records the graph&lt;br/&gt;on each operation"]
+    F --&gt; G[".backward()&lt;br/&gt;fills .grad"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The mental model to keep: <strong>a tensor is numbers plus metadata</strong>. The numbers are the data. The metadata is shape, dtype, and device. Operations either create a new tensor or, for speed, sometimes reuse memory — and autograd silently builds a graph of everything you did so it can reverse it later.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>Python list</th>
+<th>NumPy array</th>
+<th>PyTorch tensor</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Maths</td>
+<td>loops</td>
+<td>fast C loops</td>
+<td>fast C/GPU kernels</td>
+</tr>
+<tr class="even">
+<td>Shape checking</td>
+<td>none</td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td>GPU support</td>
+<td>no</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td>Gradients</td>
+<td>no</td>
+<td>no</td>
+<td><strong>yes</strong></td>
+</tr>
+<tr class="odd">
+<td>Typical use</td>
+<td>generic code</td>
+<td>data analysis</td>
+<td>neural networks</td>
+</tr>
+</tbody>
+</table>
+<p>The table explains why we do not just use NumPy for deep learning: NumPy is fast, but PyTorch adds the GPU and autograd.</p>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>You create a tensor.</strong> From a Python list, a NumPy array, or a factory function such as <code>torch.zeros</code>, <code>torch.ones</code>, <code>torch.randn</code>, or <code>torch.arange</code>. At creation you choose the dtype and device, or accept the defaults (<code>float32</code> on CPU).</li>
+<li><strong>PyTorch stores a header plus a data block.</strong> The header holds shape, dtype, device, and a <strong>stride</strong> for each dimension. The strides tell PyTorch how many memory slots to jump to move one step along each axis.</li>
+<li><strong>An operation reads the header and the data.</strong> For elementwise ops, it checks that shapes are compatible under broadcasting, then runs one kernel across all numbers.</li>
+<li><strong>Broadcasting stretches size-1 dimensions.</strong> Comparing shapes from the right, each dimension must be equal, or one of them must be 1, or one tensor must be missing that dimension. The size-1 side is logically repeated.</li>
+<li><strong>Matmul applies the weighted-sum rule.</strong> For <code>A</code> of shape <code>(m, k)</code> and <code>B</code> of shape <code>(k, n)</code>, the result has shape <code>(m, n)</code>, and <code>C[i, j] = sum(A[i, :] * B[:, j])</code>. Batched matmul adds leading batch dimensions.</li>
+<li><strong>If any input needs a gradient, autograd records the operation.</strong> It stores enough information to compute the local derivative later, forming a graph whose nodes are tensors and edges are operations.</li>
+<li><strong><code>loss.backward()</code> walks that graph backward.</strong> It multiplies local derivatives using the chain rule and writes the result into each leaf tensor’s <code>.grad</code>.</li>
+<li><strong>The optimizer reads <code>.grad</code> and updates the parameters.</strong> It does not know or care how the gradient was produced; it only sees numbers.</li>
+</ol>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Why device matters.</strong> CPU and GPU memory are separate. A tensor on the GPU cannot be combined with one on the CPU. You move data with <code>.to("cuda")</code>, <code>.to("mps")</code>, or <code>.to("cpu")</code>. Moving is slow, so you move a whole model once and keep batching on the same device.</p>
+</div>
+</div>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>Create a tensor.</strong> From a list, or with a factory. <code>torch.tensor</code> guesses the dtype.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> torch.tensor([[<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>], [<span class="fl">4.0</span>, <span class="fl">5.0</span>, <span class="fl">6.0</span>]])  <span class="co"># shape (2, 3), float32</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> torch.zeros(<span class="dv">2</span>, <span class="dv">3</span>)        <span class="co"># all zeros</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>c <span class="op">=</span> torch.ones(<span class="dv">2</span>, <span class="dv">3</span>)         <span class="co"># all ones</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> torch.arange(<span class="dv">6</span>)          <span class="co"># [0, 1, 2, 3, 4, 5]</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>e <span class="op">=</span> torch.randn(<span class="dv">2</span>, <span class="dv">3</span>)        <span class="co"># values from a standard normal distribution</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>f <span class="op">=</span> torch.eye(<span class="dv">3</span>)             <span class="co"># identity matrix</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Inspect the three attributes.</strong> Every debugging session starts here.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>a.shape      <span class="co"># torch.Size([2, 3])</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>a.dtype      <span class="co"># torch.float32</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>a.device     <span class="co"># device(type='cpu')</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>a.ndim       <span class="co"># 2</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>a.numel()    <span class="co"># 6  (total number of elements)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Choose a dtype explicitly.</strong> Integer literals default to <code>int64</code>; float literals default to <code>float32</code>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>torch.tensor([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]).dtype          <span class="co"># torch.int64</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>torch.tensor([<span class="fl">1.0</span>, <span class="fl">2.0</span>]).dtype         <span class="co"># torch.float32</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>torch.tensor([<span class="fl">1.5</span>, <span class="fl">2.5</span>]).to(torch.int64)   <span class="co"># [1, 2]  (truncates toward zero)</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>torch.tensor([<span class="dv">1</span>, <span class="dv">2</span>], dtype<span class="op">=</span>torch.float16)  <span class="co"># half precision</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Index and slice.</strong> The rules are the same as Python lists, applied per dimension, and <code>:</code> means “all of this dimension”.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> torch.arange(<span class="dv">12</span>).reshape(<span class="dv">3</span>, <span class="dv">4</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>t[<span class="dv">0</span>]          <span class="co"># first row:  [0, 1, 2, 3]</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>t[:, <span class="dv">1</span>]       <span class="co"># second column: [1, 5, 9]</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>t[<span class="dv">1</span>:, <span class="dv">2</span>:]     <span class="co"># bottom-right block</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>t[<span class="op">-</span><span class="dv">1</span>]         <span class="co"># last row</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>t[:, ::<span class="dv">2</span>]     <span class="co"># every other column</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>t[t <span class="op">&gt;</span> <span class="dv">5</span>]      <span class="co"># boolean mask, returns a flat tensor of matches</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Reshape, add, and remove dimensions.</strong> The number of elements must stay the same.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> torch.arange(<span class="dv">12</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>t.view(<span class="dv">3</span>, <span class="dv">4</span>)          <span class="co"># same memory, new shape</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>t.reshape(<span class="dv">2</span>, <span class="dv">6</span>)       <span class="co"># flexible version, copies only if needed</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>t.unsqueeze(<span class="dv">0</span>)        <span class="co"># shape (1, 12)  — add a dimension</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>t.unsqueeze(<span class="dv">0</span>).squeeze(<span class="dv">0</span>)   <span class="co"># back to (12,)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Broadcasting.</strong> Combine different shapes without copying.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> torch.ones(<span class="dv">3</span>, <span class="dv">4</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">+</span> torch.arange(<span class="dv">4</span>)          <span class="co"># (3,4) + (4,)   -&gt; (3,4)</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">+</span> torch.ones(<span class="dv">3</span>, <span class="dv">1</span>)         <span class="co"># (3,4) + (3,1)  -&gt; (3,4)</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>torch.ones(<span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">4</span>) <span class="op">+</span> torch.ones(<span class="dv">3</span>, <span class="dv">1</span>)   <span class="co"># -&gt; (2, 3, 4)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Elementwise operations.</strong> Shape in, same shape out.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>e <span class="op">=</span> torch.tensor([<span class="fl">1.0</span>, <span class="fl">4.0</span>, <span class="fl">9.0</span>])</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>e.sqrt()      <span class="co"># [1.0, 2.0, 3.0]</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>torch.exp(torch.tensor(<span class="fl">0.0</span>))   <span class="co"># 1.0</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>torch.relu(torch.tensor([<span class="op">-</span><span class="fl">2.0</span>, <span class="fl">0.0</span>, <span class="fl">3.0</span>]))   <span class="co"># [0.0, 0.0, 3.0]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Matmul.</strong> <code>@</code> is the weighted sum over the inner dimension.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> torch.randn(<span class="dv">2</span>, <span class="dv">3</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> torch.randn(<span class="dv">3</span>, <span class="dv">4</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>(m <span class="op">@</span> n).shape          <span class="co"># (2, 4)</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>(m <span class="op">@</span> torch.randn(<span class="dv">3</span>)).shape   <span class="co"># (2,)  — matrix times vector</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Autograd.</strong> Set <code>requires_grad=True</code> on the values you want gradients for.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>w <span class="op">=</span> torch.tensor(<span class="fl">3.0</span>, requires_grad<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> w <span class="op">*</span> w <span class="op">+</span> <span class="dv">2</span> <span class="op">*</span> w    <span class="co"># y = 15</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>y.backward()         <span class="co"># dy/dw = 2w + 2 = 8</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>w.grad               <span class="co"># tensor(8.)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>A module.</strong> A class with parameters, a forward method, and automatic registration.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Tiny(torch.nn.Module):</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.weight <span class="op">=</span> torch.nn.Parameter(torch.ones(<span class="dv">2</span>, <span class="dv">2</span>))</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.bias <span class="op">=</span> torch.nn.Parameter(torch.zeros(<span class="dv">2</span>))</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.register_buffer(<span class="st">"running"</span>, torch.zeros(<span class="dv">1</span>))</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x <span class="op">@</span> <span class="va">self</span>.weight.T <span class="op">+</span> <span class="va">self</span>.bias</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>An optimizer step.</strong> Zero the old gradients, compute new ones, then update.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> torch.nn.Linear(<span class="dv">2</span>, <span class="dv">1</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>opt <span class="op">=</span> torch.optim.SGD(model.parameters(), lr<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> model(torch.tensor([[<span class="fl">1.0</span>, <span class="fl">2.0</span>]]))</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>loss <span class="op">=</span> ((pred <span class="op">-</span> <span class="fl">3.0</span>) <span class="op">**</span> <span class="dv">2</span>).mean()</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>loss.backward()</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>opt.step()          <span class="co"># apply the update</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>opt.zero_grad()     <span class="co"># clear gradients for the next step</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Move to a device.</strong> Build on CPU, then move the whole model and each batch.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>device <span class="op">=</span> <span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"mps"</span> <span class="cf">if</span> torch.backends.mps.is_available() <span class="cf">else</span> <span class="st">"cpu"</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> model.to(device)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>batch <span class="op">=</span> batch.to(device)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — inspect a tensor.</strong> Three attributes explain almost every PyTorch error message you will ever see.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> torch.tensor([[<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>], [<span class="fl">4.0</span>, <span class="fl">5.0</span>, <span class="fl">6.0</span>]])</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># shape torch.Size([2, 3])  dtype torch.float32  device cpu  ndim 2</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>torch.tensor([1, 2, 3])</code> prints <code>torch.int64</code>, while <code>torch.tensor([1.0, 2.0])</code> prints <code>torch.float32</code>. Model weights are floats, so integer inputs must be converted before matmul.</p>
+<p><strong>Example 2 — indexing and slicing.</strong> Reading one row or column is how you inspect attention head outputs and embeddings.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> torch.arange(<span class="dv">12</span>).reshape(<span class="dv">3</span>, <span class="dv">4</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># t[0]        -&gt; [0, 1, 2, 3]</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># t[:, 1]     -&gt; [1, 5, 9]</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co"># t[1:, 2:]   -&gt; [[6, 7], [10, 11]]</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co"># t[t &gt; 5]    -&gt; [6, 7, 8, 9, 10, 11]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Example 3 — broadcasting a bias.</strong> A bias vector is added to every row. Broadcasting makes that one line instead of a loop.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> torch.ones(<span class="dv">3</span>, <span class="dv">4</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">+</span> torch.arange(<span class="dv">4</span>)             <span class="co"># (3,4) + (4,)   -&gt; (3,4)</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>torch.ones(<span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">4</span>) <span class="op">+</span> torch.ones(<span class="dv">3</span>, <span class="dv">1</span>)   <span class="co"># -&gt; (2,3,4)</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>torch.ones(<span class="dv">2</span>, <span class="dv">3</span>) <span class="op">+</span> torch.ones(<span class="dv">2</span>, <span class="dv">4</span>)      <span class="co"># RuntimeError: size 3 vs 4</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The error message names the mismatched dimension, which is why reading shapes is the first debugging skill.</p>
+<p><strong>Example 4 — matmul is many weighted sums at once.</strong> A linear layer applies <code>x @ W.T + b</code> to a whole batch.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> torch.randn(<span class="dv">4</span>, <span class="dv">8</span>)     <span class="co"># 4 examples, 8 features</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>W <span class="op">=</span> torch.randn(<span class="dv">16</span>, <span class="dv">8</span>)    <span class="co"># 16 output units</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> torch.randn(<span class="dv">16</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>out <span class="op">=</span> x <span class="op">@</span> W.T <span class="op">+</span> b</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co"># out.shape -&gt; torch.Size([4, 16])   one weighted sum per example and unit</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This is why GPUs dominate AI: a single matmul replaces millions of Python-level multiply-adds.</p>
+<p><strong>Example 5 — <code>view</code> vs <code>reshape</code>.</strong> Both change the shape. Only <code>view</code> demands that the memory already be laid out as the new shape expects.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>base <span class="op">=</span> torch.arange(<span class="dv">12</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>base.view(<span class="dv">3</span>, <span class="dv">4</span>)              <span class="co"># works; shares memory with base</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>base.view(<span class="dv">3</span>, <span class="dv">4</span>).t()          <span class="co"># transposed; no longer contiguous</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>base.view(<span class="dv">3</span>, <span class="dv">4</span>).t().view(<span class="dv">12</span>) <span class="co"># RuntimeError: view size is not compatible</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>base.view(<span class="dv">3</span>, <span class="dv">4</span>).t().reshape(<span class="dv">12</span>)  <span class="co"># works; reshape copies when needed</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Use <code>reshape</code> when unsure; use <code>view</code> only when you know the tensor is contiguous and you want the zero-copy guarantee.</p>
+<p><strong>Example 6 — a full training step.</strong> This is the loop from Chapter 1 expressed in tensors.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> torch.nn.Linear(<span class="dv">2</span>, <span class="dv">1</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>opt <span class="op">=</span> torch.optim.SGD(model.parameters(), lr<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> torch.tensor([[<span class="fl">1.0</span>, <span class="fl">2.0</span>]])</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> torch.tensor([[<span class="fl">3.0</span>]])</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> model(x)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>loss <span class="op">=</span> ((pred <span class="op">-</span> y) <span class="op">**</span> <span class="dv">2</span>).mean()</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>loss.backward()</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>before <span class="op">=</span> model.weight.detach().clone()</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>opt.step()</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>opt.zero_grad()</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="co"># model.weight changed after step(): True</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="co"># after zero_grad() the default is set_to_none=True, so model.weight.grad is None</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>That last detail trips people up: <code>zero_grad()</code> does not write zeros into <code>.grad</code>, it sets <code>.grad</code> to <code>None</code> by default. Use <code>zero_grad(set_to_none=False)</code> if you need zero tensors.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Read shapes before reading maths.</strong> When a model crashes, print the shapes of every tensor around the failing line. Most PyTorch bugs are shape bugs, not algorithm bugs.</li>
+<li><strong>Know the stride tricks.</strong> Transposing or slicing can make a tensor <strong>non-contiguous</strong>; <code>view</code> then fails while <code>reshape</code> copies. The copy costs memory bandwidth, so prefer layouts that keep tensors contiguous.</li>
+<li><strong><code>.to(device)</code> is not free.</strong> On a discrete CUDA GPU every transfer crosses the PCIe bus and stalls the GPU; on Apple silicon (MPS) memory is unified, so the copy is cheaper but still not zero-cost. Either way, move the model and the whole batch once, not tensor by tensor inside the loop.</li>
+<li><strong>Keep dtypes consistent.</strong> A <code>float32</code> model with a <code>float64</code> input raises a dtype error; mixed precision training uses <code>bfloat16</code> or <code>float16</code> deliberately, with a <code>float32</code> master copy of the weights.</li>
+<li><strong><code>zero_grad()</code> defaults to <code>set_to_none=True</code>.</strong> Gradients accumulate by default. Forgetting <code>zero_grad()</code> between steps means each step uses the sum of all previous gradients and training silently diverges.</li>
+<li><strong>Non-leaf gradients are <code>None</code>.</strong> Intermediate tensors do not store <code>.grad</code> unless you call <code>.retain_grad()</code>. Only leaf tensors that required grad keep it.</li>
+<li><strong>In-place edits break autograd.</strong> <code>x += 1</code> on a leaf that requires grad raises an error, because the value autograd saved is gone. Use <code>x = x + 1</code>, or wrap the block in <code>with torch.no_grad():</code> when you truly do not need gradients.</li>
+<li><strong>A second <code>backward()</code> on the same graph fails.</strong> The saved intermediate values are freed after the first call. Pass <code>retain_graph=True</code> only when you genuinely need two passes, and expect it to cost memory.</li>
+<li><strong><code>detach()</code> and <code>no_grad()</code> stop gradients on purpose.</strong> Use <code>detach()</code> to treat a tensor as a constant (for example, a target), and <code>no_grad()</code> around evaluation to save memory and time.</li>
+<li><strong>Parameters, not attributes.</strong> A plain tensor assigned as <code>self.foo = torch.ones(3)</code> is invisible to the optimizer. Wrap it in <code>torch.nn.Parameter</code> or call <code>register_buffer</code>. This mistake produces a model that “does not learn”.</li>
+<li><strong>Module-list repetition shares objects.</strong> <code>[torch.nn.Linear(8, 8)] * 4</code> creates four references to <strong>one</strong> layer. Use <code>torch.nn.ModuleList([...])</code> or a comprehension so each layer is distinct.</li>
+<li><strong>Batch dimension first is the common convention.</strong> <code>nn.MultiheadAttention</code> defaults to <code>(seq, batch, dim)</code>; pass <code>batch_first=True</code> to use <code>(batch, seq, dim)</code>, which matches the rest of modern code.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="what-is-a-tensor-and-what-are-its-three-key-attributes" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-a-tensor-and-what-are-its-three-key-attributes">1. What is a tensor, and what are its three key attributes?</h3>
+<p><strong>Answer.</strong> A tensor is an n-dimensional array of numbers. Its three key attributes are shape (the size of every dimension), dtype (the numeric type such as <code>float32</code> or <code>int64</code>), and device (where the data lives: CPU, CUDA, or MPS). The data block is shared across views; the metadata describes how to interpret it.</p>
+<p><strong>Follow-up: “Why not just use NumPy?”</strong> NumPy is fast but CPU-only and has no automatic differentiation. PyTorch gives GPU execution and autograd, which are the two things deep learning needs.</p>
+<p><strong>Trap.</strong> Calling a tensor “just a matrix”. Rank 0, 3, and 4 tensors are common; a batch of 8 sequences of 16 tokens with hidden size 64 is a rank-3 tensor <code>(8, 16, 64)</code>.</p>
+</section>
+<section id="how-does-broadcasting-work" class="level3">
+<h3 class="anchored" data-anchor-id="how-does-broadcasting-work">2. How does broadcasting work?</h3>
+<p><strong>Answer.</strong> Align shapes from the right. Each dimension must match, one of them must be 1, or one tensor must lack that dimension. Size-1 dimensions are logically stretched, but no memory is actually copied. For example <code>(3, 4) + (4,)</code> gives <code>(3, 4)</code>, and <code>(2, 1, 4) + (3, 1)</code> gives <code>(2, 3, 4)</code>.</p>
+<p><strong>Follow-up: “When does it fail?”</strong> When a pair of dimensions are different and neither is 1, for example <code>(2, 3) + (2, 4)</code>. The error names the offending dimension, which tells you which axis to fix.</p>
+<p><strong>Trap.</strong> Assuming broadcasting copies data. It is a stride trick: the same value is read repeatedly, so it is fast but can hide unintended alignment, especially when a size-1 dimension is silently stretched across a batch.</p>
+</section>
+<section id="what-is-the-difference-between-view-and-reshape" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-view-and-reshape">3. What is the difference between <code>view</code> and <code>reshape</code>?</h3>
+<p><strong>Answer.</strong> Both change the shape while keeping the number of elements. <code>view</code> returns a view and requires the tensor to be contiguous in the requested layout; it fails otherwise. <code>reshape</code> returns a view when possible and copies when not, so it always succeeds (given the same element count).</p>
+<p><strong>Follow-up: “Why does <code>t()</code> break <code>view</code>?”</strong> Transpose changes the strides, so rows no longer sit contiguously in memory. <code>view(12)</code> then cannot map the new shape onto the existing layout, but <code>reshape(12)</code> copies into a contiguous block first.</p>
+<p><strong>Trap.</strong> Thinking <code>reshape</code> always copies. It shares memory when it can, which is why mutating the original can change the reshaped tensor in surprising ways.</p>
+</section>
+<section id="what-does-requires_gradtrue-do" class="level3">
+<h3 class="anchored" data-anchor-id="what-does-requires_gradtrue-do">4. What does <code>requires_grad=True</code> do?</h3>
+<p><strong>Answer.</strong> It tells autograd to track the tensor as a leaf that needs a gradient. Every operation on it builds graph nodes, and after <code>backward()</code> the result is stored in <code>.grad</code>. Tensors without it are treated as constants and break the chain unless they are parameters of a module.</p>
+<p><strong>Follow-up: “How do you stop tracking?”</strong> Use <code>with torch.no_grad():</code> around inference or target computation, or call <code>.detach()</code> on a tensor to get a version that shares data but has no graph history.</p>
+<p><strong>Trap.</strong> Expecting <code>.grad</code> to be populated on intermediate tensors. Non-leaf tensors do not keep gradients unless you call <code>.retain_grad()</code>.</p>
+</section>
+<section id="what-is-the-difference-between-a-parameter-and-a-buffer" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-a-parameter-and-a-buffer">5. What is the difference between a parameter and a buffer?</h3>
+<p><strong>Answer.</strong> A parameter is a tensor the optimizer learns; it is created with <code>torch.nn.Parameter</code> and appears in <code>model.parameters()</code>. A buffer is part of the model’s state but is not trained, such as running statistics or a fixed mask; it is registered with <code>register_buffer</code> and appears in <code>state_dict()</code> but not in <code>parameters()</code>.</p>
+<p><strong>Follow-up: “What happens if you assign a plain tensor as an attribute?”</strong> It is not registered at all. It will not move with <code>.to(device)</code>, will not be saved in <code>state_dict()</code>, and will not be updated by the optimizer.</p>
+<p><strong>Trap.</strong> Assuming <code>self.x = tensor</code> registers something. Only <code>nn.Parameter</code>, <code>register_buffer</code>, and child modules are registered.</p>
+</section>
+<section id="why-do-shapes-have-to-match-for-matmul" class="level3">
+<h3 class="anchored" data-anchor-id="why-do-shapes-have-to-match-for-matmul">6. Why do shapes have to match for matmul?</h3>
+<p><strong>Answer.</strong> Matmul sums over the inner dimensions: <code>(m, k) @ (k, n) -&gt; (m, n)</code>. The <code>k</code> dimensions must be equal because each output is a dot product of a row and a column. Batched matmul keeps leading dimensions aligned and applies the same rule to the last two.</p>
+<p><strong>Follow-up: “What is the most common fix?”</strong> Transpose one operand, often with <code>.T</code> or <code>.transpose(-2, -1)</code>. A linear layer computes <code>x @ W.T + b</code> precisely to align the feature dimension.</p>
+<p><strong>Trap.</strong> Forgetting the batch dimension. <code>(batch, m, k) @ (k, n)</code> broadcasts to <code>(batch, m, n)</code>, but <code>(batch, m, k) @ (n, k)</code> fails or produces the wrong pairing.</p>
+</section>
+<section id="why-does-pytorch-store-strides-instead-of-just-a-shape" class="level3">
+<h3 class="anchored" data-anchor-id="why-does-pytorch-store-strides-instead-of-just-a-shape">7. Why does PyTorch store strides instead of just a shape?</h3>
+<p><strong>Answer.</strong> Strides let one data block be interpreted in many ways without copying: transposing swaps strides, slicing adjusts offsets and strides, and broadcasting sets a stride of zero. That is how <code>view</code>, <code>transpose</code>, and elementwise broadcasting stay cheap. It also explains why some tensors are non-contiguous.</p>
+<p><strong>Follow-up: “How do you make a tensor contiguous?”</strong> Call <code>.contiguous()</code>, which copies the elements into the standard layout when needed. Many ops call it internally.</p>
+<p><strong>Trap.</strong> Believing every tensor owns its memory. Slicing and transposing produce views onto the same storage, so editing one can edit another.</p>
+</section>
+<section id="why-is-matrix-multiplication-the-core-operation-of-an-llm" class="level3">
+<h3 class="anchored" data-anchor-id="why-is-matrix-multiplication-the-core-operation-of-an-llm">8. Why is matrix multiplication the core operation of an LLM?</h3>
+<p><strong>Answer.</strong> Every dense layer and every attention projection is a matmul. A linear layer is <code>x @ W.T + b</code>; attention scores are <code>Q @ K.T</code>; the attention output is <code>weights @ V</code>. On a GPU these become a few large <strong>GEMM</strong> kernels, which is exactly what the hardware is built to do. That is why batching and efficient matmul matter more than almost anything else for throughput.</p>
+<p><strong>Follow-up: “What limits attention matmul?”</strong> The score matrix is <code>(seq, seq)</code>, so its size grows quadratically with sequence length. That quadratic term is why long-context models need memory-efficient attention kernels.</p>
+<p><strong>Trap.</strong> Saying matmul is “just a loop”. It is a loop mathematically, but on hardware it is a tiled, cache-aware, parallel kernel, and its performance depends on shapes, dtypes, and memory layout.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li>A tensor is <strong>numbers plus metadata</strong>: shape, dtype, device.</li>
+<li><strong>Broadcasting</strong> stretches size-1 dimensions using strides, without copying; <code>view</code> demands contiguity while <code>reshape</code> falls back to a copy.</li>
+<li><strong>Autograd records operations</strong> and <code>.backward()</code> fills <code>.grad</code>; gradients <strong>accumulate</strong> until <code>zero_grad()</code>.</li>
+<li><strong>Parameters train, buffers do not.</strong> A plain tensor attribute is invisible to the model and the optimizer.</li>
+<li>Nearly all LLM compute is <strong>matmul</strong>, and matmul of <code>(seq, seq)</code> scores is what makes attention cost grow quadratically.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="pagination-link" aria-label="How Machine Learning and Neural Networks Work">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="pagination-link" aria-label="Forward Pass and Backpropagation">
+        <span class="nav-page-text"><span class="chapter-title">Forward Pass and Backpropagation</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Pretraining, Fine-Tuning, and Instruction Tuning – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" rel="next">
+<link href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-02-llm-fundamentals/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 2 — LLM and Generative AI Fundamentals</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/01-how-ml-and-neural-networks-work.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">How Machine Learning and Neural Networks Work</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/02-tensors-and-pytorch.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tensors and PyTorch</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/03-forward-pass-and-backpropagation.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Forward Pass and Backpropagation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/04-attention-and-self-attention.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Attention and Self-Attention</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/05-the-transformer-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">The Transformer Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/06-tokenization-and-tokens.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tokenization and Tokens</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/07-embeddings.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Embeddings</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/08-context-windows-and-kv-cache.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Windows and the KV Cache</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/09-logits-softmax-next-token-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logits, Softmax, and Next-Token Prediction</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/10-sampling-temperature-top-k-top-p.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sampling: Temperature, Top-K, Top-P</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Training vs Inference and Batching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">RLHF and Preference Alignment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/14-lora-qlora-peft.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Parameter-Efficient Fine-Tuning: LoRA, QLoRA, PEFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/15-numeric-precision-and-quantization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Numeric Precision and Quantization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/16-structured-outputs-and-json-schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Structured Outputs and JSON Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/17-function-and-tool-calling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Function and Tool Calling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/18-streaming-responses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Streaming Responses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/19-prompt-design-and-system-prompts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Design and System Prompts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/20-context-engineering.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Engineering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/21-hallucinations.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Hallucinations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/22-prompt-injection-and-context-poisoning.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Prompt Injection and Context Poisoning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/23-model-comparison-and-selection.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Model Comparison and Selection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/24-provider-apis-openai-anthropic-gemini.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Provider APIs: OpenAI, Anthropic, Gemini</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Open-Source Models and Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/index.html">Phase 2 — LLM and Generative AI Fundamentals</a></li><li class="breadcrumb-item"><a href="../phase-02-llm-fundamentals/12-pretraining-finetuning-instruction-tuning.html"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Pretraining, Fine-Tuning, and Instruction Tuning</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> Pretraining teaches a base model to predict the next token on enormous amounts of raw text using self-supervision, and that is where language ability and world knowledge come from. Supervised fine-tuning then trains the model on curated input-output pairs, and instruction tuning is supervised fine-tuning on many diverse instructions and chat-formatted conversations, usually with the loss computed only on the assistant’s tokens. Instruction tuning changes behaviour — the model learns to follow directions and answer in a chat format — while pretraining supplies the underlying capability. Fine-tuning is best for behaviour, format, and domain style; prompt and RAG are usually better for adding changing facts.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>A model straight out of pretraining is called a <strong>base model</strong>. It is extremely good at one thing: continuing text. It is not trying to help you.</p>
+<pre class="text"><code>Prompt:  "List three healthy breakfast ideas in a numbered list."
+Base model: "List three unhealthy breakfast ideas in a numbered list. List three healthy
+             lunch ideas... 1. 2. 3. What about snacks?"</code></pre>
+<p>The base model treats your instruction as text to continue, because that is all it was trained to do. It has seen millions of lists and questions, so it produces more of them. It has no notion that it should <em>answer</em> you.</p>
+<p>Now the same prompt to an <strong>instruct model</strong>:</p>
+<pre class="text"><code>Prompt:  "List three healthy breakfast ideas in a numbered list."
+Instruct: "1. Oatmeal with berries and nuts.
+           2. Greek yoghurt with fruit and seeds.
+           3. Whole-grain toast with avocado and egg."</code></pre>
+<p>The knowledge was already there after pretraining. The <em>behaviour</em> — answering, following the format, staying on task — was added by fine-tuning on examples of instructions and good responses.</p>
+<p>This distinction matters because most engineering mistakes around fine-tuning come from confusing the two. If a base model does not know a fact, fine-tuning on a few hundred examples will not reliably add it. If an instruct model knows a fact but answers in the wrong format, fine-tuning is exactly the right tool. Pretraining, instruction tuning, and preference alignment are three different stages with three different goals, and knowing which stage does what is the core of this topic.</p>
+<p>A note on vocabulary, because the industry is loose with it. “Fine-tuning” is sometimes used to mean adding knowledge, and that is where confusion starts. Keep the stages separate: pretraining builds the model, instruction tuning makes it helpful, and preference tuning (the next page) makes it preferred. When someone says “we fine-tuned our docs in”, ask which stage they mean and what data they actually used.</p>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<p>Every term below is used for the rest of the page.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Pretraining</strong></td>
+<td>The first, largest training stage: learn to predict the next token from raw text.</td>
+</tr>
+<tr class="even">
+<td><strong>Self-supervised</strong></td>
+<td>The label comes from the data itself, so no humans need to label it.</td>
+</tr>
+<tr class="odd">
+<td><strong>Next-token prediction</strong></td>
+<td>Given the tokens so far, predict the token that comes next.</td>
+</tr>
+<tr class="even">
+<td><strong>Corpus</strong></td>
+<td>The large body of text used for pretraining.</td>
+</tr>
+<tr class="odd">
+<td><strong>Base model</strong></td>
+<td>A model after pretraining only. It completes text but does not follow instructions.</td>
+</tr>
+<tr class="even">
+<td><strong>Foundation model</strong></td>
+<td>A general base model intended to be adapted for many downstream tasks.</td>
+</tr>
+<tr class="odd">
+<td><strong>Checkpoint</strong></td>
+<td>A saved copy of the model’s weights at a point in training.</td>
+</tr>
+<tr class="even">
+<td><strong>Fine-tuning</strong></td>
+<td>Continuing to train a pretrained model on a smaller, task-specific dataset.</td>
+</tr>
+<tr class="odd">
+<td><strong>Supervised fine-tuning (SFT)</strong></td>
+<td>Fine-tuning on input-output pairs, using ordinary supervised learning.</td>
+</tr>
+<tr class="even">
+<td><strong>Demonstration</strong></td>
+<td>An example (input, correct output) pair used in SFT.</td>
+</tr>
+<tr class="odd">
+<td><strong>Instruction tuning</strong></td>
+<td>SFT on many tasks phrased as instructions, so the model learns to follow directions.</td>
+</tr>
+<tr class="even">
+<td><strong>Chat template</strong></td>
+<td>The exact formatting, including special tokens, used to present a conversation to the model.</td>
+</tr>
+<tr class="odd">
+<td><strong>Role</strong></td>
+<td>A label on a message, such as <code>system</code>, <code>user</code>, or <code>assistant</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>Loss masking</strong></td>
+<td>Excluding some tokens from the loss, so only the part you care about is trained.</td>
+</tr>
+<tr class="odd">
+<td><strong>Catastrophic forgetting</strong></td>
+<td>Losing general skills after fine-tuning narrowly.</td>
+</tr>
+<tr class="even">
+<td><strong>RAG</strong></td>
+<td>Retrieval-augmented generation: fetch relevant text at request time and put it in the prompt.</td>
+</tr>
+<tr class="odd">
+<td><strong>In-context learning</strong></td>
+<td>Teaching by putting examples in the prompt, with no weight updates.</td>
+</tr>
+<tr class="even">
+<td><strong>Zero-shot / few-shot</strong></td>
+<td>Asking with no examples, or with a handful of examples in the prompt.</td>
+</tr>
+<tr class="odd">
+<td><strong>Preference tuning</strong></td>
+<td>A later stage (RLHF or DPO) that shapes answers toward what people prefer. See the next page.</td>
+</tr>
+<tr class="even">
+<td><strong>Adapter / LoRA</strong></td>
+<td>A small set of extra weights trained instead of the whole model. Covered later in this phase.</td>
+</tr>
+</tbody>
+</table>
+<p>Two distinctions to hold on to:</p>
+<ul>
+<li><strong>Pretraining teaches capability; fine-tuning teaches behaviour.</strong> Facts, language, and reasoning come from pretraining. Format, tone, and task behaviour come from fine-tuning.</li>
+<li><strong>In-context learning changes the prompt; fine-tuning changes the weights.</strong> The first is instant and temporary. The second is slow, persistent, and shared by everyone using the model.</li>
+</ul>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Think of a new employee.</p>
+<ul>
+<li><strong>Pretraining</strong> is reading the entire library. They absorb vocabulary, facts, and how writing works, but nobody has told them what their job is.</li>
+<li><strong>Instruction tuning</strong> is an apprenticeship. They watch thousands of examples of a request followed by a good answer, and they learn the shape of a good response: address the ask, follow the format, be brief or detailed as asked.</li>
+<li><strong>Preference tuning</strong> is feedback from a manager saying “this answer is better than that one”, which nudges style and safety. That is the next page.</li>
+</ul>
+<p>The pipeline is usually three stages, and each stage uses different data.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A["Raw text&lt;br/&gt;books, code, web"] --&gt; B["Pretraining&lt;br/&gt;next-token prediction"]
+    B --&gt; C["Base model&lt;br/&gt;completes text"]
+    C --&gt; D["Supervised fine-tuning&lt;br/&gt;(instruction tuning)&lt;br/&gt;prompt-response pairs"]
+    D --&gt; E["Instruct model&lt;br/&gt;follows directions"]
+    E --&gt; F["Preference tuning&lt;br/&gt;RLHF / DPO"]
+    F --&gt; G["Aligned assistant&lt;br/&gt;helpful and harmless"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The stages differ in more than data:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Stage</th>
+<th>Data</th>
+<th>Training signal</th>
+<th>Relative cost</th>
+<th>What it changes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Pretraining</td>
+<td>Raw text, trillions of tokens</td>
+<td>Predict the next token</td>
+<td>Largest by far</td>
+<td>Language, knowledge, raw capability</td>
+</tr>
+<tr class="even">
+<td>Instruction tuning (SFT)</td>
+<td>Curated prompt-response pairs</td>
+<td>Predict the response tokens</td>
+<td>Small</td>
+<td>Instruction following, format, tone</td>
+</tr>
+<tr class="odd">
+<td>Preference tuning</td>
+<td>Human or AI preference pairs</td>
+<td>Prefer chosen over rejected</td>
+<td>Small</td>
+<td>Helpfulness, harmlessness, style</td>
+</tr>
+</tbody>
+</table>
+<p>The jump from base to instruct is the one that surprises people. The base model is not broken; it is doing exactly what it was trained to do. Instruction tuning does not add knowledge in any reliable way. It adds the <strong>habit</strong> of responding to requests.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The one sentence to remember.</strong> Pretraining minimises next-token loss on everything; instruction tuning minimises response loss on good answers; preference tuning moves the model toward answers people prefer.</p>
+</div>
+</div>
+<p><strong>Why the order matters.</strong> You cannot instruction-tune a network that has no knowledge, because there is nothing to steer. You cannot preference-tune a base model usefully, because it does not yet follow instructions, so there is no sensible pair of responses to compare. Each stage assumes the one before it. A model trained from scratch on a small instruction dataset simply imitates that dataset; it never develops broad capability. This is also why the later stages are cheap: they steer an expensive capability instead of rebuilding it.</p>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>Collect a pretraining corpus.</strong> Web pages, books, code, and other text, filtered and deduplicated. Quality and diversity here shape the model’s ceiling.</li>
+<li><strong>Predict the next token.</strong> For each position, the model outputs logits for the next token, and the loss is cross-entropy against the actual next token. Because the label is just the following word, no human labelling is needed — that is what makes it self-supervised.</li>
+<li><strong>Train for a very long time.</strong> The same forward-loss-backward-update loop as any neural network. Training compute is often approximated as about <code>6 × parameters × tokens</code> floating-point operations for a dense transformer.</li>
+<li><strong>Get a base model.</strong> It can complete text fluently. It has no reliable instruction-following behaviour.</li>
+<li><strong>Build an SFT dataset.</strong> Collect demonstrations: a prompt or conversation, and a high-quality response. Sources include human writers, existing datasets, and outputs from stronger models (distillation).</li>
+<li><strong>Format each example with the chat template.</strong> Wrap messages in the special tokens the model expects, for example a <code>system</code> message, then <code>user</code>, then <code>assistant</code>. The template must match what was used at inference, or the model sees a different shape.</li>
+<li><strong>Mask the loss.</strong> In the common setup, the loss is computed only on the assistant’s response tokens, and the prompt tokens are ignored. This teaches the model to produce answers, not to reproduce questions.</li>
+<li><strong>Fine-tune with a small learning rate and few epochs.</strong> SFT runs are short compared with pretraining, often one to three passes over the data. Too many epochs causes overfitting and forgetting.</li>
+<li><strong>Optionally run preference tuning.</strong> Use RLHF or DPO to align helpfulness and harmlessness. That is the next page.</li>
+<li><strong>Evaluate on held-out tasks.</strong> Check both the target task and general tasks the fine-tune could have degraded.</li>
+</ol>
+<p>The loss-masking step is the one interviewers probe. If you train on the whole conversation, the model also learns to generate user turns, which it was never meant to do. Masking says: the prompt is context, the response is the target.</p>
+<p>Where instruction data comes from matters as much as how it is trained:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Source</th>
+<th>Example</th>
+<th>Strength</th>
+<th>Risk</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Human writers</td>
+<td>Contracted annotators</td>
+<td>High quality, on-brand</td>
+<td>Expensive and slow</td>
+</tr>
+<tr class="even">
+<td>Public datasets</td>
+<td>Open instruction collections</td>
+<td>Cheap and diverse</td>
+<td>Noisy, inconsistent, possibly stale</td>
+</tr>
+<tr class="odd">
+<td>Stronger model outputs</td>
+<td>Distillation</td>
+<td>Fast and scalable</td>
+<td>Bakes in the teacher’s errors</td>
+</tr>
+<tr class="even">
+<td>Real usage</td>
+<td>Logged conversations</td>
+<td>Matches real traffic</td>
+<td>Needs filtering, consent, and privacy care</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>Next-token prediction as a loss, in numpy.</strong> This is pretraining’s objective in a few lines.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> log_softmax(x):</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> x <span class="op">-</span> x.<span class="bu">max</span>(axis<span class="op">=-</span><span class="dv">1</span>, keepdims<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> x <span class="op">-</span> np.log(np.exp(x).<span class="bu">sum</span>(axis<span class="op">=-</span><span class="dv">1</span>, keepdims<span class="op">=</span><span class="va">True</span>))</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># logits[t] predicts the token at position t+1</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>logits <span class="op">=</span> np.array([[<span class="fl">2.0</span>, <span class="fl">1.0</span>, <span class="fl">0.1</span>], [<span class="fl">0.5</span>, <span class="fl">2.5</span>, <span class="fl">0.2</span>],</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>                   [<span class="fl">1.0</span>, <span class="fl">0.2</span>, <span class="fl">3.0</span>], [<span class="fl">0.1</span>, <span class="fl">3.0</span>, <span class="fl">0.5</span>]])</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>targets <span class="op">=</span> np.array([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">0</span>, <span class="dv">2</span>])        <span class="co"># the actual next tokens</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>loss <span class="op">=</span> <span class="op">-</span>log_softmax(logits)[np.arange(<span class="dv">4</span>), targets].mean()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>A chat format with roles.</strong> This is the shape SFT data takes before it is serialised.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>messages <span class="op">=</span> [</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: <span class="st">"You are a concise assistant."</span>},</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"What is the capital of France?"</span>},</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    {<span class="st">"role"</span>: <span class="st">"assistant"</span>, <span class="st">"content"</span>: <span class="st">"Paris."</span>},</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Many open models expect a specific template, such as ChatML’s <code>&lt;|im_start|&gt;</code> and <code>&lt;|im_end|&gt;</code> tokens, or Llama’s header tokens. The tokenizer’s <code>apply_chat_template</code> inserts them.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>prompt <span class="op">=</span> tok.apply_chat_template(messages, tokenize<span class="op">=</span><span class="va">False</span>, add_generation_prompt<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Loss masking in Hugging Face.</strong> The convention is <code>-100</code>, which the loss function ignores.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># labels equal the input ids, except prompt positions are set to -100</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> input_ids.clone()</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>labels[:prompt_length] <span class="op">=</span> <span class="op">-</span><span class="dv">100</span>          <span class="co"># train only on the assistant's tokens</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Verify the mask on a tiny example before a long run.</strong> Decode the label tensor for one batch and confirm that the prompt positions are <code>-100</code> and the assistant tokens are real ids. A mask bug does not raise an error; it silently trains the wrong thing, and you discover it only after a full run.</p>
+</div>
+</div>
+<p><strong>Fine-tuning with TRL’s <code>SFTTrainer</code>.</strong> TRL handles templating and masking.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datasets <span class="im">import</span> load_dataset</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> trl <span class="im">import</span> SFTTrainer, SFTConfig</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>trainer <span class="op">=</span> SFTTrainer(</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">"meta-llama/Llama-3.1-8B-Instruct"</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    train_dataset<span class="op">=</span>load_dataset(<span class="st">"my-org/my-instructions"</span>, split<span class="op">=</span><span class="st">"train"</span>),</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    args<span class="op">=</span>SFTConfig(output_dir<span class="op">=</span><span class="st">"out"</span>, num_train_epochs<span class="op">=</span><span class="dv">2</span>, learning_rate<span class="op">=</span><span class="fl">1e-5</span>),</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>trainer.train()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>The OpenAI fine-tuning format.</strong> One JSON object per line, in the same <code>messages</code> shape the API uses.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode jsonl code-with-copy"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">"messages"</span><span class="fu">:</span> <span class="ot">[</span><span class="fu">{</span><span class="dt">"role"</span><span class="fu">:</span> <span class="st">"system"</span><span class="fu">,</span> <span class="dt">"content"</span><span class="fu">:</span> <span class="st">"You are a support agent."</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span><span class="dt">"role"</span><span class="fu">:</span> <span class="st">"user"</span><span class="fu">,</span> <span class="dt">"content"</span><span class="fu">:</span> <span class="st">"How do I reset my password?"</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>              <span class="fu">{</span><span class="dt">"role"</span><span class="fu">:</span> <span class="st">"assistant"</span><span class="fu">,</span> <span class="dt">"content"</span><span class="fu">:</span> <span class="st">"Use the reset link on the login page."</span><span class="fu">}</span><span class="ot">]</span><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — the next-token shift.</strong> A language model does not have a separate label for every position. The tokens do double duty: the input is the tokens shifted left, and the target is the same sequence shifted right.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># full token sequence: [10, 11, 20, 21, 22]</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># logits at positions 0..3 predict tokens at positions 1..4</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># measured: logits[0:4] should predict [11, 20, 21, 22]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>That shift is the entirety of self-supervision. One sequence provides four training signals for free.</p>
+<p><strong>Example 2 — loss masking changes what is learned.</strong> Four positions, three vocabulary tokens. Positions 0 and 1 are the prompt; positions 2 and 3 are the assistant’s answer.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># measured per-position cross-entropy: [1.4170, 2.5116, 2.1791, 2.6285]</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># loss over ALL positions:        2.1840</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"># loss over assistant only:       2.4038</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># HF-style labels: [-100, -100, 0, 2]  -&gt; 2 positions counted</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The unmasked loss is lower here only because those particular prompt tokens happened to be easier. The numbers are not the point; the <em>target</em> is. Masked training optimises the assistant’s tokens, which is what you want it to produce at inference. The <code>-100</code> labels are how Hugging Face marks “ignore this position”.</p>
+<p><strong>Example 3 — base versus instruct, same knowledge, different behaviour.</strong> Instruction tuning does not usually teach the fact; it teaches the model to answer.</p>
+<pre class="text"><code>Base model given "Q: What is 2 + 2? A:"  -&gt; may continue with more questions
+Instruct model given "What is 2 + 2?"     -&gt; "4"</code></pre>
+<p>If the instruct model gets the fact wrong, fine-tuning on that one fact is an unreliable fix. Retrieval is usually the right tool. If it gets the <em>format</em> wrong, fine-tuning is the right tool.</p>
+<p><strong>Example 4 — instruction tuning data is diverse by design.</strong> Early instruction datasets covered many task types so the model would generalise “follow the instruction” rather than memorise one task. A modern SFT mix looks like a portfolio.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task type</th>
+<th>Example</th>
+<th>What it teaches</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Open question answering</td>
+<td>“Explain photosynthesis.”</td>
+<td>Answering from knowledge</td>
+</tr>
+<tr class="even">
+<td>Extraction</td>
+<td>“Return the dates as JSON.”</td>
+<td>Following a schema</td>
+</tr>
+<tr class="odd">
+<td>Summarisation</td>
+<td>“Summarise in two bullets.”</td>
+<td>Length and format control</td>
+</tr>
+<tr class="even">
+<td>Refusal</td>
+<td>“Help me break into a car.”</td>
+<td>Safety behaviour</td>
+</tr>
+<tr class="odd">
+<td>Tool use</td>
+<td>“Call the weather tool for Paris.”</td>
+<td>Structured function calls</td>
+</tr>
+<tr class="even">
+<td>Multi-turn chat</td>
+<td>A conversation</td>
+<td>Maintaining context and role</td>
+</tr>
+</tbody>
+</table>
+<p>Diversity is the point. A narrow SFT set teaches a narrow assistant. Real SFT mixes combine public instruction datasets, domain demonstrations, and synthetic examples generated and filtered by stronger models. The mix ratio is itself a design choice: too much of one task type and the model tilts toward it.</p>
+<p><strong>Example 5 — catastrophic forgetting.</strong> Fine-tune a general model on nothing but medical question answering, and it can get better at that task while getting worse at general conversation and reasoning.</p>
+<pre class="text"><code>Before fine-tuning: general chat good, medical QA fair
+After narrow fine-tuning: medical QA good, general chat degraded</code></pre>
+<p>The narrow data pulls the weights away from the broad distribution they learned during pretraining. The standard mitigations are: use a small learning rate, train for few epochs, mix in some general data, and prefer a small adapter such as LoRA over full fine-tuning. Always evaluate on general tasks, not just the target task.</p>
+<p><strong>Example 6 — choosing between prompt, RAG, and fine-tune.</strong> The decision is about what is missing.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Need</th>
+<th>Best first tool</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Add a fact that changes often</td>
+<td>RAG</td>
+<td>Facts live in a database, not in weights</td>
+</tr>
+<tr class="even">
+<td>Add private documents with citations</td>
+<td>RAG</td>
+<td>The source can be shown and updated</td>
+</tr>
+<tr class="odd">
+<td>Change style, tone, or format</td>
+<td>Fine-tune</td>
+<td>Behaviour is exactly what SFT shapes</td>
+</tr>
+<tr class="even">
+<td>Teach a narrow task reliably</td>
+<td>Fine-tune</td>
+<td>Patterns are baked into the weights</td>
+</tr>
+<tr class="odd">
+<td>Reduce prompt length and cost</td>
+<td>Fine-tune</td>
+<td>The instructions can be internalised</td>
+</tr>
+<tr class="even">
+<td>Try something today</td>
+<td>Prompt</td>
+<td>Instant, reversible, cheap</td>
+</tr>
+</tbody>
+</table>
+<p>A useful rule: <strong>prompt for behaviour you are still designing, RAG for knowledge you cannot freeze, fine-tune for behaviour you have finished designing and need at scale.</strong></p>
+<p>These tools are complements, not alternatives. A production system often uses all three: the prompt defines the task, RAG supplies current facts, and a small fine-tune enforces the output contract. Choosing one does not mean abandoning the others.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Ask what is missing before reaching for fine-tuning.</strong> If the model does not know something, retrieve it. If it knows but formats it wrong, fine-tune. If you are still deciding what “right” even means, keep prompting. This order saves weeks of wasted training runs.</p>
+</div>
+</div>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Fine-tune for form, retrieve for facts.</strong> Fine-tuning can make a model answer in your JSON schema every time. It does not reliably add a new policy number or today’s prices; retrieval does.</li>
+<li><strong>Always hold out evaluation data.</strong> If you train and evaluate on the same examples, you measure memorisation. Keep a test set the model never saw, including general-capability tasks.</li>
+<li><strong>Mask the prompt in SFT.</strong> Training on user turns teaches the model to write user messages. Use the <code>-100</code> label convention or an equivalent mask, and verify it with a tiny batch.</li>
+<li><strong>Match the chat template exactly.</strong> A template mismatch between training and inference produces a model that looks fine on the training loss and fails in production. Use the tokenizer’s own <code>apply_chat_template</code>.</li>
+<li><strong>Few epochs, low learning rate.</strong> SFT is a nudge, not a rewrite. One to three epochs at a small learning rate is typical; more causes forgetting and overfitting.</li>
+<li><strong>Watch for catastrophic forgetting.</strong> Evaluate general tasks after every fine-tune. A model that aces your task but cannot hold a normal conversation is not shippable.</li>
+<li><strong>Prefer LoRA when possible.</strong> Parameter-efficient fine-tuning trains a small adapter, is cheaper, and usually forgets less. Full fine-tuning is for when you need maximum change and can afford the risk.</li>
+<li><strong>Version everything.</strong> Record the base checkpoint, dataset version, template, hyperparameters, and seed. Without these, a behaviour change is impossible to reproduce or debug.</li>
+<li><strong>Instruction data quality beats quantity.</strong> A few thousand clean, consistent examples often beat hundreds of thousands of noisy ones. Inconsistent answers teach inconsistency.</li>
+<li><strong>Distillation is fine-tuning on a teacher’s outputs.</strong> It is legal, common, and effective, but it may bake in the teacher’s mistakes and may have licence or terms-of-service constraints. Check before shipping.</li>
+<li><strong>Do not fine-tune to fix a prompt bug.</strong> If the model ignores an instruction, first fix the prompt, add examples, or use a schema. Fine-tuning is slow to iterate and expensive to undo.</li>
+<li><strong>The deployment cost is real.</strong> A fine-tuned model must be hosted or served by a provider, versioned, and re-evaluated on every base-model upgrade. Prompt and RAG changes ship in minutes.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="what-is-pretraining-and-why-is-it-called-self-supervised" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-pretraining-and-why-is-it-called-self-supervised">1. What is pretraining, and why is it called self-supervised?</h3>
+<p><strong>Answer.</strong> Pretraining is the first and largest training stage, where the model learns to predict the next token in raw text. It is self-supervised because the label is simply the next word in the text, so no human annotation is needed. The result is a base model with broad language and world knowledge but no reliable instruction-following behaviour.</p>
+<p><strong>Follow-up: “What does the model actually learn from this?”</strong> It learns statistical structure: grammar, facts, styles, and some reasoning patterns that are useful for predicting text. Those patterns are what later stages shape into an assistant.</p>
+<p><strong>Trap.</strong> Saying self-supervised means “unsupervised”. There is a label — the next token — so it is supervised learning with automatically generated labels.</p>
+</section>
+<section id="what-is-the-difference-between-a-base-model-and-an-instruct-model" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-a-base-model-and-an-instruct-model">2. What is the difference between a base model and an instruct model?</h3>
+<p><strong>Answer.</strong> A base model continues text; an instruct model follows instructions. The base model was trained only on next-token prediction, so an instruction is just more text to continue. The instruct model has been fine-tuned on prompt-response pairs, so it has learned the behaviour of answering, following formats, and refusing some requests. The underlying knowledge is largely the same.</p>
+<p><strong>Follow-up: “Can a base model be prompted into good behaviour?”</strong> Sometimes, with few-shot examples, but it is unreliable. Instruction tuning makes the behaviour consistent without prompt tricks.</p>
+<p><strong>Trap.</strong> Thinking instruction tuning adds knowledge. It mostly adds behaviour and format; facts and reasoning come from pretraining.</p>
+</section>
+<section id="what-is-instruction-tuning-and-how-does-it-differ-from-ordinary-fine-tuning" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-instruction-tuning-and-how-does-it-differ-from-ordinary-fine-tuning">3. What is instruction tuning, and how does it differ from ordinary fine-tuning?</h3>
+<p><strong>Answer.</strong> Instruction tuning is supervised fine-tuning on a large, diverse set of tasks phrased as instructions. Ordinary task-specific fine-tuning trains on one narrow task. Instruction tuning aims for general instruction-following, so the model generalises to instructions it has never seen rather than memorising one task.</p>
+<p><strong>Follow-up: “Why does diversity matter?”</strong> A narrow dataset teaches a narrow assistant and increases the chance of forgetting. Diverse data teaches the abstract behaviour “follow the instruction”.</p>
+<p><strong>Trap.</strong> Treating instruction tuning as a way to install facts. It is a behavioural stage, not a knowledge stage.</p>
+</section>
+<section id="why-is-the-loss-masked-during-supervised-fine-tuning" class="level3">
+<h3 class="anchored" data-anchor-id="why-is-the-loss-masked-during-supervised-fine-tuning">4. Why is the loss masked during supervised fine-tuning?</h3>
+<p><strong>Answer.</strong> In a chat example, only the assistant’s tokens are the target. If you compute loss over the user and system tokens as well, you train the model to generate user messages and system prompts, which is not its job. Masking sets the loss on prompt positions to zero (commonly with the label <code>-100</code> in Hugging Face) so only the response is learned.</p>
+<p><strong>Follow-up: “Is masking always used?”</strong> Not universally. Some recipes train on the full sequence, especially for base-model style tuning. But for assistant behaviour, masking the prompt is the standard and usually correct choice.</p>
+<p><strong>Trap.</strong> Assuming masking is automatic. Many training scripts require you to build the labels yourself; a bug here is silent and only shows up as odd behaviour in production.</p>
+</section>
+<section id="what-is-catastrophic-forgetting-and-how-do-you-prevent-it" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-catastrophic-forgetting-and-how-do-you-prevent-it">5. What is catastrophic forgetting, and how do you prevent it?</h3>
+<p><strong>Answer.</strong> It is the loss of general capabilities after fine-tuning on narrow data, because the weights move away from the broad pretraining distribution. You prevent it with a small learning rate, few epochs, mixing general data into the fine-tuning set, using parameter-efficient methods like LoRA, and evaluating on held-out general tasks after training.</p>
+<p><strong>Follow-up: “How do you detect it?”</strong> Run the same general benchmark before and after the fine-tune. If the target task improves but the general score drops sharply, you have forgotten too much.</p>
+<p><strong>Trap.</strong> Measuring only the target task. A model can look excellent on your benchmark while becoming unusable for everything else.</p>
+</section>
+<section id="when-should-you-fine-tune-instead-of-using-prompt-engineering-or-rag" class="level3">
+<h3 class="anchored" data-anchor-id="when-should-you-fine-tune-instead-of-using-prompt-engineering-or-rag">6. When should you fine-tune instead of using prompt engineering or RAG?</h3>
+<p><strong>Answer.</strong> Fine-tune when the missing thing is behaviour: a consistent format, a tone, a domain style, or a narrow task pattern that must run at scale. Use prompt engineering while you are still designing the behaviour, and RAG when you need knowledge that changes, private documents, or citations. Fine-tuning is poor at adding or updating facts.</p>
+<p><strong>Follow-up: “Can they be combined?”</strong> Yes, and often that is best: RAG supplies current knowledge, and a fine-tune enforces the answer format and style.</p>
+<p><strong>Trap.</strong> Fine-tuning to inject facts, then finding the model hallucinates the old ones anyway. Facts belong in retrieval.</p>
+</section>
+<section id="what-is-the-chat-template-and-why-does-it-matter" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-chat-template-and-why-does-it-matter">7. What is the chat template, and why does it matter?</h3>
+<p><strong>Answer.</strong> It is the exact formatting, including special tokens, that the model expects for a conversation. Each model family uses its own roles and delimiters. If training and inference use different templates, the model sees a different input shape than it was tuned on, and quality drops even though nothing errors. Use the tokenizer’s <code>apply_chat_template</code> in both places.</p>
+<p><strong>Follow-up: “What breaks if it is wrong?”</strong> The model may ignore the system prompt, fail to stop, or produce malformed turns. The failure is behavioural, not a crash, so it is easy to miss.</p>
+<p><strong>Trap.</strong> Hand-rolling the prompt string and assuming it matches training. Template drift is a common and expensive bug.</p>
+</section>
+<section id="how-much-data-and-compute-does-each-stage-need" class="level3">
+<h3 class="anchored" data-anchor-id="how-much-data-and-compute-does-each-stage-need">8. How much data and compute does each stage need?</h3>
+<p><strong>Answer.</strong> Pretraining uses vastly more data and compute than the later stages — trillions of tokens and large clusters over weeks. Instruction tuning uses far less, often thousands to millions of examples, and can run in hours on modest hardware. Preference tuning is similar in scale to instruction tuning. A common rule of thumb for pretraining compute is about six times the model parameters times the number of training tokens, in floating-point operations.</p>
+<p><strong>Follow-up: “So why is instruction tuning enough to change behaviour so much?”</strong> Because it is steering an already capable model. A small amount of high-quality, well-formatted data can redirect behaviour that the pretraining already made possible.</p>
+<p><strong>Trap.</strong> Assuming you need pretraining-scale resources to improve a model. The later stages are small, and most teams only ever touch them.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li><strong>Pretraining = capability, instruction tuning = behaviour.</strong> They solve different problems with different data.</li>
+<li><strong>The label is the next token.</strong> Self-supervision is what makes pretraining possible at scale.</li>
+<li><strong>Mask the prompt.</strong> Train the loss on assistant tokens, not on the user’s words.</li>
+<li><strong>Match the chat template</strong> between training and inference, always.</li>
+<li><strong>Fine-tune for form, retrieve for facts</strong>, and prefer prompt or RAG while the behaviour is still changing.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-02-llm-fundamentals/11-training-vs-inference-and-batching.html" class="pagination-link" aria-label="Training vs Inference and Batching">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Training vs Inference and Batching</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-02-llm-fundamentals/13-rlhf-and-preference-alignment.html" class="pagination-link" aria-label="RLHF and Preference Alignment">
+        <span class="nav-page-text"><span class="chapter-title">RLHF and Preference Alignment</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
