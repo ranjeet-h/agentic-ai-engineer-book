@@ -1,0 +1,427 @@
+---
+title: "PostgreSQL pgvector"
+---
+
+> **Interview answer (say this first).** `pgvector` is a PostgreSQL extension that adds a `vector` column type, the distance operators `<->` (L2), `<=>` (cosine), and `<#>` (negative inner product), and **HNSW** and **IVFFlat** indexes. Its superpower is that vector search is just SQL: you can filter, join, and transact in the same query as the nearest-neighbour search. Its limits are index dimension caps — 2,000 dimensions for `vector`, 4,000 for `halfvec` — and single-node scale. Choose it when you already run Postgres and want vectors to live beside your relational data.
+
+## Why this exists
+
+A RAG system needs two very different kinds of data:
+
+1. **Vectors**, for similarity search.
+2. **Relational data**: documents, chunks, users, permissions, versions, timestamps.
+
+The obvious design is to put each in its own system: Postgres for the rows, a dedicated vector database for the vectors. That works, but it creates a synchronisation problem that shows up as bugs:
+
+- A document is deleted in Postgres, but its vectors stay in the vector store. The retriever returns a **ghost chunk** from a document that no longer exists.
+- A user's access is revoked in Postgres, but the vector store still returns their old documents, because it never knew about permissions.
+- A re-index writes rows, then the vector store write fails, and the two stores disagree until someone notices.
+
+Every one of these is a consistency bug that exists only because the data is split.
+
+`pgvector` removes the split. Vectors become a normal column on a normal table. Deleting a row deletes its vector in the **same transaction**. A permission check becomes a `JOIN`. A tenant filter becomes a `WHERE` clause that applies before results leave the database.
+
+The trade-off is real: a single Postgres node has finite memory and CPU, and pgvector's ANN indexes cap vector dimensions. For a few million vectors it is excellent; for billions, you eventually want sharding or a dedicated system.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Extension** | An optional package of types and functions you enable inside one database with `CREATE EXTENSION`. |
+| **pgvector** | The extension that adds vector types, operators, functions, and indexes to Postgres. |
+| **`vector(n)`** | A fixed-length column of `n` single-precision floats. |
+| **`halfvec(n)`** | A half-precision vector column, 2 bytes per element, allowing up to 4,000 indexed dimensions. |
+| **`bit(n)`** | A binary vector, used for binary quantisation and Hamming/Jaccard distance. |
+| **`sparsevec(n)`** | A sparse vector storing only non-zero elements; up to 1,000 non-zero elements indexed. |
+| **Dimension** | How many numbers are in the vector; it must match the column's `n`. |
+| **Operator** | A SQL symbol that computes something: here, a distance. |
+| **Operator class** | The index flavour matching an operator: `vector_l2_ops`, `vector_cosine_ops`, `vector_ip_ops`. |
+| **HNSW** | A multi-layer graph index: fast queries, slower builds, more memory, no training step. |
+| **IVFFlat** | An inverted-file index built from k-means clusters; faster to build, needs existing data. |
+| **`lists`** | Number of IVF clusters. |
+| **`probes`** | How many IVF clusters a query reads. |
+| **`ef_search`** | HNSW query-time candidate-list size. Default 40. |
+| **Exact search** | With no index, pgvector scans all rows and returns perfect recall. |
+| **ACID** | Atomicity, Consistency, Isolation, Durability: transaction guarantees. |
+| **Transaction** | A group of statements that all succeed or all roll back. |
+| **MVCC** | Postgres's rule that readers see a consistent snapshot without blocking writers. |
+| **WAL** | Write-ahead log, which enables replication and point-in-time recovery. |
+| **Sequential scan** | Reading the whole table. Exact but slow. |
+| **Index scan** | Using the vector index to examine fewer rows. Approximate. |
+| **Post-filter** | Applying `WHERE` after the index scan, which can leave too few rows. |
+| **Iterative scan** | Automatically pulling more index candidates until enough rows pass the filter. |
+| **Partial index** | An index that covers only rows matching a condition. |
+| **Partition** | Splitting one logical table into physical pieces, often one per tenant. |
+| **`maintenance_work_mem`** | Memory Postgres may use for index builds. |
+| **`COPY`** | Fast bulk loading of many rows. |
+
+Four facts make the rest obvious:
+
+- **Vector search is SQL.** The distance operator appears in `ORDER BY`, so it composes with every other SQL feature.
+- **An index makes search approximate.** Without one, pgvector is exact. This is the opposite of many systems, where you must opt out of an index.
+- **The index must match the operator.** A cosine index will not serve an L2 query.
+- **Filtering happens after the ANN scan by default**, which is the source of the most common production surprise.
+
+## The core idea
+
+Think of pgvector as adding one new data type to a familiar toolbox. A `vector` column behaves like any other column: it can be `NOT NULL`, indexed, joined, filtered, and updated in a transaction. The only special part is the distance operators and the two index types.
+
+```{mermaid}
+flowchart LR
+    A["Application"] --> B["PostgreSQL"]
+    subgraph B["PostgreSQL + pgvector"]
+      T1["documents<br/>id, title, tenant_id"]
+      T2["chunks<br/>id, document_id, content,<br/>embedding vector(1536)"]
+      T1 --- T2
+      IX["HNSW index<br/>on embedding"]
+      T2 --- IX
+    end
+    B --> Q["One SQL query:<br/>JOIN plus WHERE tenant_id = 7<br/>ORDER BY cosine distance<br/>LIMIT 5"]
+```
+
+The query planner does the rest: it uses the vector index for the nearest-neighbour part and ordinary B-tree or partition pruning for the filter, then combines them. You do not write application-level merge logic.
+
+The decision between pgvector and a dedicated vector database is mostly about where your data already lives and how big it is:
+
+| Concern | pgvector | Dedicated vector database |
+| --- | --- | --- |
+| Transactions with relational data | Native | Usually not; you coordinate two stores |
+| Joins and filters | Full SQL | Limited filtering, no joins |
+| Operational cost | Reuse existing Postgres | New service, new backups, new monitoring |
+| Scale | One node (or sharding via extensions) | Built for distributed scale |
+| Index dimension cap | 2,000 (`vector`) / 4,000 (`halfvec`) | Usually higher |
+| Feature depth | HNSW, IVFFlat, quantisation helpers | Often more index types and tuning knobs |
+| Consistency on delete/permission change | Same transaction | Eventual, requires care |
+| Best when | You already run Postgres, millions of vectors | Billions of vectors, specialised needs |
+
+## How it works
+
+1. **Enable the extension once per database.** `CREATE EXTENSION vector;` adds the types, operators, and index access methods.
+2. **Create a table with a `vector(n)` column.** `n` is the embedding dimension and is enforced on every insert and update.
+3. **Insert vectors.** Pass them as text like `'[1,2,3]'`, or bind them as parameters from your client library.
+4. **Query without an index (exact).** `ORDER BY embedding <-> :q LIMIT 5` scans every row and returns perfect recall. Good for correctness checks and small tables.
+5. **Create an index for approximate search.** `USING hnsw` or `USING ivfflat`, with an operator class matching your distance function.
+6. **Use the operator the index was built for.** The planner uses the index only when the `ORDER BY` is the raw distance operator in ascending order, with a `LIMIT`.
+7. **Tune search.** HNSW uses `hnsw.ef_search`; IVFFlat uses `ivfflat.probes`. Larger values mean better recall and slower queries. Both can be set per query inside a transaction with `SET LOCAL`.
+8. **Filter and join as usual.** Add `WHERE`, `JOIN`, and `GROUP BY` around the vector query. Watch whether your filter is selective, because filtering happens after the index scan by default.
+9. **Handle selective filters.** Create a B-tree index on the filter column, use a partial index for common filter values, partition by tenant, or enable iterative index scans.
+10. **Transact.** Insert, update, and delete vectors in the same transaction as their relational rows. Replication and point-in-time recovery come from the normal WAL.
+11. **Maintain.** Refresh IVF centroids as data grows, rebuild to remove tombstones and bloat, and monitor recall by comparing index results with exact results.
+
+## The syntax you will use
+
+**Enable the extension.** One line, once per database.
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+**Create a table with a vector column.** The dimension is part of the schema.
+
+```sql
+-- `documents` is created in Example 1 below; this is a forward reference.
+CREATE TABLE chunks (
+    id          bigserial PRIMARY KEY,
+    document_id bigint NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    tenant_id   bigint NOT NULL,
+    content     text NOT NULL,
+    embedding   vector(1536) NOT NULL,
+    model_name  text NOT NULL,
+    UNIQUE (document_id, content)
+);
+```
+
+**Insert and upsert vectors.** `ON DELETE CASCADE` deletes chunks with their document in the same transaction.
+
+```sql
+INSERT INTO chunks (document_id, tenant_id, content, embedding, model_name)
+VALUES (:document_id, :tenant_id, :content, :vec, 'text-embedding-3-small@1')
+ON CONFLICT (document_id, content) DO UPDATE
+SET embedding = EXCLUDED.embedding,
+    content = EXCLUDED.content,
+    model_name = EXCLUDED.model_name;
+```
+
+**Exact nearest-neighbour query (no index).**
+
+```sql
+SELECT id, content, embedding <=> :q AS cosine_distance
+FROM chunks
+ORDER BY embedding <=> :q
+LIMIT 5;
+```
+
+**Create an HNSW index for cosine distance.**
+
+```sql
+CREATE INDEX chunks_embedding_hnsw
+ON chunks USING hnsw (embedding vector_cosine_ops)
+WITH (m = 16, ef_construction = 64);
+```
+
+pgvector's HNSW defaults are `m = 16` and `ef_construction = 64`. HNSW can be built on an empty table because it has no training step.
+
+**Create an IVFFlat index.** Build it after the table has data.
+
+```sql
+CREATE INDEX chunks_embedding_ivf
+ON chunks USING ivfflat (embedding vector_cosine_ops)
+WITH (lists = 100);
+```
+
+A common starting rule is `lists` around `rows / 1000` up to a million rows, and around `sqrt(rows)` above that.
+
+**Tune recall and latency per query.**
+
+```sql
+BEGIN;
+SET LOCAL hnsw.ef_search = 100;   -- default 40
+SET LOCAL ivfflat.probes = 10;    -- default 1
+SELECT id FROM chunks ORDER BY embedding <=> :q LIMIT 5;
+COMMIT;
+```
+
+`SET LOCAL` scopes the change to the transaction, so it cannot leak into other queries.
+
+**Filter and join in the same query.**
+
+```sql
+SELECT c.id, c.content, c.embedding <=> :q AS distance
+FROM chunks c
+JOIN documents d ON d.id = c.document_id
+WHERE c.tenant_id = :tenant
+  AND d.deleted_at IS NULL
+ORDER BY c.embedding <=> :q
+LIMIT 5;
+```
+
+**Partial index and iterative scan for common filters.**
+
+```sql
+CREATE INDEX chunks_tenant_7_hnsw ON chunks USING hnsw (embedding vector_cosine_ops)
+WHERE (tenant_id = 7);
+
+SET hnsw.iterative_scan = strict_order;
+```
+
+Iterative scans (available from pgvector 0.8.0) keep pulling candidates until enough rows pass the filter.
+
+**Keep working when dimensions exceed 2,000.** Use `halfvec` for storage and indexing, or index a `bit` quantisation.
+
+```sql
+CREATE TABLE chunks (id bigserial PRIMARY KEY, embedding halfvec(3072));
+CREATE INDEX ON chunks USING hnsw (embedding halfvec_cosine_ops);
+
+-- binary quantisation: index 1 bit per dimension, then re-rank with the real vector
+CREATE INDEX ON chunks USING hnsw ((binary_quantize(embedding)::bit(3072)) bit_hamming_ops);
+```
+
+`vector` indexes support up to 2,000 dimensions, `halfvec` up to 4,000, and `bit` up to 64,000. For larger embeddings, re-rank the shortlist with the original column.
+
+**Helper functions worth knowing.**
+
+```sql
+SELECT vector_dims(embedding) FROM chunks LIMIT 1;      -- dimension
+SELECT l2_normalize(embedding) FROM chunks;             -- unit-length vector
+SELECT subvector(embedding, 1, 512) FROM chunks;        -- first 512 dimensions
+SELECT AVG(embedding) FROM chunks;                      -- average vector
+SELECT vector_norm(embedding) FROM chunks;              -- Euclidean norm
+```
+
+**Check that the index is actually used.**
+
+```sql
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id FROM chunks ORDER BY embedding <=> :q LIMIT 5;
+```
+
+If you see `Seq Scan`, the planner chose exact search — often correct for small tables, wrong for large ones. The query needs `ORDER BY <distance operator>` and a `LIMIT` to be index-eligible.
+
+**Build large indexes without blocking writes.**
+
+```sql
+CREATE INDEX CONCURRENTLY chunks_embedding_hnsw
+ON chunks USING hnsw (embedding vector_cosine_ops);
+```
+
+`CONCURRENTLY` takes longer and cannot run inside a transaction, but it does not lock out writes for the duration.
+
+**Measure recall against exact search.**
+
+```sql
+BEGIN;
+SET LOCAL enable_indexscan = off;   -- force the exact scan
+SELECT id FROM chunks ORDER BY embedding <=> :q LIMIT 5;
+COMMIT;
+```
+
+Compare that list with the indexed result on the same query. That difference is your recall loss, and it is the only honest way to choose `ef_search` or `probes`.
+
+## Examples: simple to real
+
+**Example 1 — the schema is the design.** Vectors live next to the relational data that controls them.
+
+```sql
+CREATE TABLE documents (
+    id         bigserial PRIMARY KEY,
+    tenant_id  bigint NOT NULL,
+    title      text NOT NULL,
+    deleted_at timestamptz
+);
+
+CREATE TABLE chunks (
+    id          bigserial PRIMARY KEY,
+    document_id bigint NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    tenant_id   bigint NOT NULL,
+    content     text NOT NULL,
+    embedding   vector(1536) NOT NULL
+);
+```
+
+Because the foreign key cascades, deleting a document deletes its chunks and their vectors in one transaction. There is no second store to clean up.
+
+**Example 2 — the vector query is ordinary SQL.** Exact search, plus a readable similarity column.
+
+```sql
+SELECT
+    id,
+    1 - (embedding <=> :q) AS cosine_similarity,
+    content
+FROM chunks
+WHERE tenant_id = :tenant
+ORDER BY embedding <=> :q
+LIMIT 5;
+```
+
+`1 - (embedding <=> :q)` converts cosine distance back to cosine similarity for display. Keep the raw operator in `ORDER BY` so the index stays usable.
+
+**Example 3 — count the storage before you commit.** pgvector stores each `vector` as `4 · dimensions + 8` bytes:
+
+```text
+dim= 384  ->  1544 bytes  ->  1M rows = 1.54 GB
+dim=1536  ->  6152 bytes  ->  1M rows = 6.15 GB
+dim=3072  -> 12296 bytes  ->  1M rows = 12.30 GB
+```
+
+At 1536 dimensions, a million chunks is over six gigabytes of vectors before text, indexes, or the HNSW graph. `halfvec` halves that.
+
+**Example 4 — post-filtering quietly truncates results.** With an HNSW index and the default `hnsw.ef_search = 40`, a filter that matches 10% of rows leaves roughly `0.10 × 40 = 4` rows **on average**, even though you asked for 5:
+
+```sql
+-- if the filter matches very few rows, this can return fewer than 5
+SELECT id FROM chunks
+WHERE tenant_id = 7
+ORDER BY embedding <=> :q
+LIMIT 5;
+```
+
+Fix it by indexing the filter column, using a partial index for hot tenants, partitioning by tenant, or enabling iterative scans.
+
+**Example 5 — a partial index for a hot tenant.** Build one small index for the tenant that gets most of the traffic.
+
+```sql
+CREATE INDEX chunks_tenant_7_hnsw
+ON chunks USING hnsw (embedding vector_cosine_ops)
+WHERE (tenant_id = 7);
+```
+
+The index contains only that tenant's vectors, so the ANN scan cannot waste candidates on other tenants.
+
+**Example 6 — choosing the index type.** HNSW versus IVFFlat in practice:
+
+```text
+HNSW     build on empty table: yes   build: slower   memory: higher   query: better speed-recall
+IVFFlat  build on empty table: no    build: faster   memory: lower    query: needs enough data
+```
+
+Practical rule: default to HNSW for online serving; consider IVFFlat when build time or memory is the binding constraint, and always build IVFFlat after the table has data.
+
+## In production
+
+- **Keep vectors in the same transaction as the rows.** That is the main reason to use pgvector. Dual-writing to a separate store reintroduces the consistency bugs the extension avoids.
+- **Choose the index before you load.** A cosine index cannot serve an L2 query, and changing metric means a full rebuild. Settle metric and dimension first.
+- **Know the dimension cap.** `vector` indexes top out at 2,000 dimensions, `halfvec` at 4,000, `bit` at 64,000. A 3,072-dimension embedding needs `halfvec`, binary quantisation, subvector indexing, or reduction.
+- **Filter selectivity decides your architecture.** A filter matching 10% of rows with `ef_search = 40` leaves about 4 candidates. Index the filter column, use partial indexes, or partition by tenant.
+- **Iterate scans, do not guess.** Enable `hnsw.iterative_scan` (0.8.0+) for filtered queries, and raise `hnsw.max_scan_tuples` only when recall still lags.
+- **`NULL` and zero vectors are not indexed for cosine.** Validate embeddings before insert, or those rows silently never match.
+- **Tune `ef_search`/`probes` per query, not globally.** Use `SET LOCAL` inside the transaction so a heavy query cannot raise latency for everyone.
+- **Give HNSW builds enough `maintenance_work_mem`.** When the graph no longer fits, Postgres warns and the build slows dramatically. Also remember parallel workers help.
+- **Create indexes `CONCURRENTLY` in production.** A plain `CREATE INDEX` blocks writes for the whole build on a busy table.
+- **Plan for tombstone bloat.** Updates and deletes leave dead tuples; HNSW vacuuming can be slow, so `REINDEX CONCURRENTLY` then `VACUUM` on a schedule.
+- **Verify with `EXPLAIN (ANALYZE, BUFFERS)`.** Do not assume the planner used the index; small tables are often faster with a sequential scan.
+- **Reuse Postgres operations.** The same backups, replication, point-in-time recovery, and monitoring apply to vectors, which is a large hidden saving.
+
+## Interview questions
+
+### 1. What is pgvector, and why use it instead of a dedicated vector database?
+
+**Answer.** pgvector is a Postgres extension that adds vector columns, distance operators, and HNSW/IVFFlat indexes. You would use it because vectors then live with your relational data, so filters, joins, permissions, and deletes happen in one transactional query. A dedicated vector database scales further and offers more index tuning, but you pay with a second system to operate and keep consistent. pgvector is the right default when you already run Postgres and have millions, not billions, of vectors.
+
+**Follow-up: "When would you not use it?"** When you need distributed sharding across very large corpora, or features Postgres does not offer, or when vector traffic would starve the transactional workload on the same instance.
+
+**Trap.** Calling it "a vector database". It is a Postgres extension; that is exactly its strength and its limit.
+
+### 2. What do the three distance operators mean?
+
+**Answer.** `<->` is Euclidean (L2) distance, `<=>` is cosine distance (`1 - cosine similarity`), and `<#>` is the negative inner product. There are also `<+>` for L1, and `<~>`/`<%>` for Hamming and Jaccard on binary vectors. All are used with ascending `ORDER BY`, because Postgres index scans on operators only support ascending order.
+
+**Follow-up: "How do you get the cosine similarity?"** `1 - (embedding <=> :q)`. For inner product, `(embedding <#> :q) * -1`. Do the conversion outside `ORDER BY` so the index still applies.
+
+**Trap.** Writing `ORDER BY (embedding <#> :q) * -1 DESC`. That is an expression, so the planner cannot use the vector index.
+
+### 3. What is the difference between HNSW and IVFFlat in pgvector?
+
+**Answer.** HNSW builds a multi-layer graph. It gives a better speed-recall trade-off and can be built on an empty table, but builds are slower and use more memory. IVFFlat clusters vectors into lists and probes only some of them; it builds faster and uses less memory, but its recall depends on having enough rows at build time and on choosing `lists` and `probes` well.
+
+**Follow-up: "Which do you pick?"** HNSW for online serving by default. IVFFlat when build time or memory is the constraint, and then you must build it after loading data and tune `lists`/`probes`.
+
+**Trap.** Forgetting that IVFFlat needs existing data. An empty table produces meaningless centroids and poor recall.
+
+### 4. Why does adding a vector index sometimes return fewer results than expected?
+
+**Answer.** The index is approximate, so the candidate list limits how many rows are examined: `hnsw.ef_search` defaults to 40 and `ivfflat.probes` defaults to 1. With a `WHERE` filter, filtering is applied after the index scan, so a selective filter can leave only a handful of rows. Deleted tuples and unindexed zero or null vectors also reduce results.
+
+**Follow-up: "How do you fix it?"** Raise `ef_search` or `probes`, enable iterative index scans, index the filter column, use partial or partitioned indexes, and rebuild to remove dead tuples.
+
+**Trap.** Assuming a missing result means a bug. This behaviour is documented and expected; it is the price of approximation.
+
+### 5. How do you make filtered vector search fast and correct?
+
+**Answer.** Start by indexing the filter column so the filter is cheap. For a filter that matches a small fraction of rows, an exact search with that index may beat the ANN index. For common filter values, build a partial index containing only those rows. For many tenants, partition the table by tenant. Finally, enable iterative index scans so the planner can keep pulling candidates until enough pass the filter.
+
+**Follow-up: "Why can pre-filtering be bad?"** Pre-filtering can restrict the graph traversal so the ANN search never reaches the good neighbourhood, and it may prevent the vector index from being used at all. That is why stores offer iterative scans as a middle path.
+
+**Trap.** Assuming the vector index alone handles selective filters. A shared index plus a selective filter is the classic RAG latency and recall bug.
+
+### 6. How do transactions and consistency work with vectors in Postgres?
+
+**Answer.** Vectors are ordinary rows, so they participate in MVCC and ACID transactions. An insert, update, or delete of a chunk and its embedding happens atomically. Deletes cascade, so removing a document removes its vectors. The write-ahead log gives replication and point-in-time recovery, so a standby and a backup contain the vectors too.
+
+**Follow-up: "What is the risk?"** Long transactions and large index builds hold resources. Build indexes concurrently, keep transactions short, and remember that updates create dead tuples that need vacuuming.
+
+**Trap.** Believing vectors need special durability handling. They are columns, and they inherit Postgres's guarantees.
+
+### 7. What are pgvector's dimension limits, and how do you work around them?
+
+**Answer.** The `vector` type stores up to 16,000 dimensions, but indexes support only 2,000 for `vector`, 4,000 for `halfvec`, 64,000 for `bit`, and 1,000 non-zero elements for `sparsevec`. For a 3,072-dimension model you can store the full `vector` but index a `halfvec` cast, index a binary quantisation with re-ranking, index a `subvector` prefix, or reduce dimensionality.
+
+**Follow-up: "What does re-ranking cost?"** A second pass over the shortlist using the full-precision column. It is cheap relative to a full scan and recovers most of the accuracy lost to quantisation.
+
+**Trap.** Creating a `vector(3072)` HNSW index and being surprised it fails. You must cast to `halfvec` or reduce dimensions first.
+
+### 8. How would you tune pgvector for production?
+
+**Answer.** Pick the metric and index type up front, build indexes concurrently, and set `maintenance_work_mem` high enough for the graph build. Tune `hnsw.ef_search` or `ivfflat.probes` per query with `SET LOCAL` until recall hits your target on a labelled set. Index filter columns, add partial or partitioned indexes for hot tenants, and enable iterative scans where filters are selective. Monitor with `EXPLAIN (ANALYZE, BUFFERS)`, `pg_stat_statements`, and periodic exact-versus-index recall checks. Schedule vacuuming and reindexing to manage bloat.
+
+**Follow-up: "How do you know recall is good enough?"** Measure it against exact search on real queries and tie the target to downstream answer quality, not to a number copied from a blog.
+
+**Trap.** Tuning `ef_search` globally and calling it done. Different queries and filters need different candidate budgets.
+
+## Remember this
+
+- pgvector makes vectors **ordinary Postgres rows**: filters, joins, transactions, and deletes all compose with vector search.
+- Operators: `<->` L2, `<=>` cosine distance, `<#>` negative inner product; each needs its **matching operator class**.
+- **HNSW** is the default choice for online search; **IVFFlat** builds faster but needs data and careful `lists`/`probes`.
+- **Filtering happens after the ANN scan**, so a selective filter with `ef_search = 40` can leave only about 4 candidates; fix with indexes, partitions, or iterative scans.
+- Index dimension caps: **2,000 (`vector`) and 4,000 (`halfvec`)** — store larger embeddings and index a cast or quantisation.
+

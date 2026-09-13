@@ -1,0 +1,431 @@
+---
+title: "Document Ingestion and Parsing"
+---
+
+> **Interview answer (say this first).** Ingestion is the offline pipeline that turns raw files into clean text plus metadata. A PDF is not text, a DOCX is a zip of XML, and an HTML page is mostly navigation and ads. If parsing is wrong, every later stage is wrong, because retrieval can only find text that was actually extracted.
+
+## Why this exists
+
+A RAG system has one rule that survives every design choice: **you cannot retrieve what you never indexed.**
+
+Consider a realistic first attempt. Someone points the pipeline at a folder of PDFs, runs `PdfReader(path).pages[i].extract_text()` on each page, and stores the result. Then a user asks a question whose answer is on page 40 of a scanned contract. The retrieval returns nothing useful, so the model hallucinates. The team spends a week tuning the embedding model and rewriting the prompt. The real bug was three stages earlier: the PDF had no text layer, and the parser returned an empty string.
+
+Parsing failures are common and quiet:
+
+```text
+Source: contract-scan.pdf
+pypdf extraction: ''            # not an error, just empty text
+Indexed chunks:    0
+Answer quality:    the model invents terms from the contract
+```
+
+Now a different file, where the parse succeeds but the text is quietly damaged:
+
+```text
+Raw PDF line:      "The vendor shall indem-
+                    nify the client for all claims."
+Naive extraction:  "The vendor shall indem-\nnify the client for all claims."
+Chunk boundary:    "...shall indem-" | "nify the client..."
+Problem:           the word "indemnify" exists in no chunk
+```
+
+The bytes were extracted. The meaning was destroyed. This is why ingestion is a real engineering stage and not a helper function.
+
+Ingestion exists to convert a messy, format-specific file into a uniform record:
+
+```text
+clean text + metadata + a stable identity
+```
+
+Everything after it — chunking, embedding, retrieval, generation — assumes that record is correct.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Ingestion** | The full offline path from raw file to indexed chunks. |
+| **Parser** | Code that reads a file format and returns text (and sometimes structure). |
+| **Text layer** | Real, selectable text stored inside a PDF. A scanned PDF has none. |
+| **OCR** | Optical character recognition: guessing text from an image of text. |
+| **Boilerplate** | Repeated page furniture: navigation, headers, footers, cookie banners. |
+| **Normalisation** | Rewriting text into one consistent form (unicode, whitespace, line breaks). |
+| **Unicode normalisation** | Two strings that look identical often have different code points. NFKC makes them comparable. |
+| **Hyphenation** | A word split across lines with a hyphen, common in PDFs and newspapers. |
+| **Deduplication** | Removing identical or near-identical documents and chunks. |
+| **Content hash** | A short fingerprint of a document's normalised text, used to detect change. |
+| **Metadata** | Data about the chunk: source, title, section, page, date, tenant, permissions. |
+| **Idempotent** | Running it twice has the same effect as running it once. Ingestion must be idempotent. |
+| **Incremental update** | Re-indexing only the documents that changed, not the whole corpus. |
+| **Poison document** | A document that breaks the pipeline or pollutes retrieval, such as a huge dump or a template. |
+
+Three words are worth separating now:
+
+- **Extraction vs normalisation.** Extraction gets the characters out. Normalisation makes them consistent. A parser can extract perfectly and still leave text that chunks badly.
+- **Structure vs text.** A DOCX table or a PDF heading is structure. Flattening everything to one string loses it, and structure is often what makes a good chunk.
+- **Change vs identity.** You need a stable ID per document and a content hash per version, so you know what to update and when.
+
+## The core idea
+
+Think of a **photocopying room** in a library. An operator receives boxes of material: printed books, handwritten notes, web printouts, spreadsheets. For each box, they choose the right machine, copy the pages, straighten the images, remove the library's own stamps, and file the result under a stable catalogue number. If the operator copies a page upside down, the catalogue is wrong forever.
+
+Ingestion is that room. The pipeline is a set of format-specific extractors feeding one shared normaliser:
+
+```{mermaid}
+flowchart TD
+    A["Raw files<br/>PDF, DOCX, HTML, TXT, MD"] --> B["Detect type"]
+    B -->|PDF| C1["pypdf / pdfplumber"]
+    B -->|DOCX| C2["python-docx"]
+    B -->|HTML| C3["BeautifulSoup / readability"]
+    B -->|TXT / MD| C4["read bytes, decode"]
+    C1 --> D["Text + structure"]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+    D --> E["Normalise<br/>unicode, whitespace, hyphenation, headers"]
+    E --> F["Deduplicate<br/>hash and near-duplicate check"]
+    F --> G["Attach metadata<br/>source, title, page, date, tenant, ACL"]
+    G --> H["Chunk and index"]
+    C1 -.->|"empty text"| X["Needs OCR"]
+    X --> D
+```
+
+Each format has one dominant failure mode. Knowing this table is most of the interview:
+
+| Format | Primary parser | What usually goes wrong |
+| --- | --- | --- |
+| PDF with a text layer | `pypdf`, `pdfplumber` | Reading order, hyphenation, columns merged |
+| Scanned PDF / image | OCR engine | Slow, noisy, expensive; needs a detector first |
+| DOCX | `python-docx` | Tables, headers, footers, and text boxes are separate from paragraphs |
+| HTML | `BeautifulSoup` + `readability` | Navigation and ads dominate the text |
+| Plain text / Markdown | bytes + decode | Wrong encoding, no structure |
+
+## How it works
+
+1. **Detect the format.** Never trust the extension alone. Check the magic bytes, the few signature bytes at the start of a file: PDF starts with `%PDF`, DOCX is a ZIP archive (`PK`), and HTML usually starts with `<`. A file named `.pdf` can be a text file, and a scanned PDF is still a PDF.
+2. **Route to a format-specific extractor.** One function per format, all returning the same `Document` shape: text, structure hints, and per-page boundaries.
+3. **Detect whether a PDF has a text layer.** Extract page one, strip whitespace, and check if the result is empty. If it is empty, the PDF is almost certainly a scan and needs OCR.
+4. **Extract text page by page.** Keep page numbers as you go, because page is valuable metadata for citations and debugging.
+5. **Preserve structure where it exists.** DOCX headings and tables, HTML headings, and Markdown `#` levels become metadata that later stages can chunk on.
+6. **Join the pieces carefully.** PDF text arrives in visual lines. Join hyphenated line breaks, join lines that are one paragraph, and keep real paragraph breaks.
+7. **Normalise unicode.** Apply NFKC so that full-width characters, ligatures, and compatibility forms become one canonical form.
+8. **Normalise whitespace.** Collapse runs of spaces, tabs, and newlines; strip leading and trailing space; remove zero-width characters.
+9. **Remove boilerplate.** Detect repeated headers and footers by comparing lines across pages, and strip HTML navigation, scripts, and styles before reading text.
+10. **Deduplicate.** Compute a content hash of the normalised text. Skip exact duplicates; flag near-duplicates for review.
+11. **Attach metadata and a stable ID.** Source path, title, section, page, author, date, tenant, and access-control tags travel with the text.
+12. **Write to the index idempotently.** Upsert by a deterministic chunk ID so that re-running ingestion replaces rows instead of duplicating them.
+13. **Handle failure explicitly.** Log which files failed and why, quarantine poison documents, and never let one bad file abort the whole batch.
+
+## The syntax you will use
+
+**Extract a PDF page by page with pypdf.** `extract_text()` returns a string per page; keep the page number.
+
+```python
+from pypdf import PdfReader
+
+reader = PdfReader("report.pdf")
+pages = [(i, page.extract_text() or "") for i, page in enumerate(reader.pages)]
+```
+
+**Extract with pdfplumber when layout matters.** pdfplumber exposes words, tables, and coordinates, which pypdf does not.
+
+```python
+import pdfplumber
+
+with pdfplumber.open("report.pdf") as pdf:
+    for i, page in enumerate(pdf.pages):
+        text = page.extract_text(layout=True)   # keeps columns roughly in place
+        tables = page.extract_tables()           # rows and cells, if rules exist
+```
+
+**Detect a scanned PDF.** Empty text is the signal that you need OCR, not a retry.
+
+```python
+def needs_ocr(reader: PdfReader) -> bool:
+    first = reader.pages[0].extract_text() or ""
+    return len(first.strip()) < 20          # a scan extracts almost nothing
+```
+
+**OCR fallback (needs an external engine).** The Python library only wraps a binary such as `tesseract`. Render the page to an image, then read it.
+
+```python
+from pdf2image import convert_from_path
+import pytesseract
+
+def ocr_pdf(path: str) -> list[str]:
+    images = convert_from_path(path, dpi=300)
+    return [pytesseract.image_to_string(img) for img in images]
+```
+
+OCR is a last resort: it is slow, costs money if hosted, and introduces character errors.
+
+**Extract DOCX paragraphs, styles, and tables.** `python-docx` keeps headings and tables as separate objects, so you must walk both.
+
+```python
+from docx import Document
+
+doc = Document("handbook.docx")
+for p in doc.paragraphs:
+    print(p.style.name, p.text)        # "Heading 1", "Normal", ...
+for table in doc.tables:
+    for row in table.rows:
+        print([cell.text for cell in row.cells])
+```
+
+Paragraphs alone are not enough: a table is not a paragraph, and `doc.paragraphs` never sees it.
+
+**Read HTML and strip boilerplate first.** Removing `script`, `style`, `nav`, `header`, and `footer` before reading text removes most junk.
+
+```python
+from bs4 import BeautifulSoup
+
+soup = BeautifulSoup(html, "html.parser")
+for tag in soup(["script", "style", "nav", "footer", "header"]):
+    tag.decompose()
+text = soup.get_text(" ", strip=True)
+```
+
+**Extract the main article with readability.** When the boilerplate is unpredictable, readability scores blocks and returns the main content region.
+
+```python
+from readability import Document as ReadabilityDocument
+from bs4 import BeautifulSoup
+
+article = ReadabilityDocument(html)
+main_text = BeautifulSoup(article.summary(), "html.parser").get_text(" ", strip=True)
+```
+
+**Normalise unicode with NFKC.** This turns full-width letters, ligatures, and compatibility characters into one canonical form.
+
+```python
+import unicodedata
+
+text = unicodedata.normalize("NFKC", raw_text)
+```
+
+**Collapse whitespace and remove zero-width characters.** One regex handles spaces, tabs, and newlines.
+
+```python
+import re
+
+text = re.sub(r"[\u00ad\u200b-\u200d\ufeff]", "", text)   # soft hyphen, zero-width and BOM
+text = re.sub(r"\s+", " ", text).strip()
+```
+
+**Repair hyphenated line breaks.** Join a hyphen at the end of a line to the word that follows.
+
+```python
+text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)   # "indem-\nnify" -> "indemnify"
+```
+
+This rule cannot tell a soft hyphen from a real one, so it also rejoins legitimately hyphenated compounds that happen to break at a line wrap: `"well-\nknown"` becomes `"wellknown"`. Only apply it when the token after the break starts lowercase, or check the result against a dictionary.
+
+**Detect repeated headers and footers.** Count identical short lines across pages; the frequent ones are page furniture, not content.
+
+```python
+from collections import Counter
+
+def strip_repeated_lines(pages: list[str], min_pages: int = 3) -> list[str]:
+    counts = Counter(line.strip() for p in pages for line in p.splitlines() if line.strip())
+    repeated = {line for line, n in counts.items() if n >= min_pages and len(line) < 120}
+    return ["\n".join(l for l in p.splitlines() if l.strip() not in repeated) for p in pages]
+```
+
+**Fingerprint a document for deduplication.** Hash the normalised text, so cosmetic changes do not count as new content.
+
+```python
+import hashlib
+
+def fingerprint(text: str) -> str:
+    normalised = re.sub(r"\s+", " ", text.lower()).strip()
+    return hashlib.sha256(normalised.encode("utf-8")).hexdigest()[:16]
+```
+
+**Decide what to do on re-ingestion.** Compare the stored hash with the new one.
+
+```python
+def reindex_action(old_hash: str | None, new_hash: str) -> str:
+    if old_hash is None:
+        return "insert"
+    return "skip" if old_hash == new_hash else "reindex"
+```
+
+## Examples: simple to real
+
+**Example 1 — a PDF with a text layer extracts cleanly.** Build a two-page PDF and read it back. Page boundaries are preserved.
+
+```python
+from pypdf import PdfReader
+
+reader = PdfReader("report.pdf")
+print(len(reader.pages))                       # 2
+print(reader.pages[0].extract_text())
+```
+
+```text
+Quarterly Report 2026
+Revenue grew by 14 percent in the second quarter. The main driver was new enterprise contracts.
+Churn stayed flat at 2.1 percent.
+```
+
+pdfplumber returns the same text for this simple file, which is why either library is a fine start. The difference appears with columns, tables, and coordinates.
+
+**Example 2 — a scanned PDF extracts as empty.** The same code on an image-only PDF returns nothing. No exception is raised, which is the danger.
+
+```python
+reader = PdfReader("scan.pdf")
+print(repr(reader.pages[0].extract_text()))
+```
+
+```text
+''
+```
+
+This is the single most useful detection signal in ingestion. `needs_ocr()` exists precisely to catch it, because silence here becomes a hallucination later.
+
+**Example 3 — tables need a table-aware parser.** Build a ruled table, then compare plain text with `extract_tables()`.
+
+```text
+extract_text()   -> 'Quarter Revenue\nQ1 1200\nQ2 1370'
+extract_tables() -> [['Quarter', 'Revenue'], ['Q1', '1200'], ['Q2', '1370']]
+```
+
+The plain text is flattened and loses the column relationship. If you need to answer "what was Q2 revenue?", the table form is what lets you keep `Quarter=Q2` with `Revenue=1370` as metadata.
+
+**Example 4 — HTML boilerplate changes the meaning.** The naive text includes navigation and a cookie-style footer; the cleaned text is the article.
+
+```text
+naive: 'Pricing Home Pricing Pricing Pro plan The Pro plan costs $49 per seat per month.
+        It includes SSO and audit logs. Copyright 2026 Example Inc. All rights reserved.'
+clean: 'Pricing Pro plan The Pro plan costs $49 per seat per month.
+        It includes SSO and audit logs.'
+```
+
+If the footer repeats on every page, a naive ingestion adds it to hundreds of chunks, and "Copyright 2026 Example Inc." starts to look like relevant content. readability isolates the main content region here, but it does not guarantee boilerplate removal — it can still keep footers — and it is more useful when the page structure is messier.
+
+**Example 5 — normalisation in action.** These are real NFKC transformations:
+
+```text
+'ＡＢＣ'      -> 'ABC'        full-width letters
+'ofﬁce'      -> 'office'      ﬁ ligature
+'Volume Ⅻ'   -> 'Volume XII'  Roman numeral
+'x²'         -> 'x2'          superscript
+'①'          -> '1'           circled digit
+'5 µg'       -> '5 μg'        micro sign to Greek mu
+'a\u202fb'   -> 'a b'         narrow no-break space
+```
+
+Two important non-changes: NFKC does **not** remove a soft hyphen (`co\u00adoperate` stays as is), and it does **not** convert curly apostrophes or en dashes. Strip soft hyphens and normalise quotes yourself if your corpus has them.
+
+**Example 6 — a full normalisation pass.** Start with a messy page and end with clean, comparable text.
+
+```python
+messy = "The na\u00efve caf\u00e9 menu \u2013 costs \u20ac5."
+unicodedata.normalize("NFKC", messy)          # unchanged for this string
+
+soft = "pricing\u00a0policy\twith   odd\n\nwhitespace"
+re.sub(r"\s+", " ", soft).strip()              # 'pricing policy with odd whitespace'
+
+hyphen = "This informa-\ntion was split across a line break."
+re.sub(r"(\w)-\n(\w)", r"\1\2", hyphen)        # 'This information was split across a line break.'
+```
+
+**Example 7 — deduplication and incremental updates.** Two cosmetically different strings produce the same fingerprint, and the update rule is a pure function.
+
+```text
+fingerprint("The Pro plan costs $49 per seat per month.")  -> 5c67ae5661291d49
+fingerprint("the   pro plan costs $49 per seat   per month.\n") -> 5c67ae5661291d49
+duplicates? True
+
+reindex_action(None,  "abc") -> "insert"
+reindex_action("abc", "abc") -> "skip"
+reindex_action("abc", "def") -> "reindex"
+```
+
+## In production
+
+- **Never trust the file extension.** Check magic bytes. A renamed file, a CSV saved as `.xls`, or a ZIP-based DOCX will all route to the wrong parser and fail in a confusing way.
+- **Always run the empty-text check on PDFs.** A scan and a text PDF both parse without error. Only the empty result tells you which is which. Log the fraction of empty pages as a pipeline health metric.
+- **Prefer pdfplumber when layout or tables matter.** pypdf is fast and simple; pdfplumber gives words, coordinates, and tables. Use both: pypdf for a quick pass, pdfplumber where structure is needed.
+- **Keep page numbers.** They cost nothing at ingest time and are the difference between "this is in the handbook" and "this is on page 12." Citations and debugging both depend on them.
+- **Preserve structure as metadata.** A heading level, a section title, and a table row are inputs to chunking. Flattening to one string throws away the best chunk boundaries.
+- **Treat OCR as a separate, expensive lane.** Detect it, route it, and measure it. Do not let a slow scanned document hold up a batch of clean text files. Watch OCR cost and character error rate.
+- **Fix hyphenation before chunking.** A hyphenated break inside a chunk boundary destroys the word. This is one of the most common silent quality bugs in PDF pipelines.
+- **Remove boilerplate globally, not per page.** A footer appears once per page; you can only identify it by comparing pages. Per-page regexes will miss it.
+- **Hash the normalised text, not the raw bytes.** Raw-byte hashes change on metadata-only differences and cause pointless re-embedding. A normalised content hash catches real changes.
+- **Make ingestion idempotent with deterministic IDs.** Use `document_id:chunk_index` or a hash of the chunk text. Re-running a batch must overwrite, not duplicate, or your index slowly fills with copies.
+- **Quarantine poison documents.** Huge log dumps, spreadsheets with a million rows, and templates full of placeholders can flood the index. Cap document size, cap chunks per document, and review outliers.
+- **Log extraction quality, not just success.** Record extracted characters per page, empty-page ratio, table count, and OCR usage. "Success" with 0 characters is a failure that reports itself as a success.
+
+## Interview questions
+
+### 1. Why is ingestion a critical stage in RAG?
+
+**Answer.** Because retrieval can only find text that was extracted. Parsing errors are permanent: a missing page, a flattened table, or a broken word never reaches the index, so no chunking or embedding fix can recover it. Ingestion also decides the metadata that enables citations, filtering, and permissions.
+
+**Follow-up: "How do you measure it?"** Track extracted characters per page, empty-page ratio, table counts, OCR rate, and chunk counts per document. A sudden drop in characters per page usually points to a parser or format change.
+
+**Trap.** Treating ingestion as plumbing. It is the stage with the highest ratio of silent, permanent damage to code written.
+
+### 2. How do you handle a scanned PDF?
+
+**Answer.** First detect it: extract text from page one and check whether the result is empty. If it is, route the file to OCR. Render pages at around 300 DPI (dots per inch, which here means image resolution), run an OCR engine such as Tesseract, then normalise the output and treat it as lower-confidence text. Keep the original PDF path as the source and record that OCR was used.
+
+**Follow-up: "What are the trade-offs?"** OCR is slow and costly, introduces character errors, and struggles with tables and handwriting. Prefer a native text layer whenever one exists, and only OCR the pages that need it.
+
+**Trap.** Assuming `extract_text()` raising means failure. It usually returns an empty string instead, so a pipeline that only catches exceptions indexes empty documents.
+
+### 3. What is the difference between pypdf and pdfplumber?
+
+**Answer.** pypdf is a general PDF library with fast, simple text extraction. pdfplumber exposes the layout: words with coordinates, lines, rectangles, and table extraction. Use pypdf for a quick text pass and pdfplumber when you need tables, columns, or layout-aware reading order.
+
+**Follow-up: "Why does reading order matter?"** PDFs store placed glyphs, not paragraphs. Two-column pages can interleave lines from different columns, so the extracted text mixes unrelated sentences. A layout-aware parser reconstructs columns better.
+
+**Trap.** Believing text extraction is exact. Both libraries guess from glyph positions; neither is a perfect conversion of a visual page to a linear document.
+
+### 4. How do you parse DOCX correctly?
+
+**Answer.** Use `python-docx`. Walk `document.paragraphs` for text and `paragraph.style.name` for headings, and walk `document.tables` separately, because tables are not paragraphs. Also check section headers and footers, and remember that text boxes and images are not included.
+
+**Follow-up: "Why not run it through a PDF converter?"** You lose the structure that makes DOCX useful. Keeping headings and tables as metadata gives chunking natural boundaries and lets a table stay intact.
+
+**Trap.** Reading only `doc.paragraphs`. Any content in a table or a header silently disappears.
+
+### 5. What normalisation does a text corpus need?
+
+**Answer.** Four kinds. Unicode normalisation (NFKC) so visually identical text compares equal. Whitespace normalisation so line-wrapping differences disappear. Hyphenation repair so words split across lines are rejoined. Boilerplate removal so repeated headers, footers, and navigation do not pollute chunks.
+
+**Follow-up: "What does NFKC not fix?"** It does not remove soft hyphens, does not convert curly quotes or en dashes, and does not fix OCR errors. Those need explicit handling or a spell-check pass.
+
+**Trap.** Over-normalising. Lowercasing everything, stripping all punctuation, or removing all newlines destroys identifiers, code, and sentence boundaries that retrieval depends on.
+
+### 6. How do you keep ingestion incremental?
+
+**Answer.** Give each document a stable ID and store a content hash of its normalised text. On the next run, compare hashes: if the hash is unchanged, skip; if it changed, delete and re-index that document's chunks; if the document is new, insert. That turns a full rebuild into work proportional to what changed.
+
+**Follow-up: "What if only the metadata changed?"** Metadata-only changes still require an update, but not re-embedding, because the text is unchanged. Separate the text hash from the metadata version so you can update one without the other.
+
+**Trap.** Hashing raw bytes. A file re-saved with a new timestamp looks changed and triggers a full re-embed for no reason.
+
+### 7. How do you handle tables in a document?
+
+**Answer.** Detect them with a table-aware parser (`pdfplumber.extract_tables()` for PDFs, `document.tables` for DOCX), then convert each row to a self-contained text record. Repeat the header in every row, or serialise the row as key-value pairs, so a chunk never loses the column meaning.
+
+**Follow-up: "Why not keep the table as an image?"** Some systems summarise tables with a model at ingest time. That is useful for complex tables but adds cost and a model dependency. The safer default is text serialisation with repeated headers.
+
+**Trap.** Flattening a table to plain text. `Q1 1200` loses which number is the quarter and which is the revenue, and retrieval cannot recover the pairing.
+
+### 8. How do you handle a document that fails to parse?
+
+**Answer.** Catch the error per document, log the file, format, and reason, and quarantine the file instead of aborting the batch. Emit a metric so someone notices. Never index partial garbage silently: a half-parsed document is worse than a missing one because it looks valid.
+
+**Follow-up: "What do you do about a file that is huge?"** Cap document size and chunks per document, and route oversized files for review. A million-row CSV or a log dump can dominate the index and drown out real content.
+
+**Trap.** Retrying a parse failure blindly. A malformed file usually stays malformed; retries burn budget and hide the real signal.
+
+## Remember this
+
+- **You cannot retrieve what you never extracted.** Parsing quality is a permanent ceiling on RAG quality.
+- **PDFs are text *or* images.** Empty extraction means a scan, and a scan needs OCR detection and routing.
+- **DOCX needs paragraphs *and* tables**, and HTML needs boilerplate removal before text extraction.
+- **Normalise before you hash or chunk:** NFKC, whitespace, hyphenation, and repeated headers.
+- **Idempotent ingestion:** stable IDs, normalised content hashes, and skip/reindex decisions.

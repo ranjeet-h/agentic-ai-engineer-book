@@ -1,0 +1,356 @@
+---
+title: "Vector Databases and ANN Indexes"
+---
+
+> **Interview answer (say this first).** Exact search compares the query to every stored vector and gives perfect recall, but it costs `O(N · D)` per query and does not scale. **Approximate nearest neighbour (ANN)** indexes trade a little recall for a large speed gain. The three shapes you must know are **flat** (exact, no index), **IVF** (cluster the vectors into lists and probe only the closest few), and **HNSW** (a multi-layer graph you navigate greedily). IVF is tuned with `lists`/`probes`; HNSW with `M`, `ef_construction`, and `ef_search`.
+
+## Why this exists
+
+Suppose you have ten million chunks, each embedded at 1536 dimensions. A single query compares against every vector:
+
+```text
+10,000,000 vectors × 1536 dimensions ≈ 15.4 billion multiply-adds per query
+```
+
+On a modern CPU that is roughly a second or more per query, before any network or LLM time. At 20 queries per second it is impossible. The same math in fp32 also holds about 61 GB of vectors in memory.
+
+You cannot make the arithmetic disappear. You can avoid doing all of it. That is the entire job of a **vector index**: find most of the true nearest neighbours while looking at a small fraction of the data.
+
+There is a second, sneakier problem: **recall**. An approximate index sometimes misses a true neighbour. If the missed neighbour was the one chunk containing the answer, the LLM never sees it and the answer is wrong — but the system reported success. So ANN is not a pure optimisation; it is an accuracy trade you must measure.
+
+Concrete failure: a team enables an HNSW index, sees query latency drop from 900 ms to 8 ms, and ships. They never measure recall. Their labelled evaluation set later shows that 15% of the time the correct chunk is no longer in the top 5, purely from the index's default `ef_search`.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Exact search / brute force** | Compare the query to every vector. Perfect recall, linear cost. |
+| **ANN** | Approximate nearest neighbour: look at a subset and accept a small chance of missing a true neighbour. |
+| **Recall@k** | Of the true top `k`, what fraction did the index return? `0.95` means it found 95%. |
+| **Latency** | Wall-clock time for one query. The number users feel. |
+| **Throughput** | Queries per second the system can serve. |
+| **Index** | A data structure that avoids scanning every vector. |
+| **Flat index** | No approximation; stores vectors for a fast vectorised scan. Exact but linear. |
+| **IVF** | Inverted file: cluster vectors into `lists`; at query time scan only the nearest `probes`. |
+| **Centroid** | The centre of a cluster. |
+| **Probe** | One of the closest lists that IVF reads during a search. |
+| **HNSW** | Hierarchical Navigable Small World: a multi-layer graph searched greedily. |
+| **M** | Max graph connections per node in HNSW. Controls memory and connectivity. |
+| **ef_construction** | Candidate-list size while building the HNSW graph. Higher is better and slower to build. |
+| **ef_search** | Candidate-list size while querying HNSW. Higher is better recall and slower. |
+| **Quantisation** | Storing vectors in fewer bits (fp16, int8, binary) or as compressed codes (PQ). |
+| **PQ** | Product quantisation: split the vector into sub-vectors and store a short code for each. |
+| **Build time** | Time to construct or train the index. It scales with `N`. |
+| **Tombstone** | A deleted marker. Many ANN indexes cannot truly remove a node, so they mark and skip it. |
+| **Rebuild** | Reconstructing the index from current data to remove tombstones and re-cluster. |
+| **Pre-filter / post-filter** | Apply metadata filters before or after the vector search. Both have failure modes. |
+| **Recall/latency/memory trade-off** | Improving one usually costs another. The core ANN conversation. |
+
+Three facts to internalise:
+
+- **Exact search is the ground truth.** Every recall number is measured against it.
+- **The index changes the answer.** Results with and without an ANN index can legitimately differ.
+- **Every ANN parameter moves a three-way dial:** recall, latency, memory.
+
+## The core idea
+
+Imagine a library. Exact search is walking every shelf and reading every book. A vector index is the card catalog: it tells you which shelf to visit, so you read a handful of books instead of all of them.
+
+**IVF** builds that catalog by clustering. Ten thousand books become fifty sections. A query first finds the closest few section centres, then reads only those sections. Fewer sections read means faster but more risk of missing a relevant book that was filed next door.
+
+**HNSW** builds a different structure: a graph with shortcuts. The top layer is a highway with a few stops. The middle layer has more. The bottom layer connects every node to its nearest neighbours. Search starts at the top, moves to a close-enough node, drops a layer, and repeats. It is the same trick as a skip list, applied to nearest-neighbour search.
+
+```{mermaid}
+flowchart TD
+    subgraph HNSW["HNSW: layered graph"]
+      L2["Layer 2 (sparse highway)"] --> L1["Layer 1"]
+      L1 --> L0["Layer 0 (all vectors, dense links)"]
+    end
+    Q["Query vector"] --> E["Enter at top layer"]
+    E --> G["Greedy walk toward closer nodes"]
+    G --> D["Drop a layer, repeat"]
+    D --> K["Collect top-k from layer 0"]
+```
+
+Here is the comparison that matters in interviews:
+
+| | Flat (exact) | IVF | HNSW |
+| --- | --- | --- | --- |
+| Recall | 100% | Tunable (`probes`) | Tunable (`ef_search`) |
+| Query speed | Slowest, linear | Fast | Fastest for a given recall |
+| Build | Instant | Fast, needs training data | Slow, high memory |
+| Memory | Vectors only | Vectors + small centroids | Vectors + graph links |
+| Insert/update | Trivial | Easy | Incremental, but costly at scale |
+| Delete | Trivial | Trivial | Tombstone, needs rebuild to reclaim |
+| Best for | Small corpora, ground truth | Huge, memory-limited, batch-built | Low-latency production search |
+| Filters | Easy and exact | Pre-filter can break the index | Post-filter can lose results |
+
+## How it works
+
+1. **Fix the metric and dimension.** The index is built for one distance function and one dimension. Changing either means rebuilding.
+2. **Flat search.** Compute the distance from the query to every vector, keep the best `k`. Perfect recall, `O(N·D)` cost. Vectorised libraries still make this usable up to roughly a million vectors.
+3. **IVF training.** Run k-means on a sample of the data to produce `lists` centroids.
+4. **IVF assignment.** Assign every vector to its nearest centroid. The inverted lists store the vector IDs in each cluster.
+5. **IVF search.** Compute distance to all centroids, pick the `nprobe` nearest, and scan only those lists. More probes means more recall and more work.
+6. **HNSW build.** Insert vectors one at a time. For each new node, descend the layers greedily to find an entry point, then connect the node to its `M` nearest neighbours, keeping a candidate list of size `ef_construction` while choosing those neighbours.
+7. **HNSW search.** Start at the top layer's entry point, greedily move to any neighbour closer to the query, drop to the next layer, and repeat. At layer 0, keep a candidate list of size `ef_search` and return its best `k`. Larger `ef_search` means more recall and more distance computations.
+8. **Quantise for memory.** Store fp16 instead of fp32, or compress with product quantisation, or reduce to binary and re-rank. The index shrinks; recall drops slightly unless you re-rank with full-precision vectors.
+9. **Update.** HNSW inserts are incremental but expensive (they rewire links). IVF inserts are cheap but degrade as the data drifts from the original centroids.
+10. **Delete.** Many implementations tombstone the node: mark it deleted and skip it at query time. The graph still holds the dead node, so memory is not reclaimed until a rebuild.
+11. **Rebuild on a schedule.** Re-training IVF after distribution drift, and rebuilding HNSW to purge tombstones, keeps recall from silently decaying.
+
+## The syntax you will use
+
+**Ground-truth search with numpy.** Always keep this as the reference implementation.
+
+```python
+import numpy as np
+
+scores = queries @ matrix.T                  # (n_queries, N)
+truth = np.argsort(-scores, axis=1)[:, :k]   # exact top-k
+```
+
+**Build and query an HNSW index with `hnswlib`.**
+
+```python
+import hnswlib
+
+index = hnswlib.Index(space="cosine", dim=64)
+index.init_index(max_elements=20_000, ef_construction=200, M=32, random_seed=0)
+index.add_items(vectors)          # build the graph
+index.set_ef(50)                  # search-time candidate list
+labels, distances = index.knn_query(query, k=10)
+```
+
+`M` and `ef_construction` are fixed at build; `ef_search` is set per query.
+
+**Delete and replace a point.**
+
+```python
+index.mark_deleted(3)                           # tombstone
+index.add_items(new_vector, ids=np.array([3]))  # re-add with the same id replaces it
+```
+
+Some stores let you overwrite by re-inserting the same id; others require a delete first. Check the store.
+
+**IVF with FAISS.**
+
+```python
+import faiss
+
+quantizer = faiss.IndexFlatIP(64)               # centroid store
+index = faiss.IndexIVFFlat(quantizer, 64, 100, faiss.METRIC_INNER_PRODUCT)
+index.cp.seed = 0                               # make the k-means split reproducible
+index.train(vectors)                            # learn 100 centroids
+index.add(vectors)                              # assign to lists
+index.nprobe = 10                               # scan 10 nearest lists
+distances, ids = index.search(queries, 10)
+```
+
+Training needs enough data to learn the centroids; FAISS warns if you give it too little.
+
+**A self-contained brute-force benchmark.**
+
+```python
+def recall_at_k(truth, got, k: int) -> float:
+    hits = [len(set(got[i]) & set(truth[i])) for i in range(len(truth))]
+    return sum(h / k for h in hits) / len(truth)
+```
+
+Use this against exact search to produce a real recall number for any index.
+
+**Tune HNSW by rebuilding with different constants.**
+
+```python
+for M, ef_construction in [(8, 64), (16, 200), (32, 200)]:
+    idx = hnswlib.Index(space="cosine", dim=64)
+    idx.init_index(max_elements=N, M=M, ef_construction=ef_construction)
+    idx.add_items(vectors)
+```
+
+`M` and `ef_construction` cannot be changed after the build; changing them means rebuilding.
+
+**Choosing a store.** The API differs, but the trade-offs are stable:
+
+| Store | Shape | Strong when | Watch out for |
+| --- | --- | --- | --- |
+| pgvector | Postgres extension | You already run Postgres and need joins, filters, ACID | Index dimension limits; very large corpora |
+| FAISS | In-process library | Batch search, embedded apps, full control | You own persistence, replication, serving |
+| Qdrant / Weaviate / Milvus | Dedicated service | Distributed scale, rich filtering, managed ops | Another system to run and keep in sync |
+| Managed cloud (Pinecone and similar) | Hosted service | No ops team, elastic scale | Cost, data residency, vendor lock-in |
+
+The index concepts are the same in all of them: lists and probes, or `M` and `ef`.
+
+## Examples: simple to real
+
+The numbers below come from small runs. The IVF-from-scratch demo uses 5,000 random 32-dimensional unit vectors and 100 queries; the HNSW and FAISS demos use 20,000 random 64-dimensional unit vectors and 200 queries. All use `k = 10`. The HNSW and FAISS demos fix `random_seed = 0`, so those numbers reproduce; Example 2's IVF-from-scratch run did not fix a seed, so its numbers are illustrative. Random vectors are easier to separate than real embeddings, so treat the exact percentages as illustrative and the **pattern** as the lesson.
+
+**Example 1 — exact search is the ground truth.**
+
+```python
+scores = queries @ data.T
+truth = np.argsort(-scores, axis=1)[:, :k]
+```
+
+By definition, brute force has recall 1.0. Every approximate index below is scored against this list. Without this reference you cannot say whether an index is "good".
+
+**Example 2 — IVF from scratch, and the cost of fewer probes.** Build 10 or 50 clusters with k-means, then scan only the nearest `nprobe` lists:
+
+```text
+nlist=10 nprobe= 1  avg_scanned=  499/5000  recall@10=0.289
+nlist=10 nprobe= 3  avg_scanned= 1498/5000  recall@10=0.634
+nlist=10 nprobe=10  avg_scanned= 5000/5000  recall@10=1.000
+
+nlist=50 nprobe= 1  avg_scanned=  101/5000  recall@10=0.176
+nlist=50 nprobe= 3  avg_scanned=  301/5000  recall@10=0.387
+nlist=50 nprobe=10  avg_scanned= 1003/5000  recall@10=0.702
+nlist=50 nprobe=50  avg_scanned= 5000/5000  recall@10=1.000
+```
+
+More lists means each list is smaller, so a single probe scans fewer vectors but risks missing the true neighbour. Probing all lists is exhaustive and defeats the purpose. The knob is `nprobe`.
+
+**Example 3 — the same idea with FAISS.** Here 20,000 vectors are trained into 100 lists with a fixed seed, and `nprobe` is swept:
+
+```text
+nlist=100 nprobe=  1  recall@10=0.100
+nlist=100 nprobe=  5  recall@10=0.310
+nlist=100 nprobe= 10  recall@10=0.458
+nlist=100 nprobe=100  recall@10=1.000
+```
+
+A single probe returns almost nothing on random data; probing all 100 lists equals exact search. Production sits somewhere in between, chosen by measuring.
+
+**Example 4 — HNSW build parameters.** Build time and recall (at `ef_search=50`) as `M` and `ef_construction` change:
+
+```text
+M= 8 ef_construction= 64   build=0.88s   recall@10=0.367
+M= 8 ef_construction=200   build=2.46s   recall@10=0.400
+M=16 ef_construction= 64   build=1.52s   recall@10=0.637
+M=16 ef_construction=200   build=2.96s   recall@10=0.679
+M=32 ef_construction= 64   build=1.62s   recall@10=0.825
+M=32 ef_construction=200   build=3.66s   recall@10=0.850
+```
+
+`M` matters far more than `ef_construction` here. Doubling `M` from 8 to 32 roughly doubled recall; raising `ef_construction` from 64 to 200 added a few points but tripled build time. Build once, search forever, so spend on `M` first.
+
+**Example 5 — HNSW search parameters.** With `M=16` and `ef_construction=200`, sweep `ef_search`:
+
+```text
+ef_search= 10  recall@10=0.270  latency=0.0092 ms/query
+ef_search= 20  recall@10=0.417  latency=0.0236 ms/query
+ef_search= 40  recall@10=0.620  latency=0.0334 ms/query
+ef_search= 80  recall@10=0.787  latency=0.0621 ms/query
+ef_search=160  recall@10=0.929  latency=0.1301 ms/query
+ef_search=320  recall@10=0.988  latency=0.2125 ms/query
+```
+
+Recall rises steadily; latency rises too, but from microseconds. On this tiny dataset the whole cost is noise, but the shape is real: pick `ef_search` from a measured recall target, not from a default.
+
+**Example 6 — deletes, updates, and memory.** Tombstoning removes a point from results while leaving it in the graph:
+
+```python
+index.mark_deleted(3)
+labels, _ = index.knn_query(query, k=10)
+any(3 in row for row in labels)     # False — id 3 no longer returned
+index.add_items(new_vector, ids=np.array([3]))   # replace by re-adding id 3
+index.get_current_count()           # 20000 — the id is reused, not duplicated
+```
+
+Memory follows the graph size, not just the vector size. For one million vectors, the layer-0 links alone (`2 · M · 4` bytes per node) cost:
+
+```text
+M= 8 -> 0.06 GB      M=16 -> 0.13 GB      M=32 -> 0.26 GB      M=64 -> 0.51 GB
+(plus raw vectors: 1.54 GB at dim 384 fp32, 6.14 GB at dim 1536 fp32)
+```
+
+`M=64` makes the links alone approach the size of fp16 vectors at dim 384. Quantisation is how large deployments pay for it.
+
+## In production
+
+- **Measure recall against exact search.** Build a labelled query set, run both, and report recall@k. An index without a recall number is a guess.
+- **Tune `ef_search` before rebuilding `M`.** `ef_search` is per-query and free to change; `M` requires a full rebuild. Exhaust the cheap knob first.
+- **Stale IVF centroids decay quietly.** Vectors inserted long after training drift away from the centroids and land in the wrong lists. Retrain on a schedule or when recall drops.
+- **Tombstones leak memory and slow scans.** HNSW deletes are markers. Rebuild periodically to reclaim space; vacuuming a large HNSW index can be slow.
+- **Filtering is the hardest part.** Post-filtering a top-100 ANN result can leave you with two rows if your filter matches 2% of data. Pre-filtering can break the graph traversal. Check what your store does and test with realistic filters.
+- **The index changes results.** Users who test before and after an index may see different answers. Document the switch and keep exact search available as a fallback for validation.
+- **A flat index is right more often than people think.** Up to a few hundred thousand vectors, a vectorised exact scan can be fast enough, simpler, and perfectly accurate.
+- **Quantisation needs re-ranking.** Binary or product-quantised vectors lose precision; retrieve a larger candidate set and re-score it with full vectors before returning.
+- **Dimensions and metrics are baked in.** A cosine HNSW index cannot answer an L2 query. Decide the metric once, at design time.
+- **Build cost is real and can surprise you.** HNSW builds scale with `N` and `M`, may need large `maintenance_work_mem`, and can block writes unless built concurrently.
+- **Do not benchmark on random data and ship the defaults.** Random vectors separate cleanly; real embeddings cluster. Recall on your data will usually be worse, so calibrate there.
+- **Throughput ≠ latency.** A single fast query does not mean the server survives a burst. Test concurrency, not just single-query timing.
+
+## Interview questions
+
+### 1. What is the difference between exact search and ANN?
+
+**Answer.** Exact search compares the query to every stored vector and returns the true top `k` with recall 1.0, at `O(N·D)` cost. ANN builds an index that examines a small fraction of vectors, giving much lower latency at the cost of occasionally missing a true neighbour. The size of that miss is measured as recall@k.
+
+**Follow-up: "When is exact search acceptable?"** For small corpora — roughly up to a few hundred thousand vectors — or when correctness matters more than milliseconds, such as an offline evaluation job.
+
+**Trap.** Calling ANN "the same but faster". Different results are the point of the trade; you must measure and accept them.
+
+### 2. Explain IVF. What do `lists` and `probes` control?
+
+**Answer.** IVF runs k-means to split vectors into `lists` clusters. Each vector is assigned to its nearest centroid. At query time, the system finds the nearest `nprobe` centroids and scans only those lists. More lists means smaller lists and less work per probe; more probes means more recall and more work.
+
+**Follow-up: "How do you choose them?"** Start around `lists ≈ rows / 1000` up to a million rows and `sqrt(rows)` above that, then set `probes` by measuring recall. Both are empirical.
+
+**Trap.** Creating an IVF index before the table has data. The centroids are trained from existing rows; too little data gives poor clusters and bad recall.
+
+### 3. Explain HNSW. What do `M`, `ef_construction`, and `ef_search` control?
+
+**Answer.** HNSW is a multi-layer graph. Layer 0 contains every vector; upper layers are sparser shortcuts. A query descends greedily, layer by layer. `M` is the maximum connections per node and controls graph connectivity, memory, and recall. `ef_construction` is the candidate-list size during build, trading build time for graph quality. `ef_search` is the candidate-list size during a query, trading latency for recall.
+
+**Follow-up: "Which do you tune first?"** `ef_search`, because it is per-query and needs no rebuild. Change `M` only if you cannot reach your recall target, since it requires rebuilding.
+
+**Trap.** Confusing `ef_construction` with `ef_search`. One is build-time and permanent; the other is query-time and adjustable.
+
+### 4. Why does a vector index sometimes return fewer than `k` results?
+
+**Answer.** Several reasons. The candidate list (`ef_search` for HNSW, `probes` for IVF) may be too small. Filtering is applied after the index scan, so rows that fail the filter are discarded. Deleted rows may still occupy candidate slots. And zero or null vectors are not indexed for cosine distance.
+
+**Follow-up: "How do you fix it?"** Increase `ef_search` or `probes`, enable iterative index scans if the store supports them, use partial or partitioned indexes for common filters, and keep the index free of tombstones via rebuilds.
+
+**Trap.** Assuming the index is broken. Fewer results is often the documented interaction between a small candidate list and a selective filter.
+
+### 5. How does an ANN index handle deletes and updates?
+
+**Answer.** Flat and IVF stores can usually remove or update a vector directly. HNSW typically cannot remove a node cleanly, because other nodes link to it, so it tombstones the node: mark it deleted and skip it during traversal. Updates are often delete-plus-insert. Over time tombstones waste memory and slow scans, so production systems rebuild the index periodically.
+
+**Follow-up: "What does a rebuild cost?"** Time proportional to the corpus and expensive for HNSW. Schedule it during low traffic, build the new index alongside the old, and switch when it is ready.
+
+**Trap.** Assuming deletes free memory immediately. They often do not until a rebuild.
+
+### 6. How do metadata filters interact with vector search?
+
+**Answer.** Post-filtering runs the ANN search first and then applies the filter, which can leave far fewer than `k` rows when the filter is selective. Pre-filtering applies the filter first and then searches, which is accurate but can be slow and may prevent the index from being used. Many stores offer a middle path with iterative scans that keep pulling candidates until enough pass the filter.
+
+**Follow-up: "What is the practical fix?"** Use a B-tree index on the filter column for highly selective filters, partial indexes for common filter values, and partitioning when there are many tenants. Then measure.
+
+**Trap.** Assuming the vector index alone is enough. A `WHERE tenant_id = 7` on a shared index can destroy both recall and latency.
+
+### 7. What is quantisation, and when do you use it?
+
+**Answer.** Quantisation stores vectors with less precision: fp16 halves the bytes, int8 cuts them to a quarter, and product quantisation or binary codes compress much further. It shrinks memory and can speed up distance calculations. The price is accuracy, so you usually retrieve a larger candidate list and re-rank it with full-precision vectors.
+
+**Follow-up: "Which quantisation should I pick?"** Start with fp16, which is nearly free in quality. Move to int8 or binary only when memory forces it, and measure recall at each step.
+
+**Trap.** Quantising aggressively and re-ranking with the same quantised vectors. Re-ranking only recovers accuracy when the second pass uses higher precision.
+
+### 8. How do you choose between pgvector, FAISS, and a dedicated vector database?
+
+**Answer.** pgvector keeps vectors next to relational data, so filtering, joins, and transactions come for free; it is the right default when you already run Postgres and your scale is moderate. FAISS is a library, not a service: excellent for batch or embedded search, but you own persistence, replication, and serving. Dedicated vector databases add distributed sharding, advanced filtering, and operational tooling, at the cost of another system to run and keep consistent.
+
+**Follow-up: "What tips the decision?"** Whether you need transactional consistency with relational data, how many vectors you have, whether you need distributed scale, and how much operational budget you have.
+
+**Trap.** Choosing a dedicated vector database by default and then rebuilding joins and consistency in the application layer. Also the reverse: forcing tens of billions of vectors into one Postgres instance.
+
+## Remember this
+
+- **Exact search is the ground truth**; ANN trades recall for speed, and recall must be measured.
+- **IVF = cluster and probe** (`lists`, `probes`); **HNSW = layered graph** (`M`, `ef_construction`, `ef_search`).
+- **`M` and `ef_construction` need a rebuild; `ef_search` is per-query.** Tune `ef_search` first.
+- **Deletes are often tombstones** that leak memory until a rebuild.
+- **Filtering is the hard part** — post-filtering loses results, pre-filtering can break traversal.
+
