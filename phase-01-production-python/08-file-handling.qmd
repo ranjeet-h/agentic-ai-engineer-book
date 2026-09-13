@@ -1,0 +1,436 @@
+---
+title: "File Handling"
+---
+
+> **Interview answer (say this first).** File handling is moving bytes between the disk and your program. Use `pathlib` for paths, always pass an explicit `encoding="utf-8"`, read large files line by line instead of with `readlines()`, wrap every handle in `with` so it always closes, and write important files atomically with a temporary file plus `os.replace`.
+
+## Why this exists
+
+Files are where data survives a restart: config, logs, model outputs, datasets, and checkpoint files. They are also where a lot of quiet bugs live.
+
+Start with the version everyone writes first:
+
+```python
+f = open("config.json")
+data = f.read()
+process(data)
+f.close()          # skipped if process() raises
+```
+
+If `process()` raises, `f.close()` never runs. The file handle leaks. In a long-running service the process slowly runs out of file descriptors and then fails everywhere, far from the original mistake.
+
+The next version reads a whole file into memory:
+
+```python
+with open("huge.log") as f:
+    lines = f.readlines()      # one string per line, all in RAM
+```
+
+For a 20 GB log file this needs memory on the order of the file size or more — roughly 30 GB for a 20 GB file — even if you only want the first error line: `readlines()` builds a list of `str` objects, each with its own overhead. The file object can already stream lines; `readlines()` throws that away.
+
+And the third version forgets encoding:
+
+```python
+with open("report.txt") as f:   # uses the machine's default encoding
+    text = f.read()
+```
+
+On one machine the default is UTF-8; on another it is `cp1252`. The same file reads on one developer's laptop and raises `UnicodeDecodeError` on a server. The bytes never changed; the **interpretation** did.
+
+File handling exists as a topic because these three mistakes — leaks, memory blow-ups, and encoding surprises — are cheap to prevent and expensive to debug.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **File** | A named block of bytes stored on disk. |
+| **Path** | The string that locates a file, like `/data/users.csv`. |
+| **File descriptor** | A small integer the operating system gives your process for an open file. Closing the file returns it. |
+| **File object / handle** | Python's object for an open file. It reads and writes, and holds the descriptor. |
+| **`open()`** | The built-in that asks the OS to open a path and returns a file object. |
+| **Mode** | The string like `"r"`, `"w"`, `"a"`, `"rb"` that says how the file is opened. |
+| **Text mode** | Mode without `b`. Reads and writes `str`, using an encoding. |
+| **Binary mode** | Mode with `b`. Reads and writes `bytes`, with no encoding step. |
+| **Encoding** | The rule that maps bytes to characters. UTF-8 is the standard choice. |
+| **UTF-8** | A variable-width encoding for all human languages. ASCII is a subset. |
+| **Buffer** | A small memory area that batches disk reads and writes for speed. |
+| **Flush** | Push buffered data to the OS. |
+| **Context manager** | An object usable in `with`; guarantees cleanup when the block ends. |
+| **Atomic** | An operation that either fully happens or does not happen; never half-done. |
+| **`pathlib`** | The modern object-oriented path library. `Path("/a") / "b.txt"`. |
+| **`os.path`** | The older string-based path functions. Still common in legacy code. |
+| **BOM** | A hidden `\ufeff` marker some tools put at the start of a UTF-8 file. |
+| **CSV** | Comma-separated values: a text table, one record per line. |
+| **JSON** | A text format for nested data: objects, arrays, strings, numbers. |
+| **NDJSON** | "Newline-delimited JSON": one whole JSON value per line. Used for logs and streams. |
+
+Two ideas carry the rest of this page.
+
+**A path is not a file.** A `Path` is just a location. It can point at a file that does not exist yet. Creating a `Path` never touches the disk.
+
+**Text is bytes plus an encoding.** The disk only stores bytes. When you read "text", Python decodes bytes into `str`; when you write, Python encodes `str` into bytes. Get the encoding wrong and the bytes are still fine — your interpretation is not.
+
+## The core idea
+
+Think of a **library**. The shelf label is the path. Pulling a book off the shelf is opening a file. Editing it is reading and writing. Putting it back is closing. If you walk away without reshelving, the library eventually runs out of free slots — that is a file descriptor leak.
+
+Encoding is the **translation dictionary**. The book is stored as printed symbols (bytes). To "read" it you apply a dictionary that maps symbols to meanings (characters). Two people using different dictionaries will disagree about the same symbols, even though the book never changed.
+
+```{mermaid}
+flowchart LR
+    A["Disk: raw bytes<br/>62 69 74 65 73"] -->|"decode with UTF-8"| B["Memory: str<br/>'bytes'"]
+    B -->|"encode with UTF-8"| A
+    C["text mode<br/>open('f')"] -->|"adds decoder"| A
+    D["binary mode<br/>open('f','rb')"] -->|"no decoder"| A
+```
+
+Here is the whole topic in one table:
+
+| Question | Text mode (`"r"`, `"w"`) | Binary mode (`"rb"`, `"wb"`) |
+| --- | --- | --- |
+| What types do you read/write? | `str` | `bytes` |
+| Is an encoding used? | Yes, and you should set it | No |
+| Newline translation? | Yes (`\r\n` becomes `\n`) | No, bytes are untouched |
+| Use it for | text, CSV, JSON, logs | images, PDFs, zip, any non-text bytes |
+
+If you can open it in a text editor, use text mode and pass `encoding="utf-8"`. If not, use binary mode.
+
+## How it works
+
+1. **`open(path, mode, encoding=...)` asks the operating system for a file descriptor.** The OS checks permissions and existence, then returns the handle.
+2. **In text mode, Python wraps the raw byte stream.** It adds a **decoder** (bytes → `str`) on reads and an **encoder** (`str` → bytes) on writes, using the encoding you named.
+3. **Reads are buffered.** Python fetches a chunk from the OS and hands you lines or characters from that chunk. This is why reading line by line is fast and memory-flat: the buffer is small and fixed.
+4. **Writes are buffered too.** `write()` often just fills an in-memory buffer. Data reaches the OS when the buffer fills, on `flush()`, or on close.
+5. **`close()` flushes and returns the descriptor.** An unclosed file keeps its descriptor until garbage collection, which may be much later.
+6. **The `with` statement guarantees `close()`** on every exit path, including exceptions. This is the single most important habit in the topic.
+7. **`open(mode="w")` truncates the file to zero bytes immediately.** If the program then crashes mid-write, the old content is already gone. That is why atomic writes exist.
+8. **`os.replace(tmp, target)` renames one path onto another in one OS call.** On the same filesystem, other processes see either the old file or the complete new file, never a half-written one.
+9. **`json` and `csv` are layers on top of text.** They do not open files themselves; you pass an open file object to them.
+
+::: {.callout-tip}
+**The mental shortcut.** Open with `with`, name the encoding, and stream line by line. Almost every file bug disappears if you do those three things.
+:::
+
+## The syntax you will use
+
+**The `open()` modes.** Memorise this table; interviewers ask it.
+
+| Mode | Reads | Writes | Creates | Truncates | Position |
+| --- | --- | --- | --- | --- | --- |
+| `"r"` | yes | no | no | no | start; error if missing |
+| `"w"` | no | yes | yes | yes | start |
+| `"a"` | no | yes | yes | no | always at end |
+| `"x"` | no | yes | yes | no | start; error if exists |
+| `"r+"` | yes | yes | no | no | start |
+| `"b"` | binary | binary | — | — | combine as `"rb"`, `"wb"` |
+
+Important details: `"a"` writes at the end even after `seek(0)`. `"w"` erases the file the moment it opens. Add `"b"` for binary, so `"rb"` and `"wb"`.
+
+**The default pattern: `with open(...)`.**
+
+```python
+with open("notes.txt", "w", encoding="utf-8") as f:
+    f.write("héllo\n")      # returns the number of characters written
+```
+
+The handle closes even if `write` raises. There is no `close()` to forget.
+
+**Path objects with `pathlib`.**
+
+```python
+from pathlib import Path
+
+p = Path("data") / "users.csv"     # join with /
+print(p.parent, p.name, p.suffix)  # data users.csv .csv
+p.parent.mkdir(parents=True, exist_ok=True)
+```
+
+`/` builds paths portably. `mkdir(parents=True, exist_ok=True)` creates missing folders and does not fail if they exist.
+
+**Convenience readers and writers.** For small text files these open, read or write, and close in one call.
+
+```python
+from pathlib import Path
+
+text = Path("notes.txt").read_text(encoding="utf-8")
+Path("notes.txt").write_text("new content\n", encoding="utf-8")
+```
+
+**Iterate the file object for line-by-line streaming.** The file itself is a lazy iterator; you never build a list.
+
+```python
+with open("huge.log", encoding="utf-8") as f:
+    for line in f:
+        if "ERROR" in line:
+            print(line.rstrip("\n"))   # strip the trailing newline
+```
+
+**Binary mode for anything that is not text.**
+
+```python
+with open("logo.png", "rb") as f:
+    header = f.read(8)      # bytes, not str
+```
+
+**JSON: read and write whole documents.**
+
+```python
+import json
+
+with open("config.json", encoding="utf-8") as f:
+    config = json.load(f)               # file -> dict/list
+
+with open("config.json", "w", encoding="utf-8") as f:
+    json.dump(config, f, ensure_ascii=False, indent=2)
+```
+
+`ensure_ascii=False` keeps `café` readable instead of escaping it to `caf\u00e9`.
+
+**NDJSON: one JSON value per line, for logs and streams.**
+
+```python
+import json
+
+with open("events.ndjson", "a", encoding="utf-8") as f:
+    f.write(json.dumps({"event": "search", "q": "python"}) + "\n")
+
+with open("events.ndjson", encoding="utf-8") as f:
+    events = [json.loads(line) for line in f if line.strip()]
+```
+
+Append one record at a time. If the process dies, earlier lines are still valid.
+
+**CSV with `newline=""`.** The `csv` module handles quoting; you handle the newline rule.
+
+```python
+import csv
+
+with open("people.csv", "w", newline="", encoding="utf-8") as f:
+    writer = csv.DictWriter(f, fieldnames=["name", "age"])
+    writer.writeheader()
+    writer.writerow({"name": "Ada", "age": 36})
+
+with open("people.csv", newline="", encoding="utf-8") as f:
+    rows = list(csv.DictReader(f))      # [{'name': 'Ada', 'age': '36'}]
+```
+
+`newline=""` stops Python from translating the `\r\n` line endings that the CSV format requires.
+
+**Atomic write: write to a temp file, then rename.**
+
+```python
+import json
+import os
+import tempfile
+from pathlib import Path
+
+
+def atomic_write_json(path: Path, data: dict) -> None:
+    """Write JSON so readers never see a half-written file."""
+    path = Path(path)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())        # force bytes to the disk
+        os.replace(tmp, path)           # atomic on the same filesystem
+    except BaseException:
+        try:
+            os.unlink(tmp)              # clean up on any failure
+        except FileNotFoundError:
+            pass
+        raise
+```
+
+The temporary file lives in the **same directory** as the target, because `os.replace` only works within one filesystem.
+
+`fsync` on the temp file makes the new **contents** durable, and `os.replace` makes the swap atomic for readers, but the rename itself is not durable across a power loss until the **containing directory** is fsynced too; without that, a crash immediately after the replace can leave the old file in place. For a fully crash-safe atomic write on POSIX, fsync the directory after the replace:
+
+```python
+dir_fd = os.open(path.parent, os.O_RDONLY)
+try:
+    os.fsync(dir_fd)
+finally:
+    os.close(dir_fd)
+```
+
+Not every platform supports fsyncing a directory, so treat this as the durability step rather than a portability guarantee.
+
+## Examples: simple to real
+
+**Example 1 — the leak, then the fix.**
+
+```python
+f = open("data.txt", encoding="utf-8")
+try:
+    data = f.read()
+finally:
+    f.close()               # correct but easy to forget
+```
+
+```python
+with open("data.txt", encoding="utf-8") as f:
+    data = f.read()         # closes on success AND on error
+```
+
+Measured on this machine, opening twenty files without closing them left twenty extra file descriptors open. Descriptors are a finite resource shared by the whole process.
+
+**Example 2 — streaming a big file.**
+
+```python
+def error_lines(path):
+    with open(path, encoding="utf-8") as f:
+        for line in f:                  # one line in memory at a time
+            if "ERROR" in line:
+                yield line.rstrip("\n")
+```
+
+Measured with `tracemalloc` on a 20 MB file: `readlines()` peaked at about 30 MB, while iterating the file peaked at about 0.1 MB. Same lines, very different memory. Use `readlines()` only when the file is small and you truly need random access.
+
+**Example 3 — a JSON settings file, read and written atomically.**
+
+```python
+import json
+from pathlib import Path
+
+path = Path("settings.json")
+if path.exists():
+    config = json.loads(path.read_text(encoding="utf-8"))
+else:
+    config = {"model": "gpt", "temperature": 0.0}
+
+config["temperature"] = 0.2
+atomic_write_json(path, config)
+```
+
+If the process is killed during the write, `settings.json` still holds the previous valid JSON. A plain `open(..., "w")` would have truncated it first and left an empty or partial file.
+
+**Example 4 — CSV rows, and the string trap.**
+
+```python
+import csv
+
+with open("people.csv", newline="", encoding="utf-8") as f:
+    for row in csv.DictReader(f):
+        age = int(row["age"])           # CSV gives strings, not numbers
+        print(row["name"], age + 1)
+```
+
+`DictReader` returns a dictionary of `str` values. `"36"` is text. Convert explicitly, or the arithmetic will be wrong or raise.
+
+**Example 5 — reading a file written in another encoding.**
+
+```python
+from pathlib import Path
+
+raw = Path("legacy.txt").read_bytes()   # b'caf\xe9'
+try:
+    raw.decode("utf-8")
+except UnicodeDecodeError as err:
+    print("not UTF-8:", err.reason)     # unexpected end of data
+text = raw.decode("cp1252")             # b'caf\xe9' -> 'café'
+```
+
+Read bytes first when a legacy file fails. `errors="replace"` produces `caf�` and `errors="ignore"` silently drops the character; both hide the problem. Fixing the encoding is better than papering over it.
+
+**Example 6 — listing and filtering paths.**
+
+```python
+from pathlib import Path
+
+for path in sorted(Path("logs").glob("*.log")):
+    if path.stat().st_size > 10_000_000:
+        print("large:", path.name)
+```
+
+`glob` returns real `Path` objects, so you can check size, age, and suffix directly. `path.stat().st_size` is bytes.
+
+## In production
+
+- **Always pass `encoding="utf-8"` explicitly.** The default is the machine's locale, which differs between a laptop, a container, and CI. Explicit encoding is the difference between "works here" and "works everywhere".
+- **Never call `readlines()` on a file whose size you do not control.** Stream with `for line in f` and keep peak memory flat. If you need random access, load it, but do it deliberately.
+- **Write important files atomically.** Config, state, checkpoints, and indexes should go through a temp file plus `os.replace`. A crash mid-write otherwise leaves a truncated file that fails to parse on restart.
+- **`flush()` is not durability.** `flush()` moves data to the OS; only `os.fsync()` pushes it to the disk. Without `fsync`, a power loss can lose a file you thought was saved.
+- **Create the temp file in the target directory.** `os.replace` is atomic only within one filesystem. A temp file in `/tmp` may be on a different mount and the rename will fail.
+- **Set permissions on secrets.** `os.chmod(path, 0o600)` restricts a file to the owner. Files created by default follow the process `umask`, often `0o644`, which is world-readable. Never leave API keys at `0o644`.
+- **Handle `FileNotFoundError` and `PermissionError` separately.** A missing file is often normal (first run); a permission error is almost always a deployment or ownership bug. Catch them distinctly so the logs say which happened.
+- **Do not use JSON for append-heavy logs.** A JSON document is one value; appending breaks it. Use NDJSON (one JSON per line) or a real log system. JSON is for whole-document config and payloads.
+- **Assume concurrent writers will corrupt each other.** Two processes doing read-modify-write on the same JSON will lose updates. Use atomic replace plus a lock, or move shared state to a database or Redis.
+- **Close handles promptly; do not cache them.** Holding hundreds of open files exhausts descriptors. Open, read or write, close. If you must cache, bound the cache and evict.
+- **Treat paths from users as hostile.** `Path("../../etc/passwd")` escapes your data directory. Resolve the path and verify it stays under an allowed root before opening it.
+- **`Path.exists()` returns `False` on permission errors, not `True`.** It cannot distinguish "missing" from "cannot see". Use `stat()` and catch `PermissionError` when the difference matters.
+
+## Interview questions
+
+### 1. Why prefer `pathlib` over `os.path`?
+
+**Answer.** `pathlib` makes paths objects instead of strings. You join with `/`, read attributes like `.name`, `.suffix`, and `.parent`, and call methods like `.exists()`, `.mkdir()`, and `.read_text()` directly. `os.path` is a set of string functions (`join`, `dirname`, `splitext`) that you have to chain. Both work; `pathlib` is clearer and harder to misuse.
+
+**Follow-up: "Can you pass a `Path` to `open()`?"** Yes. `open()` accepts path-like objects, so `open(Path("a.txt"))` works. Most libraries accept `Path` too.
+
+**Trap.** Manually joining with `"/"` or `"\\"` to stay portable. `Path("a") / "b"` picks the right separator; a literal backslash does not.
+
+### 2. Explain the difference between text mode and binary mode.
+
+**Answer.** Text mode reads and writes `str` and uses an encoding plus newline translation. Binary mode reads and writes raw `bytes` with no encoding and no translation. Use text mode for human-readable files, binary mode for images, archives, PDFs, and any data whose bytes matter.
+
+**Follow-up: "What happens to `\r\n` in text mode on Windows?"** It is translated to `\n` on read and back on write, so Python code sees `\n`. Binary mode leaves `\r\n` untouched.
+
+**Trap.** Opening a PNG with text mode and an encoding. It will raise `UnicodeDecodeError` immediately; the bytes are not text.
+
+### 3. Why should you always pass `encoding="utf-8"`?
+
+**Answer.** Without it, Python uses the platform's default encoding, which is UTF-8 on modern Linux and macOS but `cp1252` on many Windows systems. The same file then works on one machine and raises `UnicodeDecodeError` on another. Naming UTF-8 makes file I/O deterministic across every environment.
+
+**Follow-up: "What about `utf-8-sig`?"** It reads UTF-8 and strips a leading byte-order mark if present. Use it when a tool writes a BOM; plain `"utf-8"` would leave `\ufeff` as the first character.
+
+**Trap.** Assuming "UTF-8 is the default so it is fine". The default is locale-dependent, and containers and CI may differ from your laptop.
+
+### 4. How do you read a very large file without running out of memory?
+
+**Answer.** Iterate the file object directly: `for line in f:`. The file is a lazy iterator backed by a small buffer, so memory stays flat regardless of file size. `readlines()` builds a list of every line and needs memory proportional to the whole file; `f.read()` needs the whole file at once.
+
+**Follow-up: "What if the file has no newlines?"** Then iterate fixed-size chunks with `f.read(n)` in a loop, or use binary mode and process `read(n)` blocks. A single gigantic line still needs to fit in memory.
+
+**Trap.** Thinking `readlines()` is fine because the file "is only a few hundred MB". On a small container it is not fine, and it fails only under production load.
+
+### 5. How do you write a file atomically, and why does it matter?
+
+**Answer.** Write to a temporary file in the same directory, flush and `fsync` it, then `os.replace(tmp, target)`. `os.replace` is a single rename, so readers see either the old complete file or the new complete file, never a partial write. It matters for config, state, and checkpoints, where a crash during a normal `"w"` write would leave an empty or truncated file.
+
+**Follow-up: "Why must the temp file be in the same directory?"** `os.replace` is atomic only within one filesystem. A temp file on a different mount forces a copy and is not atomic.
+
+**Trap.** Calling `os.replace` without `flush`/`close` on the temp file first. The rename can happen before the buffered data is written, so the target ends up empty.
+
+### 6. When do you use JSON, CSV, or NDJSON?
+
+**Answer.** JSON for a whole nested document such as config or an API payload. CSV for a flat table that other tools can open in a spreadsheet. NDJSON for an append-only stream of records, such as logs or events, because each line is an independent valid JSON value. JSON cannot be appended to without corrupting it.
+
+**Follow-up: "What does `csv.DictReader` return?"** An iterator of dictionaries whose values are all strings. You convert numbers and dates yourself.
+
+**Trap.** Using `json.dump` repeatedly on one open file. That produces concatenated JSON documents that no standard parser reads back correctly.
+
+### 7. How do you handle `FileNotFoundError` and `PermissionError`?
+
+**Answer.** Catch them separately because they mean different things. `FileNotFoundError` is often a normal first-run condition: create the file with defaults. `PermissionError` signals a real environment problem: wrong owner, read-only mount, or missing directory permission. Log the path and the errno so the cause is obvious.
+
+**Follow-up: "Is checking `Path.exists()` before opening correct?"** It is a race: the file can be deleted between the check and the open. Prefer the EAFP style — try to open and catch `FileNotFoundError`.
+
+**Trap.** Catching `OSError` and treating every failure as "file missing". That hides permission bugs and disk errors.
+
+### 8. Why is `with open(...)` better than a bare `open()`?
+
+**Answer.** It guarantees `close()` on every exit path, including exceptions, `return`, and `break`. A bare `open()` leaks a file descriptor if the block raises before `close()`, and leaks again if you forget the close entirely. The `with` form makes correct cleanup the default rather than something you remember.
+
+**Follow-up: "Can you open two files in one `with`?"** Yes: `with open(src) as a, open(dst) as b:`. They are entered left to right and closed right to left.
+
+**Trap.** Closing a file inside a `with` block and then using it. The handle is closed; the next read raises `ValueError: I/O operation on closed file`.
+
+## Remember this
+
+- Use **`pathlib`** for paths, and **`with open(...)`** for handles.
+- Always pass **`encoding="utf-8"`**; the default is platform-dependent.
+- **Stream line by line** with `for line in f`; never `readlines()` a file you do not control.
+- Write important files **atomically**: temp file in the same directory → `fsync` → `os.replace`.
+- **Text is bytes plus an encoding**; read raw bytes when a legacy file fails to decode.

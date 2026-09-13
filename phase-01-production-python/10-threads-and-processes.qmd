@@ -1,0 +1,450 @@
+---
+title: "Threads and Processes"
+---
+
+> **Interview answer (say this first).** A thread is a path of execution inside one process that shares memory; a process is a separate program with its own memory. The **GIL** lets only one thread run Python bytecode at a time, so threads help **I/O-bound** work but not CPU-bound work. For CPU-bound work you need processes, because each process has its own interpreter and its own GIL.
+
+## Why this exists
+
+You need to run eight tasks. Which tool do you reach for? The answer depends entirely on *what those tasks spend their time doing*.
+
+Take the same function and run it two ways. First, as two threads:
+
+```python
+import threading
+
+def cpu_burn(n):
+    s = 0
+    for i in range(n):
+        s += i * i
+    return s
+
+ts = [threading.Thread(target=cpu_burn, args=(25_000_000,)) for _ in range(2)]
+for t in ts: t.start()
+for t in ts: t.join()
+```
+
+Measured on this machine: running the two calls sequentially took 1.28 s, and with two threads it took 1.23 s — a speed-up of only **1.05×**. The threads did not work in parallel, because the **GIL** allowed only one of them to run Python bytecode at a time.
+
+Now the same work in two **processes**:
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+
+with ProcessPoolExecutor(max_workers=2) as ex:
+    list(ex.map(cpu_burn, [25_000_000, 25_000_000]))
+```
+
+Measured: **0.71 s**, a **1.81×** speed-up. Each process had its own interpreter and its own GIL, so both ran on separate cores at once.
+
+Flip the workload to I/O and threads win:
+
+```python
+import time
+
+def io_wait():
+    time.sleep(0.3)     # a stand-in for a network or disk call
+```
+
+Sequential: 0.61 s. Two threads: 0.31 s — **1.98×**. While one thread slept, the other ran, and the GIL was released during the sleep.
+
+That contrast is the whole topic. Threads and processes are not better or worse; they fit different shapes of work, and picking the wrong one wastes hours of engineering.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Process** | A running program with its own memory and at least one thread. |
+| **Thread** | An independent path of execution inside a process. Threads share the process's memory. |
+| **GIL** | Global Interpreter Lock. In CPython, a lock that lets only one thread execute Python bytecode at a time. |
+| **CPU-bound** | Bottlenecked by computation. The CPU is busy the whole time. |
+| **I/O-bound** | Bottlenecked by waiting: network, disk, database. The CPU is mostly idle. |
+| **Concurrency** | Interleaving tasks so all make progress. Threads give this. |
+| **Parallelism** | Executing tasks at the same instant on different cores. Processes give this. |
+| **Race condition** | A bug where the result depends on the exact timing of two threads touching shared data. |
+| **Lock / mutex** | A flag that lets only one thread enter a critical section at a time. |
+| **Critical section** | Code that must not run concurrently because it touches shared state. |
+| **Deadlock** | Two threads each holding a lock the other needs, so neither can proceed. |
+| **Pickling** | Converting a Python object to bytes so it can cross a process boundary. |
+| **Shared memory** | Memory two processes can both read and write, avoiding copies. |
+| **Executor** | A managed pool of workers. `ThreadPoolExecutor` or `ProcessPoolExecutor`. |
+| **Future** | A handle for a result that will arrive later. `future.result()` waits for it. |
+| **Context switch** | The OS saving one thread's state and restoring another's. |
+| **Daemon thread** | A thread that is killed when the main program exits. |
+| **Start method** | How a process is created: `fork`, `spawn`, or `forkserver`. Changes what is inherited. |
+
+Fix two ideas now.
+
+**Threads share memory; processes do not.** Two threads read and write the same objects, so you need locks. Two processes each have private memory; moving data between them means pickling and copying, or an explicit shared-memory primitive.
+
+**The GIL is about Python bytecode, not about all code.** A thread releases the GIL while blocked on I/O and, crucially, while inside many C extensions. So a C function can run in parallel even though Python loops cannot.
+
+## The core idea
+
+Think of a **meeting room with one microphone**. Everyone can be in the room at once (threads share memory), but only the person holding the microphone may speak (execute Python bytecode). People hand the microphone around every few milliseconds, and they drop it entirely while waiting for a phone call (I/O). A guest speaker who brought their own amplifier (a C extension) can talk in parallel without the microphone.
+
+**Processes** are separate rooms. Everyone in each room has their own microphone, so two rooms can talk at once — but they cannot hear each other without passing written notes (pickling) through the door.
+
+```{mermaid}
+flowchart TD
+    A["What is the work waiting on?"] --> B{"I/O-bound?<br/>network, disk, DB"}
+    A --> C{"CPU-bound?<br/>math, parsing, encoding"}
+    B -->|"few tasks"| D["ThreadPoolExecutor<br/>or async"]
+    B -->|"thousands of tasks"| E["asyncio"]
+    C -->|"needs speed"| F["ProcessPoolExecutor"]
+    C -->|"small or pickling-heavy"| G["Keep it in-process<br/>or use native code"]
+```
+
+Use this table as the summary:
+
+| | Threads | Processes | Async |
+| --- | --- | --- | --- |
+| Memory model | Shared | Separate | Shared (one thread) |
+| CPU-bound speed-up | No (GIL) | Yes | No |
+| I/O-bound speed-up | Yes | Yes (costly) | Yes |
+| Cost per worker | Low | High (new interpreter) | Very low |
+| Data sharing | Easy, needs locks | Pickle or shared memory | Easy, no locks on the loop |
+| Best for | Blocking I/O, small CPU in C | Heavy CPU work | Many I/O tasks |
+
+## How it works
+
+1. **A process starts with one thread, the main thread.** It has its own memory, file descriptors, and interpreter.
+2. **`threading.Thread(target=f).start()` runs `f` in a new thread** within the same process. All threads see the same objects.
+3. **The GIL allows one thread to run Python bytecode at a time.** CPython switches the lock between runnable threads about every `sys.getswitchinterval()` seconds (default 5 ms).
+4. **The GIL is released while blocked on I/O.** `time.sleep`, socket reads, and file reads let another thread run.
+5. **Many C extensions release the GIL around their heavy work.** `hashlib`, `zlib`, and NumPy ufuncs do this, so threads can genuinely parallelise that code.
+6. **`ThreadPoolExecutor` keeps a fixed set of threads alive** and hands them submitted functions. Reusing threads avoids the cost of creating one per task.
+7. **`ProcessPoolExecutor` starts separate Python interpreters.** Arguments and return values are **pickled** across the boundary, which takes time proportional to the data.
+8. **Each process has its own GIL,** so CPU-bound work runs in parallel across cores.
+9. **Processes do not share memory.** To share, use `multiprocessing.Value`/`Array` (passed to `multiprocessing.Process`, or inherited under `fork`), a `Manager` proxy (passable, but slower), `Queue`/`Pipe` for messages, or `shared_memory.SharedMemory` for raw buffers. A synchronized `Value` cannot be sent through a pool queue; it must be inherited.
+10. **Threads coordinate with locks.** `with lock:` marks a critical section that only one thread may enter. Locks prevent races but can cause deadlock if acquired in different orders.
+11. **Exceptions surface on `future.result()`.** A worker that raises stores the exception in its future; if you never call `result()`, you never see it.
+12. **Any thread can join any other started thread,** but a thread cannot join itself or join a thread that was never started, and only the main thread can install signal handlers. Keep coordination on the main thread.
+
+::: {.callout-note}
+**The GIL is a CPython detail, not a language rule.** Jython and IronPython never had one. CPython 3.13 introduced an experimental free-threaded build (no GIL), and 3.14 promoted it to officially supported (PEP 779) — but it is still optional and not the default. On the standard build, every `python3` you are likely to deploy still has the GIL, so plan around it.
+:::
+
+## The syntax you will use
+
+**Raw threads.** Create, start, join. `join()` waits for the thread to finish.
+
+```python
+import threading
+
+def worker(name: str) -> None:
+    print("working", name)
+
+t = threading.Thread(target=worker, args=("a",))
+t.start()
+t.join()                    # wait for it to finish
+```
+
+**A lock around shared state.** `with lock:` is the safe form; it releases even if the body raises.
+
+```python
+lock = threading.Lock()
+counter = 0
+
+def increment() -> None:
+    global counter
+    with lock:
+        counter += 1        # only one thread inside at a time
+```
+
+**`ThreadPoolExecutor` for a set of blocking calls.**
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+
+with ThreadPoolExecutor(max_workers=8) as ex:
+    futures = [ex.submit(fetch, url) for url in urls]
+    results = [f.result() for f in futures]
+```
+
+**`map` and `as_completed`.** `map` preserves input order; `as_completed` yields in completion order.
+
+```python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+with ThreadPoolExecutor(max_workers=8) as ex:
+    for value in ex.map(transform, range(10)):
+        print(value)                    # in order
+
+    futures = {ex.submit(fetch, u): u for u in urls}
+    for future in as_completed(futures):
+        print(futures[future], future.result())   # as they finish
+```
+
+**`ProcessPoolExecutor` for CPU-bound work.** Functions must be importable at module level.
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+
+def crunch(chunk: bytes) -> bytes:
+    return encode(chunk)
+
+if __name__ == "__main__":              # required with the spawn start method
+    with ProcessPoolExecutor(max_workers=4) as ex:
+        out = list(ex.map(crunch, chunks))
+```
+
+**`multiprocessing` primitives for shared state.** `Value` and `Array` are shared ctypes; `Queue` passes messages. A `Value` carries its own lock, reached with `.get_lock()`.
+
+```python
+import multiprocessing as mp
+
+def bump(counter, n):
+    for _ in range(n):
+        with counter.get_lock():
+            counter.value += 1
+
+if __name__ == "__main__":
+    counter = mp.Value("i", 0)          # shared ctypes plus its own lock
+    p = mp.Process(target=bump, args=(counter, 1000))
+    p.start()
+    p.join()
+    print(counter.value)                # 1000, updated by the child process
+```
+
+**`Manager` proxies for rich shared objects.** Convenient, but every access is an IPC call, so they are much slower than local objects. Note that a proxy `Value` does not expose `.get_lock()`.
+
+```python
+import multiprocessing as mp
+
+if __name__ == "__main__":
+    with mp.Manager() as mgr:
+        shared = mgr.dict()
+        shared["status"] = "running"
+        shared["count"] = 3
+        print(shared["status"], shared["count"])   # running 3
+```
+
+**`shared_memory` for raw, zero-copy buffers.**
+
+```python
+from multiprocessing import shared_memory
+
+shm = shared_memory.SharedMemory(create=True, size=1024)
+try:
+    buf = shm.buf          # a memoryview; all processes see the same bytes
+finally:
+    shm.close()
+    shm.unlink()           # free it when every process is done
+```
+
+**Daemon threads do not block exit.** Use them for background helpers that can be abandoned.
+
+```python
+t = threading.Thread(target=poll, daemon=True)
+t.start()
+```
+
+**A cooperative stop flag instead of killing threads.** Python cannot safely kill a thread, so ask it to stop.
+
+```python
+stop = threading.Event()
+
+def loop_until_stopped():
+    while not stop.is_set():
+        do_one_unit()
+
+stop.set()          # the thread exits at its next check
+```
+
+## Examples: simple to real
+
+**Example 1 — proving the GIL on CPU-bound work.**
+
+```python
+import time
+from concurrent.futures import ThreadPoolExecutor
+
+def cpu_burn(n):
+    s = 0
+    for i in range(n):
+        s += i * i
+    return s
+
+N = 25_000_000
+
+t0 = time.perf_counter(); cpu_burn(N); cpu_burn(N)
+sequential = time.perf_counter() - t0
+
+t0 = time.perf_counter()
+with ThreadPoolExecutor(max_workers=2) as ex:
+    list(ex.map(cpu_burn, [N, N]))
+threads = time.perf_counter() - t0
+
+print(f"sequential {sequential:.2f}s, threads {threads:.2f}s")
+```
+
+Measured: 1.28 s sequential versus 1.23 s with threads — 1.05×. Two Python loops cannot run at the same time.
+
+**Example 2 — the same work in processes.**
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+
+if __name__ == "__main__":
+    with ProcessPoolExecutor(max_workers=2) as ex:
+        list(ex.map(cpu_burn, [N, N]))
+```
+
+Measured: 0.71 s — 1.81×. The core count did the work, not the GIL. The gain is below 2× because starting processes and pickling results costs time; with longer jobs the overhead shrinks.
+
+**Example 3 — threads for I/O-bound work.**
+
+```python
+import time
+from concurrent.futures import ThreadPoolExecutor
+
+def io_wait(seconds):
+    time.sleep(seconds)
+
+t0 = time.perf_counter()
+io_wait(0.3); io_wait(0.3)
+sequential = time.perf_counter() - t0
+
+t0 = time.perf_counter()
+with ThreadPoolExecutor(max_workers=2) as ex:
+    list(ex.map(io_wait, [0.3, 0.3]))
+threads = time.perf_counter() - t0
+```
+
+Measured: 0.61 s versus 0.31 s — 1.98×. The sleep releases the GIL, so both waits truly overlap. This is the same result you would get with async, but with two threads instead of one loop.
+
+**Example 4 — a race, and the lock that fixes it.**
+
+```python
+import threading, time
+
+def worker(counter):
+    for _ in range(100_000):
+        tmp = counter[0]
+        time.sleep(0)          # force a thread switch between read and write
+        counter[0] = tmp + 1
+
+counter = [0]
+ts = [threading.Thread(target=worker, args=(counter,)) for _ in range(2)]
+for t in ts: t.start()
+for t in ts: t.join()
+print(counter[0])              # typically around 100000, never 200000
+```
+
+Measured: the counter typically lands around 100,000 instead of 200,000 — roughly half the updates lost; the exact count varies run to run. Each thread read `tmp`, then the other thread overwrote the value before the first wrote back. `time.sleep(0)` only makes a switch likely, not guaranteed. Adding `with lock:` around the read-modify-write makes the result exactly 200,000.
+
+**Example 5 — parallel API calls for an agent.**
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+
+def ask_model(prompt: str) -> str:
+    return client.complete(prompt)          # blocking HTTP call
+
+with ThreadPoolExecutor(max_workers=8) as ex:
+    answers = list(ex.map(ask_model, prompts))
+```
+
+Eight blocking calls now overlap, so the wall time is roughly the slowest call instead of the sum. This is the threaded equivalent of `asyncio.gather` from the async chapter.
+
+**Example 6 — the process-pool pickling trap.**
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+
+with ProcessPoolExecutor(max_workers=2) as ex:
+    ex.submit(lambda x: x + 1, 1).result()
+# PicklingError: Can't pickle <function <lambda> ...>
+```
+
+Measured: a lambda failed with `PicklingError`, because the child process cannot import a function that has no module-level name. A top-level `def` works. The same applies to functions defined inside `if __name__ == "__main__"` under the `spawn` start method: the child re-imports the module and cannot find them.
+
+## In production
+
+- **Choose by workload, not by fashion.** CPU-bound → processes. Blocking I/O → threads or async. Mixed → isolate the CPU part in a process pool and keep the I/O in async.
+- **Do not assume the GIL protects your data.** It makes single bytecode instructions atomic, not multi-step sequences. Any read-modify-write on shared state needs a lock. Under free-threaded builds, even more needs protecting.
+- **Guard shared state with a lock, and keep critical sections tiny.** Holding a lock across I/O serialises the whole program. Compute outside the lock; mutate inside it.
+- **Avoid nested locks with inconsistent order.** Thread A taking `lock1` then `lock2` while thread B takes `lock2` then `lock1` deadlocks. Establish one global order, or use a single lock.
+- **Pickling is the process-pool tax.** Everything sent to or returned from a worker is pickled, so large payloads cost time and memory; functions must be top-level and importable (lambdas, closures, and local functions fail), and under `spawn` the entry point needs `if __name__ == "__main__":`.
+- **Processes do not share module globals.** A global list updated in a worker is a copy; the parent never sees it. Use `Manager`, `Queue`, `Value`, or `shared_memory` explicitly.
+- **`Manager` proxies are convenient and slow.** Each attribute access is inter-process communication. Use them for control flow, not for hot inner loops.
+- **Threads cannot be killed.** Use an `Event` or a flag and stop cooperatively, or put the work in a process and terminate it.
+- **Limit pool size.** More workers is not faster. Thread pools default to `min(32, N + 4)` and process pools to `N`, where `N` is the CPU count available to the process; since Python 3.13 that is `os.process_cpu_count()`, not `os.cpu_count()`. Too many processes thrash memory and the scheduler.
+- **Do not mix threads and asyncio carelessly.** From async code, use `asyncio.to_thread` / `run_in_executor`. Never call `asyncio.run` inside a thread that already has a loop, and never block the loop with `future.result()`.
+- **Always call `future.result()` or handle exceptions.** A future that raised and is never inspected silently hides a failure and can leak resources.
+- **Measure before parallelising.** Overhead, pickling, and lock contention routinely turn a "parallel" version into a slower one. Benchmark the real workload.
+
+## Interview questions
+
+### 1. What is the GIL, and what does it actually protect?
+
+**Answer.** The Global Interpreter Lock is a mutex in CPython that lets only one thread execute Python bytecode at a time. It protects the interpreter's internal state, such as reference counts and object headers, from corruption by concurrent threads. It is not a lock on your data, and it does not make multi-step operations atomic.
+
+**Follow-up: "Does it make list append thread-safe?"** Individual built-in operations are effectively atomic under the GIL in CPython, but you should not rely on it. Multi-step logic and free-threaded builds will break that assumption.
+
+**Trap.** Saying the GIL prevents all race conditions. It does not; a read-modify-write sequence can still lose updates, as the counter example shows.
+
+### 2. When do threads help, and when do they not?
+
+**Answer.** Threads help I/O-bound work, because the GIL is released while a thread waits on a socket, disk, or sleep, letting another thread run. They do not help CPU-bound Python, because only one thread executes bytecode at a time. They *can* help CPU-bound work done inside C extensions that release the GIL, such as `hashlib` or `zlib`.
+
+**Follow-up: "Give a measured example."** Two threads doing pure-Python arithmetic ran at 1.05× speed, while two threads sleeping overlapped to 1.98×. The difference is whether the work holds the GIL.
+
+**Trap.** Assuming "more threads equals more CPU". For Python-level computation it does not, no matter how many cores you have.
+
+### 3. What is the difference between a thread and a process?
+
+**Answer.** A thread lives inside a process and shares its memory, so sharing data is cheap but needs locks. A process has its own memory and interpreter, so it is isolated and can run Python in parallel, but data must be pickled or placed in shared memory, and each process costs much more to start and keep alive.
+
+**Follow-up: "Which is safer for isolation?"** Processes. A crash or memory corruption in one process does not take down the others, which is why CPU-heavy work is often farmed out to worker processes.
+
+**Trap.** Saying processes are "just faster threads". They have a completely different memory model and communication cost.
+
+### 4. What is a race condition, and how do you prevent it?
+
+**Answer.** A race is a bug where the outcome depends on the timing of concurrent access to shared data. You prevent it by identifying the critical section and guarding it with a lock, so only one thread mutates at a time. Alternatively, avoid shared mutable state entirely and pass messages through a queue.
+
+**Follow-up: "Why is `counter += 1` a race?"** It is really read, add, write. A thread switch between the read and the write lets both threads read the same value, so one increment is lost. With a forced switch, 200,000 intended increments typically produce around 100,000.
+
+**Trap.** Thinking the GIL makes `+=` safe. The GIL can switch between the bytecodes that make up the operation.
+
+### 5. How does pickling affect `ProcessPoolExecutor`?
+
+**Answer.** Everything sent to a worker and returned from it is pickled to bytes and unpickled on the other side. That means arguments and results must be picklable, functions must be importable at module level, and large payloads cost real time and memory. It also means workers do not share your objects; they get copies.
+
+**Follow-up: "What fails to pickle?"** Lambdas, local functions, open file handles, locks, sockets, and most objects tied to a live OS resource. Use top-level functions and send plain data.
+
+**Trap.** Passing a lambda or an object with an open connection to a process pool, then being surprised by `PicklingError` or a dead process.
+
+### 6. How do you share state between processes?
+
+**Answer.** Use an explicit primitive. `multiprocessing.Value` and `Array` share fixed-size ctypes; `Queue` and `Pipe` pass messages; `Manager` gives dict, list, and `Value` proxies that can be passed to workers; `shared_memory.SharedMemory` exposes a raw byte buffer. Plain globals and ordinary lists are copied per process and are not shared.
+
+**Follow-up: "What are the trade-offs?"** `Manager` is the easiest but each access is an IPC round-trip. `shared_memory` is fastest but you handle layout and cleanup yourself. `Value`/`Array` sit in the middle but sharing them through a pool requires inheritance or a Manager wrapper.
+
+**Trap.** Updating a module-level global in a worker and expecting the parent to see it. It updated a copy.
+
+### 7. When does a C extension release the GIL?
+
+**Answer.** When the extension author calls the C-API macro to release it around work that does not touch Python objects, typically for long computations or blocking I/O. `hashlib`, `zlib`, and many NumPy operations do this. Measured, two threads doing SHA-256 ran at 2.12× and zlib compression at 1.84× — real parallelism despite the GIL.
+
+**Follow-up: "Why doesn't NumPy matrix multiply always speed up with threads?"** BLAS libraries are often already multi-threaded, so adding Python threads oversubscribes the cores. Control the BLAS thread count, or use processes.
+
+**Trap.** Assuming every third-party library releases the GIL. Check before building a threading strategy on it.
+
+### 8. How do you choose between threads, processes, and async?
+
+**Answer.** For many network or database calls with modest per-task memory, use async: one thread, minimal overhead. For blocking libraries that have no async version, use a `ThreadPoolExecutor`. For CPU-bound Python, use a `ProcessPoolExecutor` so each task gets its own interpreter and core. The deciding question is what the task waits on and whether it holds the GIL.
+
+**Follow-up: "Can you combine them?"** Yes. A common pattern is an async service that offloads blocking calls with `to_thread` and CPU-heavy work with a process pool via `run_in_executor`.
+
+**Trap.** Choosing threads for CPU-bound work because they are "lighter than processes". They are lighter, but they will not use the extra cores.
+
+## Remember this
+
+- **The GIL lets one thread run Python bytecode at a time**, so threads help I/O, not Python CPU work.
+- **Processes run in parallel** but have separate memory; moving data means pickling or shared-memory primitives.
+- **Guard shared state with a lock**, and remember the GIL does not make read-modify-write safe.
+- **Hashlib, zlib, and many C extensions release the GIL**, so threads can parallelise them.
+- Pick the tool by the bottleneck: **async for many I/O tasks, threads for blocking I/O, processes for CPU**.

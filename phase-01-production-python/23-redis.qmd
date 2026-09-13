@@ -1,0 +1,408 @@
+---
+title: "Redis"
+---
+
+> **Interview answer (say this first).** Redis is an in-memory key-value store. It keeps data in RAM so reads and writes are extremely fast, and it offers rich structures — strings, hashes, lists, sets, and sorted sets — with atomic commands. It is used as a cache, for rate limits and counters, locks, queues, and ephemeral session or agent state; persistence is optional, so never treat it as your only durable store.
+
+## Why this exists
+
+Some data is read far more often than it changes, and some state must be shared by every process. PostgreSQL can serve both, but a database round trip is milliseconds while an in-memory read is microseconds, and not every piece of data deserves a durable home.
+
+Consider three concrete problems that appear in almost every backend, including agent services:
+
+**Problem 1 — the hot lookup.** Every authenticated request loads the user's session and permissions. Hitting PostgreSQL each time wastes a query for data that changes rarely.
+
+**Problem 2 — the shared counter.** Three API servers need to enforce "100 requests per minute per user". Each server cannot keep its own count, or the real limit becomes 300. You need one atomic counter shared by all of them.
+
+**Problem 3 — the expensive result.** An agent embeds a query and calls a vector database, costing 200 ms and money. The same query arrives again five seconds later. Recomputation is waste.
+
+A plain Python dict solves none of these: it is local to one process, lost on restart, and not shared. Redis is a dict that every process can reach, that supports atomic operations, and that can optionally persist to disk.
+
+::: {.callout-note}
+**The one-sentence purpose.** Redis is a fast, shared, in-memory data structure server: one process holds the data, and many clients read and write it atomically.
+:::
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Key-value store** | A mapping from a key (a string) to a value. `GET user:42` returns the value for that key. |
+| **Data structure** | The type of a value: string, hash, list, set, or sorted set. Each has its own commands. |
+| **String** | The simplest value: text or binary. `SET`/`GET`/`INCR` work on it. |
+| **Hash** | A small map stored under one key, like a Python dict: `HSET user:42 name Ada`. |
+| **List** | An ordered sequence with fast push/pop at both ends. A queue or stack. |
+| **Set** | An unordered collection of unique members, with fast membership and set algebra. |
+| **Sorted set (ZSET)** | A set where each member has a numeric score; members stay ordered by score. |
+| **TTL** | Time To Live: seconds until a key expires and is deleted automatically. |
+| **Expiry** | The act of deleting a key when its TTL reaches zero. |
+| **Eviction** | Deleting keys to free memory when the store reaches its memory limit. |
+| **Atomic** | A command that runs completely, with no other command interleaved. |
+| **Cache-aside** | The app checks the cache, and on a miss loads from the source and fills the cache. |
+| **Cache invalidation** | Removing or updating cached data when the source changes, so stale data is not served. |
+| **Stampede** | Many clients miss the same key at once and all hit the source database together. |
+| **Persistence** | Writing data to disk so it survives a restart. RDB and AOF are the two mechanisms. |
+| **Pub/Sub** | Publish/subscribe: messages are broadcast to subscribers, with no storage. |
+| **Stream** | An append-only log with IDs, consumer groups, and acknowledgements. |
+| **Replication** | A replica copies the primary's data, usually asynchronously. |
+| **Cluster** | Several Redis nodes sharding keys across 16,384 hash slots. |
+| **Distributed lock** | A lock held across processes using a shared key, so only one works at a time. |
+| **Single-threaded** | Redis executes commands one at a time in one thread. |
+
+Two pairs are easy to mix up:
+
+- **TTL vs eviction.** TTL is a rule *you* set on a key. Eviction is Redis making room under memory pressure according to a policy you configure.
+- **Pub/Sub vs Streams.** Pub/Sub is fire-and-forget: if no one is listening, the message is gone. Streams persist messages, so consumers can read later and acknowledge them.
+
+## The core idea
+
+Picture a **single shared whiteboard in an office**, not a notebook per person. Everyone can read it instantly. When someone writes, they write one whole line at a time — no one can interrupt halfway through a line. That "one line at a time" rule is what makes commands like `INCR` safe.
+
+The second half of the model is **where the whiteboard lives**. It is RAM, which is fast and volatile. Redis can periodically photograph the whiteboard (RDB) or write down every change in a journal (AOF), but the primary copy is still in memory. If the machine dies before the photo, recent writes are lost.
+
+```{mermaid}
+flowchart LR
+    A["API server 1"] --> R["Redis<br/>(shared, in RAM)"]
+    B["API server 2"] --> R
+    C["Agent worker"] --> R
+    R -->|"cache miss"| D["PostgreSQL<br/>(source of truth)"]
+    D -->|"fill with TTL"| R
+    R -->|"RDB / AOF"| E["Disk<br/>(survives restart)"]
+```
+
+The mental model to carry into an interview:
+
+> Redis is a shared dictionary with atomic commands and optional expiry. It is fast because it is in memory and single-threaded; it is risky as a database because memory is volatile, and it is dangerous when one slow command blocks everyone.
+
+## How it works
+
+1. **A client opens a TCP connection and sends commands as text or RESP protocol.** Each command names a key and an operation.
+2. **Redis hashes the key to find it.** In a cluster, the hash maps to one of 16,384 slots and therefore to one node.
+3. **Commands execute one at a time in a single thread.** A command runs to completion before the next begins, so `INCR` cannot interleave with another `INCR`. This is why operations are atomic without locks.
+4. **TTL is handled two ways.** Lazily: when a key is accessed, Redis checks whether it has expired. Actively: Redis periodically samples keys with TTLs and deletes the expired ones. TTLs are stored on the key, not the value.
+5. **Memory is bounded by `maxmemory`.** When the limit is reached, Redis applies the configured eviction policy. The default `noeviction` returns an error on writes; cache setups usually use `allkeys-lru` or `allkeys-lfu`.
+6. **Persistence is optional and configurable.** RDB takes point-in-time snapshots by forking. AOF appends every write to a log and fsyncs it according to policy (`always`, `everysec`, or `no`).
+7. **Pub/Sub broadcasts immediately** to currently connected subscribers. Messages are not stored; a subscriber that is down misses them.
+8. **Streams persist entries with IDs** and support consumer groups: each group tracks a pending list, and consumers acknowledge entries with `XACK`.
+9. **Replication is asynchronous by default.** A replica applies the primary's command stream but may lag. `WAIT` can ask for acknowledgement from replicas, but it is not a full consensus guarantee.
+10. **Blocking commands exist** to avoid busy-waiting: `BLPOP` waits for a list element, and `XREAD ... BLOCK` waits for stream entries.
+
+::: {.callout-tip}
+**The mental shortcut.** Fast because in memory. Safe to run concurrently because single-threaded and atomic. Fragile as a database because memory is volatile, and fragile under load because one slow command blocks every client.
+:::
+
+## The syntax you will use
+
+**Strings, TTL, and conditional writes.**
+
+```python
+r.set("greeting", "hello")
+r.set("session:42", token, ex=3600)          # expire after 3600 seconds
+r.set("lock:job", "owner-1", nx=True, ex=30) # only if absent; the lock pattern
+print(r.ttl("session:42"))                   # 3600; -1 = no expiry, -2 = no such key
+```
+
+`ex` sets a TTL in seconds. `nx=True` means "set only if the key does not exist", and it returns `None` when the key already exists.
+
+**Atomic counters.**
+
+```python
+r.incr("requests:user:42")        # 1, then 2, then 3 ...
+r.incrby("requests:user:42", 10)  # add 10
+r.expire("requests:user:42", 60)  # attach a 60-second window
+```
+
+`INCR` runs as a single atomic operation, so many servers can share one correct counter.
+
+**Hashes: a small object under one key.**
+
+```python
+r.hset("user:42", mapping={"name": "Ada", "role": "admin"})
+r.hincrby("user:42", "logins", 1)
+print(r.hgetall("user:42"))   # {'name': 'Ada', 'role': 'admin', 'logins': '1'}
+```
+
+Hashes are ideal for session data: one key holds all fields, and you can read or update individual fields.
+
+**Lists: queues and recent items.**
+
+```python
+r.rpush("jobs", "job-1", "job-2")   # append to the right
+r.lpush("jobs", "job-0")            # prepend to the left
+r.lrange("jobs", 0, -1)             # ['job-0', 'job-1', 'job-2']
+r.lpop("jobs")                      # 'job-0'
+r.blpop("jobs", timeout=5)          # block until an item is available
+```
+
+`RPUSH` plus `BLPOP` is a simple work queue. `LPUSH` plus `LTRIM` keeps a bounded "latest N" list.
+
+**Sets: membership and set algebra.**
+
+```python
+r.sadd("scope:read", "tools:search", "tools:fetch")
+r.sismember("scope:read", "tools:search")        # 1 (true)
+r.sinter("scope:read", "scope:admin")            # intersection of two sets
+```
+
+**Sorted sets: ranking and priority.**
+
+```python
+r.zadd("leaderboard", {"ada": 10, "bob": 20, "cy": 15})
+r.zrange("leaderboard", 0, -1, withscores=True)              # low to high
+r.zrange("leaderboard", 0, -1, desc=True, withscores=True)   # high to low
+r.zincrby("leaderboard", 5, "ada")                           # ada now 15
+```
+
+Sorted sets answer "top N" and "work items ordered by priority" in `O(log n + N)`.
+
+**Pipelines: batch round trips.**
+
+```python
+pipe = r.pipeline()
+pipe.incr("metrics:requests")
+pipe.incr("metrics:errors")
+pipe.expire("metrics:requests", 60)
+print(pipe.execute())   # [1, 1, True]
+```
+
+A pipeline sends several commands without waiting for each reply, saving network round trips. In redis-py, `r.pipeline()` defaults to `transaction=True`, so the batch is wrapped in `MULTI`/`EXEC` and runs atomically; use `r.pipeline(transaction=False)` for a bare round-trip batch.
+
+**Rate limiting with `INCR` and `EXPIRE`.**
+
+```python
+def allow(key: str, limit: int, window: int) -> bool:
+    count = r.incr(key)
+    if count == 1:
+        r.expire(key, window)   # first hit starts the window
+    return count <= limit
+```
+
+There is a subtle race between `INCR` and `EXPIRE`: if the process dies after `INCR`, the key never expires. The Lua version is atomic.
+
+**Lua: several commands as one atomic unit.** Redis runs the whole script without interleaving other commands.
+
+```python
+LUA_RATE = """
+local n = redis.call('incr', KEYS[1])
+if n == 1 then redis.call('expire', KEYS[1], ARGV[1]) end
+return n
+"""
+count = r.eval(LUA_RATE, 1, "rl:user:42", 60)
+```
+
+**A lock that releases safely.**
+
+```python
+import secrets
+
+token = secrets.token_hex(16)
+acquired = r.set("lock:job", token, nx=True, ex=30)
+
+RELEASE = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+  return redis.call('del', KEYS[1])
+else
+  return 0
+end
+"""
+if acquired:
+    r.eval(RELEASE, 1, "lock:job", token)   # deletes only if we still own it
+```
+
+Never call `DEL` directly to release a lock: if your lock expired and another worker acquired it, you would delete *their* lock.
+
+**Streams: durable queues with acknowledgement.**
+
+```python
+r.xadd("agent:events", {"type": "tool_call", "tool": "search"})
+r.xgroup_create("agent:events", "workers", id="0", mkstream=True)
+messages = r.xreadgroup("workers", "worker-1", {"agent:events": ">"}, count=10)
+r.xack("agent:events", "workers", *[mid for mid, _ in messages[0][1]])
+```
+
+`XACK` marks an entry as processed. Unacknowledged entries stay in the group's pending list, so another worker can reclaim them with `XAUTOCLAIM` if a consumer dies.
+
+**Pub/Sub: broadcast now, do not store.**
+
+```python
+pubsub = r.pubsub()
+pubsub.subscribe("events")
+r.publish("events", "agent-started")   # returns the number of subscribers that got it
+```
+
+If no one is subscribed, `PUBLISH` returns 0 and the message is lost. Use streams when delivery matters.
+
+## Examples: simple to real
+
+**Example 1 — cache-aside for an expensive lookup.**
+
+```python
+def get_user(user_id: int):
+    key = f"cache:user:{user_id}"
+    cached = r.get(key)
+    if cached is not None:
+        return cached
+    user = db.fetch_user(user_id)          # slow path
+    r.set(key, user, ex=300)               # cache for 5 minutes
+    return user
+```
+
+The app decides when to cache. The trade-off is that the cache can be stale for up to the TTL.
+
+**Example 2 — cache invalidation on write.**
+
+```python
+def update_user(user_id: int, data: dict) -> None:
+    db.update_user(user_id, data)
+    r.delete(f"cache:user:{user_id}")       # delete, do not update
+```
+
+Deleting on write is usually safer than writing the new value, because a concurrent reader can otherwise repopulate the cache with an old value. Delete the key, then let the next read fill it.
+
+**Example 3 — a correct rate limiter shared across servers.**
+
+```python
+def check_tool_call(user_id: str, limit: int = 100, window: int = 60) -> bool:
+    return r.eval(LUA_RATE, 1, f"rl:tool:{user_id}", window) <= limit
+```
+
+Every API server calls the same script against the same Redis key. Because Lua runs atomically, the counter cannot exceed the limit due to a race, and the expiry is always set.
+
+**Example 4 — a distributed lock with a unique owner.**
+
+```python
+def with_lock(name: str, ttl: int, fn):
+    token = secrets.token_hex(16)
+    if not r.set(f"lock:{name}", token, nx=True, ex=ttl):
+        return None                        # someone else holds it
+    try:
+        return fn()
+    finally:
+        r.eval(RELEASE, 1, f"lock:{name}", token)
+```
+
+This works for coordinating short jobs. It does **not** guarantee correctness if the holder pauses longer than the TTL (a GC pause or a slow network call): the lock expires, another worker enters, and two workers run at once. For safety, pass a **fencing token** to the downstream resource so it can reject stale holders, or make the operation idempotent.
+
+**Example 5 — a stream-backed work queue for agent tools.**
+
+```python
+def enqueue_tool_call(tool: str, args: dict) -> str:
+    return r.xadd("agent:tools", {"tool": tool, "args": json.dumps(args)})
+
+# create the consumer group once, at startup (mkstream=True creates the stream if needed)
+r.xgroup_create("agent:tools", "tool-workers", id="0", mkstream=True)
+
+def process_one(consumer: str):
+    msgs = r.xreadgroup("tool-workers", consumer, {"agent:tools": ">"}, count=1)
+    if not msgs:
+        return
+    msg_id, fields = msgs[0][1][0]
+    run_tool(fields["tool"], json.loads(fields["args"]))
+    r.xack("agent:tools", "tool-workers", msg_id)
+```
+
+If `run_tool` crashes before `XACK`, the entry stays pending and can be reclaimed. Design `run_tool` to be idempotent, because a message can be delivered more than once.
+
+**Example 6 — session state and agent memory with TTL.**
+
+```python
+r.hset(f"session:{session_id}", mapping={
+    "user_id": user_id,
+    "last_seen": str(time.time()),
+})
+r.expire(f"session:{session_id}", 86400)          # 24 hours
+
+r.rpush(f"history:{session_id}", json.dumps(turn))
+r.ltrim(f"history:{session_id}", -50, -1)        # keep the last 50 turns
+r.expire(f"history:{session_id}", 86400)
+```
+
+This is the common agent pattern: a hash for session metadata and a capped list for recent conversation turns, both expiring. Important history should also be written to PostgreSQL, because Redis can evict or lose it.
+
+## In production
+
+- **Eviction can delete anything without a TTL.** Under `allkeys-lru`, your lock or rate-limit key can vanish when memory fills. For data that must not be evicted, use a separate Redis instance with `noeviction`, or keep it in PostgreSQL. Logical databases share one `maxmemory` and eviction policy, so they do not isolate memory or eviction.
+- **One slow command blocks every client.** `KEYS *`, `SMEMBERS` on a huge set, `SORT`, and `DEL` of a large key are `O(N)` and run in the single command thread. Use `SCAN` instead of `KEYS`, `UNLINK` instead of `DEL` for big keys, and bound collection sizes.
+- **Do not cache what you cannot afford to lose.** Default Redis with `everysec` AOF can lose about one second of writes; RDB-only can lose everything since the last snapshot. Memory is volatile. Durable data belongs in a database.
+- **Distributed locks are leases, not mutexes.** A lock with a TTL can expire while the holder is still working. Network delay, clock skew, and stop-the-world pauses all break naive locks. Use fencing tokens or idempotent operations; the Redlock algorithm is genuinely debated.
+- **The cache stampede is real.** When a hot key expires, hundreds of requests miss simultaneously and hammer the source. Mitigate with a short-lived "recompute" lock, probabilistic early expiry, or a small TTL jitter.
+- **TTL jitter prevents synchronized expiry.** If every key is written at deploy time with a 300-second TTL, they all expire together. Add a random offset, such as 300 ± 30 seconds.
+- **Cache consistency is a design choice, not a default.** With cache-aside, a write can race with a read and leave stale data until the TTL fires. Prefer deleting on write, keep TTLs short for volatile data, and never cache authorization decisions for long.
+- **Not all data should be cached.** User-specific secrets, rapidly changing values, and low-reuse items add complexity and risk for little gain. Cache reads that are hot and expensive, not everything.
+- **A redis-py pipeline is a transaction by default.** `r.pipeline()` wraps the batch in `MULTI`/`EXEC`, so it runs atomically, but Redis transactions do not roll back on a runtime error. Use `r.pipeline(transaction=False)` for a bare round-trip batch that other clients can interleave with.
+- **Cluster changes multi-key operations.** In Redis Cluster, keys live on different nodes by hash slot. A transaction or Lua script touching several keys requires them in the same slot, usually via hash tags like `{user:42}:cart` and `{user:42}:orders`.
+- **Replication lag affects reads.** Reading from a replica can return older data. If a request just wrote and then reads, route that read to the primary.
+- **Monitor memory and key cardinality.** A single key that grows unboundedly (an ever-growing list or hash) is a common outage. Track `used_memory`, evictions, and evicted-keys metrics, and set alerts.
+
+## Interview questions
+
+### 1. Why are Redis commands atomic if there are no locks?
+
+**Answer.** Redis executes commands in a single thread, one at a time. A command runs to completion before the server reads the next one, so no two commands interleave. That makes single commands such as `INCR`, `SETNX`, and `LPUSH` atomic by construction. Multi-command atomicity is added with `MULTI`/`EXEC` or a Lua script.
+
+**Follow-up: "Then why can a read-modify-write still race?"** Because atomicity applies per command. A `GET` followed by a `SET` in your application is two commands, and another client can run between them. Use `INCR`, `SET ... NX`, `WATCH`/`MULTI`, or Lua.
+
+**Trap.** Claiming Redis is thread-safe because it uses multiple threads. In modern Redis, additional threads help with network I/O, but command execution is still single-threaded. Also, a Lua script blocks the whole server, so keep scripts short.
+
+### 2. Explain cache-aside and how you invalidate the cache.
+
+**Answer.** In cache-aside, the application reads the cache first; on a miss it reads the source database and writes the result into the cache with a TTL. On writes, the usual policy is to **delete** the cache key and let the next read repopulate it. Deletion avoids the race where two writers store the new value in the wrong order.
+
+**Follow-up: "What about TTL?"** TTL is a safety net, not the primary invalidation strategy. It bounds staleness when deletion is missed; it should not be the only mechanism for data that changes often.
+
+**Trap.** Saying "just set a long TTL and forget invalidation." That serves stale data for the full TTL and breaks features like permission changes.
+
+### 3. Compare RDB and AOF persistence.
+
+**Answer.** RDB writes point-in-time snapshots of the dataset, usually by forking so the parent keeps serving. It is compact and fast to load, but a crash loses everything since the last snapshot. AOF appends every write to a log; with `everysec` it can lose about a second, with `always` it can lose almost nothing at a large throughput cost, and with `no` the OS decides when to flush. Redis can combine both.
+
+**Follow-up: "Which do you use for a cache?"** Often none, or RDB only. A cache can be rebuilt from the source. Enable AOF when the data is not reproducible and you accept the write cost.
+
+**Trap.** Calling Redis durable because AOF is on. `everysec` is not zero loss; only `always` approaches it, and even then disk and OS caches matter.
+
+### 4. What eviction policies does Redis support?
+
+**Answer.** `noeviction` rejects writes when memory is full. `allkeys-lru` and `allkeys-lfu` evict the least recently or least frequently used key across all keys. `volatile-lru`, `volatile-lfu`, `volatile-random`, and `volatile-ttl` evict only keys that have a TTL. `allkeys-random` evicts any key. Caches usually use `allkeys-lru`; mixed workloads often use a volatile policy so non-cache keys are protected.
+
+**Follow-up: "What happens when the store is full and the policy is `noeviction`?"** Write commands return an error (`OOM command not allowed`), while reads still work. The application must handle that error.
+
+**Trap.** Assuming eviction only removes expired keys. Under an `allkeys` policy Redis may evict a perfectly valid, unexpired key to make room.
+
+### 5. What are the limits of Redis distributed locks?
+
+**Answer.** A lock implemented as `SET key value NX PX ttl` plus a Lua compare-and-delete works for short critical sections, but it is a lease: the TTL can expire while the holder is still running, for example after a long GC pause or slow I/O. Then a second worker acquires the lock and both proceed. Clocks can also skew across machines.
+
+**Follow-up: "How do you make it safe?"** Use a fencing token: a monotonically increasing number given with the lock, which the protected resource checks so stale holders are rejected. Or make the operation idempotent. For strict mutual exclusion across failures, use a consensus system such as etcd or ZooKeeper, or a database with row locks.
+
+**Trap.** Saying "Redlock solves it." Redlock improves availability across independent Redis nodes but has been publicly criticised for relying on timing assumptions; it is not equivalent to consensus, and its correctness under pause is disputed.
+
+### 6. When would you use a stream instead of a list or Pub/Sub?
+
+**Answer.** Use a **list** for a simple queue where each item is processed once and loss is acceptable. Use **Pub/Sub** when you need immediate broadcast and can lose messages when a subscriber is offline. Use a **stream** when you need persistence, multiple independent consumer groups, delivery tracking, and the ability to replay or reclaim unacknowledged messages.
+
+**Follow-up: "What does a consumer group guarantee?"** At-least-once delivery: an entry stays pending until acknowledged, and can be reclaimed by another consumer. Exactly-once is not provided, so consumers must be idempotent.
+
+**Trap.** Treating a stream like a permanent database. Streams can be trimmed and evicted, and should not be the only record of important events.
+
+### 7. What breaks when Redis runs as a single thread?
+
+**Answer.** Any expensive command blocks every other client. `KEYS *`, `FLUSHALL`, `SORT` on a large set, `SMEMBERS` on a huge set, and deleting a multi-million-element key can all stall the server for seconds. Redis has no lock to wait on; it simply cannot process other commands until the current one finishes.
+
+**Follow-up: "What are the replacements?"** Use `SCAN`/`HSCAN`/`SSCAN` to iterate incrementally, `UNLINK` to delete in the background, bound collection sizes, and run heavy analytics on a replica or a separate data store.
+
+**Trap.** Blaming the network for latency without checking for slow commands. `SLOWLOG GET` and the `latency` metrics show which command blocked the server.
+
+### 8. How would you use Redis in an agent system?
+
+**Answer.** For ephemeral state around a stateless model call: cache embeddings and tool results; keep session metadata in a hash and recent turns in a capped list, both with TTL; rate-limit tool calls per user with an atomic counter; use an idempotency key so a retried tool call is not executed twice; use a stream as a work queue for background tool execution; and use a short lock so only one worker processes a given conversation at a time.
+
+**Follow-up: "What must never live only in Redis?"** Anything you cannot reconstruct: the canonical conversation, user records, billing, and audit logs. Keep those in PostgreSQL and use Redis as an accelerator, not the source of truth.
+
+**Trap.** Letting model output or user secrets sit in Redis indefinitely. Set TTLs, avoid caching sensitive values, and do not log full keys or values.
+
+## Remember this
+
+- Redis is an **in-memory, single-threaded, atomic** data structure server: fast, shared, and volatile.
+- **Atomicity is per command.** Multi-step logic needs `MULTI`/`EXEC` or Lua, not separate calls.
+- **Cache-aside with delete-on-write** is the standard pattern; TTL is a safety net, not the strategy.
+- **Persistence is a dial, not a guarantee.** RDB loses since the last snapshot; `everysec` AOF can lose about a second.
+- **Slow `O(N)` commands block everyone**, and **distributed locks are leases** — use fencing tokens or idempotency.

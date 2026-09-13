@@ -1,0 +1,412 @@
+---
+title: "SQLAlchemy"
+---
+
+> **Interview answer (say this first).** SQLAlchemy is Python's database toolkit. **Core** gives you a composable SQL expression language over connections. The **ORM** maps Python classes to tables and adds a `Session` that tracks objects, batches changes, and writes them in one transaction — the unit of work. It generates safe SQL for you, and you can drop to raw SQL when a query needs it.
+
+## Why this exists
+
+The naive way to talk to a database is the DB-API: open a connection, build SQL as a string, run it, then map the result by hand.
+
+```python
+import sqlite3
+
+conn = sqlite3.connect("app.db")
+cur = conn.cursor()
+name = input("name: ")
+cur.execute(f"SELECT * FROM users WHERE name = '{name}'")   # string building
+row = cur.fetchone()
+user = {"id": row[0], "name": row[1]}                       # manual mapping
+```
+
+This has three durable problems:
+
+- **SQL injection.** A name like `x' OR '1'='1` changes the query. String-built SQL is a security hole, not a style choice.
+- **Manual mapping and repetition.** Every query re-states which column goes into which field, and the mapping breaks the moment a column is added.
+- **No change tracking.** You must remember which objects you loaded, what you changed, and what to write back, in the right order.
+
+SQLAlchemy fixes all three at once. It sends values as bound parameters, so injection is prevented by construction. It maps rows to objects once, in the model. And the `Session` keeps a list of pending changes and flushes them together.
+
+## Start from zero
+
+The ORM is easier once the vocabulary is clear.
+
+| Word | Plain meaning |
+| --- | --- |
+| **DB-API** | Python's standard low-level database interface. `sqlite3` and `psycopg`/`psycopg2` implement it; `asyncpg` deliberately does not — it is the async PostgreSQL dialect driver for SQLAlchemy. |
+| **Driver** | The library that speaks to one database: `psycopg` for PostgreSQL, `sqlite3` for SQLite. |
+| **Connection** | One open channel to the database. |
+| **Cursor** | The object on which you execute SQL and read rows. |
+| **SQL** | The language databases understand: `SELECT`, `INSERT`, `UPDATE`, `DELETE`. |
+| **DDL vs DML** | DDL changes the schema (`CREATE TABLE`); DML changes data (`INSERT`). |
+| **Connection pool** | A cache of open connections, reused so each query does not pay to connect. |
+| **Engine** | SQLAlchemy's object that owns the URL, the pool, and the dialect. It is a factory for connections. |
+| **Session** | The ORM's workspace. It tracks loaded objects, queues changes, and runs one transaction. |
+| **Identity map** | The Session's dictionary of objects by primary key. One key maps to one Python object. |
+| **Transaction** | A group of changes that all succeed or all fail together. |
+| **Unit of work** | The pattern where the Session collects changes and writes them at the end, in one transaction. |
+| **ORM** | Object-Relational Mapper: maps classes to tables and objects to rows. |
+| **Core** | SQLAlchemy's SQL-expression layer, below the ORM. It builds SQL safely. |
+| **Declarative** | The ORM style where a class declares a table and its columns. |
+| **Metadata** | The registry of all tables and columns defined on your models. |
+| **`mapped_column`** | Declares a column and its database type. |
+| **`relationship`** | Declares a link between two models, such as User to Posts. |
+| **Foreign key** | A column that points at a row in another table. |
+| **Lazy loading** | Loading a relationship only when you access it. Convenient, and the source of N+1. |
+| **N+1 problem** | One query to load parents, then one more per parent to load a relationship. |
+| **Eager loading** | Loading a relationship up front with the main query, avoiding N+1. |
+| **Flush** | Sending pending changes as SQL without committing. |
+| **Commit** | Making the transaction permanent. |
+| **Rollback** | Discarding the transaction's changes. |
+
+Three ideas carry the whole topic:
+
+- **The Engine is lazy.** Creating it does not connect. The first real query does.
+- **The Session is a unit of work.** You `add`, modify, and `commit`; the Session decides the SQL.
+- **Relationships are lazy by default.** That default is exactly why N+1 happens.
+
+## The core idea
+
+Think of a librarian. The **books** are rows. The **catalogue** is the identity map: ask for the same book twice and you get the same physical copy. The **Session** is the librarian's desk, where requests pile up until they are carried to the shelves in one trip.
+
+That last part is the unit of work. You do not run to the shelves after every change. You pile changes on the desk, and the librarian flushes them in one transaction.
+
+```{mermaid}
+flowchart LR
+    A["Your code<br/>user.posts.append(p)"] --> B["Session<br/>identity map + unit of work"]
+    B --> C["Engine<br/>dialect + connection pool"]
+    C --> D["DBAPI driver<br/>psycopg / sqlite3 / asyncpg"]
+    D --> E[("Database")]
+    B -. "flush: INSERT/UPDATE/DELETE" .-> C
+```
+
+And the two layers people confuse:
+
+| | Core | ORM |
+| --- | --- | --- |
+| What it is | SQL builder over connections | Object mapper over a Session |
+| Unit of work | You manage it | The Session manages it |
+| Returns | Rows | Python objects |
+| Best for | Bulk operations, complex SQL | Domain models, relationships, CRUD |
+| Example | `conn.execute(select(users))` | `session.scalars(select(User))` |
+
+They are the same library. The ORM uses Core underneath.
+
+## How it works
+
+1. **You create an `Engine`.** `create_engine("postgresql+psycopg://...")` parses the URL, picks a dialect, and sets up a connection pool. **No connection is opened yet.**
+2. **You open a `Session`.** The Session borrows a connection from the pool on first use.
+3. **The Session starts a transaction implicitly.** Reading or writing begins one. There is no separate `BEGIN` to write.
+4. **A query loads rows and maps them to objects.** Each object is stored in the identity map by primary key. Ask for the same key again and you get the same object, not a new one.
+5. **You change objects in memory.** The Session remembers which attributes changed by comparing against the loaded state.
+6. **On `flush()` (or before a query), pending changes become SQL.** `INSERT`, `UPDATE`, and `DELETE` are emitted, ordered so constraints are satisfied. Inserting a parent assigns its new primary key so children can reference it.
+7. **On `commit()`, the transaction is made permanent.** On `rollback()`, every change since the transaction began is discarded.
+8. **By default, commit expires the objects.** `expire_on_commit=True` marks loaded attributes stale, so the next access re-reads them. After the Session closes, accessing an expired attribute raises `DetachedInstanceError`.
+9. **Relationships load lazily.** Accessing `user.posts` runs a second query if the posts were not loaded. Loop over many users and you get N+1 queries.
+10. **Eager options change that.** `joinedload` adds a `LEFT OUTER JOIN`; `selectinload` runs one extra query with `IN (...)` for all parents. Use eager loading when you know you need the relationship.
+
+::: {.callout-tip}
+**The mental shortcut.** The Session is not a connection. It is a **transaction-scoped identity map**. Keep it short-lived, one per request or per unit of work, and close it.
+:::
+
+## The syntax you will use
+
+**Engine and a first connection.** The URL is `dialect+driver://user:pass@host/db`.
+
+```python
+from sqlalchemy import create_engine, text
+
+engine = create_engine("sqlite+pysqlite:///:memory:", echo=False)
+
+with engine.connect() as conn:
+    count = conn.execute(text("SELECT 1")).scalar()
+    conn.commit()
+```
+
+**Declarative models.** `Mapped[T]` gives the Python type; `mapped_column` gives the database details.
+
+```python
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+class Base(DeclarativeBase):
+    pass
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50), unique=True)
+    posts: Mapped[list["Post"]] = relationship(back_populates="author",
+                                               cascade="all, delete-orphan")
+
+class Post(Base):
+    __tablename__ = "posts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(200))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    author: Mapped[User] = relationship(back_populates="posts")
+```
+
+**Create the tables.** In production, Alembic does this. For tests and prototypes, `create_all` is fine.
+
+```python
+Base.metadata.create_all(engine)
+```
+
+**The session factory, and one session per unit of work.**
+
+```python
+from sqlalchemy.orm import Session, sessionmaker
+
+SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+
+with SessionLocal() as session:
+    session.add(User(name="ada"))
+    session.commit()
+```
+
+**Selecting with `select()`.** The modern 2.0 style. `.scalars()` unwraps single-column results.
+
+```python
+from sqlalchemy import select
+
+with Session(engine) as session:
+    users = session.scalars(select(User).order_by(User.name)).all()
+    ada = session.scalar(select(User).where(User.name == "ada"))
+    none = session.scalar(select(User).where(User.name == "nobody"))
+    existing = session.get(User, 1)      # by primary key, uses the identity map
+```
+
+**Aggregates and joins.**
+
+```python
+from sqlalchemy import func
+
+stmt = (
+    select(User.name, func.count(Post.id))
+    .join(Post, Post.user_id == User.id)
+    .group_by(User.name)
+)
+print(session.execute(stmt).all())     # [('ada', 3)]
+```
+
+**Loading a relationship eagerly.** `joinedload` is one query; `selectinload` is two.
+
+```python
+from sqlalchemy.orm import joinedload, selectinload
+
+users = session.scalars(select(User).options(joinedload(User.posts))).unique().all()
+users = session.scalars(select(User).options(selectinload(User.posts))).all()
+```
+
+`joinedload` on a collection requires `.unique()`, because a join duplicates parent rows.
+
+**Catching accidental lazy loads.**
+
+```python
+class User(Base):
+    ...
+    posts: Mapped[list["Post"]] = relationship(back_populates="author",
+                                               lazy="raise")
+# Accessing user.posts now raises instead of silently issuing a query.
+```
+
+**Transactions explicitly.**
+
+```python
+with Session(engine) as session:
+    with session.begin():              # commits on success, rolls back on error
+        session.add(User(name="bob"))
+```
+
+**Async SQLAlchemy.** The async API mirrors the sync one. Use an async driver: `asyncpg` for PostgreSQL, `aiosqlite` for SQLite.
+
+```python
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+engine = create_async_engine("postgresql+asyncpg://user:pass@localhost/app")
+SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+
+async with SessionLocal() as session:
+    session.add(User(name="ada"))
+    await session.commit()
+    user = await session.scalar(select(User).where(User.name == "ada"))
+```
+
+## Examples: simple to real
+
+**Example 1 — Core, with bound parameters.**
+
+```python
+from sqlalchemy import text
+
+with engine.connect() as conn:
+    conn.execute(
+        text("INSERT INTO users (name) VALUES (:name)"),
+        {"name": "ada"},                     # sent as a parameter, not pasted in
+    )
+    conn.commit()
+    count = conn.execute(text("SELECT COUNT(*) FROM users")).scalar()
+```
+
+`text()` keeps the SQL, but values are bound parameters. That is the safe replacement for string building.
+
+**Example 2 — the unit of work in action.**
+
+```python
+with Session(engine) as session:
+    alice = User(name="alice")
+    session.add(alice)
+    print(alice.id)          # None — nothing has hit the database yet
+    session.flush()          # INSERT runs; the database assigns the id
+    print(alice.id)          # 1
+    session.rollback()       # the INSERT is discarded
+```
+
+`flush` sends SQL but keeps the transaction open. `rollback` discards it. This is why `flush` and `commit` are different words.
+
+**Example 3 — the N+1 problem, measured.**
+
+```python
+with Session(engine) as session:
+    users = session.scalars(select(User)).all()   # 1 query
+    for user in users:
+        print(user.name, len(user.posts))         # 1 query PER user
+```
+
+With two users that is **1 + 2 = 3 queries**. With a hundred users it is 101. The code looks harmless, which is what makes N+1 the most common ORM performance bug.
+
+**Example 4 — eager loading fixes it.**
+
+```python
+# One SQL statement with a LEFT OUTER JOIN
+users = session.scalars(select(User).options(joinedload(User.posts))).unique().all()
+
+# Two statements total: the users, then one IN (...) for all their posts
+users = session.scalars(select(User).options(selectinload(User.posts))).all()
+```
+
+`joinedload` is best for many-to-one links and small collections. `selectinload` avoids row duplication and is usually the better default for large collections.
+
+**Example 5 — transaction atomicity.**
+
+```python
+with Session(engine) as session:
+    try:
+        session.add(User(name="alice"))     # already exists -> UNIQUE violation
+        session.commit()
+    except IntegrityError:
+        session.rollback()                  # nothing from this transaction remains
+```
+
+A failed flush poisons the transaction. Until you `rollback`, every later statement fails too. Always roll back in the error path.
+
+**Example 6 — one session per request in FastAPI.**
+
+```python
+def get_db() -> Iterator[Session]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.post("/users", response_model=UserOut, status_code=201)
+def create_user(payload: UserCreate, db: Session = Depends(get_db)):
+    user = User(name=payload.name)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+```
+
+The session is created at the start of the request and closed at the end. Nothing is shared between requests. This is the pattern interviewers expect to hear.
+
+## In production
+
+- **Keep the Session short-lived.** One per request, per job, or per unit of work. A long-lived global Session accumulates stale objects, holds an open transaction, and is not thread-safe.
+- **Never share a Session or a Connection across threads or `async` tasks.** `Engine` and `MetaData` are designed to be shared, but `Session` and `Connection` are not thread-safe. One Session per concurrent unit of work.
+- **Understand `expire_on_commit`.** The default `True` re-reads attributes after commit and raises `DetachedInstanceError` once the Session closes. For API serialization, `expire_on_commit=False` is the common, deliberate choice.
+- **Do not hold a transaction open during network calls.** A model-provider call can take seconds. Holding a database transaction for that time blocks other writers and can exhaust the pool. Commit, then call out, then continue.
+- **Fix N+1 or it will find you.** Watch logs for repeated identical `SELECT ... WHERE id = ?`. Use `selectinload`/`joinedload` in the query, and `lazy="raise"` in development to make accidental lazy loads fail loudly.
+- **`joinedload` needs `.unique()` on collections.** Without it SQLAlchemy raises `InvalidRequestError`. The join repeats the parent row once per child.
+- **`create_engine` does not connect.** A bad driver or dialect name fails immediately at `create_engine` with `NoSuchModuleError`, but a bad host or database name is deferred to the first connection (the first request). Connect once at startup to fail fast, and use `pool_pre_ping=True` so dead pooled connections are detected.
+- **SQLite does not enforce foreign keys by default.** `PRAGMA foreign_keys` is `0` unless you turn it on per connection. Tests that pass on SQLite can hide broken keys that fail on PostgreSQL.
+- **SQLite in-memory needs care with FastAPI.** A plain `sqlite:///:memory:` gives each connection its own database. Use `StaticPool` plus `connect_args={"check_same_thread": False}` for tests, and never in production.
+- **Do not mix sync and async drivers carelessly.** Calling a sync `Session` inside an `async def` endpoint blocks the event loop. Pick one style per service: sync sessions with `def` endpoints, or `AsyncSession` with async drivers.
+- **Reserve Core for bulk work.** `session.execute(insert(User), [ {...}, {...} ])` sends many rows in one statement and skips the per-object cost of the identity map. The ORM is for tracked domain objects; Core is for volume.
+- **Let Alembic own the schema.** `create_all` is fine for tests. Production schema changes go through migrations, reviewed and version-controlled, which is the next chapter.
+
+## Interview questions
+
+### 1. What is the difference between SQLAlchemy Core and the ORM?
+
+**Answer.** Core is a SQL expression language that runs over a connection and returns rows. It handles parameter binding, dialects, and SQL composition. The ORM builds on Core: it maps classes to tables, returns Python objects, and adds a Session that tracks changes. Use Core for bulk operations and complex statements; use the ORM for domain models, relationships, and ordinary CRUD.
+
+**Follow-up: "Can you use both?"** Yes, routinely. The ORM emits Core statements underneath, and you can execute Core statements through the Session.
+
+**Trap.** Saying Core is "raw SQL" or that the ORM hides all SQL. Core is structured and safe, and the ORM's SQL is inspectable.
+
+### 2. What is a Session, and what does "unit of work" mean?
+
+**Answer.** A Session is a transaction-scoped workspace. It holds an identity map of loaded objects, watches attribute changes, and queues inserts, updates, and deletes. On flush it writes them as SQL in dependency order; on commit it makes them permanent. That batching is the unit-of-work pattern: your code declares intent, the Session decides the statements.
+
+**Follow-up: "What is the difference between flush and commit?"** Flush sends SQL but keeps the transaction open, so you can still roll back. Commit ends the transaction and makes the work permanent.
+
+**Trap.** Treating the Session as a database connection or as a cache you keep forever. It is neither; it is short-lived and transaction-scoped.
+
+### 3. What is the N+1 problem, and how do you detect it?
+
+**Answer.** N+1 happens when you load N parents with one query, then touch a lazy relationship on each parent, producing one more query per parent. It is invisible in the code and obvious in the query log. Detect it by counting statements, or by setting `lazy="raise"` so an accidental lazy load raises instead of quietly running.
+
+**Follow-up: "How do you fix it?"** Load the relationship in the original query with `selectinload` or `joinedload`. The fix is in the query, not in a cache.
+
+**Trap.** Blaming raw SQL speed while ignoring query count. Ten fast queries per request is usually worse than one slower query.
+
+### 4. When do you use `joinedload` versus `selectinload`?
+
+**Answer.** `joinedload` adds the relationship to the same SQL statement with a join. It is efficient for many-to-one links and small collections. `selectinload` issues one extra query with an `IN (...)` for all parents, so it avoids the row duplication of a join and is usually better for large collections. Both eliminate N+1.
+
+**Follow-up: "Why does `joinedload` need `.unique()`?"** Because the join repeats each parent row once per child, so the result must be de-duplicated into unique parent objects.
+
+**Trap.** Eager-loading everything. Every eager load adds size to the query; load what the request actually needs.
+
+### 5. What happens when you commit, and what is `expire_on_commit`?
+
+**Answer.** Commit flushes pending changes and ends the transaction. By default `expire_on_commit=True` then marks the Session's objects stale, so the next attribute access re-reads from the database to give you current data. After the Session closes, accessing an expired attribute raises `DetachedInstanceError`.
+
+**Follow-up: "When would you set it to `False`?"** When you serialize objects right after commit, as APIs do. `False` avoids extra SELECTs and detached errors; the trade-off is that the objects may be slightly stale.
+
+**Trap.** Assuming a loaded object stays valid forever. Outside its Session it is detached, and lazy relationships no longer work.
+
+### 6. How do you manage the Session lifecycle in a web service such as FastAPI?
+
+**Answer.** Create one Session per request, inject it through a `Depends` dependency that `yield`s the Session, and close it in a `finally`. The endpoint commits its own work. Nothing is shared across requests, and the cleanup always runs, even when the endpoint raises.
+
+**Follow-up: "Where should the commit go?"** In the endpoint or service, so the unit of work has clear boundaries. Do not commit inside generic helpers that do not know the request's intent.
+
+**Trap.** Using one global Session for the whole application. It is not thread-safe and it accumulates state and open transactions.
+
+### 7. How does async SQLAlchemy work?
+
+**Answer.** You use `create_async_engine` with an async driver such as `asyncpg` (PostgreSQL) or `aiosqlite` (SQLite), and `AsyncSession` with `async with` and `await`. The API mirrors the sync Session, but every database call is awaited. This keeps a FastAPI event loop free while queries run.
+
+**Follow-up: "Can you run sync ORM calls inside an async app?"** You can, but a sync call blocks the event loop. Run it in a threadpool, or use `AsyncSession` consistently.
+
+**Trap.** Mixing a sync `Session` into `async def` and assuming it is non-blocking. The driver is still synchronous and will stall the loop.
+
+### 8. What is the identity map, and why does it matter?
+
+**Answer.** The identity map is the Session's dictionary from primary key to object. Within one Session, loading the same row twice returns the same Python object, so changes in one place are visible in the other and are written once. It also gives you a consistent in-memory view of the data for that transaction.
+
+**Follow-up: "What is the downside?"** The Session grows as you load more objects, and cached objects can be stale relative to concurrent writers. Keep sessions short and they stay correct and small.
+
+**Trap.** Confusing the identity map with a cache. It is scoped to one transaction, not to the application.
+
+## Remember this
+
+- **Core builds SQL; the ORM maps objects.** The ORM sits on top of Core.
+- **The Session is a unit of work and an identity map**, not a connection. Keep it short-lived.
+- **Relationships are lazy → N+1.** Fix it with `selectinload`/`joinedload`, and use `lazy="raise"` to catch it.
+- **`flush` sends SQL; `commit` ends the transaction; `rollback` discards it.** Roll back in every error path.
+- **One Session per request, closed in `finally`.** Use `AsyncSession` with `asyncpg` for async services.

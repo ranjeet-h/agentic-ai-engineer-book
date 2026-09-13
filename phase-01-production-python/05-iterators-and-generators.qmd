@@ -1,0 +1,355 @@
+---
+title: "Iterators and Generators"
+---
+
+> **Interview answer (say this first).** An iterable is something you can loop over; an iterator is the cursor that produces the values one at a time. A generator is a simple way to build an iterator: a function that uses `yield` pauses at each value and resumes when the next one is asked for, so you never need to hold the whole sequence in memory.
+
+## Why this exists
+
+Imagine you must find the first line in a 20 GB log file that contains `"ERROR"`. The obvious approach is:
+
+```python
+with open("huge.log") as f:
+    lines = f.readlines()      # loads the entire file into memory
+for line in lines:
+    if "ERROR" in line:
+        print(line)
+        break
+```
+
+This may crash before it finds anything. `readlines()` builds a list of every line, so a 20 GB file needs roughly 20 GB of memory, even though you only wanted one line.
+
+The real problem is deeper than this one example. Most data work is about **sequences that are too large, too slow, or infinite to build all at once**:
+
+- a log file larger than memory,
+- a database query returning millions of rows,
+- an endless stream of events from a queue,
+- pages from an API you fetch one at a time.
+
+In every case you want to process items one at a time and stop when you are done. Python's iterator protocol is the mechanism that makes this possible, and generators are the easy way to use it.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Iteration** | Going through a sequence of values, one after another. |
+| **Iterable** | Anything you can loop over with `for`. A list, string, dict, file, set, or generator. |
+| **Iterator** | The object that actually produces values and remembers where it is. Think of a cursor. |
+| **Lazy** | Producing a value only when it is asked for. |
+| **Eager** | Producing all values up front. `list()` is eager. |
+| **Generator** | A function containing `yield`, or a generator expression. It produces an iterator. |
+| **`yield`** | "Pause here and hand this value out." The function freezes until the next value is requested. |
+| **Exhausted** | A generator or iterator that has no values left; asking again raises `StopIteration`. |
+| **Delegation** | Passing iteration to another iterable with `yield from`. |
+
+Two pairs of words cause most of the confusion, so fix them now:
+
+- **Iterable vs iterator.** An iterable can produce an iterator; an iterator *is* the thing being consumed. A list is iterable but not an iterator. You can loop over a list many times. A generator is both iterable and its own iterator, and it can be consumed only once.
+- **Lazy vs eager.** Lazy means "compute on demand." Eager means "compute now, store everything."
+
+The `for` loop is the piece that ties them together. When you write `for x in something:`, Python is not doing anything magical — it is calling the iterator protocol, which you can drive yourself:
+
+```python
+nums = [10, 20]
+it = iter(nums)     # get an iterator
+next(it)            # 10
+next(it)            # 20
+next(it)            # StopIteration
+```
+
+That is the entire foundation. Everything else is a convenience built on it.
+
+## The core idea
+
+Picture unloading a delivery truck.
+
+- **Eager** is carrying every box into the warehouse before you open any of them. Fast to look things up later, but you need space for everything at once.
+- **Lazy** is a conveyor belt: one box arrives, you handle it, then the next. You need space for one box.
+
+The iterator is the **conveyor belt's position** — it knows which box is next. The generator is the **motor** that produces boxes on demand.
+
+> **A generator does not run when you define it. It runs only when you ask for the next value.**
+
+That sentence explains the most surprising behaviour in this topic. Calling a generator function does not execute a single line of its body. It returns a generator object, and each `next()` runs the code up to the next `yield` and then pauses.
+
+```{mermaid}
+flowchart LR
+  A["writer()"] --> B["generator object<br/>(nothing has run yet)"]
+  B -->|"next()"| C["runs until first yield<br/>pauses, returns 1"]
+  C -->|"next()"| D["resumes<br/>pauses, returns 2"]
+  D -->|"next()"| E["function returns<br/>StopIteration"]
+```
+
+The generator's local variables survive between pauses, which is why it can remember its position without you writing a state machine.
+
+## How it works
+
+1. **A `for` loop calls `iter()` on the iterable** to get an iterator.
+2. **It calls `next()` repeatedly.** Each call returns the next value.
+3. **When there are no values left, the iterator raises `StopIteration`.** The `for` loop catches that silently and ends. You never write the check.
+4. **A generator function returns a generator object immediately.** None of its body runs yet.
+5. **On each `next()`, the body runs until it reaches `yield`.** `yield` produces a value and freezes the function, keeping its local state.
+6. **The next `next()` resumes right after the `yield`** and continues.
+7. **When the function returns (or ends), the generator raises `StopIteration`.** A `return value` even sets `StopIteration.value`.
+8. **`yield from other` delegates iteration** to another iterable, forwarding each value and finally the return value.
+9. **A generator expression** is the compact form, `(x * 2 for x in items)`.
+
+::: {.callout-note}
+**The `StopIteration` contract.** `StopIteration` is not an error; it is the agreed signal that an iterator is finished. This is why raising it yourself outside an iterator, or letting it leak out of a generator, causes confusing behaviour — a generator that raises `StopIteration` internally is treated as simply ending.
+:::
+
+## The syntax you will use
+
+**Generators are the easy path.** Any function with `yield` becomes a generator function.
+
+```python
+def count_up_to(n):
+    for i in range(1, n + 1):
+        yield i
+
+list(count_up_to(3))    # [1, 2, 3]
+```
+
+**Generator expressions.** Like a list comprehension, but with parentheses and no list built.
+
+```python
+squares = (x * x for x in range(1_000_000))   # cheap to create
+total = sum(squares)                          # values produced one by one
+```
+
+**`yield from` for delegation.** It flattens nested generators.
+
+```python
+def inner():
+    yield 1
+    yield 2
+
+def outer():
+    yield 0
+    yield from inner()
+    yield 3
+
+list(outer())    # [0, 1, 2, 3]
+```
+
+**A hand-written iterator.** This is what generators replace. Know it, because interviewers ask.
+
+```python
+class Counter:
+    def __init__(self, limit):
+        self.limit = limit
+        self.current = 0
+
+    def __iter__(self):          # iterable: return the iterator
+        return self
+
+    def __next__(self):          # iterator: produce the next value
+        if self.current >= self.limit:
+            raise StopIteration
+        self.current += 1
+        return self.current
+
+list(Counter(3))    # [1, 2, 3]
+```
+
+**`send()` and return values.** A generator can receive values back, and can return a final value.
+
+```python
+def accumulate():
+    total = 0
+    while True:
+        value = yield total      # receives a value, yields the new total
+        if value is None:
+            return total
+        total += value
+
+acc = accumulate()
+next(acc)          # start it: 0
+acc.send(10)       # 10
+acc.send(5)        # 15
+```
+
+You will rarely write this by hand, but it is the foundation of older async frameworks, so it is worth recognising.
+
+**Generators are single-use.** This is the most common practical mistake.
+
+```python
+g = (x for x in [1, 2])
+list(g)     # [1, 2]
+list(g)     # []  — already exhausted
+```
+
+**`itertools` gives you lazy building blocks.**
+
+```python
+import itertools
+
+list(itertools.islice(itertools.count(10), 3))   # [10, 11, 12]
+list(itertools.chain([1], [2, 3]))               # [1, 2, 3]
+[(k, len(list(v))) for k, v in itertools.groupby("aabbbc")]
+# [('a', 2), ('b', 3), ('c', 1)]
+```
+
+## Examples: simple to real
+
+**Example 1 — reading a huge file safely.**
+
+```python
+def error_lines(path):
+    with open(path) as f:
+        for line in f:                 # the file object is itself lazy
+            if "ERROR" in line:
+                yield line.strip()
+
+for line in error_lines("huge.log"):
+    print(line)
+```
+
+A file object yields one line at a time, so memory stays flat no matter how big the file is. Materialising the lines with `readlines()` is what blows up.
+
+**Example 2 — proving the memory difference.**
+
+```python
+sum(x for x in range(1_000_000))     # generator: peak memory is tiny
+sum([x for x in range(1_000_000)])   # list: builds the whole list first
+```
+
+Measured on this machine, the generator path peaked at a few hundred bytes while the list path peaked at roughly 40 MB. Same answer, very different cost. The list version is sometimes faster if you need to iterate several times, which is the real trade-off.
+
+**Example 3 — a processing pipeline.**
+
+```python
+def read(rows):
+    for row in rows:
+        yield row
+
+def parse(rows):
+    for row in rows:
+        yield row.strip().split(",")
+
+def keep_valid(rows):
+    for row in rows:
+        if len(row) == 2:
+            yield row
+
+pipeline = keep_valid(parse(read(open("data.csv"))))
+for name, age in pipeline:
+    print(name, age)
+```
+
+Each stage pulls from the one before, one item at a time. No stage holds the whole dataset, and you can reuse stages independently. This is the style behind large data-processing code.
+
+**Example 4 — pagination over an API.**
+
+```python
+def all_pages(client, url):
+    while url:
+        response = client.get(url)
+        for item in response["items"]:
+            yield item
+        url = response.get("next")
+```
+
+The caller loops over every item without knowing how many pages exist. This pattern is everywhere in AI tooling, where an API returns results in batches.
+
+**Example 5 — the mutate-while-iterating bug.**
+
+```python
+nums = [1, 2, 3, 4]
+result = []
+for n in nums:
+    if n % 2 == 0:
+        nums.remove(n)      # mutating the list you are iterating
+    result.append(n)
+
+print(nums, result)         # [1, 3] [1, 2, 4]  — 3 was skipped!
+```
+
+Removing item `2` shifts item `3` into the position the iterator just passed, so `3` is never seen. The lazy pointer and the eager removal disagree. Iterate over a copy, or build a new list instead.
+
+## In production
+
+- **Generators are single-use.** Once exhausted, they stay empty. If you need the values twice, materialise them with `list()`, or make the function return a fresh generator each time it is called.
+- **Flat memory is the point.** Use generators for large files, database cursors, pagination, and long pipelines. Materialise only when you truly need random access or repeated passes.
+- **Do not mutate a collection while iterating it.** Build a new collection, or take a copy. This bug is silent and produces wrong results, not errors.
+- **A generator holds its frame and resources.** A generator paused in the middle of a `with open(...)` block keeps the file open until it is exhausted or closed. Use `try/finally` inside generators, or call `.close()`, to release resources promptly.
+- **Exceptions surface at the point of consumption.** Because the body runs only when you call `next()`, a failure can appear far from the generator's definition. Tracebacks and logging should account for that.
+- **Do not use generators across threads without care.** A generator is not thread-safe; two threads calling `next()` on the same generator can interleave unpredictably.
+- **`return` inside a generator ends it.** The returned value is delivered as `StopIteration.value`, which a `for` loop ignores. Do not confuse it with yielding a final value.
+- **`len()` and indexing do not exist.** Generators have no length and no `[i]`. If you need either, materialise them first.
+- **`itertools` beats hand-written loops.** `islice`, `chain`, `groupby`, `takewhile`, and `product` are lazy, tested, and faster than the equivalent Python.
+- **Pick the right tool for the shape.** A generator for streaming, a list for repeated access, a generator expression for a one-pass computation, and `itertools` for composition.
+
+## Interview questions
+
+### 1. What is the difference between an iterable and an iterator?
+
+**Answer.** An iterable can produce an iterator; an iterator is the object being consumed. A list is iterable, and `iter(list)` gives an iterator. An iterator has `__next__` and remembers its position. Generators are iterators, and they are single-use; a list can be iterated many times.
+
+**Follow-up: "What does the `for` loop actually do?"** It calls `iter()` to get an iterator, then calls `next()` in a loop, catching `StopIteration` to stop.
+
+**Trap.** Saying a list is an iterator. It is iterable, but not an iterator — that is why you can loop over it twice.
+
+### 2. When does the body of a generator function run?
+
+**Answer.** Not when it is called. Calling a generator function creates a generator object and runs nothing. The body runs on each `next()`, up to the next `yield`, then pauses with its local state preserved.
+
+**Follow-up: "How does it remember its position?"** The paused frame is kept alive, including local variables. This is why a generator can hold state without an explicit state machine.
+
+**Trap.** Adding a `print` at the top of a generator function and expecting it during definition. It appears only on the first `next()`.
+
+### 3. Why does a generator appear empty the second time I use it?
+
+**Answer.** Generators are single-use iterators. Once exhausted, asking for more raises `StopIteration`, so a second `list()` returns `[]`. The generator is not "reset"; it is finished.
+
+**Follow-up: "How do you fix it?"** Call the generator function again to get a fresh generator, or materialise the values into a list if you need multiple passes. Design APIs to return a new generator per call.
+
+**Trap.** Assuming `for` loops somehow restart a generator. Each loop consumes more of the same exhausted iterator.
+
+### 4. What is the difference between lazy and eager evaluation, and when does it matter?
+
+**Answer.** Lazy produces values on demand; eager produces them all up front. It matters for memory and for when work is performed. A lazy pipeline over a 20 GB file uses constant memory; an eager one needs the whole dataset. Lazy also defers side effects until consumption.
+
+**Follow-up: "When is eager better?"** When you need random access, repeated iteration, or a stable snapshot; when the data is small; or when you want a failure to happen immediately rather than at consumption time.
+
+**Trap.** Assuming lazy is always better. It adds per-item overhead, cannot be reused, and moves exceptions away from their cause.
+
+### 5. What does `yield from` do?
+
+**Answer.** It delegates iteration to another iterable, yielding each of its values in turn. It also forwards `send()` values down and propagates the sub-iterable's return value, which makes it the clean way to compose generators.
+
+**Follow-up: "How does it differ from a `for` loop with `yield`?"** For plain iteration the result is the same. `yield from` additionally handles `send`, `throw`, and the inner return value, so it is the correct tool for generator delegation.
+
+**Trap.** Thinking `yield from` returns a list. It produces values lazily, one at a time, just like the delegation target.
+
+### 6. What happens to a `return` value inside a generator?
+
+**Answer.** It ends the generator and is delivered as the `value` attribute of the `StopIteration` that terminates it. A normal `for` loop discards it; you see it only when driving the generator manually.
+
+**Follow-up: "How would you expose a final result cleanly?"** Yield it as one more value, or return it and read `StopIteration.value`. Most code simply yields every value and lets the loop end.
+
+**Trap.** Expecting `return x` to produce `x` in a `for` loop. The loop stops before the value is ever visible.
+
+### 7. What is the bug in removing items from a list while iterating it?
+
+**Answer.** The iterator holds a position, but removal shifts later items into positions already passed. Some items are skipped and others may be visited twice. The result is silently wrong rather than an error.
+
+**Follow-up: "What is the fix?"** Build a new list with a comprehension, or iterate over a copy (`for x in list(items)`). For in-place edits, collect the items to remove, then remove them after the loop.
+
+**Trap.** Believing the loop raises an error. It does not; it quietly skips elements, which makes the bug hard to find.
+
+### 8. Why can a generator keep a file or connection open?
+
+**Answer.** A generator paused inside a `with` block holds the whole frame, including the open resource, until it is exhausted or closed. If the consumer stops early, the cleanup may never run.
+
+**Follow-up: "How do you guarantee cleanup?"** Wrap the body in `try/finally` so the `finally` runs on `.close()` or garbage collection, or avoid holding resources across `yield` when possible.
+
+**Trap.** Assuming leaving a `for` loop early closes the generator. The generator object may stay alive and open until it is collected.
+
+## Remember this
+
+- **Iterable produces an iterator; an iterator is the cursor.** The `for` loop drives it with `iter()` and `next()`.
+- A generator **runs only on demand**, pauses at `yield`, and keeps its local state.
+- Generators are **single-use and lazy** — flat memory, no `len()`, no indexing, no reuse.
+- **Never mutate a collection while iterating it.** Build a new one instead.
+- Use **`itertools`** for lazy composition and **materialise** only when you need repeated access.

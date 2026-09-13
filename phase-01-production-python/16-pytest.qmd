@@ -1,0 +1,443 @@
+---
+title: "pytest"
+---
+
+> **Interview answer (say this first).** `pytest` is Python's standard testing framework: it discovers functions named `test_*`, lets you write plain `assert` statements that it rewrites to show exact values, and supplies fixtures for setup and teardown. You separate fast unit tests from slow integration tests, keep every test isolated, and measure coverage with `pytest-cov` without treating coverage as the goal.
+
+## Why this exists
+
+You can test code by running it and looking at the output. That does not scale:
+
+- **It is not repeatable.** You will forget a case, or run the steps in a different order next time.
+- **Regressions slip through.** A change in one function quietly breaks a caller three modules away, and nobody notices until a customer does.
+- **Setup is duplicated.** Every manual check rebuilds the same database connection or fake client, so tests are tedious and get skipped.
+- **Failures are vague.** A script that prints `wrong` tells you nothing about which value was expected.
+
+Python's built-in `unittest` solves some of this, but it is verbose: every test is a method on a `TestCase`, and every check is `self.assertEqual(a, b)`.
+
+```python
+import unittest
+
+class TestAdd(unittest.TestCase):
+    def test_add(self):
+        self.assertEqual(add(2, 3), 5)
+```
+
+`pytest` removes the ceremony. You write plain functions and plain `assert`.
+
+```python
+def test_add():
+    assert add(2, 3) == 5          # and pytest shows you the values on failure
+```
+
+The difference is not only shorter code. When that assertion fails, `pytest` prints `assert 4 == 5` and `+ where 4 = add(2, 2)`, because it **rewrites** the assertion before running it. You get the real values, not just a line number.
+
+::: {.callout-note}
+**The one-sentence purpose.** `pytest` makes tests cheap to write and failures cheap to diagnose, so the test suite actually gets written and actually gets read.
+:::
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Test** | Code that runs a piece of the program and checks the result against an expectation. |
+| **Assertion** | A statement that must be true, usually the `assert` keyword. If it is false, the test fails. |
+| **Fixture** | A function that prepares something a test needs, such as a client or a database, and cleans up afterwards. |
+| **Scope** | How long a fixture lives: one test (`function`), one class, one module, or the whole run (`session`). |
+| **`conftest.py`** | A file whose fixtures are shared automatically by every test in its folder and below. |
+| **Parametrize** | Run the same test function many times with different inputs. |
+| **Marker** | A tag on a test, such as `@pytest.mark.slow`, used to select or skip it. |
+| **`monkeypatch`** | A built-in fixture that safely replaces attributes or environment variables, then restores them. |
+| **`tmp_path`** | A built-in fixture that gives each test its own temporary directory. |
+| **Collection** | The phase where `pytest` finds test files, classes, and functions before running anything. |
+| **Isolation** | The rule that one test must not change the world for another. |
+| **Unit test** | Fast, in-process test of one small piece, with dependencies faked. |
+| **Integration test** | Slower test of real components together: database, HTTP, filesystem. |
+| **Coverage** | The fraction of your code lines executed while the tests ran. |
+| **Flaky test** | A test that passes and fails without any code change, usually due to shared state, time, or ordering. |
+
+Two conventions to internalise:
+
+- **Test discovery is by name, not registration.** A file must be named `test_*.py` or `*_test.py`; a function must start with `test_`; a class must start with `Test`. Anything else is ignored.
+- **Setup and teardown live in fixtures, not in the test body.** A test should read as *arrange, act, assert*, with the arrangement requested by name.
+
+## The core idea
+
+A test is a scientific experiment. You set up controlled conditions, do one thing, and check the outcome. The **fixture** is the lab bench: prepared before the experiment, cleared afterwards, so the next experiment starts clean.
+
+The flow for every test is the same, and it is worth drawing explicitly:
+
+```{mermaid}
+flowchart LR
+    A["Collect<br/>find test_*"] --> B["Resolve fixtures<br/>build dependency graph"]
+    B --> C["Setup (in order)<br/>session -> module -> function"]
+    C --> D["Run test body<br/>arrange, act, assert"]
+    D --> E["Teardown (reverse)<br/>function -> module -> session"]
+    E --> F["Report<br/>pass / fail / skip / xfail"]
+```
+
+The teardown order is the reverse of setup, like unwinding a stack. This was verified: a function fixture that depends on another is set up after its dependency and torn down before it.
+
+The other core idea is **assertion introspection**. `pytest` installs an import hook that rewrites `assert` statements in test modules. When an assertion fails, it knows the expression tree and the runtime values.
+
+```python
+def test_add_introspection():
+    assert add(2, 2) == 5
+```
+
+Output:
+
+```text
+E       assert 4 == 5
+E        +  where 4 = add(2, 2)
+```
+
+The rewrites apply to test modules, `conftest.py`, and registered plugins. An ordinary imported module, such as your `app/calc.py`, is **not** rewritten, so an `assert` inside it fails with a bare `AssertionError` and no value decomposition. This is a real reason to keep assertions in tests and return values from application code.
+
+| Feature | `unittest` | `pytest` |
+| --- | --- | --- |
+| Test style | methods on `TestCase` | plain functions |
+| Assertions | `self.assertEqual(...)` | plain `assert` with value introspection |
+| Setup/teardown | `setUp` / `tearDown` | fixtures with scopes |
+| Sharing setup | inheritance | `conftest.py` |
+| Parametrisation | loop or subtests | `@pytest.mark.parametrize` |
+| Running one test | `python -m unittest path.Class.method` | `pytest path.py::test_name` |
+| Plain `assert` | poor messages | rewritten, detailed |
+| Required to use? | stdlib | a dependency, but the de-facto standard |
+
+## How it works
+
+1. **Discovery.** `pytest` walks the directory (respecting `testpaths` and `norecursedirs`) and imports files matching the configured patterns, by default `test_*.py` and `*_test.py`.
+2. **Collection.** Inside those files it collects functions prefixed `test_`, and methods of classes prefixed `Test` (with no `__init__`). Helper methods and other classes are ignored.
+3. **Fixture resolution.** For each test, `pytest` reads the parameter names of the test function and looks each one up as a fixture, searching the module, then `conftest.py` files upward, then built-in fixtures. Fixtures that request other fixtures are resolved recursively.
+4. **Setup runs outermost-first.** Session-scoped fixtures are built before module-scoped, which are built before function-scoped. A fixture body runs up to its `yield`.
+5. **The test body runs.** A plain `assert` that fails raises `AssertionError`, which `pytest` catches and reports, using the rewritten expression to show the values.
+6. **Teardown runs innermost-first.** Code after `yield` executes, and fixtures tear down in reverse order of setup.
+7. **Reporting.** `pytest` prints a progress line, then a detailed section per failure, then a short summary of passes, failures, skips, and expected failures. The exit code is non-zero if any test failed, which is what CI checks.
+8. **Selection.** Command-line flags narrow the run: `-k` matches test names, `-m` matches markers, `-x` stops at the first failure, and a `path::test_name` node ID runs exactly one test.
+9. **Coverage.** If `pytest-cov` is installed, it measures which lines the run executed and reports the missing ones.
+
+## The syntax you will use
+
+**A minimal test.** The name does the registration.
+
+```python
+def test_add():
+    assert add(2, 3) == 5
+```
+
+**Expect an exception.** `pytest.raises` fails the test if no exception is raised, and `match` is a regular expression searched in the message.
+
+```python
+import pytest
+
+def test_divide_by_zero():
+    with pytest.raises(ValueError, match="divide by zero"):
+        divide(1, 0)
+```
+
+**Inspect the exception.** The context manager gives you the exception object.
+
+```python
+def test_value():
+    with pytest.raises(ValueError) as excinfo:
+        parse_age("-1")
+    assert "age" in str(excinfo.value)
+    assert excinfo.type is ValueError
+```
+
+**A fixture that just returns.** The test requests it by name.
+
+```python
+@pytest.fixture
+def client():
+    return FakeClient()
+
+def test_calls(client):
+    assert client.calls == 0
+```
+
+**A fixture with teardown.** Code after `yield` always runs, even if the test fails.
+
+```python
+@pytest.fixture
+def connection():
+    conn = open_connection()
+    yield conn
+    conn.close()
+```
+
+**Fixture scopes.** Use the widest scope that is still safe; the default is `function`.
+
+```python
+@pytest.fixture(scope="session")   # built once for the whole test run
+def db():
+    ...
+```
+
+Allowed scopes are `function`, `class`, `module`, `package`, and `session`.
+
+**Share fixtures with `conftest.py`.** Any fixture defined there is available to tests in that directory and every subdirectory, with no import.
+
+```python
+# tests/conftest.py
+import pytest
+
+@pytest.fixture
+def configured(monkeypatch):
+    monkeypatch.setenv("API_URL", "http://test.local")
+```
+
+**Parametrize one test into many.** Each tuple becomes a separate test case with its own result.
+
+```python
+@pytest.mark.parametrize("text,expected", [("0", 0), ("30", 30), ("150", 150)])
+def test_parse_age(text, expected):
+    assert parse_age(text) == expected
+```
+
+Pass `ids=["zero", "thirty", "one-fifty"]` to give the cases readable names.
+
+**Mark tests, and select them.** Register custom markers so `pytest` does not warn.
+
+```python
+@pytest.mark.slow
+def test_full_pipeline():
+    ...
+
+# pytest -m "not slow"
+```
+
+**Skip and expect failure.**
+
+```python
+@pytest.mark.skip(reason="not implemented")
+def test_later():
+    ...
+
+@pytest.mark.xfail(reason="known bug")
+def test_known_bug():
+    ...
+```
+
+Non-strict `xfail` reports `XPASS` if the test unexpectedly passes. Strict `xfail` (`xfail(strict=True)`) fails in that case, which is how you notice a bug was fixed.
+
+**Give a test its own directory.** `tmp_path` is unique per test.
+
+```python
+def test_write(tmp_path):
+    path = tmp_path / "data.txt"
+    path.write_text("hello")
+    assert path.read_text() == "hello"
+```
+
+For a directory shared across tests, use the session-scoped `tmp_path_factory` and call `mktemp()`.
+
+**Patch safely with `monkeypatch`.** Changes are undone automatically after the test.
+
+```python
+def test_env(monkeypatch):
+    monkeypatch.setenv("API_URL", "http://test.local")
+
+def test_attr(monkeypatch):
+    import app.service as service
+    monkeypatch.setattr(service, "slow_query", lambda: 99)
+    assert service.slow_query() == 99
+```
+
+Patch the module attribute, not a name your test imported directly with `from app.service import slow_query`. In that case the test holds the original function, and the patch appears to do nothing.
+
+**Project configuration.** Put shared options in `pytest.ini` (or `pyproject.toml`).
+
+```ini
+[pytest]
+testpaths = tests
+addopts = -ra
+markers =
+    slow: marks tests as slow (deselect with '-m "not slow"')
+```
+
+**Coverage.**
+
+```bash
+pytest --cov=app --cov-report=term-missing
+```
+
+## Examples: simple to real
+
+**Example 1 — a first test and a clear failure.**
+
+```python
+def test_add():
+    assert add(2, 3) == 5
+
+def test_add_introspection():
+    assert add(2, 2) == 5     # deliberately wrong
+```
+
+No message was written by hand. The framework recovered the values by reading the rewritten assertion.
+
+**Example 2 — turning one test into many with parametrize.**
+
+```python
+@pytest.mark.parametrize("bad", ["x", "-1", "1.5"])
+def test_parse_age_rejects(bad):
+    with pytest.raises(ValueError):
+        parse_age(bad)
+```
+
+Three cases run, each reported separately. If `"1.5"` starts passing, you see exactly which input changed behaviour, not a single generic failure.
+
+**Example 3 — fixtures with teardown and dependency.**
+
+```python
+@pytest.fixture
+def user():
+    return {"id": 1}
+
+@pytest.fixture
+def order(user):
+    return {"user_id": user["id"], "items": []}
+
+def test_order_belongs_to_user(order, user):
+    assert order["user_id"] == user["id"]
+```
+
+`order` depends on `user`, so `pytest` sets up `user` first. On teardown it destroys `order` first, then `user`, in reverse.
+
+**Example 4 — expecting and inspecting an exception.**
+
+```python
+def test_divide_by_zero():
+    with pytest.raises(ValueError, match="divide.*zero"):
+        divide(1, 0)
+
+def test_missing_exception_fails():
+    with pytest.raises(ValueError):
+        pass          # no exception -> "DID NOT RAISE ValueError"
+```
+
+`match` is a regular expression, so `divide.*zero` matches `cannot divide by zero`. Forgetting that a test which raises nothing must fail is a common cause of false confidence.
+
+**Example 5 — isolation with `tmp_path`, `monkeypatch`, and an autouse fixture.**
+
+```python
+@pytest.fixture(autouse=True)
+def reset_state():
+    STATE.clear()
+    yield
+    STATE.clear()
+
+def test_writes_file(tmp_path):
+    path = tmp_path / "out.txt"
+    path.write_text("done")
+    assert path.read_text() == "done"
+
+def test_reads_env(monkeypatch):
+    monkeypatch.setenv("API_URL", "http://test.local")
+    assert get_api_url() == "http://test.local"
+```
+
+`autouse=True` runs the fixture for every test in the file without naming it. `monkeypatch` restores the original environment after the test, so test order cannot matter.
+
+**Example 6 — separate fast unit tests from slow integration tests.**
+
+```python
+@pytest.mark.slow
+def test_pipeline_against_real_database(db_connection):
+    ...
+```
+
+```bash
+pytest -m "not slow"          # the fast loop, run constantly
+pytest -m slow                # the full suite, run in CI or nightly
+```
+
+The unit tests stay in milliseconds so you run them on every save. The integration tests exercise real dependencies but never block the inner loop.
+
+## In production
+
+- **Keep the fast suite fast.** If `pytest` takes minutes, people stop running it. Aim for unit tests in milliseconds by faking I/O, and mark everything slow.
+- **Let one test change the world for no one else.** Shared mutable state, module-level caches, and files in fixed paths cause flaky, order-dependent tests. Use fixtures with teardown and `tmp_path`.
+- **Use the narrowest fixture scope that is safe.** `session` scope is fine for an immutable ORM engine, and dangerous for anything a test mutates. A leaked session-scoped object is a classic source of cross-test pollution.
+- **Test behaviour, not implementation.** Asserting private method calls makes the suite break on every refactor while catching nothing. Assert the observable result.
+- **Avoid over-mocking.** A test that mocks every dependency and then checks the mocks only verifies that the test's own assumptions were coded correctly. Mock at the boundary you do not control.
+- **Use real time and randomness carefully.** `time.sleep`, `datetime.now()`, `random`, and UUIDs make tests non-deterministic. Freeze or inject them.
+- **Keep coverage as a smell-detector, not a target.** 100% coverage with weak assertions proves lines ran, not that behaviour is correct. Use `--cov-report=term-missing` to find untested branches.
+- **Make the suite deterministic before making it bigger.** A flaky test teaches the team to re-run CI and ignore red, which is worse than no test.
+- **Organise the tree around the source.** `tests/test_calc.py` for `app/calc.py`, mirrored package structure, and `conftest.py` for shared fixtures and settings.
+- **Run the same command in CI and locally.** If CI does something different, local green means nothing. Put shared flags in `addopts`.
+
+## Interview questions
+
+### 1. How does `pytest` discover tests?
+
+**Answer.** By naming convention. Files matching `test_*.py` or `*_test.py` are imported; functions prefixed `test_` are collected; methods of classes prefixed `Test` are collected, and such classes must not define `__init__`. Fixtures live in `conftest.py` files and are found by walking up from the test. Nothing is registered manually.
+
+**Follow-up: "How do you change the patterns?"** Set `python_files`, `python_functions`, and `python_classes` in `pytest.ini` or `pyproject.toml`. Most teams keep the defaults.
+
+**Trap.** Assuming a plain helper class is collected. Only `Test*` classes are, and a `Test*` class with an `__init__` is skipped with a warning.
+
+### 2. What is a fixture, and how do scopes work?
+
+**Answer.** A fixture is a function decorated with `@pytest.fixture` that prepares a resource for tests. Tests request it by name, and `pytest` resolves dependencies. The scope controls lifetime: `function` (default) is built and destroyed per test, `module` per file, `session` once for the whole run. Setup runs in dependency order and teardown in reverse.
+
+**Follow-up: "When do you use `session` scope?"** For expensive, read-only resources such as a database engine or a loaded model, where rebuilding per test would dominate the runtime and tests do not mutate the shared state.
+
+**Trap.** Using `session` scope for something a test mutates. The mutation leaks into later tests and creates failures that depend on test order.
+
+### 3. What is `conftest.py` for?
+
+**Answer.** It holds fixtures, hooks, and shared configuration that are automatically available to every test in its directory and below, without imports. Layering `conftest.py` files is how large suites share setup per package while keeping root-level fixtures global.
+
+**Follow-up: "Can a `conftest.py` import from a sibling test file?"** It should not; `conftest.py` is discovered and loaded specially. Put shared helpers in a normal module and import them.
+
+**Trap.** Treating `conftest.py` as a normal module. Its contents are not collected as tests, but its fixtures are injected by name through `pytest`'s own discovery.
+
+### 4. What does `parametrize` do, and why prefer it to a loop?
+
+**Answer.** `@pytest.mark.parametrize` runs the same test function once per input tuple, reporting each as a separate test case. A loop inside one test stops at the first failure and reports one result, while parametrised cases all run and each failure shows its own input.
+
+**Follow-up: "How do you give the cases readable names?"** Pass `ids=[...]`, or use `pytest.param(..., id="...")` for per-case options such as `xfail`.
+
+**Trap.** Parametrising on mutable objects that a test mutates. Each case should use independent data, or the cases contaminate one another.
+
+### 5. What is the difference between unit and integration tests, and how do you organise them?
+
+**Answer.** Unit tests run in-process, fake external dependencies, and finish in milliseconds; they validate one piece of logic. Integration tests exercise real components together — database, HTTP layer, filesystem — and are slower and more brittle but catch wiring bugs that fakes cannot. Keep units fast and run them constantly; mark integration tests and run them in CI or nightly.
+
+**Follow-up: "How do you mark them?"** With a registered custom marker such as `@pytest.mark.slow` or `@pytest.mark.integration`, selected with `-m`. Registering the marker in `pytest.ini` removes the unknown-marker warning.
+
+**Trap.** Calling a test a unit test while it hits a real network or sleeps. That single test turns the fast loop into a coffee break.
+
+### 6. When do you use `monkeypatch`, and how is it different from `unittest.mock`?
+
+**Answer.** `monkeypatch` is a fixture for small, reversible changes: set an environment variable, patch a module attribute, change the working directory. It restores everything automatically after the test. `unittest.mock` is for richer fakes: recording calls, custom return values, and asserting how a dependency was used. Both are legitimate; `monkeypatch` is the simpler tool when you only need to swap a value.
+
+**Follow-up: "Why did my `monkeypatch.setattr` seem to do nothing?"** You patched `app.service.slow_query`, but the test had done `from app.service import slow_query`, so the test's local name still points at the original function. Import the module and call `service.slow_query()`.
+
+**Trap.** Patching a name where it is defined when the code under test looks it up somewhere else. Patch the attribute on the module the code actually reads.
+
+### 7. How do you test that code raises the right exception?
+
+**Answer.** Use `with pytest.raises(SomeError):` around the call. The test fails if no exception is raised. Add `match="regex"` to check the message, and capture the context with `as excinfo` when you need the exception object or type. Assert on the specific type, not the base `Exception`.
+
+**Follow-up: "What is the common mistake?"** Testing only that *some* error occurred. `pytest.raises(Exception)` passes for almost any bug, including one you did not intend, so the test proves nothing.
+
+**Trap.** Forgetting that `match` is a regular expression searched anywhere in the message, not an exact string comparison.
+
+### 8. What does code coverage tell you, and how do you use `pytest-cov`?
+
+**Answer.** Coverage is the fraction of lines executed during the test run. It finds code that no test touches, which is useful. It says nothing about whether the assertions are strong, so it is a smell-detector, not a quality score. Run it with `pytest --cov=app --cov-report=term-missing` and read the missing lines as a list of branches to think about.
+
+**Follow-up: "Should you enforce a coverage threshold?"** A low, stable gate can stop regressions, but a high gate invites tests that execute lines without checking behaviour. Prefer reviewing the missing lines over chasing a number.
+
+**Trap.** Treating 100% coverage as proof of correctness. Lines can run while every assertion is wrong.
+
+## Remember this
+
+- **Discovery is by name:** `test_*.py`, `test_*` functions, `Test*` classes.
+- **Fixtures are the setup and teardown**, scoped `function` to `session`, shared through `conftest.py`, torn down in reverse.
+- **`parametrize` turns one test into many**, so each input gets its own clear result.
+- **Isolate every test**: `tmp_path` for files, `monkeypatch` for environment and attributes, real state restored automatically.
+- **Keep unit tests fast and integration tests marked**, and treat coverage as a guide, never a goal.
