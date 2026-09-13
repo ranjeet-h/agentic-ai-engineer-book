@@ -1,0 +1,397 @@
+---
+title: "Planning, Decomposition, and Routing"
+---
+
+> **Interview answer (say this first).** **Planning** is deciding the steps before acting. **Decomposition** is breaking one large goal into small subtasks. **Routing** is choosing which tool, agent, or skill handles each subtask. A **static plan** fixes the steps up front; **dynamic replanning** revises them when a step fails or the world changes. Planning pays off on multi-step, ambiguous tasks; on a simple request it only adds latency and a new way to be wrong.
+
+## Why this exists
+
+A single model call asked to "handle this customer request end to end" is a gamble. The model must simultaneously understand the goal, remember every tool, choose the right ones, track partial results, and know when it is done. It usually fails somewhere in the middle, and the failure is invisible.
+
+Watch a capable model given a broad task and fifty tools:
+
+```text
+Goal: prepare the Q3 board pack and email it to the board.
+
+Model: I'll email the board now.
+         -> calls send_email with no attachment
+```
+
+The model skipped the entire middle: find the Q3 numbers, build the pack, attach it. It did not fail because it lacked knowledge. It failed because the task was **too large for one decision**, and nothing forced it to make the intermediate decisions explicit.
+
+Three concrete problems planning solves:
+
+- **Long horizons.** A task with six steps has six chances to lose the thread. Small steps are checkable; one giant step is not.
+- **Too many tools.** Fifty tool schemas in one prompt is noise. Routing narrows the choice to the two or three that fit the current step, which improves both accuracy and latency.
+- **No recovery point.** If the whole task is one call, a failure means starting over. If it is five steps, you can retry step four and keep steps one to three.
+
+There is also a failure in the other direction. Teams add a planner to everything, including tasks that are one tool call. Now a trivial lookup costs two model calls and can be derailed by a bad plan. Planning is a tool, not a default.
+
+::: {.callout-note}
+**The one-sentence purpose.** Planning turns a big vague goal into small explicit steps, and routing sends each step to the right capability.
+:::
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Plan** | An ordered list of steps that is expected to achieve a goal. |
+| **Planner** | The component that produces a plan. It may be an LLM, a rules table, or code. |
+| **Decomposition** | Splitting one goal into smaller subtasks that are individually easier to solve. |
+| **Subtask / step** | One unit of work in a plan, usually one tool call or one sub-agent call. |
+| **Dependency** | Step B depends on step A when B needs A's output or must run after it. |
+| **DAG** | A directed acyclic graph: steps connected by dependencies with no cycles. The shape of a plan. |
+| **Topological order** | An order in which every step comes after its dependencies. |
+| **Executor** | The component that runs the steps and threads their results forward. |
+| **Routing** | Choosing the destination for a request: one tool, one agent, or one skill. |
+| **Router** | The classifier that makes the routing choice. |
+| **Dispatcher** | The code that calls the chosen destination and handles its result. |
+| **Static plan** | A plan computed once, before execution, and followed as written. |
+| **Dynamic replanning** | Recomputing or patching the plan during execution, usually after a failure or new information. |
+| **Plan-and-execute** | A pattern with two phases: plan first, then execute the plan. |
+| **ReAct** | A pattern where the model interleaves one reasoning step and one action at a time. It does not write a full plan up front. |
+| **Hierarchical planning** | Planning at more than one level: a high-level plan of subgoals, then a separate plan for each subgoal. |
+| **Skill** | A packaged capability (prompt + tools + steps) that a router can select. |
+| **Fan-out / fan-in** | Running independent steps in parallel, then joining their results. |
+| **Backtracking** | Undoing a step or choosing a different branch after a failure. |
+| **Budget** | A cap on steps, tokens, time, or money that stops runaway planning. |
+
+Two distinctions cause most confusion, so pin them down now:
+
+- **Planning vs routing.** Planning decides *what steps exist*. Routing decides *who performs each step*. A good plan with bad routing still fails.
+- **Static vs dynamic.** Static is decided once and cheap to reason about. Dynamic adapts but is harder to test and can thrash.
+
+## The core idea
+
+Think of a **construction project**. A general contractor does not swing a hammer on day one. They look at the goal, write a sequence of jobs, order them by dependency, and assign each job to the right trade — plumber, electrician, painter. If the electrician finds the wall is concrete, the schedule changes; the goal does not.
+
+An agent planner does the same:
+
+- The **goal** is "renovate the kitchen."
+- The **plan** is the ordered job list.
+- The **router** assigns each job to a trade.
+- The **executor** runs jobs and passes results forward.
+- **Replanning** happens when a job reveals something new.
+
+Here is the shape of a plan-and-execute agent with a replanning loop:
+
+```{mermaid}
+flowchart TD
+    G["Goal"] --> P["Planner<br/>decompose into steps"]
+    P --> PLAN["Plan<br/>steps + dependencies"]
+    PLAN --> SEL["Select ready steps<br/>(topological order)"]
+    SEL --> RT{"Router"}
+    RT -->|"tool"| T["Call tool"]
+    RT -->|"sub-agent"| SA["Delegate to sub-agent"]
+    RT -->|"skill"| SK["Run skill"]
+    T --> V["Validate result"]
+    SA --> V
+    SK --> V
+    V --> OK{"Succeeded?"}
+    OK -->|"yes"| MORE{"Steps left?"}
+    MORE -->|"yes"| SEL
+    MORE -->|"no"| DONE["Return result"]
+    OK -->|"no"| RP["Replan<br/>patch or re-plan"]
+    RP --> PLAN
+```
+
+Not every agent needs every box. A ReAct loop collapses the planner and the selector into the model's next thought. Plan-and-execute separates them. The diagram shows the full machinery you can add when a task earns it.
+
+The choice between the two dominant styles is a real trade:
+
+| Dimension | Plan-and-execute | ReAct (step by step) |
+| --- | --- | --- |
+| When the plan is written | Once, up front | Implicitly, each turn |
+| Model calls | Fewer (plan + execute) | More (one per action) |
+| Adapts to surprises | Only with replanning | Naturally, every step |
+| Easy to inspect | Yes: the plan is a visible artifact | Harder: reasoning is interleaved |
+| Failure mode | Rigid plan pursued past its usefulness | Wanders, loops, loses the goal |
+| Best for | Known, repeatable workflows | Exploratory or unpredictable tasks |
+
+The mature answer in an interview: **use ReAct-style loops for exploration and a plan for repeatable multi-step work, and allow replanning in both.**
+
+## How it works
+
+1. **Understand the goal.** Restate the request in one sentence with success criteria. If you cannot state what "done" looks like, no plan will help.
+2. **Decide whether to plan.** Simple, single-tool requests go straight to routing. Multi-step or ambiguous requests get a plan.
+3. **Decompose.** Split the goal into subtasks that are each small enough for one capability. Good subtasks are independently verifiable: you can tell whether each one succeeded.
+4. **Order by dependency.** Build the DAG. Independent steps can fan out in parallel; dependent steps must run in sequence.
+5. **Assign a destination.** Route each subtask to a tool, a sub-agent, or a skill. Prefer the narrowest capability that can do the job.
+6. **Execute ready steps.** Run any step whose dependencies are satisfied. Thread outputs into later inputs through a shared state object.
+7. **Validate each result.** Check the schema and the substance. A tool that returns `ok` with an empty body did not really succeed.
+8. **Replan on failure.** Patch the plan (insert a step, swap a tool) or rebuild it. Cap the number of replans so the agent cannot thrash.
+9. **Check termination.** Stop when the goal is met, the budget is exhausted, or no progress is possible. Return the partial result with a clear status.
+10. **Record the plan.** Save it with the run. A plan is the best explanation of why the agent did what it did, and a template for next time.
+
+## The syntax you will use
+
+**Represent a plan as data, not prose.** A dataclass makes it testable.
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass
+class Step:
+    tool: str
+    args: dict = field(default_factory=dict)
+    id: str = ""
+
+@dataclass
+class Plan:
+    goal: str
+    steps: list[Step]
+```
+
+**Validate a model-produced plan.** Never trust raw JSON from an LLM; parse it into a schema.
+
+```python
+from typing import Literal
+from pydantic import BaseModel, Field
+
+class StepModel(BaseModel):
+    tool: Literal["search", "read_file", "summarize", "send_email"]
+    args: dict = Field(default_factory=dict)
+
+class PlanModel(BaseModel):
+    goal: str
+    steps: list[StepModel]
+
+# An unknown tool is rejected before anything executes.
+PlanModel.model_validate({"goal": "x", "steps": [{"tool": "drop_table"}]})
+# ValidationError: steps.0.tool
+```
+
+**Ask the model for a plan as JSON.** The schema is the contract; the prompt just fills it.
+
+```text
+You are a planner. Return JSON with this shape and nothing else:
+{"goal": str, "steps": [{"tool": "search|read_file|summarize|send_email",
+                          "args": {...}}]}
+Only use tools from the provided list. Aim for the fewest steps.
+```
+
+**Route by rules when the mapping is stable.** Cheap, fast, and fully testable.
+
+```python
+TRIGGERS = {
+    "send_email": ("email", "notify"),
+    "summarize": ("summar", "digest"),
+    "read_file": ("read", "open", "file"),
+    "search": ("find", "look up", "who", "what"),
+}
+
+def route(query: str) -> tuple[str, int]:
+    q = query.lower()
+    best, best_score = "search", 0
+    for tool, words in TRIGGERS.items():
+        score = sum(1 for w in words if w in q)
+        if score > best_score:
+            best, best_score = tool, score
+    return best, best_score
+```
+
+**Route with the model when wording varies.** Ask for one label and validate it against the known set.
+
+```text
+Classify the user request into exactly one skill:
+  billing | refunds | technical | account
+Return only the label.
+```
+
+**Order steps with the standard library.** `graphlib.TopologicalSorter` yields batches that can run in parallel.
+
+```python
+import graphlib
+
+deps = {                       # step -> steps it depends on
+    "fetch_report": set(),
+    "fetch_sales": set(),
+    "combine": {"fetch_report", "fetch_sales"},
+    "summarise": {"combine"},
+    "send_email": {"summarise"},
+}
+ts = graphlib.TopologicalSorter(deps)
+ts.prepare()
+while ts.is_active():
+    ready = ts.get_ready()     # a tuple of steps with no unmet dependencies
+    print("parallel batch:", ready)
+    for step in ready:
+        ts.done(step)
+# parallel batch: ('fetch_report', 'fetch_sales')
+# parallel batch: ('combine',)
+# ...
+```
+
+**Thread state between steps.** Each step reads what earlier steps wrote.
+
+```python
+state: dict[str, str] = {}
+for step in steps:
+    if step.tool == "summarize":
+        step.args["text"] = state.get("last", "")
+    result = TOOLS[step.tool](**step.args)
+    state["last"] = result.value          # next step reads this
+```
+
+**Cap the plan.** A budget turns a runaway planner into a terminating one.
+
+```python
+MAX_STEPS = 12
+MAX_REPLANS = 2
+```
+
+## Examples: simple to real
+
+**Example 1 — routing a single request.** Rule-based classification, verified output:
+
+```text
+send an email to the team   -> ('send_email', 1)
+summarize this article      -> ('summarize', 1)
+read the onboarding doc     -> ('read_file', 1)
+who founded the company?    -> ('search', 1)
+```
+
+Four requests, four destinations, no model call. When the mapping is stable, rules are accurate, free, and easy to unit-test.
+
+**Example 2 — a static plan from a goal.** The planner looks at the goal and emits steps:
+
+```text
+plan_static("summarize the Q3 report and email it to the team")
+[('read_file', {'path': 'q3.pdf'}),
+ ('summarize', {}),
+ ('send_email', {'to': 'team'})]
+```
+
+The plan is a visible artifact. A reviewer can see that it forgot nothing and used no forbidden tool.
+
+**Example 3 — replanning when a step fails.** `read_file` cannot find `q3.pdf`, so the executor inserts a search step and retries:
+
+```text
+read_file{'path': 'q3.pdf'} -> ok=False FileNotFoundError: q3.pdf
+  replanning: inserting ['search', 'read_file']
+search{'query': 'q3.pdf'} -> ok=True search results for 'q3.pdf'
+read_file{'path': 'found_q3.pdf'} -> ok=True contents of found_q3.pdf
+summarize{} -> ok=True summary of 0 chars
+send_email{'to': 'team'} -> ok=True email sent to team
+```
+
+This is the payoff of dynamic planning: a failure becomes a new step instead of a dead end. It also shows a bug — `summarize` received nothing (`0 chars`) because state was not threaded. The next example fixes that.
+
+**Example 4 — state flows between steps.** Adding a state dict gives each step the previous output:
+
+```text
+read_file -> contents of notes.txt
+summarize -> summary of 21 chars
+send_email -> email sent to team
+```
+
+The summary is now built from the file text, and the email body is built from the summary. A plan without state flow is just a list of unrelated calls.
+
+**Example 5 — a plan with parallel branches.** Independent steps run in the same batch:
+
+```text
+parallel batch: ('fetch_report', 'fetch_sales')
+parallel batch: ('combine',)
+parallel batch: ('summarise',)
+parallel batch: ('send_email',)
+```
+
+`fetch_report` and `fetch_sales` have no dependency on each other, so the executor can run them at once. Fan-in at `combine` waits for both. This is how a plan gets faster without changing the goal.
+
+**Example 6 — planning can hurt.** For "what is the refund policy?", the right move is one route:
+
+```text
+route("what is the refund policy?") -> ('search', 1)
+# plan-and-execute would do: plan -> [search] -> execute -> summarize
+```
+
+Two extra model calls, more latency, and a chance the planner invents a step. If a request is one clear action, **route it, do not plan it**. The decision rule is simple: plan when the task needs two or more dependent steps or the steps are not obvious.
+
+## In production
+
+- **Plan only when the task earns it.** A planner in front of every request doubles latency and adds a failure point. Route simple requests directly.
+- **Decompose until each step is verifiable.** If you cannot say whether a step succeeded, it is too big. "Research the market" is not a step; "search for the top five competitors" is.
+- **Validate the plan before executing it.** Parse the model's JSON against a schema and reject unknown tools. A plan is untrusted input — the model wrote it.
+- **Prefer the narrowest capability.** Routing to a specific function beats routing to an agent that then chooses among fifty tools. Each narrowing reduces the error surface.
+- **Thread state explicitly.** Plans fail silently when steps do not receive earlier outputs. A shared state object with named fields is easier to debug than argument passing by position.
+- **Cap steps and replans.** Without `MAX_STEPS` and `MAX_REPLANS`, a failed plan can regenerate forever. The cap is also a cost control.
+- **Replanning can thrash.** If the re-plan produces a near-identical plan, the agent is stuck. Detect repetition and stop with a partial result instead of looping.
+- **Static plans are testable; dynamic plans are not.** Prefer a static plan for known workflows and test it like code. Reserve replanning for genuinely unpredictable tasks.
+- **Make routing observable.** Log the chosen destination, the runner-up, and the confidence. When quality drops, you can see whether the router or the destination failed.
+- **Keep a fallback route.** Every router needs an "I don't know" branch. Otherwise an out-of-distribution request is forced into the wrong tool with full confidence. The rule-based `route()` above is the minimal version: when nothing matches it returns `('search', 0)`, and that zero score is the caller's cue to treat the result as low-confidence. A real fallback is a destination plus a threshold, not just a default label.
+- **Parallel branches need idempotent steps** (safe to run twice with the same effect). A retried fan-out step must not duplicate its effect; otherwise a timeout creates duplicate emails or double charges.
+- **Do not hide the plan from the user on long tasks.** Showing the steps is a feature: the user can catch a wrong decomposition before it costs money.
+
+## Interview questions
+
+### 1. What is the difference between planning and routing?
+
+**Answer.** Planning decides *what steps exist and in what order* to reach a goal. Routing decides *which tool, agent, or skill handles each step*. A plan is a list of steps with dependencies; a route is the destination for one step. You can have a perfect plan and still fail if every step is routed to the wrong capability.
+
+**Follow-up: "Can routing happen without a plan?"** Yes. Many agents route every turn with no explicit plan — that is a ReAct loop. The router picks the next action from the current state.
+
+**Trap.** Using the words interchangeably. Interviewers listen for whether you know that decomposition and dispatch are different failure points.
+
+### 2. What is task decomposition, and what makes a good subtask?
+
+**Answer.** Decomposition breaks a goal into smaller subtasks. A good subtask is small enough for one capability, independently verifiable, and has a clear input and output. If you cannot tell whether a subtask succeeded, it is too big. The test: could a separate function or agent attempt it and return pass or fail?
+
+**Follow-up: "How small is too small?"** When the overhead of a model call or tool round-trip exceeds the work. Ten trivial steps cost more than one well-scoped step and add more places to fail.
+
+**Trap.** Decomposing by intuition instead of by capability. Steps should map to things the system can actually do.
+
+### 3. Compare static plans with dynamic replanning.
+
+**Answer.** A static plan is computed once and followed, which makes it cheap, predictable, and testable. Dynamic replanning revises the plan during execution when a step fails or new information arrives, which handles the unexpected but is harder to test and can thrash. Most production systems start static and add bounded replanning for known failure points.
+
+**Follow-up: "How do you stop replanning from looping?"** Cap the number of replans, compare each new plan to the previous one, and stop with a partial result when plans stop changing.
+
+**Trap.** Choosing dynamic planning for a workflow that is already known. If the steps almost never change, a static plan with good error handling is safer.
+
+### 4. When does planning hurt?
+
+**Answer.** Planning hurts on simple, single-step requests: it adds a model call, adds latency, and introduces a chance for the planner to invent a wrong step. It also hurts when the environment changes faster than the plan can be revised, or when steps are so uncertain that the plan is fiction. The rule is to plan when a task needs two or more dependent steps or when the steps are not obvious.
+
+**Follow-up: "How do you decide at run time?"** Classify the request first. A cheap complexity check routes trivial requests straight to a tool and sends genuinely multi-step work to the planner.
+
+**Trap.** Assuming more planning is always more capable. The best agents plan selectively.
+
+### 5. What is plan-and-execute, and how is it different from ReAct?
+
+**Answer.** Plan-and-execute writes a complete plan first, then executes it, often with replanning. ReAct interleaves one reasoning step and one action at a time, deciding the next action from the latest observation. Plan-and-execute uses fewer model calls and is more inspectable; ReAct adapts more naturally and is better for exploration. Both are valid; the choice depends on how predictable the task is.
+
+**Follow-up: "Can you combine them?"** Yes. Plan first for structure, then execute with a ReAct-style loop inside each step, and replan at the top level when a step changes the situation.
+
+**Trap.** Treating ReAct as "not planning." ReAct plans lazily, one step at a time; it is still making decisions about sequence.
+
+### 6. What is hierarchical planning?
+
+**Answer.** Hierarchical planning plans at more than one level. A top-level planner produces subgoals, and a separate planner turns each subgoal into concrete steps. It keeps each planning call small and lets you reuse sub-plans: the "send an email" sub-plan is the same regardless of the larger goal.
+
+**Follow-up: "What is the cost?"** More model calls and more places where the levels can disagree. The top level may assume a capability the lower level cannot deliver.
+
+**Trap.** Building three levels of planning for a task with four steps. Hierarchy earns its cost on long, repetitive work, not small tasks.
+
+### 7. How do you route a request to the right tool or agent?
+
+**Answer.** Use rules when the mapping is stable and cheap, and a model classifier when the wording varies. Either way, constrain the output to a fixed set of destinations, log the choice and the runner-up, and provide a fallback route for unknown requests. Narrow the destination to the smallest capability that can do the job, because each extra option increases the chance of a wrong pick.
+
+**Follow-up: "What if two routes are plausible?"** Return a confidence and let policy decide: run the top route, or ask the user. Never silently pick between two very different actions.
+
+**Trap.** Putting fifty tool descriptions in one prompt and calling that routing. That is selection by brute force, and accuracy drops as the list grows.
+
+### 8. How do you validate a plan produced by an LLM?
+
+**Answer.** Treat it as untrusted input. Parse it into a schema, reject unknown tools and malformed arguments, check that the steps actually cover the goal, and verify dependencies form a DAG with no cycles. Then enforce budgets. Only after validation does anything execute.
+
+**Follow-up: "What about a plan that is valid but wrong?"** Schema checks catch structural errors, not bad reasoning. Add a critic pass or a dry-run against real tool permissions before executing risky steps.
+
+**Trap.** Executing the model's JSON directly because it "looked right." An unvalidated plan can call a tool that does not exist or one the user is not allowed to use.
+
+## Remember this
+
+- **Planning decides the steps; routing picks the destination.** They are different failure points.
+- **Decompose until every step is independently verifiable**, then order steps by dependency in a DAG.
+- **Static plans are testable; dynamic replanning adapts but can thrash** — always cap replans.
+- **Validate model-written plans as untrusted input** against a schema and a tool allow-list.
+- **Plan selectively.** Simple requests should be routed directly; planning adds cost and new failure modes.

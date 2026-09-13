@@ -1,0 +1,456 @@
+---
+title: "OpenAI Agents SDK"
+---
+
+> **Interview answer (say this first).** The OpenAI Agents SDK is a small Python framework for building agents. An `Agent` declares instructions, tools, handoffs, and guardrails; `Runner.run` executes the model-and-tool loop and returns a `RunResult`. It gives you function tools generated from Python type hints, agent handoffs, input and output guardrails, pluggable sessions for memory, and built-in tracing. You are not locked to OpenAI models: `RunConfig(model=...)` accepts any `Model` implementation, which is also how you test the whole loop offline.
+
+::: {.callout-note}
+**Version verified.** This page was checked against **`openai-agents 0.22.2`** (with `openai 3.13.0`) on Python 3.14. All API shapes below were introspected from the installed package, and every runnable example was executed **offline** with a scripted `Model` — no network calls, no live model responses. Outputs that would normally come from a model are labelled **illustrative**.
+:::
+
+## Why this exists
+
+An agent is a language model in a loop. The loop itself is not hard to describe:
+
+1. Send the conversation and the tool descriptions to the model.
+2. The model answers **or** asks to call a tool.
+3. If it calls a tool, run the tool and add the result to the conversation.
+4. Go back to step 1 until the model answers.
+
+The loop is easy to write once. The problem is that every team rewrites the same plumbing and gets the same details wrong:
+
+- The tool's JSON schema drifts from the Python function, so the model passes arguments the function cannot accept.
+- The tool result is appended without the matching `call_id`, so the model cannot tell which call it answers.
+- The loop has no turn limit and no approval step, so one confused model can burn money or take a dangerous action without review.
+- There is no trace or memory, so a failed run cannot be reproduced and the agent forgets everything between requests.
+
+The SDK exists to provide that plumbing once, in a small, typed surface. You describe **what** the agent is; the `Runner` owns the **how**.
+
+::: {.callout-tip}
+**The one-sentence purpose.** The SDK turns "call a model in a loop with tools" from bespoke plumbing into a few declarative objects plus one runner.
+:::
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Agent** | A declaration of a role: a name, instructions, tools, handoffs, guardrails, and an optional output type. It holds no conversation state. |
+| **Runner** | The engine that executes the loop: it calls the model, runs tools, applies handoffs and guardrails, and stops. |
+| **Run** | One call to the runner for one task, from the first model call to the final answer. |
+| **Turn** | One model call inside a run. A run has many turns when the model uses tools. |
+| **Tool** | A function the model is allowed to call, described to it in JSON Schema. |
+| **Function tool** | A Python function wrapped by `@function_tool` so its signature and docstring become the model-facing schema. |
+| **Handoff** | A tool that transfers control from the current agent to another agent. The new agent becomes the one answering. |
+| **Guardrail** | A checker that can stop a run. Input guardrails check what goes in; output guardrails check what comes out. |
+| **Tripwire** | The flag a guardrail sets to abort the run with an exception. |
+| **Session** | A store of conversation history that the runner reads and writes automatically, so memory survives across runs. |
+| **Tracing** | Recording a run as a tree of timed operations (a trace) made of spans, for debugging and cost analysis. |
+| **Span** | One timed unit inside a trace: an agent step, a turn, or a function call. |
+| **`RunResult`** | The object returned by a run: final output, all items, guardrail results, usage (on `context_wrapper`), and the last active agent. |
+| **`RunContextWrapper`** | A wrapper passed to tools and guardrails that carries your own `context` object plus usage counters. |
+| **`RunConfig`** | Per-run settings, including the model, tracing switches, and guardrail overrides. |
+| **`output_type`** | A Pydantic type (or schema) that forces the final answer into a validated shape. |
+| **Hosted tool** | A tool the provider runs for you, such as web search, file search, or code execution. |
+| **MCP server** | A server exposing tools over the Model Context Protocol that the agent can use directly. |
+
+Two distinctions matter early:
+
+- **Agent vs Run.** An `Agent` is a reusable blueprint. Every task creates a new `Run`. Never store per-task state on the agent.
+- **Handoff vs tool.** A tool does work and returns data to the **same** agent. A handoff changes **which** agent is answering.
+
+## The core idea
+
+Think of a well-run restaurant kitchen.
+
+- The **`Agent`** is a station card: the role ("grill"), the instructions, the equipment (tools), and who to pass an order to (handoffs).
+- The **`Runner`** is the expeditor at the pass. It keeps the order moving: shouts the ticket, waits for the station, checks the plate, and decides what happens next.
+- A **turn** is one shout to the kitchen and its reply.
+- A **function tool** is a station ticket: a small, named job with typed inputs.
+- A **handoff** is walking the order to a different station and letting that chef finish it.
+- A **guardrail** is the food-safety check before an order leaves the kitchen.
+- A **session** is the order book that survives a shift change.
+
+The runner owns control flow. Your job is to describe the stations well.
+
+```{mermaid}
+sequenceDiagram
+    participant U as User
+    participant R as Runner
+    participant M as Model
+    participant T as Tool
+    U->>R: Runner.run(agent, input)
+    loop until final output or max_turns
+        R->>M: instructions + history + tool schemas + handoffs
+        M-->>R: message OR tool call
+        alt tool call
+            R->>T: execute tool(arguments)
+            T-->>R: result (or error)
+            R->>R: append result with call_id
+        else final message
+            R-->>U: RunResult(final_output)
+        end
+    end
+```
+
+The SDK sits between a raw API call and a full graph framework:
+
+| Approach | Control flow | Best when |
+| --- | --- | --- |
+| Raw API + your loop | You write it | You need total control or are learning |
+| OpenAI Agents SDK | Runner-owned loop, declarative agents | You want agents, tools, handoffs, sessions, tracing quickly |
+| LangGraph | You draw an explicit graph of nodes and edges | You need durable state, interrupts, and complex branching |
+
+## How it works
+
+1. **You construct an `Agent`.** In `0.22.2` it is a dataclass with `name` required and the rest defaulted, such as `instructions`, `tools`, `handoffs`, `mcp_servers`, `input_guardrails`, `output_guardrails`, `output_type`, `model`, `model_settings`, and `hooks` (others include `handoff_description`, `prompt`, `tool_use_behavior`, `reset_tool_choice`, and `mcp_config`).
+2. **You call the runner.** `Runner.run_sync(...)` is the blocking form; `await Runner.run(...)` is async; `Runner.run_streamed(...)` streams. All three take `starting_agent`, `input`, and keyword options such as `context`, `session`, and `run_config`.
+3. **The runner builds the model input.** It combines the agent's resolved instructions (a string or a function of context), the conversation history, and — when a `session` is passed — stored items from earlier runs.
+4. **The runner describes the tools.** Each `FunctionTool` carries a JSON Schema generated from the function's type hints and docstring, plus any handoffs, which appear to the model as tools named like `transfer_to_weather`.
+5. **The model replies.** It either produces a final message or one or more tool calls. The raw reply is a `ModelResponse` with `output`, `usage`, and a `response_id`.
+6. **The runner executes tools.** Arguments are parsed against the schema, the function runs (sync or async), and the result is appended to the conversation. If the tool raises, the default behaviour is to catch the error and return a message to the model so it can recover.
+7. **Handoffs swap the active agent.** Calling a handoff tool runs `on_invoke_handoff`, which returns the target agent. The runner continues the loop with that agent's instructions and tools.
+8. **Guardrails run around the loop.** Input guardrails inspect the incoming input before or during the first model call (`run_in_parallel=True` by default). Output guardrails inspect the final output. A triggered tripwire raises `InputGuardrailTripwireTriggered` or `OutputGuardrailTripwireTriggered`.
+9. **Structured output is enforced.** With `output_type=SomeModel`, the runner asks the model for that JSON shape and validates it. `RunResult.final_output` is then an instance of that type.
+10. **The loop ends** when the model returns a final answer, when `tool_use_behavior="stop_on_first_tool"` stops after a tool, or when the turn limit is hit. The default `max_turns` is **10**; exceeding it raises `MaxTurnsExceeded`.
+11. **The result is assembled.** `RunResult` exposes `final_output`, `new_items`, `raw_responses`, `input_guardrail_results`, `output_guardrail_results`, `last_agent`, and usage counters on `context_wrapper.usage`.
+12. **Tracing records the run.** A trace is created per run, with spans typed `task`, `agent`, `turn`, and `function`. Export happens only when a tracing API key is configured.
+
+## The syntax you will use
+
+**Install and import.** The package name is `openai-agents`; the import name is `agents`.
+
+```bash
+uv add openai-agents
+```
+
+```python
+from agents import Agent, Runner, function_tool, handoff
+```
+
+**Credentials.** Set the key once, or pass a client. Never hard-code secrets in source.
+
+```python
+from agents import set_default_openai_key, set_default_openai_client
+set_default_openai_key("sk-...")            # or set OPENAI_API_KEY in the environment
+```
+
+**A function tool.** The signature and docstring become the schema. `strict_mode=True` is the default.
+
+```python
+@function_tool
+def get_weather(city: str) -> str:
+    """Look up the weather for a city."""
+    return f"{city}: 24C"
+
+# get_weather.description == "Look up the weather for a city."
+# get_weather.params_json_schema:
+# {'type': 'object', 'properties': {'city': {'type': 'string', 'title': 'City'}},
+#  'required': ['city'], 'additionalProperties': False, 'title': 'get_weather_args'}
+```
+
+**An async tool.** Async functions are supported and wrapped the same way.
+
+```python
+@function_tool
+async def search_docs(query: str) -> str:
+    """Search the internal knowledge base."""
+    return await backend.search(query)
+```
+
+**An `Agent`.** Everything except `name` is optional.
+
+```python
+agent = Agent(
+    name="Support",
+    instructions="You are a concise support agent. Use tools before guessing.",
+    tools=[get_weather, search_docs],
+    model="gpt-4.1-mini",
+)
+```
+
+**Run it.** `run_sync` blocks; `run` is awaitable.
+
+```python
+from agents import Runner
+result = Runner.run_sync(agent, "What is the weather in Paris?")
+print(result.final_output)
+```
+
+**Structured output.** Ask for a Pydantic model; the SDK validates it.
+
+```python
+from pydantic import BaseModel
+
+class Report(BaseModel):
+    city: str
+    temp_c: int
+
+agent = Agent(name="Reporter", output_type=Report)
+report = Runner.run_sync(agent, "Report Paris.").final_output   # a Report instance
+```
+
+**Handoffs.** The default tool name is `transfer_to_` plus the lowercased agent name (spaces become underscores).
+
+```python
+weather = Agent(name="Weather", instructions="Answer weather questions only.")
+triage = Agent(name="Triage", instructions="Route to the right specialist.",
+               handoffs=[weather])
+# The model sees a tool named "transfer_to_weather".
+```
+
+**Guardrails.** A guardrail returns `GuardrailFunctionOutput(output_info, tripwire_triggered)`.
+
+```python
+from agents import input_guardrail, output_guardrail, GuardrailFunctionOutput
+
+@input_guardrail
+def block_secrets(ctx, agent, input) -> GuardrailFunctionOutput:
+    text = input if isinstance(input, str) else ""
+    return GuardrailFunctionOutput(output_info=None, tripwire_triggered="password" in text)
+```
+
+**Sessions.** Pass one to the runner and history persists across calls.
+
+```python
+from agents import SQLiteSession
+session = SQLiteSession("user-42", db_path=":memory:")   # durable path in production
+result = Runner.run_sync(agent, "My name is Ada.", session=session)
+```
+
+**Your own context.** Tools receive a `RunContextWrapper` whose `.context` is whatever you passed.
+
+```python
+from dataclasses import dataclass
+from agents import RunContextWrapper
+
+@dataclass
+class UserCtx:
+    user_id: str
+
+@function_tool
+def whoami(ctx: RunContextWrapper[UserCtx]) -> str:
+    return ctx.context.user_id
+```
+
+**Tracing.** Add a local processor, or turn export off in tests.
+
+```python
+from agents import set_tracing_disabled, add_trace_processor
+set_tracing_disabled(True)         # no export attempt in tests
+add_trace_processor(my_processor)  # on_trace_start / on_span_end callbacks
+```
+
+**Human approval.** Mark a tool as needing approval and inspect interruptions.
+
+```python
+@function_tool(needs_approval=True)
+def delete_file(path: str) -> str:
+    """Delete a file."""
+    ...
+# result.interruptions -> [ToolApprovalItem]
+# state = result.to_state(); state.approve(result.interruptions[0]); resume
+```
+
+## Examples: simple to real
+
+**Example 1 — the schema is generated, not written by hand.**
+
+Define the function and inspect the schema. This is verified output:
+
+```python
+@function_tool
+def get_weather(city: str) -> str:
+    """Look up the weather for a city."""
+    return f"{city}: sunny, 24C"
+
+print(get_weather.name, "|", get_weather.description)
+# get_weather | Look up the weather for a city.
+print(get_weather.params_json_schema)  # {'properties': {'city': {'type': 'string'}}, ...}
+```
+
+The model never sees your Python. It sees this JSON Schema. Keeping the two in sync is now the SDK's job.
+
+**Example 2 — run the loop offline with a scripted model.**
+
+A real model call needs the network. To show the mechanism safely, implement the `Model` interface and return queued replies. This is exactly how you unit-test an agent:
+
+```python
+from agents.models.interface import Model, ModelResponse
+from agents.items import ResponseFunctionToolCall, ResponseOutputMessage, ResponseOutputText
+from agents.usage import Usage
+
+class ScriptedModel(Model):
+    def __init__(self, responses): self._responses = list(responses)
+    async def get_response(self, system_instructions, input, model_settings, tools,
+                           output_schema, handoffs, tracing, *, previous_response_id=None,
+                           conversation_id=None, prompt=None):
+        return ModelResponse(output=self._responses.pop(0), usage=Usage(requests=1),
+                             response_id="resp_fake")
+    async def stream_response(self, *args, **kwargs):
+        raise NotImplementedError
+```
+
+Feed it one tool call, then a final message. Verified result:
+
+```text
+model output 1 (tool call):  get_weather(city="Paris")
+tool runs:                   "Paris: sunny, 24C"
+model output 2 (message):    "Paris is sunny at 24C."   # illustrative model text
+final_output:                "Paris is sunny at 24C."
+last_agent:                  Weather
+items:                       ToolCallItem, ToolCallOutputItem, MessageOutputItem
+```
+
+The important lesson: `RunResult.new_items` shows exactly what happened, in order. That list is your unit-test assertion target.
+
+**Example 3 — a handoff moves control.**
+
+A triage agent, given a scripted model reply that calls `transfer_to_weather`, hands off. Verified:
+
+```text
+handoff tool name:  transfer_to_weather
+final_output:       Paris 24C from Weather agent   # illustrative model text
+last_agent:         Weather
+```
+
+Notice `last_agent`. After a handoff, the agent that answered is not necessarily the agent that started. Production code logs this.
+
+**Example 4 — a guardrail trips before the model runs.**
+
+The guardrail below rejects any input without a math operator. Verified behaviour:
+
+```text
+input "hello there" -> InputGuardrailTripwireTriggered
+    output_info: {'is_math': False}
+input "what is 2+2" -> passes, run completes, results: [{'is_math': True}]
+```
+
+Guardrails are a policy layer. They are not prompt instructions, so the model cannot talk its way past them.
+
+**Example 5 — structured output is validated, not parsed by hand.**
+
+```python
+class WeatherReport(BaseModel):
+    city: str
+    temp_c: int
+
+agent = Agent(name="Struct", output_type=WeatherReport)
+```
+
+With a scripted model returning `{"city": "Paris", "temp_c": 24}`, verified: `RunResult.final_output` is a `WeatherReport`. The SDK also passes an `AgentOutputSchema` to the model describing the required shape. If the JSON did not validate, the run fails loudly.
+
+**Example 6 — sessions give the agent memory across runs.**
+
+With `SQLiteSession("interview-demo", db_path=":memory:")`, verified:
+
+```text
+after run 1 ("My name is Ada."):  2 stored items
+after run 2 ("What is my name?"): 4 stored items
+after clear_session():            0 stored items
+```
+
+The second run's model input already contained the first exchange. That is session memory. In production, point `db_path` at durable storage or implement the `Session` interface against your database.
+
+**Example 7 — tracing shows the tree.**
+
+With a local tracing processor attached, a two-step run produced these spans (verified):
+
+```text
+trace_start 'token-usage-demo'
+  span task  'token-usage-demo'   <- the single task span; named after the workflow
+    span agent 'Calc'             <- child of the task
+      span turn     (model call)
+        span function 'add'   <- the tool executed here
+      span turn     (final model call)
+trace_end 'token-usage-demo'
+```
+
+Every turn nests under the agent, and every tool call nests under its turn. That structure is what makes cost and latency attributable.
+
+## In production
+
+- **Pin the version.** `openai-agents` is pre-1.0 and moves fast. Treat upgrades like framework upgrades: read the changelog and rerun your agent tests. The API on this page is `0.22.2`.
+- **Always set `max_turns` deliberately.** The default is 10 and raises `MaxTurnsExceeded`. Catch it and treat it as a signal about a confused agent, not as a normal ending.
+- **Tool errors are swallowed by default.** When a function raises, the default failure function returns `"An error occurred while running the tool. Please try again. Error: ..."` to the model, and the run continues. That enables recovery but hides real bugs, so alert on repeated tool errors. Pass your own `failure_error_function` or `raise` when a failure must stop the run.
+- **Guardrails can cost a model call.** An LLM-based guardrail doubles latency for the steps it guards. Input guardrails run in parallel with the first model call by default; output guardrails run after generation. Budget for both.
+- **Handoffs must control context.** By default a handoff can carry the whole conversation, including the previous agent's mistakes. Use `input_filter` or `nest_handoff_history` to send only what the next agent needs.
+- **Sessions are not a database.** The built-in `SQLiteSession` defaults to `:memory:` — nothing survives the process. Use a durable path or your own `Session` implementation, and mind concurrent writes to the same session id.
+- **Tracing sends data to a service by default.** Export needs a tracing key, and `RunConfig.trace_include_sensitive_data` (default `True`) controls whether prompts and tool payloads are included. Redact before you export. Disable tracing in tests. Log `RunResult.context_wrapper.usage` per run so cost is attributable to a user and a task.
+- **Do not use `output_type` casually.** Strict schemas constrain the model and can change its behaviour. Validate externally when the schema is complex; use `output_type` when downstream code genuinely needs a typed object.
+- **Idempotency belongs to your tools.** The runner can retry model calls (`ModelSettings.retry`), and the model may call the same tool more than once. Side-effecting tools need an idempotency key and a durable record of what they already did.
+- **Use `RunConfig(model=...)` for portability and tests.** It is the seam for other providers and for offline scripted models. It is also the cleanest way to test without network access.
+- **Human approval is a first-class flow.** `needs_approval=True` pauses the run and returns `interruptions`. Approve or reject on `RunState`, then resume. Persist the state if the pause may outlive the process.
+
+## Interview questions
+
+### 1. What does the Agents SDK give you that a raw API call does not?
+
+**Answer.** The SDK owns the agent loop. It turns your tool functions into JSON Schemas, appends tool results with the correct `call_id`, executes sync and async tools, applies handoffs and guardrails, manages session memory, enforces a turn limit, and records a trace. With a raw API you own all of that plumbing and every bug in it.
+
+**Follow-up: "Is it a framework lock-in?"** Less than it looks. `Agent` is a dataclass, tools are plain functions, and `RunConfig(model=...)` accepts any `Model` implementation. You can point it at other providers or a scripted test model.
+
+**Trap.** Saying the SDK "calls the OpenAI API." It calls whatever `Model` the run config provides. The model is a dependency, not the framework.
+
+### 2. How does `@function_tool` produce the schema the model sees?
+
+**Answer.** It imports the function, inspects its type hints and docstring (unless `use_docstring_info=False`), and builds a JSON Schema with Pydantic. The function name or `name_override` becomes the tool name; the docstring or `description_override` becomes the description; parameter names become schema properties. At call time, arguments are validated against that schema before the function runs.
+
+**Follow-up: "What is `strict_mode`?"** When true (the default), the generated schema disallows extra properties and sets strict JSON-schema constraints, which pushes the provider to emit schema-valid arguments. Complex Python types can still need care, so verify the schema for anything unusual.
+
+**Trap.** Believing the description is optional. The description is how the model decides when to call the tool. A vague docstring produces wrong tool selection, not a crash.
+
+### 3. What exactly is a handoff, and how is it different from a tool?
+
+**Answer.** A handoff is a tool that returns another agent instead of data. When the model calls it, the runner changes the active agent; the new agent's instructions, tools, and guardrails apply to the rest of the run. A normal tool runs work and returns a result to the same agent. Handoff means "you take over"; tool means "do this and report back."
+
+**Follow-up: "How do you stop context from leaking?"** Use `input_filter` to transform the history passed to the next agent, or `nest_handoff_history` to control whether the prior conversation is kept. Without a filter, the whole history can travel.
+
+**Trap.** Using a handoff where a tool belongs. If the caller still needs to combine the result with its own work, use a tool; the caller loses control after a handoff.
+
+### 4. Input versus output guardrails, and what is a tripwire?
+
+**Answer.** Input guardrails inspect what the user (or upstream system) sends, before it can drive tools. Output guardrails inspect the final answer, before it reaches the user. Both return a `GuardrailFunctionOutput`. `tripwire_triggered=True` raises an exception — `InputGuardrailTripwireTriggered` or `OutputGuardrailTripwireTriggered` — which stops the run. `output_info` carries your own details for logging.
+
+**Follow-up: "When does the input guardrail run?"** By default in parallel with the first model call (`run_in_parallel=True`), so it adds little latency but the model may already have started. Set it false to block before any model call, at the cost of latency.
+
+**Trap.** Treating a guardrail as a prompt instruction. The model cannot override a guardrail because the guardrail is Python, not text.
+
+### 5. How does the Runner decide when to stop?
+
+**Answer.** It stops when the model produces a final answer with no tool calls, or when `tool_use_behavior="stop_on_first_tool"` makes the first tool output final. It also stops when `max_turns` is reached, but that raises `MaxTurnsExceeded` rather than returning normally. A triggered guardrail stops it too. Otherwise the loop continues, feeding tool results back to the model.
+
+**Follow-up: "What does `run_llm_again` mean?"** It is the default tool-use behaviour: after a tool runs, call the model again so it can react to the result. The alternative, `stop_on_first_tool`, skips that final model call.
+
+**Trap.** Assuming the agent stops when the task is done. It stops when the **model says** it is done, or when a hard limit fires. There is no separate task-completion check unless you add one.
+
+### 6. How do sessions work, and when do you need them?
+
+**Answer.** A `Session` is a history store. When you pass `session=...` to the runner, it loads prior items before the run and appends new items after. `SQLiteSession` is the built-in implementation; you can implement the `Session` interface against Redis or Postgres. Without a session, every run starts empty unless you pass the full history as `input`.
+
+**Follow-up: "How do you control context growth?"** Use `SessionSettings(limit=N)` to cap how many items are loaded. Summarise old turns rather than replaying them forever.
+
+**Trap.** Reusing one session id across users, or assuming `:memory:` persists. Session ids are a tenant boundary and a correctness concern.
+
+### 7. How do you test an agent without calling a real model?
+
+**Answer.** Implement the `Model` interface. `get_response` returns a `ModelResponse` built from queued items, so the loop, tool execution, handoffs, guardrails, and result assembly all run for real with no network. Assert on `RunResult.new_items`, `final_output`, and `last_agent`. Keep a small set of scripted scenarios per route, and reserve live-model eval for a slower suite.
+
+**Follow-up: "What does that not test?"** Model quality and prompt sensitivity. A scripted model proves your plumbing; it says nothing about whether a real model picks the right tool. Test both: unit tests for the loop, eval runs for behaviour.
+
+**Trap.** Mocking the `Runner` itself. You then test nothing but the mock. Mock the model boundary, not the engine.
+
+### 8. How does tracing work, and what is the privacy risk?
+
+**Answer.** Every run creates a trace with nested spans: `task` for the workflow, `agent`, `turn` for each model call, and `function` for each tool call. You can attach a `TracingProcessor` to receive start and end callbacks, or let the built-in exporter send traces to a service. The privacy risk is that prompts, tool arguments, and tool outputs can contain user data. Export requires a key, and `trace_include_sensitive_data` controls payload capture, so redact and configure before enabling export.
+
+**Follow-up: "What is `set_tracing_disabled(True)` for?"** It stops trace creation and export, which is what you want in unit tests and in any environment that must not send data out. Local processors also stop receiving events while tracing is disabled.
+
+**Trap.** Leaving tracing on with sensitive data in a regulated environment because "it is just logs." A trace with tool arguments is a data export.
+
+## Remember this
+
+- The **`Agent` is a declaration; the `Runner` is the engine.** The runner owns the loop, tools, handoffs, and stopping.
+- **`@function_tool` generates the schema from your signature and docstring.** The docstring drives tool selection.
+- **Handoff changes who answers; a tool returns to the same agent.**
+- **Guardrails are Python policy, not prompts.** A tripwire stops the run.
+- **You can run the whole loop offline** by implementing `Model`, which is also the correct unit-test seam.

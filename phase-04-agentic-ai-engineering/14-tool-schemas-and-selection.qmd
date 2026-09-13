@@ -1,0 +1,382 @@
+---
+title: "Tool Schemas and Selection"
+---
+
+> **Interview answer (say this first).** A tool is only usable if the model can understand it from text alone, because the model never sees your code — it sees a name, a description, and a parameter schema. Tool schemas are how you describe each tool, and tool selection is the model's job of picking one. Good descriptions, tight parameter schemas, and a short list of candidate tools make selection reliable. Too many tools, vague names, and overlapping descriptions make it fail.
+
+## Why this exists
+
+An agent does not call your function directly. It reads a **catalog of tools** as text, picks one, and emits a structured tool call. Everything the model knows about a tool comes from what you wrote down:
+
+- the **name**,
+- the **description**,
+- the **parameter schema** (each argument's name, type, and description).
+
+If that text is vague, the model guesses. Here is the failure, in miniature:
+
+```text
+Tool A: {"name": "do_thing", "description": "Does the thing."}
+Tool B: {"name": "do_other", "description": "Does the other thing."}
+User: "What is the weather in Paris?"
+Model: calls do_thing with {}
+```
+
+Neither tool says what it does. The model cannot know that `do_thing` is a weather lookup. It picks one almost at random, the call fails, and the agent either loops or gives up.
+
+Now the more common production failure: **two tools that sound alike.**
+
+```text
+search_docs    "Search internal documentation."
+search_web     "Search the web."
+User: "Find our refund policy."
+```
+
+A person knows to use `search_docs`. The model might use `search_web`, return a competitor's policy, and the agent answers confidently and wrongly. The bug is not in the model. It is in the description, which never said "internal company knowledge only."
+
+The catalog itself also has a cost. Every tool definition is serialized into every prompt. Ten tools are cheap. Three hundred tools can add thousands of tokens per turn, slow every call, and bury the relevant tool among noise. At some scale, selection accuracy drops and latency rises, even if each description is good.
+
+Tool schemas and selection exist to fix both problems: describe each tool so it is unmistakable, and give the model only the tools that could plausibly apply.
+
+::: {.callout-note}
+**The one-sentence purpose.** A tool schema is the tool's contract with the model, and selection is the model matching that contract to the current goal — so the quality of the text decides whether the right tool gets called.
+:::
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Tool** | A function the agent may call, such as `search_docs` or `send_email`. |
+| **Tool schema** | The machine-readable description of a tool: name, description, parameters. |
+| **Parameter schema** | JSON Schema for the tool's arguments — types, required fields, bounds. |
+| **JSON Schema** | A standard document that describes which JSON values are valid. |
+| **Function calling** | The provider feature that lets a model emit a structured tool call. |
+| **Tool call** | A structured request naming one tool and its arguments. |
+| **Tool selection** | The model's decision of which tool (if any) to call. |
+| **Tool routing** | Deciding which tools are even offered for this request. |
+| **Tool retrieval** | Fetching the most relevant tools from a large catalog, like RAG for tools. |
+| **Shortlisting** | The small candidate set of tools you put in the prompt. |
+| **Context window** | The maximum text (measured in tokens) the model can read at once. |
+| **Token** | A small piece of text, roughly a word or part of a word. |
+| **Ambiguous tool** | A tool whose text overlaps another tool's, so the choice is unclear. |
+| **Argument validation** | Checking the model's arguments against the parameter schema before running. |
+| **Idempotency key** | A value that lets a repeated call be treated as the same operation. |
+
+Two distinctions matter:
+
+- **Selection is the model's decision; routing is yours.** You cannot force the model to be sensible, but you control which tools it can see. Routing is a lever you own.
+- **A schema validates; a description guides.** The schema stops bad arguments. The description is what makes the model choose the tool in the first place. You need both.
+
+## The core idea
+
+Think of a restaurant menu. A dish called "Special #3" with no description sells nothing, because the diner has to guess. A dish described as "slow-roasted lamb, garlic, rosemary, served with potatoes" is easy to choose. The diner is the model, the menu is your tool catalog, and the description is advertising.
+
+Selection works by text: the model compares the goal ("find the refund policy") against each tool's name, description, and parameters, then reasons about which fits. Names carry signal, descriptions carry more, and parameter names carry a little. That is why "search_docs" beats "do_thing," and why a sentence about *when* to use a tool beats a sentence about *what it is*.
+
+```{mermaid}
+flowchart TD
+    G["User goal"] --> R["Route / shortlist<br/>pick candidate tools"]
+    R --> P["Build prompt:<br/>goal + candidate tool schemas"]
+    P --> M["Model reasons over text<br/>and emits a tool call"]
+    M --> V{"Validate arguments<br/>against parameter schema"}
+    V -->|"invalid"| E["Return error to model<br/>let it retry"]
+    E --> M
+    V -->|"valid"| X["Execute the tool"]
+    X --> O["Observation goes<br/>back into context"]
+    O --> M
+    M -->|"no tool needed"| A["Answer (finish)"]
+```
+
+The three levers you control are the **description**, the **schema**, and the **candidate list**. Improve any of them and selection gets better. The model's reasoning you do not control, so you test it like any other probabilistic component.
+
+| Bad description | Better description |
+| --- | --- |
+| "Search." | "Search internal company documentation. Use when the answer depends on company-specific policy, not general knowledge." |
+| "Get data." | "Read one customer record by `customer_id`. Returns name, plan, and status. Read-only." |
+| "Email." | "Send an email to a recipient. Has side effects and needs approval for external addresses." |
+
+Notice the shape of the better ones: **what it does, when to use it, when not to, and whether it writes.** That last part matters for safety, because it tells the model which tools are risky.
+
+## How it works
+
+1. **You register each tool.** A name, a description, and a parameter schema. In Python you usually derive the schema from a Pydantic model of the arguments.
+2. **You build a candidate list.** For a small catalog, offer all tools. For a large one, shortlist by retrieval before the model ever sees them.
+3. **You serialize the catalog into the prompt.** The provider formats each tool schema into the request; the model reads name, description, and parameters as text.
+4. **The model reasons over the goal and the catalog.** It emits either a tool call (name plus arguments) or a plain answer.
+5. **You validate the arguments.** Parse them into the argument model. Unknown tools and malformed arguments are caught here.
+6. **You execute and observe.** Run the tool, capture the result or error, and return it to the model as an observation.
+7. **The loop continues.** The model picks again with the new observation in context, until it answers or stops.
+8. **You measure selection.** A labeled set of `(goal, expected tool)` pairs turns "the agent feels flaky" into an accuracy number you can improve.
+
+Retrieval and shortlisting sit before step 3, and they are the main fix when the catalog grows. An embedding index over tool descriptions returns the top-k closest tools for the goal; only those are offered. A keyword or lexical score is a cheaper first pass.
+
+## The syntax you will use
+
+**Describe the arguments with Pydantic.** Field descriptions travel into the parameter schema.
+
+```python
+from pydantic import BaseModel, Field
+
+class SearchArgs(BaseModel):
+    model_config = {"extra": "forbid"}
+    query: str = Field(description="What to search for.")
+    top_k: int = Field(default=5, ge=1, le=50, description="Number of results.")
+```
+
+**Generate the parameter schema.** `model_json_schema()` produces standard JSON Schema.
+
+```python
+schema = SearchArgs.model_json_schema()
+# {"type": "object", "properties": {...}, "required": ["query"], ...}
+```
+
+**Build a tool definition (OpenAI style).** The schema travels inside `parameters`.
+
+```python
+tool = {
+    "type": "function",
+    "function": {
+        "name": "search_docs",
+        "description": "Search internal company documentation. Use for policy and product questions.",
+        "parameters": SearchArgs.model_json_schema(),
+    },
+}
+```
+
+**Build a tool definition (Anthropic style).** The same schema goes in `input_schema`.
+
+```python
+tool = {
+    "name": "search_docs",
+    "description": "Search internal company documentation. Use for policy and product questions.",
+    "input_schema": SearchArgs.model_json_schema(),
+}
+```
+
+**Let the OpenAI SDK build it from a Pydantic model.** `pydantic_function_tool` derives the schema and sets strict mode.
+
+```python
+from openai import pydantic_function_tool
+
+tool = pydantic_function_tool(
+    SearchArgs, name="search_docs", description="Search internal docs."
+)
+# tool["function"]["strict"] is True, and additionalProperties is false
+```
+
+**Shortlist tools before the prompt.** Score descriptions against the goal and keep the best few.
+
+```python
+import re
+
+def tokens(text: str) -> set[str]:
+    return set(re.findall(r"[a-z]+", text.lower()))
+
+def shortlist(goal: str, catalog: dict[str, str], k: int = 5) -> list[tuple[int, str]]:
+    goal_words = tokens(goal)
+
+    def score(name: str) -> int:
+        return len(goal_words & tokens(name.replace("_", " ") + " " + catalog[name]))
+
+    ranked = sorted(catalog, key=score, reverse=True)
+    return [(score(name), name) for name in ranked[:k]]
+```
+
+**Test selection with a labeled set.** Treat the model as a component under test.
+
+```python
+CASES = [
+    ("Find our refund policy", "search_docs"),
+    ("What is the weather in Paris?", "get_weather"),
+    ("Email the customer a receipt", "send_email"),
+]
+
+def accuracy(select_fn) -> float:
+    hits = sum(select_fn(goal) == expected for goal, expected in CASES)
+    return hits / len(CASES)
+```
+
+## Examples: simple to real
+
+**Example 1 — a schema is just generated JSON.** Pydantic turns annotations into the exact contract the model sees.
+
+```python
+class SearchArgs(BaseModel):
+    model_config = {"extra": "forbid"}
+    query: str = Field(description="The text to search for.")
+    top_k: int = Field(default=5, ge=1, le=50, description="How many results.")
+
+SearchArgs.model_json_schema()
+```
+
+```text
+required: ['query']
+properties: query (string), top_k (integer, default 5, min 1, max 50)
+additionalProperties: False
+```
+
+`extra="forbid"` becomes `additionalProperties: false`, which tells the provider to reject stray fields.
+
+**Example 2 — nested arguments use `$defs` and `$ref`.** Providers vary in `$ref` support, so this is worth checking early.
+
+```python
+class Filter(BaseModel):
+    field: str
+    op: str
+    value: str
+
+class QueryArgs(BaseModel):
+    filters: list[Filter] = Field(default_factory=list)
+
+QueryArgs.model_json_schema()
+```
+
+```text
+has $defs: True
+filters.items -> {"$ref": "#/$defs/Filter"}
+```
+
+If a provider rejects `$ref`, flatten the schema or inline the nested object before sending it.
+
+**Example 3 — a shortlist narrows the catalog.** This lexical version ranks by shared words; an embedding version would score semantically.
+
+```text
+catalog: search_docs (internal docs), send_email (email), run_sql (read-only SQL)   k=3
+goal: "find docs about billing"
+  -> [(1, 'search_docs'), (0, 'send_email'), (0, 'run_sql')]
+
+catalog: get_weather (weather for a city), send_email (email), search_docs (internal docs)   k=3
+goal: "what is the weather in Paris"
+  -> [(1, 'get_weather'), (0, 'send_email'), (0, 'search_docs')]
+```
+
+The right tool lands in the top slot. Only the top few would be sent to the model, which cuts tokens and removes distractors.
+
+**Example 4 — a description that disambiguates.** Two search tools become easy to tell apart once the text states scope and when to use each.
+
+```text
+search_docs: "Search only internal company documentation — policies, runbooks,
+  and product guides. Use when the answer must come from company knowledge.
+  Do not use for general facts."
+
+search_web: "Search the public web. Use for general facts, news, and anything
+  outside company knowledge."
+```
+
+The scoped descriptions plus the "do not use" line remove the overlap. The model now has a rule, not a guess.
+
+**Example 5 — the parameter schema is part of the contract.** Bounds and enums constrain the model before it calls.
+
+```python
+from typing import Literal
+
+class SendArgs(BaseModel):
+    model_config = {"extra": "forbid"}
+    to: str
+    subject: str
+    body: str
+    priority: Literal["low", "normal", "high"] = "normal"
+```
+
+```text
+priority -> {"enum": ["low", "normal", "high"], "default": "normal"}
+```
+
+The model cannot invent a priority level. It also cannot add fields it was not given.
+
+**Example 6 — measure selection, then improve the text.** A regression set catches changes that make routing worse.
+
+```text
+before description fix: 4/6 correct
+after description fix:  6/6 correct
+```
+
+Changing a description can fix selection without touching a single line of agent code. That is why selection belongs in tests, exactly like a prompt or a parser.
+
+## In production
+
+- **Write descriptions as instructions, not labels.** State what the tool does, when to use it, when not to, and whether it writes. A one-word description is a bug waiting to happen.
+- **Make names obvious.** `search_docs` beats `sd_lookup`. The name is the first signal the model reads.
+- **Give every argument a description and a type.** Untyped or bare arguments invite wrong values; bounds and enums constrain the model cheaply.
+- **Keep the candidate list small.** Every tool costs tokens on every turn. Shortlist when the catalog grows past a handful.
+- **Add negative guidance for close calls.** "Do not use for general facts" is more effective than hoping the model infers scope.
+- **Check provider keyword support.** Not every provider handles `$ref`, `anyOf`, or `$defs`. Test your real schema against the real API before relying on it.
+- **Validate arguments before executing.** Never run a tool on unvalidated arguments. Unknown tool names map to nothing and must be rejected.
+- **Avoid overlapping tools.** If two tools can plausibly answer the same goal, merge them or sharpen both descriptions. Overlap is the top cause of wrong-tool calls.
+- **Test selection with a labeled set.** Collect real goals and the expected tool. Re-run the set whenever a description or the model changes.
+- **Beware tool-name drift.** Renaming a tool silently breaks any stored prompts, evals, and callers. Version the catalog or migrate deliberately.
+- **Treat retrieval as approximate.** A shortlist can drop the correct tool. Keep `k` generous, or fall back to the full catalog when confidence is low.
+- **Log which tool was offered and chosen.** When selection fails, you need to know whether the right tool was even in the candidate list.
+
+## Interview questions
+
+### 1. What does a model actually see about a tool?
+
+**Answer.** It sees text: the tool's name, description, and the JSON Schema of its parameters — plus, in many APIs, a strictness flag. It never sees your implementation. So the schema and description are the entire contract, and any ambiguity in them becomes a selection error.
+
+**Follow-up: "Does the parameter schema affect selection or only execution?"** Both. It constrains the arguments, and argument names and descriptions are weak signals the model uses when choosing.
+
+**Trap.** Thinking a great implementation makes a tool discoverable. If the description is poor, the model never gets far enough to call it.
+
+### 2. What makes a good tool description?
+
+**Answer.** Four things in plain text: what the tool does, when to use it, when not to use it, and whether it has side effects. Concrete examples and units help too. Keep it short enough to read at a glance and specific enough to separate it from neighbor tools.
+
+**Follow-up: "Why say when not to use it?"** Negative guidance resolves the close calls that cause wrong-tool errors — for example, telling the model not to use the internal search for general facts.
+
+**Trap.** Writing documentation for humans that omits operational guidance. The model needs the routing rule, not just the feature list.
+
+### 3. Why does having too many tools hurt?
+
+**Answer.** Each tool schema is serialized into the prompt on every turn, so the catalog consumes tokens, cost, and latency. It also adds distractors, and selection accuracy falls when many tools sound similar. The context window is a budget, and tools compete with the conversation for it.
+
+**Follow-up: "What do you do about it?"** Shortlist: retrieve the most relevant tools for the goal and offer only those. This cuts tokens and improves selection by removing noise.
+
+**Trap.** Offering every tool "just in case." A relevant ten beats an irrelevant hundred.
+
+### 4. How does tool retrieval differ from RAG over documents?
+
+**Answer.** The mechanics are the same — embed text, find nearest neighbors — but the corpus is tool descriptions instead of documents, and the output is a candidate tool list instead of passages. The risk is similar too: a bad retrieve sends the wrong material downstream, so you measure recall of the correct tool.
+
+**Follow-up: "What if the shortlist drops the right tool?"** That is a hard failure the model cannot recover from. Keep `k` generous, add a fallback to the full catalog, and monitor for "no suitable tool" outcomes.
+
+**Trap.** Treating retrieval as free. It adds an index, latency, and a new failure mode, so only add it when the catalog is genuinely large.
+
+### 5. Two tools seem to overlap. What do you do?
+
+**Answer.** First decide whether they are genuinely different operations. If not, merge them. If they are, sharpen the descriptions until the boundary is explicit — different scopes, different data sources, different side effects. Give the model a rule to follow rather than hoping it infers one.
+
+**Follow-up: "How do you verify the fix worked?"** Run the labeled selection set before and after. If wrong-tool errors drop, the change helped.
+
+**Trap.** Renaming the tools and assuming the overlap is gone. The descriptions still decide, so they must change too.
+
+### 6. How do you validate a tool call before executing it?
+
+**Answer.** Parse it into the tool's argument model. Confirm the name is one you registered, the required arguments are present, the types are right, and unknown fields are rejected. Only then run the function. A valid-looking call is still just the model's proposal.
+
+**Follow-up: "What about permissions?"** Validation is separate from authorization. Even a well-formed call must pass a policy check — scopes, tenant boundaries, approval for risky actions — before it touches anything.
+
+**Trap.** Running the tool because the provider said the call was "valid." The provider validated shape, not safety.
+
+### 7. How do you test tool selection?
+
+**Answer.** Build a labeled set of realistic goals and their expected tools, then compute accuracy for the current model, prompt, and descriptions. Run it whenever any of those change. It turns a subjective "seems flaky" into a number you can move.
+
+**Follow-up: "What should the set contain?"** Easy cases, genuinely ambiguous cases, and the near-misses that have failed in production. Include cases where the right answer is no tool at all.
+
+**Trap.** Testing only the happy path with one obvious tool available. Selection errors live in the crowded cases.
+
+### 8. Why is argument validation part of tool safety?
+
+**Answer.** The model produces arguments too, and those are as untrusted as any other model output. A missing required argument, a string where an integer belongs, or a smuggled extra field can cause a wrong write. Validating against the parameter schema catches this before execution, and `additionalProperties: false` catches the smuggled-field case.
+
+**Follow-up: "Where do idempotency keys fit?"** Into the argument schema, so a retried call can be collapsed downstream instead of executed twice.
+
+**Trap.** Assuming the provider already checked the arguments. Enforce the contract you own.
+
+## Remember this
+
+- **The model only sees text.** Name, description, and parameter schema are the whole contract.
+- **Description is routing documentation.** Say what it does, when to use it, and when not to.
+- **Too many tools cost tokens and accuracy.** Shortlist to keep the catalog small.
+- **Nested schemas use `$defs`/`$ref`; check your provider supports them.**
+- **Validate every tool call before executing it — shape first, permissions second.**

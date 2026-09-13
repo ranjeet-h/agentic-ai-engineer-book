@@ -98,7 +98,8 @@ The review result for each topic is reported alongside the topic, naming any ite
 - [x] Phase 1 checkpoint review (independent content review + fixes applied).
 - [x] Phase 2 — LLM and Generative AI Fundamentals (overview + Topics 1–25 written, independent review + fixes applied).
 - [x] Phase 3 — RAG Engineering (overview + Topics 1–21 written, independent review + fixes applied; 52/52 roadmap bullets covered).
-- [ ] Phases 4–13.
+- [x] Phase 4 — Agentic AI Engineering (overview + Topics 1–22 written, independent review + fixes applied; 60/60 roadmap bullets covered).
+- [ ] Phases 5–13.
 - [ ] Final projects.
 
 ## Batch review note
