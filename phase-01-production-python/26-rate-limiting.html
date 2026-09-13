@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Rate Limiting – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-01-production-python/27-api-testing.html" rel="next">
+<link href="../phase-01-production-python/25-background-jobs.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/26-rate-limiting.html"><span class="chapter-title">Rate Limiting</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/26-rate-limiting.html"><span class="chapter-title">Rate Limiting</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Rate Limiting</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> Rate limiting caps how many requests a caller may make in a time window, so one client cannot exhaust shared resources or run up a bill. The usual algorithms are fixed window, sliding window, token bucket, and leaky bucket; token bucket is the common default because it allows bursts. In a distributed system the counter must be shared and updated atomically — Redis with a Lua script — and the server returns <code>429 Too Many Requests</code> with a <code>Retry-After</code> header.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>Every service has a finite capacity: database connections, CPU, worker slots, and — for AI products — tokens and money. A limit is what stops one caller from consuming all of it.</p>
+<p>Three failures happen constantly without rate limiting:</p>
+<ol type="1">
+<li><strong>A retry loop.</strong> A client hits an error, retries immediately, and each retry makes the overload worse. The service spends all its time rejecting work and none doing it. This is a <strong>retry storm</strong>.</li>
+<li><strong>A runaway agent.</strong> An agent endpoint calls a paid model. A loop with no stop condition can spend thousands of dollars in minutes. Request limits alone do not help if each request is expensive.</li>
+<li><strong>A noisy neighbour.</strong> One tenant sends 10× the traffic of everyone else, saturates the database, and every other tenant sees timeouts.</li>
+</ol>
+<p>Rate limiting is also a <strong>fairness</strong> mechanism and a <strong>cost</strong> mechanism. A per-tenant limit is a contract; a cost budget is a spending cap. Both are needed, because “requests” and “dollars” are different resources.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The one-sentence purpose.</strong> A rate limiter decides, before doing the work, whether this caller is allowed to do it right now.</p>
+</div>
+</div>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Rate limit</strong></td>
+<td>The maximum number of requests allowed per unit of time.</td>
+</tr>
+<tr class="even">
+<td><strong>Window</strong></td>
+<td>The time period the limit is measured over: 1 second, 1 minute, 1 day.</td>
+</tr>
+<tr class="odd">
+<td><strong>Fixed window</strong></td>
+<td>A counter that resets at a fixed boundary, such as each whole second.</td>
+</tr>
+<tr class="even">
+<td><strong>Sliding window</strong></td>
+<td>A window that always looks back from <em>now</em>, so it never resets abruptly.</td>
+</tr>
+<tr class="odd">
+<td><strong>Token bucket</strong></td>
+<td>A bucket that holds tokens, refills at a constant rate, and spends one token per request.</td>
+</tr>
+<tr class="even">
+<td><strong>Leaky bucket</strong></td>
+<td>A queue that drains at a constant rate, smoothing traffic into an even stream.</td>
+</tr>
+<tr class="odd">
+<td><strong>Burst</strong></td>
+<td>A short spike of requests above the steady rate.</td>
+</tr>
+<tr class="even">
+<td><strong>Capacity</strong></td>
+<td>The maximum tokens a bucket can hold — that is, the largest allowed burst.</td>
+</tr>
+<tr class="odd">
+<td><strong>Refill rate</strong></td>
+<td>How fast tokens are added back, in tokens per second.</td>
+</tr>
+<tr class="even">
+<td><strong>429</strong></td>
+<td>The HTTP status for “too many requests”. Defined in RFC 6585.</td>
+</tr>
+<tr class="odd">
+<td><strong><code>Retry-After</code></strong></td>
+<td>A standard response header telling the client how long to wait before retrying.</td>
+</tr>
+<tr class="even">
+<td><strong>Backpressure</strong></td>
+<td>Making the producer wait (queue) instead of rejecting it outright.</td>
+</tr>
+<tr class="odd">
+<td><strong>Rejection</strong></td>
+<td>Refusing the request immediately with a 429.</td>
+</tr>
+<tr class="even">
+<td><strong>Distributed limiter</strong></td>
+<td>A limiter whose counter is shared by all app instances, usually in Redis.</td>
+</tr>
+<tr class="odd">
+<td><strong>Atomic</strong></td>
+<td>An operation that cannot be interleaved with another, so no update is lost.</td>
+</tr>
+<tr class="even">
+<td><strong>Race condition</strong></td>
+<td>A bug where two readers update the same value and one update disappears.</td>
+</tr>
+<tr class="odd">
+<td><strong>Lua script</strong></td>
+<td>A small program Redis runs atomically inside the server.</td>
+</tr>
+<tr class="even">
+<td><strong>Thundering herd</strong></td>
+<td>Many clients retrying at the same instant, causing a second spike.</td>
+</tr>
+<tr class="odd">
+<td><strong>Cost budget</strong></td>
+<td>A cap on money spent, tracked separately from request count.</td>
+</tr>
+<tr class="even">
+<td><strong>Rate-limit key</strong></td>
+<td>What the limit is attached to: <code>user:42</code>, <code>ip:1.2.3.4</code>, <code>tenant:acme</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The two distinctions that matter most:</p>
+<ul>
+<li><strong>Burst vs steady rate.</strong> A steady rate says “10 per second.” A burst says “up to 30 at once, then refill.” Token bucket can express both; fixed window cannot.</li>
+<li><strong>Rejection vs backpressure.</strong> Rejection returns 429 now. Backpressure queues the work and slows the producer. For user-facing requests, reject; for internal producers you control, apply backpressure.</li>
+</ul>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Picture a <strong>bucket with a small hole in the bottom</strong>. A tap drips tokens in at a constant rate. Each request must take one token out of the bucket. If the bucket is empty, the request waits or is rejected. If the bucket is full — nobody has made a request for a while — extra tokens are simply lost, which caps the burst.</p>
+<p>That is the token bucket. Its two numbers are the <strong>refill rate</strong> (steady throughput) and the <strong>capacity</strong> (allowed burst). A limit of “5 per second with bursts up to 20” is one token bucket, not two rules.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+  R["Incoming request"] --&gt; K["Build key&lt;br/&gt;user / IP / tenant / route"]
+  K --&gt; L["Limiter&lt;br/&gt;Redis + Lua (atomic)"]
+  L --&gt;|"tokens &gt;= cost"| A["Allow&lt;br/&gt;subtract token(s)"]
+  L --&gt;|"tokens &lt; cost"| D["Deny&lt;br/&gt;429 + Retry-After"]
+  A --&gt; S["Run the work"]
+  D --&gt; C["Client waits, then retries"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>Here is how the four algorithms compare. This table is the topic in one screen.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>Burst behaviour</th>
+<th>Memory per key</th>
+<th>Precision</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Fixed window</strong></td>
+<td>Up to <strong>2×</strong> the limit at window boundaries</td>
+<td>O(1), one counter</td>
+<td>Coarse</td>
+<td>Simple daily quotas</td>
+</tr>
+<tr class="even">
+<td><strong>Sliding window log</strong></td>
+<td>No burst at boundaries</td>
+<td>O(limit), one entry per hit</td>
+<td>Exact</td>
+<td>Small, strict limits</td>
+</tr>
+<tr class="odd">
+<td><strong>Sliding window counter</strong></td>
+<td>Nearly smooth</td>
+<td>O(1), two counters</td>
+<td>Approximate</td>
+<td>High-volume APIs</td>
+</tr>
+<tr class="even">
+<td><strong>Token bucket</strong></td>
+<td>Allows bursts up to capacity</td>
+<td>O(1), two numbers</td>
+<td>Exact</td>
+<td>Public APIs, LLM calls</td>
+</tr>
+<tr class="odd">
+<td><strong>Leaky bucket (queue)</strong></td>
+<td>Smooths to a constant rate</td>
+<td>O(capacity), queued items</td>
+<td>Exact pacing</td>
+<td>Protecting a slow downstream</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<p><strong>Fixed window counter.</strong></p>
+<ol type="1">
+<li>Build a key that includes the window: <code>rl:user:42:1710000000</code>.</li>
+<li><code>INCR</code> the key.</li>
+<li>If the result is <code>1</code>, this is the first hit — set an expiry equal to the window.</li>
+<li>If the result is greater than the limit, reject; otherwise allow.</li>
+</ol>
+<p>It is one round trip and O(1) memory. Its flaw is the boundary: at 00:59.9 a client can send the full limit, and at 00:00.0 send it again, so nearly 2× the limit lands in a fraction of a second.</p>
+<p><strong>Sliding window log.</strong></p>
+<ol type="1">
+<li>Store each hit in a sorted set with its timestamp as the score.</li>
+<li>Remove entries older than <code>now - window</code>.</li>
+<li>Count what remains. If below the limit, add this hit and allow.</li>
+</ol>
+<p>It is exact and never has a boundary burst. The cost is memory: a limit of 1,000 per minute keeps up to 1,000 timestamps per key.</p>
+<p><strong>Sliding window counter.</strong> An approximation that keeps two fixed-window counters and blends them:</p>
+<pre class="text"><code>estimate = previous_count * (1 - elapsed_fraction) + current_count</code></pre>
+<p>It costs O(1) memory, is nearly as smooth as the log, and is what many large APIs use. The trade is a small amount of over- or under-counting.</p>
+<p><strong>Token bucket.</strong></p>
+<ol type="1">
+<li>Read the current token count and the timestamp of the last update.</li>
+<li>Add <code>elapsed_seconds × refill_rate</code> tokens, capped at capacity.</li>
+<li>If there are at least <code>cost</code> tokens, subtract them and allow. Otherwise reject.</li>
+<li>Store the new count and timestamp.</li>
+</ol>
+<p>Refill is computed lazily from the clock, so no background job is needed. Two numbers per key, exact burst control.</p>
+<p><strong>Leaky bucket.</strong> Requests join a queue that drains at a fixed rate. The queue depth is the capacity. If the queue is full, reject. Output is perfectly smooth, which is what a fragile downstream needs — at the price of added latency for queued requests. (Some systems call the “full bucket rejects” variant a leaky bucket too; the queue variant is the traffic-shaping one.)</p>
+<p><strong>Making it distributed.</strong> In-process counters only limit one process. With several app instances, each has its own counter, so the effective limit is <code>limit × instances</code>. Move the counter to Redis and make every update atomic. A <strong>Lua script</strong> runs as one atomic unit on the Redis server, so the read-modify-write cannot interleave.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The mental shortcut.</strong> Pick by what you must protect. Need bursts for real users? Token bucket. Need perfectly even output for a slow downstream? Leaky bucket. Need a simple daily quota? Fixed window. Need exactness at small scale? Sliding window log.</p>
+</div>
+</div>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>In-memory fixed window (one process only).</strong> The simplest possible limiter, for a single instance or a test.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FixedWindow:</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, limit: <span class="bu">int</span>, window: <span class="bu">float</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.limit, <span class="va">self</span>.window <span class="op">=</span> limit, window</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.count, <span class="va">self</span>.start <span class="op">=</span> <span class="dv">0</span>, time.monotonic()</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> allow(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        now <span class="op">=</span> time.monotonic()</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> now <span class="op">-</span> <span class="va">self</span>.start <span class="op">&gt;=</span> <span class="va">self</span>.window:</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.count, <span class="va">self</span>.start <span class="op">=</span> <span class="dv">0</span>, now</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.count <span class="op">&lt;</span> <span class="va">self</span>.limit:</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.count <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="va">True</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">False</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Redis fixed window, atomically.</strong> <code>INCR</code> is atomic, and the first hit sets the expiry.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode lua code-with-copy"><code class="sourceCode lua"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- KEYS[1] = counter key, ARGV[1] = limit, ARGV[2] = window in ms</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">current</span> <span class="op">=</span> <span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'INCR'</span><span class="op">,</span> <span class="cn">KEYS</span><span class="op">[</span><span class="dv">1</span><span class="op">])</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">current</span> <span class="op">==</span> <span class="dv">1</span> <span class="cf">then</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'PEXPIRE'</span><span class="op">,</span> <span class="cn">KEYS</span><span class="op">[</span><span class="dv">1</span><span class="op">],</span> <span class="cn">ARGV</span><span class="op">[</span><span class="dv">2</span><span class="op">])</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">current</span> <span class="op">&gt;</span> <span class="fu">tonumber</span><span class="op">(</span><span class="cn">ARGV</span><span class="op">[</span><span class="dv">1</span><span class="op">])</span> <span class="cf">then</span> <span class="cf">return</span> <span class="dv">0</span> <span class="cf">end</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> <span class="dv">1</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Call it with <code>redis.eval(script, 1, key, limit, window_ms)</code>. One script, one round trip, no race.</p>
+<p><strong>Redis sliding window log.</strong> The sorted set holds one member per allowed request.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode lua code-with-copy"><code class="sourceCode lua"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- KEYS[1] = key, ARGV[1] = limit, ARGV[2] = window_ms, ARGV[3] = now_ms, ARGV[4] = unique id</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">key</span><span class="op">,</span> <span class="va">limit</span> <span class="op">=</span> <span class="cn">KEYS</span><span class="op">[</span><span class="dv">1</span><span class="op">],</span> <span class="fu">tonumber</span><span class="op">(</span><span class="cn">ARGV</span><span class="op">[</span><span class="dv">1</span><span class="op">])</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'ZREMRANGEBYSCORE'</span><span class="op">,</span> <span class="va">key</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="cn">ARGV</span><span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">-</span> <span class="cn">ARGV</span><span class="op">[</span><span class="dv">2</span><span class="op">])</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'ZCARD'</span><span class="op">,</span> <span class="va">key</span><span class="op">)</span> <span class="op">&lt;</span> <span class="va">limit</span> <span class="cf">then</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'ZADD'</span><span class="op">,</span> <span class="va">key</span><span class="op">,</span> <span class="cn">ARGV</span><span class="op">[</span><span class="dv">3</span><span class="op">],</span> <span class="cn">ARGV</span><span class="op">[</span><span class="dv">4</span><span class="op">])</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'PEXPIRE'</span><span class="op">,</span> <span class="va">key</span><span class="op">,</span> <span class="cn">ARGV</span><span class="op">[</span><span class="dv">2</span><span class="op">])</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="dv">1</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> <span class="dv">0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Pass a unique member (a UUID or request id) so two requests in the same millisecond do not overwrite each other.</p>
+<p><strong>Redis token bucket.</strong> The production default. It returns whether the request is allowed and how many tokens remain.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode lua code-with-copy"><code class="sourceCode lua"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- KEYS[1] = bucket, ARGV = refill_rate, capacity, cost, ttl_seconds</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">key</span> <span class="op">=</span> <span class="cn">KEYS</span><span class="op">[</span><span class="dv">1</span><span class="op">]</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">rate</span><span class="op">,</span> <span class="va">capacity</span> <span class="op">=</span> <span class="fu">tonumber</span><span class="op">(</span><span class="cn">ARGV</span><span class="op">[</span><span class="dv">1</span><span class="op">]),</span> <span class="fu">tonumber</span><span class="op">(</span><span class="cn">ARGV</span><span class="op">[</span><span class="dv">2</span><span class="op">])</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">cost</span><span class="op">,</span> <span class="va">ttl</span> <span class="op">=</span> <span class="fu">tonumber</span><span class="op">(</span><span class="cn">ARGV</span><span class="op">[</span><span class="dv">3</span><span class="op">]),</span> <span class="fu">tonumber</span><span class="op">(</span><span class="cn">ARGV</span><span class="op">[</span><span class="dv">4</span><span class="op">])</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">clock</span> <span class="op">=</span> <span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'TIME'</span><span class="op">)</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">now</span> <span class="op">=</span> <span class="fu">tonumber</span><span class="op">(</span><span class="va">clock</span><span class="op">[</span><span class="dv">1</span><span class="op">])</span> <span class="op">+</span> <span class="fu">tonumber</span><span class="op">(</span><span class="va">clock</span><span class="op">[</span><span class="dv">2</span><span class="op">])</span> <span class="op">/</span> <span class="dv">1000000</span>  <span class="co">-- server time</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">data</span> <span class="op">=</span> <span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'HMGET'</span><span class="op">,</span> <span class="va">key</span><span class="op">,</span> <span class="st">'tokens'</span><span class="op">,</span> <span class="st">'ts'</span><span class="op">)</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">tokens</span> <span class="op">=</span> <span class="fu">tonumber</span><span class="op">(</span><span class="va">data</span><span class="op">[</span><span class="dv">1</span><span class="op">])</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">last</span> <span class="op">=</span> <span class="fu">tonumber</span><span class="op">(</span><span class="va">data</span><span class="op">[</span><span class="dv">2</span><span class="op">])</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">tokens</span> <span class="op">==</span> <span class="kw">nil</span> <span class="cf">then</span> <span class="va">tokens</span><span class="op">,</span> <span class="va">last</span> <span class="op">=</span> <span class="va">capacity</span><span class="op">,</span> <span class="va">now</span> <span class="cf">end</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="va">tokens</span> <span class="op">=</span> <span class="fu">math.min</span><span class="op">(</span><span class="va">capacity</span><span class="op">,</span> <span class="va">tokens</span> <span class="op">+</span> <span class="fu">math.max</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="va">now</span> <span class="op">-</span> <span class="va">last</span><span class="op">)</span> <span class="op">*</span> <span class="va">rate</span><span class="op">)</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">allowed</span> <span class="op">=</span> <span class="va">tokens</span> <span class="op">&gt;=</span> <span class="va">cost</span> <span class="kw">and</span> <span class="dv">1</span> <span class="kw">or</span> <span class="dv">0</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">allowed</span> <span class="op">==</span> <span class="dv">1</span> <span class="cf">then</span> <span class="va">tokens</span> <span class="op">=</span> <span class="va">tokens</span> <span class="op">-</span> <span class="va">cost</span> <span class="cf">end</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'HSET'</span><span class="op">,</span> <span class="va">key</span><span class="op">,</span> <span class="st">'tokens'</span><span class="op">,</span> <span class="va">tokens</span><span class="op">,</span> <span class="st">'ts'</span><span class="op">,</span> <span class="va">now</span><span class="op">)</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'EXPIRE'</span><span class="op">,</span> <span class="va">key</span><span class="op">,</span> <span class="va">ttl</span><span class="op">)</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> <span class="op">{</span><span class="va">allowed</span><span class="op">,</span> <span class="fu">tostring</span><span class="op">(</span><span class="va">tokens</span><span class="op">)}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Using <code>redis.call('TIME')</code> avoids trusting the app servers’ clocks, which drift apart.</p>
+<p><strong>Returning 429 with <code>Retry-After</code>.</strong> Tell the client exactly how long to wait. A 429 without <code>Retry-After</code> invites instant retries.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastapi <span class="im">import</span> Request</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastapi.responses <span class="im">import</span> JSONResponse</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="at">@app.middleware</span>(<span class="st">"http"</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> rate_limit(request: Request, call_next):</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    allowed, retry_after <span class="op">=</span> limiter.check(key_for(request), cost<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> allowed:</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> JSONResponse(</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>            status_code<span class="op">=</span><span class="dv">429</span>,</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>            content<span class="op">=</span>{<span class="st">"error"</span>: <span class="st">"rate limit exceeded"</span>},</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>            headers<span class="op">=</span>{<span class="st">"Retry-After"</span>: <span class="bu">str</span>(retry_after),</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"X-RateLimit-Remaining"</span>: <span class="st">"0"</span>},</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> <span class="cf">await</span> call_next(request)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>Retry-After</code> takes seconds or an HTTP date. Many clients and SDKs honour it automatically.</p>
+<p><strong>Choosing the key.</strong> Layer limits by trust and by who pays.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> key_for(request: Request) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    api_key <span class="op">=</span> request.headers.get(<span class="st">"x-api-key"</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> api_key:</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="ss">f"rl:key:</span><span class="sc">{</span>api_key<span class="sc">}</span><span class="ss">"</span>        <span class="co"># authenticated caller</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    client <span class="op">=</span> request.client.host <span class="cf">if</span> request.client <span class="cf">else</span> <span class="st">"unknown"</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f"rl:ip:</span><span class="sc">{</span>client<span class="sc">}</span><span class="ss">"</span>              <span class="co"># anonymous fallback</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Authenticated callers get per-key limits; anonymous traffic gets per-IP limits, which are weaker because many users share a NAT address.</p>
+<p><strong>Limiting a provider, not just your users.</strong> A token bucket alone does not cap concurrency. Pair it with a semaphore so you never exceed the provider’s parallel-request ceiling.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> asyncio, time</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Bucket:</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, rate: <span class="bu">float</span>, capacity: <span class="bu">float</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.rate, <span class="va">self</span>.capacity <span class="op">=</span> rate, capacity</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.tokens, <span class="va">self</span>.updated <span class="op">=</span> capacity, time.monotonic()</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="kw">def</span> acquire(<span class="va">self</span>, cost: <span class="bu">float</span> <span class="op">=</span> <span class="fl">1.0</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> <span class="va">True</span>:</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>            now <span class="op">=</span> time.monotonic()</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.tokens <span class="op">=</span> <span class="bu">min</span>(<span class="va">self</span>.capacity,</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>                              <span class="va">self</span>.tokens <span class="op">+</span> (now <span class="op">-</span> <span class="va">self</span>.updated) <span class="op">*</span> <span class="va">self</span>.rate)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.updated <span class="op">=</span> now</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="va">self</span>.tokens <span class="op">&gt;=</span> cost:</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>                <span class="va">self</span>.tokens <span class="op">-=</span> cost</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">await</span> asyncio.sleep((cost <span class="op">-</span> <span class="va">self</span>.tokens) <span class="op">/</span> <span class="va">self</span>.rate)</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>bucket <span class="op">=</span> Bucket(rate<span class="op">=</span><span class="dv">10</span>, capacity<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>slots <span class="op">=</span> asyncio.Semaphore(<span class="dv">4</span>)          <span class="co"># at most 4 calls in flight</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The bucket limits requests per second; the semaphore limits concurrency. LLM providers need both.</p>
+<p><strong>A cost budget.</strong> Count dollars, not calls, and reject when the budget is gone. Like every other limiter here, the check-and-accumulate runs as one atomic Lua script, so two concurrent calls cannot both pass when only enough budget remains for one.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode lua code-with-copy"><code class="sourceCode lua"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- KEYS[1] = spend key, ARGV = cost_usd, budget_usd, ttl_seconds</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">key</span> <span class="op">=</span> <span class="cn">KEYS</span><span class="op">[</span><span class="dv">1</span><span class="op">]</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">cost</span><span class="op">,</span> <span class="va">budget</span> <span class="op">=</span> <span class="fu">tonumber</span><span class="op">(</span><span class="cn">ARGV</span><span class="op">[</span><span class="dv">1</span><span class="op">]),</span> <span class="fu">tonumber</span><span class="op">(</span><span class="cn">ARGV</span><span class="op">[</span><span class="dv">2</span><span class="op">])</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">spent</span> <span class="op">=</span> <span class="fu">tonumber</span><span class="op">(</span><span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'GET'</span><span class="op">,</span> <span class="va">key</span><span class="op">)</span> <span class="kw">or</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">spent</span> <span class="op">+</span> <span class="va">cost</span> <span class="op">&gt;</span> <span class="va">budget</span> <span class="cf">then</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="op">{</span><span class="dv">0</span><span class="op">,</span> <span class="fu">tostring</span><span class="op">(</span><span class="va">spent</span><span class="op">)}</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'EXISTS'</span><span class="op">,</span> <span class="va">key</span><span class="op">)</span> <span class="op">==</span> <span class="dv">0</span> <span class="cf">then</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'SET'</span><span class="op">,</span> <span class="va">key</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="st">'EX'</span><span class="op">,</span> <span class="cn">ARGV</span><span class="op">[</span><span class="dv">3</span><span class="op">])</span>   <span class="co">-- TTL is set once, on first charge</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">new_spent</span> <span class="op">=</span> <span class="va">redis</span><span class="op">.</span>call<span class="op">(</span><span class="st">'INCRBYFLOAT'</span><span class="op">,</span> <span class="va">key</span><span class="op">,</span> <span class="va">cost</span><span class="op">)</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> <span class="op">{</span><span class="dv">1</span><span class="op">,</span> <span class="fu">tostring</span><span class="op">(</span><span class="va">new_spent</span><span class="op">)}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>CHARGE <span class="op">=</span> <span class="st">"""&lt;the Lua script above&gt;"""</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> charge(tenant: <span class="bu">str</span>, cost_usd: <span class="bu">float</span>, budget: <span class="bu">float</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    allowed, _spent <span class="op">=</span> redis.<span class="bu">eval</span>(</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        CHARGE, <span class="dv">1</span>, <span class="ss">f"spend:</span><span class="sc">{</span>tenant<span class="sc">}</span><span class="ss">"</span>, cost_usd, budget, <span class="dv">86400</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> allowed:</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> HTTPException(status_code<span class="op">=</span><span class="dv">429</span>, detail<span class="op">=</span><span class="st">"budget exhausted"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>INCRBYFLOAT</code> keeps a running spend. The TTL is set only on the first charge, so the budget is a 24-hour window measured from that first charge, not a window that slides forward on every call. If you need a strict midnight reset, key by calendar day (<code>spend:{tenant}:2026-09-13</code>) instead.</p>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — fixed window, and its two flaws.</strong> It is simple, and in one process it is correct.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>limiter <span class="op">=</span> FixedWindow(limit<span class="op">=</span><span class="dv">5</span>, window<span class="op">=</span><span class="fl">1.0</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>[limiter.allow() <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">7</span>)]</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># [True, True, True, True, True, False, False]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Two flaws. With four app instances and no shared counter, the effective limit is 20 per second. And across a window boundary a fixed window can allow nearly 2× the limit: with <code>limit=2</code>, two requests pass at <code>t=0.99 s</code> and two more at <code>t=1.01 s</code>. Token bucket removes both flaws.</p>
+<p><strong>Example 2 — token bucket allows a real burst, then throttles.</strong> The bucket starts full, so the first <code>capacity</code> requests pass at once.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> TokenBucket:</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, rate: <span class="bu">float</span>, capacity: <span class="bu">float</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.rate, <span class="va">self</span>.capacity <span class="op">=</span> rate, capacity</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.tokens, <span class="va">self</span>.updated <span class="op">=</span> capacity, time.monotonic()</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> allow(<span class="va">self</span>, cost: <span class="bu">float</span> <span class="op">=</span> <span class="fl">1.0</span>) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        now <span class="op">=</span> time.monotonic()</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.tokens <span class="op">=</span> <span class="bu">min</span>(<span class="va">self</span>.capacity,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>                          <span class="va">self</span>.tokens <span class="op">+</span> (now <span class="op">-</span> <span class="va">self</span>.updated) <span class="op">*</span> <span class="va">self</span>.rate)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.updated <span class="op">=</span> now</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.tokens <span class="op">&gt;=</span> cost:</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.tokens <span class="op">-=</span> cost</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="va">True</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">False</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>bucket <span class="op">=</span> TokenBucket(rate<span class="op">=</span><span class="dv">2</span>, capacity<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="co"># t = 0.00: allow, allow  -&gt; 0 tokens</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="co"># t = 0.50: 1 token refilled -&gt; allow</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="co"># t = 0.75: only 0.5 token -&gt; reject</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This is exactly the behaviour a public API wants: a short burst for a human, then a steady drip. <code>capacity</code> controls the burst; <code>rate</code> controls the sustained load.</p>
+<p><strong>Example 3 — the distributed token bucket.</strong> The same maths, moved into a Lua script so every instance shares one bucket.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>TOKEN_BUCKET <span class="op">=</span> <span class="st">"""&lt;the Lua script from the syntax section&gt;"""</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check(key: <span class="bu">str</span>, rate: <span class="bu">float</span>, capacity: <span class="bu">float</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>          cost: <span class="bu">float</span> <span class="op">=</span> <span class="fl">1.0</span>, ttl: <span class="bu">int</span> <span class="op">=</span> <span class="dv">3600</span>) <span class="op">-&gt;</span> <span class="bu">tuple</span>[<span class="bu">bool</span>, <span class="bu">float</span>]:</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    allowed, tokens <span class="op">=</span> redis.<span class="bu">eval</span>(TOKEN_BUCKET, <span class="dv">1</span>, key, rate, capacity, cost, ttl)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">bool</span>(allowed), <span class="bu">float</span>(tokens)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Now ten app instances still enforce one global limit, because the read-modify-write happens atomically inside Redis.</p>
+<p><strong>Example 4 — per-user 429 with <code>Retry-After</code>.</strong> The user-facing contract.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="at">@app.post</span>(<span class="st">"/agent/run"</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> run_agent(request: Request):</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    allowed, remaining <span class="op">=</span> check(<span class="ss">f"rl:user:</span><span class="sc">{</span>request<span class="sc">.</span>state<span class="sc">.</span>user_id<span class="sc">}</span><span class="ss">"</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>                               rate<span class="op">=</span><span class="dv">1</span>, capacity<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> allowed:</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> HTTPException(</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>            status_code<span class="op">=</span><span class="dv">429</span>,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>            headers<span class="op">=</span>{<span class="st">"Retry-After"</span>: <span class="st">"1"</span>},</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>            detail<span class="op">=</span><span class="st">"too many runs; retry in a moment"</span>,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {<span class="st">"status"</span>: <span class="st">"queued"</span>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Return <code>Retry-After</code> as a whole number of seconds. A client that respects it will not add to the pile.</p>
+<p><strong>Example 5 — provider limit plus cost budget for an agent.</strong> The realistic production shape: a per-tenant request limit, a provider concurrency cap, and a dollar budget.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> call_model(tenant: <span class="bu">str</span>, prompt: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> check(<span class="ss">f"rl:tenant:</span><span class="sc">{</span>tenant<span class="sc">}</span><span class="ss">"</span>, rate<span class="op">=</span><span class="dv">5</span>, capacity<span class="op">=</span><span class="dv">10</span>)[<span class="dv">0</span>]:</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> HTTPException(<span class="dv">429</span>, <span class="st">"tenant rate limit"</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    charge(tenant, estimate_cost(prompt), budget<span class="op">=</span>DAILY_BUDGET_USD)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="cf">with</span> slots:                      <span class="co"># provider concurrency cap</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">await</span> bucket.acquire()             <span class="co"># provider requests-per-second cap</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        response <span class="op">=</span> <span class="cf">await</span> provider.complete(prompt)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    charge(tenant, actual_cost(response), budget<span class="op">=</span>DAILY_BUDGET_USD)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response.text</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Three different limits protect three different things: the tenant limit protects fairness, the semaphore protects the provider, and the budget protects your bank account.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Use a distributed counter.</strong> In-process limiters multiply the real limit by the number of instances. Put the state in Redis (or a gateway) and update it atomically with a Lua script.</li>
+<li><strong>Prefer token bucket as the default.</strong> It expresses both a sustained rate and a burst, needs O(1) memory, and is easy to explain. Reach for sliding window log only when exactness matters at small limits.</li>
+<li><strong>Always send <code>Retry-After</code>.</strong> A 429 without it triggers immediate retries and turns a limit into a self-inflicted denial of service.</li>
+<li><strong>Add jitter to client retries.</strong> Even with <code>Retry-After</code>, many clients waking at the same second create a new spike. Jitter spreads the retries.</li>
+<li><strong>Fail open or fail closed deliberately.</strong> If Redis is down, failing closed rejects all traffic; failing open removes the protection. For user-facing APIs, fail open with a local in-memory fallback; for cost controls, fail closed.</li>
+<li><strong>Beware the Redis round trip.</strong> A limiter adds a network call to every request. Pipeline it, keep Redis close to the app, and cache “definitely allowed” decisions in memory for a few milliseconds when the limit is high.</li>
+<li><strong>Layer limits by key.</strong> Global circuit breaker, per-tenant fairness, per-user fairness, and per-IP abuse control are four different limits, not one.</li>
+<li><strong>Rate is not concurrency.</strong> A requests-per-second limit does not stop 50 slow calls being in flight at once. Add a semaphore for provider and database concurrency.</li>
+<li><strong>A cost budget is not a request limit.</strong> One expensive agent run can cost more than a thousand cheap reads. Track spend per tenant per day and reject before the call, not after.</li>
+<li><strong>Guard the reset path.</strong> Fixed-window counters without an expiry leak keys forever if the <code>EXPIRE</code> is skipped. Set the TTL in the same atomic script.</li>
+<li><strong>Watch the boundary burst.</strong> A fixed window can allow almost twice the limit across the reset. If that matters, use token bucket or sliding window.</li>
+<li><strong>Rate limit before you do expensive work.</strong> Check at the edge, before parsing large bodies or opening database connections, or the limiter itself becomes the load.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="what-is-the-difference-between-fixed-window-and-sliding-window" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-fixed-window-and-sliding-window">1. What is the difference between fixed window and sliding window?</h3>
+<p><strong>Answer.</strong> A fixed window resets on a boundary — each whole minute, for example — and uses a single counter, so it is cheap but can allow nearly 2× the limit across the reset. A sliding window looks back from the current instant, so the effective limit never jumps. The log version is exact but stores every hit; the counter version blends two windows and is approximate but O(1).</p>
+<p><strong>Follow-up: “Why not always use sliding window?”</strong> Cost. The exact log stores one entry per allowed request, which is heavy at high limits. Fixed window is fine for daily quotas where a boundary burst is harmless.</p>
+<p><strong>Trap.</strong> Saying fixed window “allows exactly twice the limit.” It can allow up to 2×, and only when the client times its requests around the reset.</p>
+</section>
+<section id="explain-the-token-bucket-algorithm." class="level3">
+<h3 class="anchored" data-anchor-id="explain-the-token-bucket-algorithm.">2. Explain the token bucket algorithm.</h3>
+<p><strong>Answer.</strong> A bucket holds up to <code>capacity</code> tokens and refills at <code>rate</code> tokens per second. Each request removes one token (or more, if it is expensive). If the bucket has enough tokens, the request proceeds; otherwise it is rejected. Refill is computed lazily from the timestamp, so no background process runs. <code>capacity</code> sets the allowed burst and <code>rate</code> sets the sustained throughput.</p>
+<p><strong>Follow-up: “How is that different from leaky bucket?”</strong> Token bucket allows a burst and then throttles; leaky bucket drains at a constant rate and smooths traffic. Token bucket is better for user-facing APIs; leaky bucket is better before a fragile downstream.</p>
+<p><strong>Trap.</strong> Confusing capacity with the rate limit. With <code>rate=10</code> and <code>capacity=100</code>, a client can fire 100 requests at once and then continue at 10 per second.</p>
+</section>
+<section id="why-do-you-need-redis-for-rate-limiting-and-why-lua" class="level3">
+<h3 class="anchored" data-anchor-id="why-do-you-need-redis-for-rate-limiting-and-why-lua">3. Why do you need Redis for rate limiting, and why Lua?</h3>
+<p><strong>Answer.</strong> With multiple app instances, an in-process counter gives each instance its own limit, so the real limit is multiplied by the instance count. Redis centralises the state. A plain <code>GET</code> then <code>SET</code> is a race: two requests can both read the same value and each write back, losing one update. A Lua script executes atomically on the Redis server, so the read-modify-write is one indivisible step.</p>
+<p><strong>Follow-up: “What about Redis Cluster?”</strong> Keys for one limit must live in one slot. Use a hash tag, such as <code>rl:{user:42}</code>, so related keys hash to the same slot, and avoid scripts that touch keys in different slots.</p>
+<p><strong>Trap.</strong> Using a transaction (<code>MULTI</code>/<code>EXEC</code>) as if it were atomic read-modify-write. <code>MULTI</code> queues commands; it does not prevent another client from reading between your read and your write unless you use <code>WATCH</code> or Lua.</p>
+</section>
+<section id="what-should-a-rate-limited-response-look-like" class="level3">
+<h3 class="anchored" data-anchor-id="what-should-a-rate-limited-response-look-like">4. What should a rate-limited response look like?</h3>
+<p><strong>Answer.</strong> HTTP <code>429 Too Many Requests</code> with a <code>Retry-After</code> header giving the number of seconds (or an HTTP date) until the client may retry. Include remaining-quota information as a courtesy, such as <code>X-RateLimit-Remaining</code> and <code>X-RateLimit-Reset</code> (or the newer <code>RateLimit</code> header fields). The body should be a small, machine-readable error.</p>
+<p><strong>Follow-up: “Why is <code>Retry-After</code> important?”</strong> Without it, clients either give up or retry immediately. Immediate retries turn the limit into a retry storm, which is the exact overload the limiter was meant to prevent.</p>
+<p><strong>Trap.</strong> Returning <code>503</code> instead of <code>429</code>. <code>503</code> means the whole service is unavailable and may trigger failover; <code>429</code> means this caller is over its limit.</p>
+</section>
+<section id="how-do-you-rate-limit-calls-to-an-upstream-llm-provider" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-rate-limit-calls-to-an-upstream-llm-provider">5. How do you rate limit calls to an upstream LLM provider?</h3>
+<p><strong>Answer.</strong> Use two controls. A token bucket limits requests per second to the provider’s published rate, and an <code>asyncio.Semaphore</code> (or a worker-pool size) limits how many calls are in flight at once. Also add retry with backoff and jitter for 429s and 5xx from the provider, and honour the provider’s <code>Retry-After</code> if it sends one. For batch work, you additionally cap total spend.</p>
+<p><strong>Follow-up: “Why not just one limit?”</strong> They protect different things. The rate limit stops you exceeding requests per minute; the semaphore stops you exceeding concurrent connections. A provider can reject you for either.</p>
+<p><strong>Trap.</strong> Retrying provider 429s immediately. Provider limits are often global to your account, so instant retries amplify the problem across every worker.</p>
+</section>
+<section id="what-is-the-difference-between-backpressure-and-rejection" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-backpressure-and-rejection">6. What is the difference between backpressure and rejection?</h3>
+<p><strong>Answer.</strong> Rejection refuses the request now with a 429; backpressure accepts it into a bounded queue and makes the producer wait. Rejection is right for interactive, user-facing requests where waiting is worse than a clear error. Backpressure is right for internal producers you control, because it slows them down without losing work.</p>
+<p><strong>Follow-up: “What happens when the queue is full?”</strong> You must reject anyway, usually with 503 or 429, and apply backpressure upstream. An unbounded queue is not backpressure; it is delayed memory exhaustion.</p>
+<p><strong>Trap.</strong> Adding an unbounded queue and calling it backpressure. It hides overload until the process runs out of memory.</p>
+</section>
+<section id="which-key-should-you-rate-limit-on" class="level3">
+<h3 class="anchored" data-anchor-id="which-key-should-you-rate-limit-on">7. Which key should you rate limit on?</h3>
+<p><strong>Answer.</strong> Layer them. Per-IP catches anonymous abuse but is unfair behind NAT; per-user (or per-API-key) is fair and works with authentication; per-tenant is a billing and fairness boundary; a global limit is a circuit breaker for the whole service. Authenticated callers should be limited by identity, not by IP.</p>
+<p><strong>Follow-up: “What about a shared corporate network?”</strong> All those users share one IP, so an IP limit punishes them together. Prefer identity; use IP only as a fallback for unauthenticated traffic, with a more generous limit.</p>
+<p><strong>Trap.</strong> Trusting a client-supplied header such as <code>X-Forwarded-For</code> without validating the proxy chain. An attacker can spoof it and evade the IP limit.</p>
+</section>
+<section id="how-do-you-handle-a-thundering-herd-after-a-limit-resets" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-handle-a-thundering-herd-after-a-limit-resets">8. How do you handle a thundering herd after a limit resets?</h3>
+<p><strong>Answer.</strong> Add jitter to client retry delays, send an explicit <code>Retry-After</code>, and spread resets using a token bucket rather than a fixed boundary so there is no single instant when everyone becomes eligible. If many clients are waiting on the same expensive result, use a cache with a lock so only one recomputes it, and let the rest wait. For providers, combine backoff, jitter, and a semaphore.</p>
+<p><strong>Follow-up: “What is cache stampede?”</strong> When a popular cache entry expires and many requests recompute it at once. A short lock or a “serve stale while revalidating” policy prevents it.</p>
+<p><strong>Trap.</strong> Believing a rate limiter alone prevents thundering herds. The limiter decides who gets through; jitter and caching decide whether the retry wave is survivable.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li>Rate limiting protects <strong>shared resources, fairness, and money</strong>; request limits and cost budgets are different controls.</li>
+<li><strong>Token bucket</strong> is the default: <code>capacity</code> sets the burst, <code>rate</code> sets the sustained throughput, memory is O(1).</li>
+<li><strong>Fixed window</strong> is cheapest but can allow ~2× at boundaries; <strong>sliding window</strong> removes that at a memory or precision cost.</li>
+<li>Distributed limits need a <strong>shared, atomic counter</strong> — Redis with a <strong>Lua script</strong> — not a per-process dictionary.</li>
+<li>Return <strong>429 with <code>Retry-After</code></strong>, add <strong>jitter</strong>, and treat <strong>rate and concurrency</strong> as separate limits.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-01-production-python/25-background-jobs.html" class="pagination-link" aria-label="Background Jobs">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Background Jobs</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-01-production-python/27-api-testing.html" class="pagination-link" aria-label="API Testing">
+        <span class="nav-page-text"><span class="chapter-title">API Testing</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

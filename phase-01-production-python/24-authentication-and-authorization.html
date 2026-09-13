@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Authentication and Authorization – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-01-production-python/25-background-jobs.html" rel="next">
+<link href="../phase-01-production-python/23-redis.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/24-authentication-and-authorization.html"><span class="chapter-title">Authentication and Authorization</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/24-authentication-and-authorization.html"><span class="chapter-title">Authentication and Authorization</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Authentication and Authorization</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> Authentication proves <em>who</em> is making a request; authorization decides <em>what</em> they are allowed to do. You authenticate once — with a password, API key, session cookie, or signed token like a JWT — then every request carries that proof, and the server validates it and checks permissions before doing any work. The two most common failures are weak token validation and missing per-resource authorization.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>Every service with more than one user eventually has to answer two questions: “Who is this?” and “Are they allowed to do this?” Skip either one and the failure is not cosmetic.</p>
+<p><strong>Failure 1 — no authentication.</strong> An internal admin endpoint is exposed with no check, so anyone who guesses the URL can read or delete every record.</p>
+<p><strong>Failure 2 — authentication without authorization.</strong> The user is logged in, so the server trusts any ID they send. This is <strong>IDOR</strong> (Insecure Direct Object Reference):</p>
+<pre class="text"><code>GET /invoices/10042          # user 7's invoice -&gt; 200 OK
+GET /invoices/10043          # user 8's invoice -&gt; 200 OK, leaked!</code></pre>
+<p>The user is authenticated. The server never checks that the invoice belongs to <em>this</em> user. Logging in is not the same as being allowed to read every row.</p>
+<p><strong>Failure 3 — trusting the client.</strong> The application reads a <code>role</code> field from the request body or a URL parameter. An attacker changes <code>role=user</code> to <code>role=admin</code> and promotes themselves.</p>
+<p><strong>Failure 4 — broken token validation.</strong> The server accepts any JWT it can parse, without verifying the signature, the algorithm, or the expiry. An attacker mints their own token and signs in as anyone.</p>
+<p>Authentication and authorization exist to make identity and permission <strong>server-verified facts</strong>, never client claims.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The one-sentence purpose.</strong> Authentication is the gate; authorization is the rulebook. The server, not the client, decides both.</p>
+</div>
+</div>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Authentication (authn)</strong></td>
+<td>Proving identity: “I am user 42.”</td>
+</tr>
+<tr class="even">
+<td><strong>Authorization (authz)</strong></td>
+<td>Deciding permission: “user 42 may read this invoice.”</td>
+</tr>
+<tr class="odd">
+<td><strong>Principal / subject</strong></td>
+<td>The identity making a request: a user, a service, or an agent.</td>
+</tr>
+<tr class="even">
+<td><strong>Credential</strong></td>
+<td>The secret used to prove identity: a password, key, or token.</td>
+</tr>
+<tr class="odd">
+<td><strong>Session</strong></td>
+<td>Server-side state that remembers a logged-in user across requests.</td>
+</tr>
+<tr class="even">
+<td><strong>Cookie</strong></td>
+<td>A small value the browser stores and sends automatically with requests.</td>
+</tr>
+<tr class="odd">
+<td><strong>Token</strong></td>
+<td>A value that represents a granted identity or permission.</td>
+</tr>
+<tr class="even">
+<td><strong>JWT</strong></td>
+<td>JSON Web Token: a signed, base64url-encoded JSON token with three parts.</td>
+</tr>
+<tr class="odd">
+<td><strong>Claim</strong></td>
+<td>A statement inside a token, such as <code>sub</code> (subject) or <code>exp</code> (expiry).</td>
+</tr>
+<tr class="even">
+<td><strong>Signature</strong></td>
+<td>Cryptographic proof the token was issued by a trusted party and not altered.</td>
+</tr>
+<tr class="odd">
+<td><strong>HMAC</strong></td>
+<td>A shared-secret signature. The same secret signs and verifies. Symmetric.</td>
+</tr>
+<tr class="even">
+<td><strong>Asymmetric signing</strong></td>
+<td>A private key signs; a public key verifies. Used by RSA and ECDSA.</td>
+</tr>
+<tr class="odd">
+<td><strong>OAuth2</strong></td>
+<td>A framework for granting an app limited access to a user’s resources without their password.</td>
+</tr>
+<tr class="even">
+<td><strong>OIDC</strong></td>
+<td>OpenID Connect: an identity layer on top of OAuth2 that adds login and an ID token.</td>
+</tr>
+<tr class="odd">
+<td><strong>Scope</strong></td>
+<td>A named permission attached to a token, such as <code>tools:search</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>RBAC</strong></td>
+<td>Role-Based Access Control: permissions come from roles.</td>
+</tr>
+<tr class="odd">
+<td><strong>ABAC</strong></td>
+<td>Attribute-Based Access Control: policies evaluate attributes of user, resource, action, and context.</td>
+</tr>
+<tr class="even">
+<td><strong>API key</strong></td>
+<td>A long random secret that identifies a client or service.</td>
+</tr>
+<tr class="odd">
+<td><strong>Password hashing</strong></td>
+<td>One-way, slow transformation of a password into a stored verifier.</td>
+</tr>
+<tr class="even">
+<td><strong>Salt</strong></td>
+<td>Random data added before hashing so identical passwords produce different hashes.</td>
+</tr>
+<tr class="odd">
+<td><strong>Cost factor</strong></td>
+<td>How slow the hash deliberately is: bcrypt rounds, or Argon2 time and memory.</td>
+</tr>
+<tr class="even">
+<td><strong>IDOR</strong></td>
+<td>Insecure Direct Object Reference: accessing an object you do not own by guessing its ID.</td>
+</tr>
+<tr class="odd">
+<td><strong>Least privilege</strong></td>
+<td>Giving each principal the minimum access needed to do its job.</td>
+</tr>
+<tr class="even">
+<td><strong>Bearer token</strong></td>
+<td>A token that grants access to whoever holds it; possession is the proof.</td>
+</tr>
+<tr class="odd">
+<td><strong>Refresh token</strong></td>
+<td>A longer-lived credential used to obtain new short-lived access tokens.</td>
+</tr>
+</tbody>
+</table>
+<p>Three distinctions to pin down:</p>
+<ul>
+<li><strong>Authn vs authz.</strong> Authn answers “who”; authz answers “may they”. A <code>401 Unauthorized</code> really means <em>unauthenticated</em>; a <code>403 Forbidden</code> means authenticated but not allowed.</li>
+<li><strong>Session vs token.</strong> A session is server state referenced by an opaque ID. A token is self-contained state that the server verifies cryptographically. Neither is universally better.</li>
+<li><strong>Signing vs encryption.</strong> A JWT is normally <strong>signed, not encrypted</strong>. Anyone can read its payload; only the signer can change it undetected.</li>
+</ul>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Think of a music festival. At the gate, staff check your ticket and give you a <strong>wristband</strong> (authentication). Inside, different wristband colours unlock different areas: general admission, backstage, artist area (authorization). Security at each door checks the wristband, not your face.</p>
+<p>The analogies map cleanly:</p>
+<ul>
+<li>The <strong>door check</strong> happens once per event; the <strong>wristband</strong> travels with you to every subsequent request — that is a token or session cookie.</li>
+<li>A wristband that anyone can forge is useless — that is the <strong>signature</strong>.</li>
+<li>A wristband that never expires lets a fired employee return forever — that is the <strong>expiry</strong>.</li>
+<li>A general-admission wristband does not unlock backstage, even though it is valid — that is <strong>authorization</strong>, and it is checked per resource, not once at login.</li>
+</ul>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    A["Client: POST /login&lt;br/&gt;username + password"] --&gt; B["Server: verify password hash"]
+    B --&gt;|"valid"| C["Issue session or signed token"]
+    C --&gt; D["Client stores it&lt;br/&gt;(cookie or bearer token)"]
+    D --&gt; E["Request: Authorization: Bearer &amp;lt;token&amp;gt;"]
+    E --&gt; F["Server validates&lt;br/&gt;signature, alg, exp, aud, iss"]
+    F --&gt;|"invalid"| G["401 Unauthenticated"]
+    F --&gt;|"valid"| H["Load roles / scopes"]
+    H --&gt; I{"Allowed on this resource?"}
+    I --&gt;|"no"| J["403 Forbidden"]
+    I --&gt;|"yes"| K["Execute the operation"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The important part is the second half. A valid token only gets you to the permission check. Every endpoint that touches a specific object must ask: <em>does this principal own or have rights to this object?</em></p>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>A user proves identity once.</strong> The server looks up the stored password verifier and checks the presented password against it using the hashing algorithm.</li>
+<li><strong>The server issues a credential.</strong> Either an opaque session ID stored server-side, or a signed token (often a JWT) that the client stores.</li>
+<li><strong>The client sends the credential on every request.</strong> A browser sends a cookie automatically; an API client sends <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+<li><strong>The server validates the credential before trusting it.</strong> For a session, look up the ID and check it is not expired or revoked. For a JWT, verify the signature using an allow-listed algorithm, then check <code>exp</code>, <code>nbf</code>, <code>iss</code>, and <code>aud</code>.</li>
+<li><strong>The server loads permissions.</strong> From the token’s scopes, from a database of roles, or from a policy engine.</li>
+<li><strong>The server authorizes the specific action.</strong> It checks both the required permission and, for object-level access, ownership or a share.</li>
+<li><strong>The server acts and records an audit entry.</strong> Deny by default: unknown actions and unknown resources are refused, not allowed.</li>
+<li><strong>Credentials expire and refresh.</strong> Short-lived access tokens limit the damage of a leak; refresh tokens obtain new ones. Revocation requires server-side state or a denylist, because a stateless JWT cannot be un-signed.</li>
+</ol>
+<p><strong>Password hashing, precisely.</strong> A password must never be stored in plain text or with a fast hash like SHA-256. The stored value is a slow, salted hash:</p>
+<ol type="1">
+<li>Generate a random <strong>salt</strong> per password.</li>
+<li>Feed salt plus password into a slow key-derivation function, such as Argon2id, bcrypt, scrypt, or PBKDF2.</li>
+<li>Store the algorithm, its parameters, the salt, and the hash together in one string.</li>
+<li>To verify, recompute with the stored parameters and compare in constant time.</li>
+</ol>
+<p>The slowness is the point: it makes offline guessing expensive, and a per-password salt stops attackers from hashing one guess against every user at once.</p>
+<p><strong>JWT structure, precisely.</strong> A JWT is three base64url segments joined by dots:</p>
+<pre class="text"><code>header.payload.signature
+  |        |         |
+alg,typ  claims   HMAC or signature over "header.payload"</code></pre>
+<p>The header and payload are <strong>encoded, not encrypted</strong>. Anyone can decode and read them. The signature only proves integrity and origin. Never put secrets in a JWT payload.</p>
+<p><strong>OAuth2 and OIDC at a high level.</strong> OAuth2 is an <em>authorization delegation</em> framework: it lets an application obtain limited access to a user’s resources on another service without seeing the user’s password. The common flows are:</p>
+<ul>
+<li><strong>Authorization Code + PKCE</strong> — for web and mobile apps. The user is redirected to the provider, logs in, and returns with a short-lived code. The app exchanges the code (plus a PKCE verifier) for tokens. This is the default choice.</li>
+<li><strong>Client Credentials</strong> — for machine-to-machine access with no user involved.</li>
+<li><strong>Device Code</strong> — for devices with no browser, such as a TV or CLI.</li>
+<li><strong>Implicit</strong> and <strong>Resource Owner Password</strong> — legacy flows, now deprecated and best avoided.</li>
+</ul>
+<p>OIDC adds an identity layer: an <strong>ID token</strong> (a JWT) describing who logged in, plus a <code>userinfo</code> endpoint and a discovery document. OAuth2 alone says “this app may call this API”; OIDC says “this is the user’s identity”.</p>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>Hash and verify a password with Argon2.</strong> <code>argon2-cffi</code> uses Argon2id with sensible defaults.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> argon2 <span class="im">import</span> PasswordHasher</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> argon2.exceptions <span class="im">import</span> VerifyMismatchError</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>ph <span class="op">=</span> PasswordHasher()                       <span class="co"># Argon2id, time_cost=3, memory_cost=64 MiB</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>stored <span class="op">=</span> ph.<span class="bu">hash</span>(<span class="st">"correct horse battery staple"</span>)   <span class="co"># includes salt and parameters</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    ph.verify(stored, <span class="st">"correct horse battery staple"</span>)   <span class="co"># True</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> VerifyMismatchError:</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span>                                 <span class="co"># wrong password</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The parameters (algorithm, memory, passes, parallelism, salt) are embedded in the string, so you can raise them later and still verify old hashes.</p>
+<p><strong>Hash and verify with bcrypt.</strong> bcrypt is older but still widely supported. Its cost is the <code>rounds</code> parameter.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> bcrypt</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>stored <span class="op">=</span> bcrypt.hashpw(<span class="st">b"correct horse battery staple"</span>, bcrypt.gensalt(rounds<span class="op">=</span><span class="dv">12</span>))</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>bcrypt.checkpw(<span class="st">b"correct horse battery staple"</span>, stored)   <span class="co"># True</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>bcrypt.checkpw(<span class="st">b"wrong"</span>, stored)                          <span class="co"># False</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>bcrypt hashes at most the first 72 bytes of input. Older implementations silently truncated longer input; the modern <code>bcrypt</code> library raises <code>ValueError</code> instead, so pre-hash long passwords if you must support them.</p>
+<p><strong>Mint and verify a JWT with PyJWT.</strong> Always pass an explicit <code>algorithms</code> list.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jwt</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>SECRET <span class="op">=</span> <span class="st">"a-very-long-secret-key-with-32-bytes!"</span>   <span class="co"># HS256 keys should be &gt;= 32 bytes</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>token <span class="op">=</span> jwt.encode(</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    {<span class="st">"sub"</span>: <span class="st">"42"</span>, <span class="st">"scopes"</span>: [<span class="st">"tools:search"</span>],</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>     <span class="st">"iss"</span>: <span class="st">"https://auth.example.com"</span>, <span class="st">"aud"</span>: <span class="st">"my-api"</span>,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>     <span class="st">"exp"</span>: <span class="bu">int</span>(time.time()) <span class="op">+</span> <span class="dv">900</span>},</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    SECRET,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    algorithm<span class="op">=</span><span class="st">"HS256"</span>,</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>claims <span class="op">=</span> jwt.decode(</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    token, SECRET,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    algorithms<span class="op">=</span>[<span class="st">"HS256"</span>],                 <span class="co"># allow-list; never omit</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    audience<span class="op">=</span><span class="st">"my-api"</span>,                    <span class="co"># reject tokens for another API</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    issuer<span class="op">=</span><span class="st">"https://auth.example.com"</span>,    <span class="co"># reject tokens from another issuer</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>In the verified run, PyJWT raised <code>InvalidSignatureError</code> for a tampered token and for a wrong secret, <code>ExpiredSignatureError</code> for an expired token, <code>InvalidAudienceError</code> for the wrong audience, and <code>InvalidAlgorithmError</code> for both an <code>alg: none</code> token and an RS256 token presented where only HS256 was allowed.</p>
+<p><strong>Issue and check a scope in FastAPI.</strong> Dependencies compose: one validates the token, another enforces a scope.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastapi <span class="im">import</span> FastAPI, Depends, HTTPException, status</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastapi.security <span class="im">import</span> OAuth2PasswordBearer</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>oauth2_scheme <span class="op">=</span> OAuth2PasswordBearer(tokenUrl<span class="op">=</span><span class="st">"token"</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_current_user(token: <span class="bu">str</span> <span class="op">=</span> Depends(oauth2_scheme)) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> jwt.decode(token, SECRET, algorithms<span class="op">=</span>[<span class="st">"HS256"</span>],</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>                          audience<span class="op">=</span><span class="st">"my-api"</span>, issuer<span class="op">=</span><span class="st">"https://auth.example.com"</span>)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> jwt.ExpiredSignatureError:</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> HTTPException(status_code<span class="op">=</span><span class="dv">401</span>, detail<span class="op">=</span><span class="st">"token expired"</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> jwt.InvalidTokenError:</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> HTTPException(</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>            status_code<span class="op">=</span>status.HTTP_401_UNAUTHORIZED,</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>            detail<span class="op">=</span><span class="st">"Could not validate credentials"</span>,</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>            headers<span class="op">=</span>{<span class="st">"WWW-Authenticate"</span>: <span class="st">"Bearer"</span>},</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> require_scope(needed: <span class="bu">str</span>):</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> checker(user: <span class="bu">dict</span> <span class="op">=</span> Depends(get_current_user)) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> needed <span class="kw">not</span> <span class="kw">in</span> user.get(<span class="st">"scopes"</span>, []):</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>            <span class="cf">raise</span> HTTPException(status_code<span class="op">=</span><span class="dv">403</span>, detail<span class="op">=</span><span class="ss">f"missing scope </span><span class="sc">{</span>needed<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> user</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> checker</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Verified end to end: no token returns <code>401</code>, a valid token returns <code>200</code>, an expired token returns <code>401</code>, a token with the scope returns <code>200</code>, and a valid token without the scope returns <code>403</code>.</p>
+<p><strong>Use the scope on a route.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="at">@app.post</span>(<span class="st">"/tools/search"</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> search(user: <span class="bu">dict</span> <span class="op">=</span> Depends(require_scope(<span class="st">"tools:search"</span>))):</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {<span class="st">"ok"</span>: <span class="va">True</span>, <span class="st">"sub"</span>: user[<span class="st">"sub"</span>]}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>RBAC: roles map to permissions.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>ROLE_PERMISSIONS <span class="op">=</span> {</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"viewer"</span>: {<span class="st">"invoices:read"</span>},</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"editor"</span>: {<span class="st">"invoices:read"</span>, <span class="st">"invoices:write"</span>},</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"admin"</span>:  {<span class="st">"invoices:read"</span>, <span class="st">"invoices:write"</span>, <span class="st">"invoices:delete"</span>},</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> can(role: <span class="bu">str</span>, permission: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> permission <span class="kw">in</span> ROLE_PERMISSIONS.get(role, <span class="bu">set</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Object-level authorization (fixing IDOR).</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_invoice(invoice_id: <span class="bu">int</span>, user: <span class="bu">dict</span> <span class="op">=</span> Depends(get_current_user)):</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    invoice <span class="op">=</span> db.fetch_invoice(invoice_id)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> invoice <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> HTTPException(status_code<span class="op">=</span><span class="dv">404</span>, detail<span class="op">=</span><span class="st">"not found"</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">str</span>(invoice.owner_id) <span class="op">!=</span> user[<span class="st">"sub"</span>]:</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> HTTPException(status_code<span class="op">=</span><span class="dv">403</span>, detail<span class="op">=</span><span class="st">"not your invoice"</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> invoice</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The owner check is the authorization step. Without it, the endpoint leaks data even though the token is valid.</p>
+<p><strong>API keys.</strong> Generate high-entropy keys, store only a hash, and compare in constant time.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hashlib, secrets</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>api_key <span class="op">=</span> secrets.token_urlsafe(<span class="dv">32</span>)          <span class="co"># e.g. 43 characters, ~256 bits</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>stored_hash <span class="op">=</span> hashlib.sha256(api_key.encode()).hexdigest()   <span class="co"># store this, not the key</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check_key(presented: <span class="bu">str</span>, stored_hash: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    digest <span class="op">=</span> hashlib.sha256(presented.encode()).hexdigest()</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> secrets.compare_digest(digest, stored_hash)       <span class="co"># constant-time</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>compare_digest</code> avoids leaking information through response timing. Hashing the key means a database leak does not expose usable keys.</p>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — session vs token, side by side.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Session: the server stores the truth; the cookie is only an opaque ID.</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>session_id <span class="op">=</span> secrets.token_urlsafe(<span class="dv">32</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>redis.<span class="bu">set</span>(<span class="ss">f"session:</span><span class="sc">{</span>session_id<span class="sc">}</span><span class="ss">"</span>, json.dumps({<span class="st">"sub"</span>: <span class="st">"42"</span>}), ex<span class="op">=</span><span class="dv">86400</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>response.set_cookie(<span class="st">"session_id"</span>, session_id, httponly<span class="op">=</span><span class="va">True</span>, secure<span class="op">=</span><span class="va">True</span>, samesite<span class="op">=</span><span class="st">"lax"</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Token: the client holds a signed claim; the server verifies it. No lookup needed.</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>token <span class="op">=</span> jwt.encode({<span class="st">"sub"</span>: <span class="st">"42"</span>, <span class="st">"exp"</span>: now <span class="op">+</span> <span class="dv">900</span>}, SECRET, algorithm<span class="op">=</span><span class="st">"HS256"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Sessions are easy to revoke because the server owns the state. Tokens scale without a lookup but are hard to revoke before they expire. Many systems use both: a session that contains a short-lived access token and a refresh token.</p>
+<p><strong>Example 2 — validate every part of a JWT.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    claims <span class="op">=</span> jwt.decode(</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        token, SECRET,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>        algorithms<span class="op">=</span>[<span class="st">"HS256"</span>],               <span class="co"># 1. pin the algorithm</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        audience<span class="op">=</span><span class="st">"my-api"</span>,                  <span class="co"># 2. this API</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        issuer<span class="op">=</span><span class="st">"https://auth.example.com"</span>,  <span class="co"># 3. this issuer</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        options<span class="op">=</span>{<span class="st">"require"</span>: [<span class="st">"exp"</span>, <span class="st">"sub"</span>]},<span class="co"># 4. required claims</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        leeway<span class="op">=</span><span class="dv">10</span>,                          <span class="co"># 5. tolerate small clock skew</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> jwt.ExpiredSignatureError:</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> HTTPException(status_code<span class="op">=</span><span class="dv">401</span>, detail<span class="op">=</span><span class="st">"expired"</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> jwt.InvalidTokenError:</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> HTTPException(status_code<span class="op">=</span><span class="dv">401</span>, detail<span class="op">=</span><span class="st">"invalid"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Each parameter closes a known attack. Omitting <code>algorithms</code> or <code>audience</code> is how “it works in the demo” becomes a production incident.</p>
+<p><strong>Example 3 — a Role-Based Access Control check on a route.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> require_permission(permission: <span class="bu">str</span>):</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> checker(user: <span class="bu">dict</span> <span class="op">=</span> Depends(get_current_user)):</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> can(user.get(<span class="st">"role"</span>, <span class="st">"viewer"</span>), permission):</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>            <span class="cf">raise</span> HTTPException(status_code<span class="op">=</span><span class="dv">403</span>, detail<span class="op">=</span><span class="st">"forbidden"</span>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> user</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> checker</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="at">@app.delete</span>(<span class="st">"/invoices/</span><span class="sc">{invoice_id}</span><span class="st">"</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> delete_invoice(invoice_id: <span class="bu">int</span>,</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>                   user: <span class="bu">dict</span> <span class="op">=</span> Depends(require_permission(<span class="st">"invoices:delete"</span>))):</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> db.delete_invoice(invoice_id)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Roles keep route code readable. The mapping from role to permission lives in one place, so audits are possible.</p>
+<p><strong>Example 4 — scoping agent tools with least privilege.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>TOOL_SCOPES <span class="op">=</span> {</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"search_docs"</span>: <span class="st">"tools:read"</span>,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"send_email"</span>:  <span class="st">"tools:send_email"</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"delete_file"</span>: <span class="st">"tools:delete"</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run_tool(name: <span class="bu">str</span>, args: <span class="bu">dict</span>, user: <span class="bu">dict</span>) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    needed <span class="op">=</span> TOOL_SCOPES[name]</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> needed <span class="kw">not</span> <span class="kw">in</span> user[<span class="st">"scopes"</span>]:</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">PermissionError</span>(<span class="ss">f"missing scope </span><span class="sc">{</span>needed<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    audit.log(user[<span class="st">"sub"</span>], name, args)          <span class="co"># record every call</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> TOOLS[name](<span class="op">**</span>args)</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="at">@app.post</span>(<span class="st">"/agent/run"</span>)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run(request: RunRequest, user: <span class="bu">dict</span> <span class="op">=</span> Depends(get_current_user)):</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {<span class="st">"result"</span>: run_tool(request.tool, request.args, user)}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The model may <em>choose</em> a tool, but it does not get to <em>authorize</em> the call. The server checks the user’s scopes before execution, and destructive tools can require explicit confirmation.</p>
+<p><strong>Example 5 — a downscoped token for a downstream service.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> call_downstream(user: <span class="bu">dict</span>):</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Never forward the user's broad token. Mint a narrow, short-lived one.</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    narrow <span class="op">=</span> jwt.encode(</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        {<span class="st">"sub"</span>: user[<span class="st">"sub"</span>], <span class="st">"scopes"</span>: [<span class="st">"search:read"</span>],</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>         <span class="st">"aud"</span>: <span class="st">"search-service"</span>, <span class="st">"exp"</span>: now <span class="op">+</span> <span class="dv">60</span>},</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        INTERNAL_SECRET, algorithm<span class="op">=</span><span class="st">"HS256"</span>,</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> httpx.post(SEARCH_URL, headers<span class="op">=</span>{<span class="st">"Authorization"</span>: <span class="ss">f"Bearer </span><span class="sc">{</span>narrow<span class="sc">}</span><span class="ss">"</span>}, timeout<span class="op">=</span><span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Passing a narrow token limits the blast radius if the downstream service is compromised. This is the opposite of the “confused deputy” problem, where a powerful service is tricked into acting on a weaker user’s behalf.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Validate the signature and the algorithm, always.</strong> Pin an allow-list such as <code>algorithms=["RS256"]</code>. Never trust the <code>alg</code> header, never accept <code>none</code>, and never let the server choose the algorithm from the token.</li>
+<li><strong>Check <code>exp</code>, <code>iss</code>, and <code>aud</code>.</strong> A valid token from a different issuer or intended for a different audience must still be rejected. PyJWT raises <code>InvalidAudienceError</code> when this is configured.</li>
+<li><strong>Keep access tokens short and refresh tokens protected.</strong> Fifteen minutes is typical for access tokens. Store refresh tokens server-side, rotate them on use, and detect reuse, which signals theft.</li>
+<li><strong>Stateless JWTs are hard to revoke.</strong> You cannot “un-sign” one. Plan for a denylist keyed by <code>jti</code>, very short expiries, or server-side sessions when instant revocation matters.</li>
+<li><strong>Never put secrets in a JWT payload.</strong> It is base64url, not encryption. Anyone holding the token can read every claim.</li>
+<li><strong>Store browser tokens where XSS cannot reach them.</strong> <code>localStorage</code> is readable by any script on the page. Prefer <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite</code> cookies, and add CSRF protection for cookie-based writes.</li>
+<li><strong>Do not leak tokens in logs or URLs.</strong> Query strings end up in access logs, proxies, and the <code>Referer</code> header. Send tokens in the <code>Authorization</code> header, and redact them in logs.</li>
+<li><strong>Authorization must be per object, not just per route.</strong> IDOR is the most common API vulnerability. Check ownership or sharing for every object read or written by ID.</li>
+<li><strong>Deny by default.</strong> New roles, new scopes, and unknown permissions should grant nothing. Explicitly grant what is needed.</li>
+<li><strong>Hash passwords with Argon2id or bcrypt and raise the cost over time.</strong> Argon2id defaults are about 64 MiB and three passes; bcrypt at <code>rounds=12</code> takes roughly 0.1–0.3 seconds on a laptop. Tune to your hardware and rehash on next login when you increase cost.</li>
+<li><strong>Rate-limit and lock out auth endpoints.</strong> Without it, attackers can brute-force passwords or enumerate valid usernames. Return the same message for “unknown user” and “wrong password”.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="what-is-the-difference-between-authentication-and-authorization" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-authentication-and-authorization">1. What is the difference between authentication and authorization?</h3>
+<p><strong>Answer.</strong> Authentication establishes identity: who is this? Authorization decides permission: what may they do? Authentication happens once per session or token issuance; authorization happens per request and often per object. A user can be fully authenticated and still forbidden from a resource.</p>
+<p><strong>Follow-up: “What does a 403 mean versus a 401?”</strong> <code>401 Unauthorized</code> actually means <em>not authenticated</em> (missing or invalid credentials) and should carry <code>WWW-Authenticate</code>. <code>403 Forbidden</code> means authenticated but not permitted.</p>
+<p><strong>Trap.</strong> Treating a successful login as blanket permission. That is exactly the IDOR bug.</p>
+</section>
+<section id="sessions-versus-jwts-which-do-you-choose" class="level3">
+<h3 class="anchored" data-anchor-id="sessions-versus-jwts-which-do-you-choose">2. Sessions versus JWTs: which do you choose?</h3>
+<p><strong>Answer.</strong> A session stores state on the server, keyed by an opaque ID; it is easy to revoke and easy to reason about, but requires a shared store such as Redis. A JWT is self-contained and signed, so any server with the key can verify it without a lookup; it scales well but is hard to revoke and grows with its claims. Choose sessions when instant revocation matters; choose JWTs for stateless, service-to-service, or horizontally scaled verification.</p>
+<p><strong>Follow-up: “Can you use both?”</strong> Yes, and many do: a session cookie plus short-lived JWTs for downstream services. The session gives revocation; the JWT avoids a lookup per call.</p>
+<p><strong>Trap.</strong> Saying JWTs are “more secure.” They are a different trade-off; a stolen JWT is valid until it expires, and there is often no way to revoke it.</p>
+</section>
+<section id="what-are-the-parts-of-a-jwt-and-what-is-actually-protected" class="level3">
+<h3 class="anchored" data-anchor-id="what-are-the-parts-of-a-jwt-and-what-is-actually-protected">3. What are the parts of a JWT, and what is actually protected?</h3>
+<p><strong>Answer.</strong> A JWT is <code>header.payload.signature</code>. The header names the algorithm and type, the payload holds claims such as <code>sub</code>, <code>exp</code>, <code>iss</code>, and <code>aud</code>, and the signature covers the header and payload. Header and payload are base64url <strong>encoded, not encrypted</strong>: anyone can read them. The signature guarantees integrity and origin, not confidentiality.</p>
+<p><strong>Follow-up: “Then how do you protect sensitive claims?”</strong> Use JWE (encrypted tokens) if confidentiality is genuinely needed, but usually the right answer is not to put secrets in a token at all.</p>
+<p><strong>Trap.</strong> Assuming the payload is unreadable. Decoding a JWT requires no key.</p>
+</section>
+<section id="explain-alg-confusion-and-alg-none." class="level3">
+<h3 class="anchored" data-anchor-id="explain-alg-confusion-and-alg-none.">4. Explain <code>alg</code> confusion and <code>alg: none</code>.</h3>
+<p><strong>Answer.</strong> In an algorithm-confusion attack, a server that verifies with a public key also accepts HS256, letting an attacker sign a forged token using the public key as the HMAC secret. In the <code>none</code> attack, the attacker sets <code>alg</code> to <code>none</code> and removes the signature, hoping the server skips verification. Both are fixed by pinning an explicit algorithm allow-list and never choosing the algorithm from the token.</p>
+<p><strong>Follow-up: “What did PyJWT do in your test?”</strong> With <code>algorithms=["HS256"]</code>, it rejected both a <code>none</code> token and an RS256 token with <code>InvalidAlgorithmError</code>, and it detected a tampered payload with <code>InvalidSignatureError</code>.</p>
+<p><strong>Trap.</strong> Reading <code>alg</code> from the token and using it to pick the verification method. That is the vulnerability.</p>
+</section>
+<section id="why-is-bcrypt-preferred-over-sha-256-for-passwords-and-how-does-salting-help" class="level3">
+<h3 class="anchored" data-anchor-id="why-is-bcrypt-preferred-over-sha-256-for-passwords-and-how-does-salting-help">5. Why is bcrypt preferred over SHA-256 for passwords, and how does salting help?</h3>
+<p><strong>Answer.</strong> SHA-256 is fast by design, so an attacker with a GPU can test billions of guesses per second. bcrypt (and Argon2) are deliberately slow and memory-hungry, making offline guessing expensive. Salting adds random data per password before hashing, so identical passwords produce different hashes and one cracking attempt cannot crack every user at once.</p>
+<p><strong>Follow-up: “What is the 72-byte bcrypt limit?”</strong> bcrypt’s input is capped at 72 bytes: implementations reject longer input rather than silently truncating it, so you cannot rely on the extra entropy of a longer password with bcrypt.</p>
+<p><strong>Trap.</strong> “Hash the password twice for extra security.” Double hashing does not add meaningful work for the attacker and can introduce bugs; choose a proper slow algorithm and tune its cost.</p>
+</section>
+<section id="what-is-idor-and-how-do-you-prevent-it" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-idor-and-how-do-you-prevent-it">6. What is IDOR and how do you prevent it?</h3>
+<p><strong>Answer.</strong> Insecure Direct Object Reference means the API exposes an object by a guessable ID and does not verify that the caller may access it. Authentication passes; authorization is missing. Prevent it by checking ownership or an explicit share for every object access, scoping database queries by principal, and testing cross-user access deliberately.</p>
+<p><strong>Follow-up: “Does using UUIDs instead of integers fix it?”</strong> No.&nbsp;It makes guessing harder but does nothing against a user who obtains or shares a valid ID. It is security by obscurity, not authorization.</p>
+<p><strong>Trap.</strong> Assuming a logged-in user is trustworthy for all data. Authorization is per object.</p>
+</section>
+<section id="walk-through-the-oauth2-authorization-code-flow-with-pkce." class="level3">
+<h3 class="anchored" data-anchor-id="walk-through-the-oauth2-authorization-code-flow-with-pkce.">7. Walk through the OAuth2 authorization code flow with PKCE.</h3>
+<p><strong>Answer.</strong> The app redirects the user to the authorization server with a client ID, requested scopes, a redirect URI, and a PKCE challenge. The user authenticates and consents. The server redirects back with a short-lived authorization code. The app exchanges that code plus the PKCE verifier for an access token and, in OIDC, an ID token. The access token is sent to the resource API; the ID token describes the user to the app.</p>
+<p><strong>Follow-up: “Why PKCE?”</strong> It binds the code to the client that started the flow, so an intercepted code cannot be exchanged by an attacker. It replaces the need for a client secret in public clients such as mobile apps.</p>
+<p><strong>Trap.</strong> Using the implicit flow, which returns tokens directly in the URL fragment and cannot use PKCE. It is deprecated for good reason.</p>
+</section>
+<section id="how-do-you-authorize-an-autonomous-agents-tool-calls" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-authorize-an-autonomous-agents-tool-calls">8. How do you authorize an autonomous agent’s tool calls?</h3>
+<p><strong>Answer.</strong> Treat every tool as an API with a required scope, and check the end user’s scopes on the server before the tool runs. The model may choose which tool to call, but it must not decide whether the call is permitted. Pass a narrowly scoped, short-lived identity to each downstream service, record an audit entry for every call, and require explicit user confirmation for destructive or high-impact actions.</p>
+<p><strong>Follow-up: “What about prompt injection?”</strong> The model can be tricked into requesting a dangerous tool. Server-side scope checks and human confirmation for destructive actions are the controls; never rely on the prompt to enforce policy.</p>
+<p><strong>Trap.</strong> Giving the agent a broad service account because “it needs to call many tools.” That is ambient authority, and a single injection can then delete data.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li><strong>Authn is who; authz is what.</strong> Authentication once, authorization on every request and every object.</li>
+<li><strong>Always pin the algorithm and check <code>exp</code>, <code>iss</code>, and <code>aud</code>.</strong> Never trust the token’s own <code>alg</code>.</li>
+<li><strong>Hash passwords with Argon2id or bcrypt</strong>, salted and deliberately slow; never store plaintext or fast hashes.</li>
+<li><strong>A valid token is not permission.</strong> Check ownership per object to stop IDOR.</li>
+<li><strong>Give agents least privilege</strong>, enforce tool scopes on the server, and confirm destructive actions.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-01-production-python/23-redis.html" class="pagination-link" aria-label="Redis">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Redis</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-01-production-python/25-background-jobs.html" class="pagination-link" aria-label="Background Jobs">
+        <span class="nav-page-text"><span class="chapter-title">Background Jobs</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

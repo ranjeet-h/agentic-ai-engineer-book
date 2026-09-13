@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Profiling and Performance – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-01-production-python/19-fastapi.html" rel="next">
+<link href="../phase-01-production-python/17-mocking.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/18-profiling-and-performance.html"><span class="chapter-title">Profiling and Performance</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/18-profiling-and-performance.html"><span class="chapter-title">Profiling and Performance</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Profiling and Performance</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> Profiling means measuring where a program actually spends time or memory before changing anything. Use <code>timeit</code> for tiny isolated comparisons, <code>cProfile</code> plus <code>pstats</code> for function-level hotspots, <code>line_profiler</code> for the hottest lines, <code>py-spy</code> for production or a running process, and <code>tracemalloc</code> for memory. Fix the biggest cost first, then measure again.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>Programs are slow for two reasons: a bad <strong>algorithm</strong> (the shape of the work) or constant-factor <strong>overhead</strong> (the cost of each step). You cannot tell which one you have by reading the code, because humans are bad at estimating cost. The part that feels heavy is often not the part that is slow.</p>
+<p>Here is a realistic guess: “the model call is what takes all the time, so optimizing my Python is pointless.” Sometimes true. But a service that parses and post-processes large LLM responses can spend most of its time in cheap-looking string and list code, not in the network. Without measurement you are optimising a rumour.</p>
+<p>The other failure mode is optimising too early. Rewriting clear code into clever code for a “speedup” that is invisible next to a database call makes the code worse and helps nobody. Donald Knuth’s often-quoted line is that premature optimization is the root of all evil; the full idea is that you should optimise the <strong>critical 3%</strong>, and you can only find it by measuring.</p>
+<p>This page is about the measuring. Profiling answers three questions:</p>
+<ol type="1">
+<li><strong>Where</strong> does the time or memory go?</li>
+<li><strong>How much</strong> would fixing it buy?</li>
+<li>Did the fix actually <strong>work</strong>?</li>
+</ol>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Profiling</strong></td>
+<td>Measuring where a program spends time or memory.</td>
+</tr>
+<tr class="even">
+<td><strong>Benchmark</strong></td>
+<td>A repeatable measurement of one operation under fixed conditions.</td>
+</tr>
+<tr class="odd">
+<td><strong>Wall-clock time</strong></td>
+<td>Real elapsed time, including waiting on I/O and other processes.</td>
+</tr>
+<tr class="even">
+<td><strong>CPU time</strong></td>
+<td>Time the CPU actually spent executing your code, excluding waits.</td>
+</tr>
+<tr class="odd">
+<td><strong>Hotspot</strong></td>
+<td>The function or line that consumes the most resources.</td>
+</tr>
+<tr class="even">
+<td><strong>Bottleneck</strong></td>
+<td>The limiting factor; speeding up anything else gives little.</td>
+</tr>
+<tr class="odd">
+<td><strong><code>timeit</code></strong></td>
+<td>A standard-library tool that runs a tiny snippet many times and reports the average.</td>
+</tr>
+<tr class="even">
+<td><strong>Deterministic profiler</strong></td>
+<td>Records every function call. Exact, but adds overhead. <code>cProfile</code> is one.</td>
+</tr>
+<tr class="odd">
+<td><strong>Sampling profiler</strong></td>
+<td>Periodically snapshots the call stack. Low overhead, statistical. <code>py-spy</code> is one.</td>
+</tr>
+<tr class="even">
+<td><strong><code>pstats</code></strong></td>
+<td>A tool that reads <code>cProfile</code> output and sorts and prints it.</td>
+</tr>
+<tr class="odd">
+<td><strong><code>line_profiler</code></strong></td>
+<td>A tool that measures time per source line inside one function.</td>
+</tr>
+<tr class="even">
+<td><strong><code>tracemalloc</code></strong></td>
+<td>A standard-library tool that records Python memory allocations and their source line.</td>
+</tr>
+<tr class="odd">
+<td><strong>Algorithmic complexity</strong></td>
+<td>How cost grows with input size, written with big-O, such as O(n) or O(n²).</td>
+</tr>
+<tr class="even">
+<td><strong>Micro-optimization</strong></td>
+<td>Shaving a constant factor off one small operation.</td>
+</tr>
+<tr class="odd">
+<td><strong>Premature optimization</strong></td>
+<td>Optimizing before measuring, usually at the cost of clarity.</td>
+</tr>
+<tr class="even">
+<td><strong>Memoization / caching</strong></td>
+<td>Storing a function’s result so a repeated call is free.</td>
+</tr>
+<tr class="odd">
+<td><strong>Amdahl’s law</strong></td>
+<td>The speedup is capped by the part you did not improve.</td>
+</tr>
+</tbody>
+</table>
+<p>Two facts to hold on to:</p>
+<ul>
+<li><strong>Wall time vs CPU time.</strong> If a function is fast on the CPU but the program is slow, the problem is waiting (network, disk, locks), and rewrite micro-optimizations will not help.</li>
+<li><strong>Sampling vs deterministic.</strong> <code>py-spy</code> can profile a live production process because it samples rarely. <code>cProfile</code> records every call, so it is precise but slows the program down and cannot attach to a running process.</li>
+</ul>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>A doctor does not prescribe medicine after reading your diary. They <strong>measure</strong> first: temperature, blood test, then treatment, then a check that it worked.</p>
+<p>Profiling is the same loop:</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A["1. Measure&lt;br/&gt;benchmark or profile"] --&gt; B["2. Locate&lt;br/&gt;the hotspot"]
+    B --&gt; C["3. Fix&lt;br/&gt;the biggest cost"]
+    C --&gt; D["4. Re-measure&lt;br/&gt;did it help?"]
+    D --&gt;|"yes, and still slow"| B
+    D --&gt;|"meets target"| E["Stop"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The loop matters more than any single tool. Profilers tell you where to look; they do not tell you what to do. And a fix that is not re-measured is a guess.</p>
+<p>The second mental model is a <strong>budget</strong>. Performance work is about the total time of one user-visible action, for example “answer one API request in under 300 ms.” Every candidate optimization buys a slice of that budget, and the slices are wildly unequal:</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TB
+    subgraph Big["Usually big wins"]
+        B1["Better algorithm or data structure"]
+        B2["Remove repeated work / cache"]
+        B3["Batch I/O instead of one call per item"]
+    end
+    subgraph Small["Usually small wins"]
+        S1["Local variable aliasing"]
+        S2["Avoid one attribute lookup"]
+        S3["Replace += with join"]
+    end
+    Big --&gt;|"measure first"| Budget["Your time budget"]
+    Small --&gt;|"only if proven"| Budget
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>Define the goal.</strong> “P95 latency under 200 ms” or “peak memory under 512 MB”. A number makes the work testable and tells you when to stop.</li>
+<li><strong>Build a representative workload.</strong> Use realistic input sizes and shapes. A benchmark on ten items says nothing about one hundred thousand.</li>
+<li><strong>Warm up.</strong> The first run pays for imports, caches, and JIT-like specialisation. Discard it or run enough iterations that it does not dominate.</li>
+<li><strong>Measure a baseline.</strong> Record the number before any change, so you can prove the fix helped.</li>
+<li><strong>Time small pieces with <code>timeit</code>.</strong> It runs the snippet many times and reports the best average, which removes most noise.</li>
+<li><strong>Profile the whole program with <code>cProfile</code>.</strong> It counts every call and records total time.</li>
+<li><strong>Sort the profile with <code>pstats</code>.</strong> Sort by <code>tottime</code> (time inside the function itself) to find work, or <code>cumulative</code> (time including callees) to find the path.</li>
+<li><strong>Drill into the hottest function with <code>line_profiler</code>.</strong> It shows which line inside the function costs the most.</li>
+<li><strong>Profile a live or production process with <code>py-spy</code>.</strong> It samples the stack with very low overhead and does not need code changes.</li>
+<li><strong>Measure memory with <code>tracemalloc</code>.</strong> It attributes allocations to the exact source line.</li>
+<li><strong>Fix the biggest item, then go back to step 4.</strong> Repeat until the goal is met. Stop when it is.</li>
+</ol>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The rule that saves the most time.</strong> Never optimise without a baseline number and a target number. Without them you cannot tell improvement from noise, or know when to stop.</p>
+</div>
+</div>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong><code>timeit</code> for micro-benchmarks.</strong> Use it for small, isolated choices, never for I/O.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> timeit</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>best <span class="op">=</span> <span class="bu">min</span>(timeit.repeat(<span class="st">"999 in data_set"</span>, setup<span class="op">=</span><span class="st">"data_set = set(range(1000))"</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>                         number<span class="op">=</span><span class="dv">10000</span>, repeat<span class="op">=</span><span class="dv">5</span>))</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(best)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>timeit</code> from the command line.</strong> Quick and convenient for one-liners.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> timeit <span class="at">-s</span> <span class="st">"data = set(range(1000))"</span> <span class="st">"999 in data"</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 20000000 loops, best of 5: 11.6 nsec per loop</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>cProfile</code> and <code>pstats</code>.</strong> Profile the whole program, then sort by internal time.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cProfile, pstats</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> cProfile.Profile() <span class="im">as</span> pr:</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    main()</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>stats <span class="op">=</span> pstats.Stats(pr)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>stats.sort_stats(<span class="st">"tottime"</span>).print_stats(<span class="dv">10</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>stats.dump_stats(<span class="st">"profile.out"</span>)      <span class="co"># open later with snakeviz or pstats</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>cProfile</code> as a module.</strong> One command, no code changes.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> cProfile <span class="at">-s</span> cumulative myscript.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>line_profiler</code>.</strong> Decorate the one function you suspect, then run through <code>kernprof</code>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> line_profiler <span class="im">import</span> profile</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="at">@profile</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> slow_sum(n):</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        total <span class="op">+=</span> i <span class="op">*</span> i</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> total</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">kernprof</span> <span class="at">-l</span> <span class="at">-v</span> myscript.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>py-spy</code> for live processes.</strong> It samples a running Python process without changing the code.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">py-spy</span> record <span class="at">-o</span> profile.svg <span class="at">--</span> python myscript.py    <span class="co"># flame graph</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">py-spy</span> top <span class="at">--pid</span> 12345                                <span class="co"># live top-like view</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">py-spy</span> dump <span class="at">--pid</span> 12345                               <span class="co"># current stack of every thread</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>On macOS, <code>py-spy</code> needs root, so prefix with <code>sudo</code>. On Linux, launching a new process under <code>py-spy</code> works without root, but attaching to an existing PID usually needs root or a relaxed <code>ptrace_scope</code>; in a container you may need <code>--cap-add SYS_PTRACE</code>.</p>
+<p><strong><code>tracemalloc</code> for memory.</strong> Start it, run the code, then read current and peak usage.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tracemalloc</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>tracemalloc.start()</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> [i <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1_000_000</span>)]</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>current, peak <span class="op">=</span> tracemalloc.get_traced_memory()</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>tracemalloc.stop()</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"current=</span><span class="sc">{</span>current<span class="sc">:,}</span><span class="ss"> peak=</span><span class="sc">{</span>peak<span class="sc">:,}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Snapshots find the leaking line.</strong> Compare two snapshots to see what grew.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tracemalloc</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>tracemalloc.start()</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>first <span class="op">=</span> tracemalloc.take_snapshot()</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>work()</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>second <span class="op">=</span> tracemalloc.take_snapshot()</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> stat <span class="kw">in</span> second.compare_to(first, <span class="st">"lineno"</span>)[:<span class="dv">5</span>]:</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(stat)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Caching with <code>functools</code>.</strong> <code>lru_cache</code> keeps the last N results; <code>cache</code> keeps them all. Both require hashable arguments.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> lru_cache, cache</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="at">@cache</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> token_count(text: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">int</span>:</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">len</span>(text.split())</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>token_count(<span class="st">"hello world"</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>token_count(<span class="st">"hello world"</span>)        <span class="co"># free: served from the cache</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(token_count.cache_info())   <span class="co"># CacheInfo(hits=1, misses=1, ...)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>sys.getsizeof</code> for the size of one object.</strong> It reports the object itself, not the objects it references.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>sys.getsizeof(<span class="dv">0</span>)              <span class="co"># 28</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>sys.getsizeof(<span class="dv">2</span><span class="op">**</span><span class="dv">64</span>)          <span class="co"># 36: bigger ints use more memory</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — measure a data-structure choice with <code>timeit</code>.</strong></p>
+<p>Membership testing is the classic case. Lists scan; sets and dicts hash.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> timeit</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>setup <span class="op">=</span> <span class="st">"data_list = list(range(1000))</span><span class="ch">\n</span><span class="st">data_set = set(range(1000))"</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>t_list <span class="op">=</span> timeit.timeit(<span class="st">"999 in data_list"</span>, setup<span class="op">=</span>setup, number<span class="op">=</span><span class="dv">10000</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>t_set <span class="op">=</span> timeit.timeit(<span class="st">"999 in data_set"</span>, setup<span class="op">=</span>setup, number<span class="op">=</span><span class="dv">10000</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"list=</span><span class="sc">{</span>t_list<span class="sc">:.4f}</span><span class="ss">s set=</span><span class="sc">{</span>t_set<span class="sc">:.4f}</span><span class="ss">s ratio=</span><span class="sc">{</span>t_list <span class="op">/</span> t_set<span class="sc">:.0f}</span><span class="ss">x"</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># one machine: list=0.0530s set=0.0001s ratio=470x</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The absolute numbers depend on the machine, but the shape does not: a list scan is O(n), a set lookup averages O(1). At n = 1000 that is hundreds of times faster. Changing the data structure is an algorithmic win; no amount of micro-tuning closes that gap.</p>
+<p><strong>Example 2 — find the hotspot with <code>cProfile</code>.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cProfile, pstats</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> find_duplicates(items):</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    seen, dupes <span class="op">=</span> [], []</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> items:               <span class="co"># accidental O(n²): `in` scans `seen`</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        (dupes <span class="cf">if</span> x <span class="kw">in</span> seen <span class="cf">else</span> seen).append(x)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> dupes</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> summarize(rows):</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [row[<span class="st">"name"</span>].upper() <span class="cf">for</span> row <span class="kw">in</span> rows]</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    find_duplicates(<span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">3000</span>)) <span class="op">*</span> <span class="dv">2</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    summarize([{<span class="st">"name"</span>: <span class="ss">f"user</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">"</span>} <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">20000</span>)])</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> cProfile.Profile() <span class="im">as</span> pr:</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    main()</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>pstats.Stats(pr).sort_stats(<span class="st">"tottime"</span>).print_stats(<span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<pre class="text"><code>         26005 function calls in 0.054 seconds
+
+   Ordered by: internal time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.049    0.049    0.049    0.049 profile_demo.py:3(find_duplicates)
+        1    0.003    0.003    0.054    0.054 profile_demo.py:12(main)
+        1    0.001    0.001    0.002    0.002 profile_demo.py:9(summarize)</code></pre>
+<p><code>find_duplicates</code> owns 0.049 of the 0.054 seconds. The “obvious” suspects — building 20,000 dicts and calling <code>.upper()</code> 20,000 times — are almost free. The profile corrected the guess.</p>
+<p><strong>Example 3 — read <code>tottime</code> and <code>cumtime</code> correctly.</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>Meaning</th>
+<th>Use it to</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ncalls</code></td>
+<td>How many times the function was called.</td>
+<td>Find chatty functions.</td>
+</tr>
+<tr class="even">
+<td><code>tottime</code></td>
+<td>Seconds spent <strong>inside</strong> the function, excluding callees.</td>
+<td>Find real work.</td>
+</tr>
+<tr class="odd">
+<td><code>cumtime</code></td>
+<td>Seconds including everything the function called.</td>
+<td>Find the slow path.</td>
+</tr>
+<tr class="even">
+<td><code>percall</code></td>
+<td>Time divided by calls.</td>
+<td>Compare single-call cost.</td>
+</tr>
+</tbody>
+</table>
+<p>A function with high <code>cumtime</code> but low <code>tottime</code> is a conductor, not the orchestra. Do not optimise it; optimise what it calls. Sort by <code>tottime</code> first to find work, then by <code>cumulative</code> to see the path.</p>
+<p><strong>Example 4 — go line by line with <code>line_profiler</code>.</strong></p>
+<p>When one function is hot, a function-level profile is too coarse. <code>kernprof -l -v</code> gives this:</p>
+<pre class="text"><code>Function: slow_sum at line 4
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+     5         1          0.0      0.0      0.0      total = 0
+     6    200001      19847.0      0.1     43.4      for i in range(n):
+     7    200000      25877.0      0.1     56.6          total += i * i</code></pre>
+<p>Now you know the cost is the loop itself, not setup. <code>% Time</code> points straight at the line to change.</p>
+<p><strong>Example 5 — find a memory problem with <code>tracemalloc</code>.</strong></p>
+<p>A list comprehension materialises everything; a generator produces one item at a time.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tracemalloc</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>tracemalloc.start()</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>lst <span class="op">=</span> [i <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1_000_000</span>)]</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>_, list_peak <span class="op">=</span> tracemalloc.get_traced_memory()</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="kw">del</span> lst</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>tracemalloc.reset_peak()</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>gen <span class="op">=</span> (i <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1_000_000</span>))</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>_, gen_peak <span class="op">=</span> tracemalloc.get_traced_memory()</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>tracemalloc.stop()</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"list peak=</span><span class="sc">{</span>list_peak<span class="sc">:,}</span><span class="ss"> bytes"</span>)</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"gen  peak=</span><span class="sc">{</span>gen_peak<span class="sc">:,}</span><span class="ss"> bytes"</span>)</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="co"># one machine: list peak=40,437,248 bytes, gen peak=3,632 bytes</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The list allocated about 40 MB; the generator about 4 KB. This matters for agentic AI code that streams long token sequences or loads many embeddings: prefer generators and chunking when you do not need the whole collection at once.</p>
+<p><strong>Example 6 — caching turns exponential into linear.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> lru_cache</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="at">@lru_cache</span>(maxsize<span class="op">=</span><span class="va">None</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fib(n: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">int</span>:</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> n <span class="cf">if</span> n <span class="op">&lt;</span> <span class="dv">2</span> <span class="cf">else</span> fib(n <span class="op">-</span> <span class="dv">1</span>) <span class="op">+</span> fib(n <span class="op">-</span> <span class="dv">2</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> fib(<span class="dv">30</span>) <span class="op">==</span> <span class="dv">832040</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(fib.cache_info())     <span class="co"># CacheInfo(hits=28, misses=31, ...)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>lru_cache</code> makes repeated subproblems free, turning O(2ⁿ) into O(n). The same idea caches expensive LLM calls, embeddings, or parsed documents — but only when inputs are hashable and results are safe to reuse.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Measure in the target environment.</strong> A laptop profile does not predict a container with a CPU quota and a shared database. Profile where the code runs.</li>
+<li><strong>Use wall time for user-facing goals, CPU time for CPU work.</strong> If wall time is high but CPU time is low, you are waiting on I/O, and micro-optimizing Python will do nothing.</li>
+<li><strong>Warm up before benchmarking.</strong> The first call pays import and cache costs. <code>timeit.repeat</code> plus <code>min</code> discards most noise and outliers.</li>
+<li><strong>Profile overhead changes the picture.</strong> <code>cProfile</code> can slow a program down several times over; its per-call overhead is charged to every function, so frequently-called functions absorb that cost and look relatively <strong>more</strong> expensive than they are. Confirm with <code>py-spy</code> in production.</li>
+<li><strong><code>tottime</code> before <code>cumtime</code>.</strong> Sorting by cumulative time points at wrappers and <code>main</code>; sorting by internal time points at where the work is.</li>
+<li><strong>An O(n²) in a hot path dwarfs every micro-optimization.</strong> Fix the algorithm first. A set instead of a list can be hundreds of times faster; aliasing a local variable is a few percent.</li>
+<li><strong>Cache only pure, repeated work.</strong> <code>lru_cache</code> on a function that depends on mutable global state or the current time returns stale answers. It also holds references, so an unbounded <code>cache</code> can become a memory leak.</li>
+<li><strong>Never cache with unhashable arguments.</strong> A <code>dict</code>, <code>list</code>, or Pydantic model raises <code>TypeError</code> as a cache key unless you convert it to a hashable form.</li>
+<li><strong>Beware micro-optimizations that are not real — but <code>join</code> still wins string building.</strong> On modern CPython, repeated <code>str +=</code> is not the quadratic disaster folklore claims, because the interpreter can often grow the buffer in place. It is still measurably slower than <code>"".join()</code> for non-trivial strings, though, because <code>join</code> allocates once. Keep <code>+=</code> only for tiny, bounded builds where a measurement shows no meaningful difference; readability wins there.</li>
+<li><strong>Memory leaks hide in long-lived objects.</strong> Module-level caches, growing lists, exception tracebacks, and circular references all survive for the process lifetime. <code>tracemalloc</code> snapshots show what grew between two points.</li>
+<li><strong><code>sys.getsizeof</code> is shallow.</strong> It does not count referenced objects, so it understates containers. Use <code>tracemalloc</code> or <code>pympler</code> for real totals.</li>
+<li><strong>Parallelism has a ceiling.</strong> Amdahl’s law: if 20% of the work is serial, the best possible speedup is 5x no matter how many cores you add. Profile before adding threads or processes.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="how-do-you-approach-a-slow-python-function" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-approach-a-slow-python-function">1. How do you approach a slow Python function?</h3>
+<p><strong>Answer.</strong> Measure first. Build a representative benchmark, record a baseline, then profile with <code>cProfile</code> and <code>pstats</code> to find the hotspot. Fix the largest cost — usually an algorithm or data-structure problem — then re-measure to confirm. Stop when the goal is met; do not optimise by intuition.</p>
+<p><strong>Follow-up: “And if it is still slow?”</strong> Repeat the loop. If wall time stays high while CPU time is low, the bottleneck is I/O, not Python, so change the I/O pattern (batching, caching, concurrency) rather than the code constants.</p>
+<p><strong>Trap.</strong> Starting with a rewrite because “this loop looks slow.” Without a profile you are guessing, and the guess is often wrong.</p>
+</section>
+<section id="what-is-the-difference-between-timeit-and-cprofile" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-timeit-and-cprofile">2. What is the difference between <code>timeit</code> and <code>cProfile</code>?</h3>
+<p><strong>Answer.</strong> <code>timeit</code> answers “how long does this tiny snippet take?” by running it many times in isolation. <code>cProfile</code> answers “where does my whole program spend time?” by recording every function call. Use <code>timeit</code> to compare two implementations of one operation; use <code>cProfile</code> to find which part of a real workload is hot.</p>
+<p><strong>Follow-up: “Why does <code>timeit</code> report the best run?”</strong> The minimum is the least contaminated by other processes and garbage collection, so it is the most stable estimate of the code’s own cost.</p>
+<p><strong>Trap.</strong> Using <code>timeit</code> on code that does I/O or has side effects. It repeats the code many times and assumes each run is independent.</p>
+</section>
+<section id="what-do-tottime-and-cumtime-mean" class="level3">
+<h3 class="anchored" data-anchor-id="what-do-tottime-and-cumtime-mean">3. What do <code>tottime</code> and <code>cumtime</code> mean?</h3>
+<p><strong>Answer.</strong> <code>tottime</code> is time spent inside a function excluding calls it makes; <code>cumtime</code> includes those calls. High <code>tottime</code> means the function itself is doing expensive work. High <code>cumtime</code> with low <code>tottime</code> means it is a caller of expensive work. Sort by <code>tottime</code> to find work and by <code>cumtime</code> to find the path.</p>
+<p><strong>Follow-up: “Which do you optimise?”</strong> The function with high <code>tottime</code>, or the deep function at the end of a high-<code>cumtime</code> chain. Optimising the wrappers themselves rarely helps.</p>
+<p><strong>Trap.</strong> Chasing the top <code>cumtime</code> entry, which is usually <code>main</code> or a framework entry point.</p>
+</section>
+<section id="how-do-cprofile-and-py-spy-differ" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-cprofile-and-py-spy-differ">4. How do <code>cProfile</code> and <code>py-spy</code> differ?</h3>
+<p><strong>Answer.</strong> <code>cProfile</code> is a deterministic profiler: it records every call, so it is exact but slows the program and cannot attach to an already-running process. <code>py-spy</code> is a sampling profiler: it periodically snapshots stacks from outside the process, so it has low overhead and can profile production, at the cost of statistical rather than exact counts.</p>
+<p><strong>Follow-up: “When would you use each?”</strong> <code>cProfile</code> while developing a function you can rerun. <code>py-spy</code> for a live service, a hung process, or when profiling overhead would change behaviour.</p>
+<p><strong>Trap.</strong> Quoting exact call counts from a sampling profiler. It samples; counts are estimates.</p>
+</section>
+<section id="how-do-you-find-a-memory-leak-in-python" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-find-a-memory-leak-in-python">5. How do you find a memory leak in Python?</h3>
+<p><strong>Answer.</strong> Take a <code>tracemalloc</code> snapshot, run the suspect workload, take another, and compare with <code>compare_to(first, "lineno")</code>. The top lines are your allocations. Common causes are module-level caches that never evict, lists that only grow, and references held by tracebacks or closures.</p>
+<p><strong>Follow-up: “How is that different from <code>sys.getsizeof</code>?”</strong> <code>getsizeof</code> measures one object shallowly and says nothing about growth. <code>tracemalloc</code> attributes allocations to source lines over time, which is what a leak is.</p>
+<p><strong>Trap.</strong> Assuming garbage collection will fix it. A live reference is not garbage, and CPython’s collector only handles reference cycles.</p>
+</section>
+<section id="algorithmic-versus-micro-optimization-and-what-is-premature-optimization" class="level3">
+<h3 class="anchored" data-anchor-id="algorithmic-versus-micro-optimization-and-what-is-premature-optimization">6. Algorithmic versus micro-optimization, and what is premature optimization?</h3>
+<p><strong>Answer.</strong> Algorithmic changes matter far more because they change how cost grows with input size. Turning an O(n²) list membership check into an O(1) set lookup was about 500x in a real benchmark, while local-variable aliasing was within noise. Micro-optimizations are a finishing step. Premature optimization is spending effort and sacrificing clarity before measuring, and it is wrong when the code is not the bottleneck. Measure, change the biggest cost, measure again.</p>
+<p><strong>Follow-up: “Give an example of each.”</strong> Algorithmic: build a <code>set</code> once instead of calling <code>list.index()</code> in a loop, or batch database calls instead of one per row. Micro: alias an attribute to a local, or avoid one function call.</p>
+<p><strong>Trap.</strong> Two extremes: refusing all optimization, and rewriting on a hunch. Both ignore the same evidence.</p>
+</section>
+<section id="when-is-caching-the-wrong-tool" class="level3">
+<h3 class="anchored" data-anchor-id="when-is-caching-the-wrong-tool">7. When is caching the wrong tool?</h3>
+<p><strong>Answer.</strong> When the function is not pure, when arguments are unhashable, when the cache is unbounded and grows forever, or when the hit rate is low. A cache that misses almost every time adds memory and lookup cost for nothing. It also introduces staleness: callers can get an old answer for a new input.</p>
+<p><strong>Follow-up: “How do you know the hit rate?”</strong> <code>functools</code> exposes <code>cache_info()</code> with <code>hits</code>, <code>misses</code>, and <code>currsize</code>. Track it in production; a low-hit cache is dead weight.</p>
+<p><strong>Trap.</strong> Caching a function that reads the current time, a database, or mutable global state, then being surprised by stale results.</p>
+</section>
+<section id="how-do-you-benchmark-fairly" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-benchmark-fairly">8. How do you benchmark fairly?</h3>
+<p><strong>Answer.</strong> Use a representative workload, warm up, run multiple times, report the best or median rather than a single sample, keep the machine and conditions stable, and compare against a baseline recorded the same way. Isolate the change: one variable at a time. Be honest about what the benchmark does <strong>not</strong> cover.</p>
+<p><strong>Follow-up: “Why is the minimum a fair statistic?”</strong> It is the run least disturbed by noise, so it best estimates the code’s own cost. Report median or percentiles too when you care about tail latency.</p>
+<p><strong>Trap.</strong> Benchmarking with trivial inputs, then applying the conclusion to production-sized data, where the complexity term dominates.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li><strong>Measure, locate, fix, re-measure.</strong> No baseline and target means no real optimization.</li>
+<li><code>timeit</code> for <strong>micro</strong> choices; <code>cProfile</code> + <code>pstats</code> for <strong>hotspots</strong>; <code>line_profiler</code> for <strong>lines</strong>; <code>py-spy</code> for <strong>live processes</strong>; <code>tracemalloc</code> for <strong>memory</strong>.</li>
+<li>Read <strong><code>tottime</code></strong> to find work and <strong><code>cumtime</code></strong> to find the path; do not optimize wrappers.</li>
+<li><strong>Algorithm first</strong>: a better data structure can be hundreds of times faster; micro-tuning is a few percent.</li>
+<li><strong>Cache only pure, repeated, hashable work</strong>; an unbounded cache is a memory leak waiting to happen.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-01-production-python/17-mocking.html" class="pagination-link" aria-label="Mocking">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Mocking</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-01-production-python/19-fastapi.html" class="pagination-link" aria-label="FastAPI">
+        <span class="nav-page-text"><span class="chapter-title">FastAPI</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

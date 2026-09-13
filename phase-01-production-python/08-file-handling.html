@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>File Handling – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-01-production-python/09-async-and-asyncio.html" rel="next">
+<link href="../phase-01-production-python/07-exception-handling.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/08-file-handling.html"><span class="chapter-title">File Handling</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/08-file-handling.html"><span class="chapter-title">File Handling</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">File Handling</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> File handling is moving bytes between the disk and your program. Use <code>pathlib</code> for paths, always pass an explicit <code>encoding="utf-8"</code>, read large files line by line instead of with <code>readlines()</code>, wrap every handle in <code>with</code> so it always closes, and write important files atomically with a temporary file plus <code>os.replace</code>.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>Files are where data survives a restart: config, logs, model outputs, datasets, and checkpoint files. They are also where a lot of quiet bugs live.</p>
+<p>Start with the version everyone writes first:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>f <span class="op">=</span> <span class="bu">open</span>(<span class="st">"config.json"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> f.read()</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>process(data)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>f.close()          <span class="co"># skipped if process() raises</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>If <code>process()</code> raises, <code>f.close()</code> never runs. The file handle leaks. In a long-running service the process slowly runs out of file descriptors and then fails everywhere, far from the original mistake.</p>
+<p>The next version reads a whole file into memory:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"huge.log"</span>) <span class="im">as</span> f:</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    lines <span class="op">=</span> f.readlines()      <span class="co"># one string per line, all in RAM</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>For a 20 GB log file this needs memory on the order of the file size or more — roughly 30 GB for a 20 GB file — even if you only want the first error line: <code>readlines()</code> builds a list of <code>str</code> objects, each with its own overhead. The file object can already stream lines; <code>readlines()</code> throws that away.</p>
+<p>And the third version forgets encoding:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"report.txt"</span>) <span class="im">as</span> f:   <span class="co"># uses the machine's default encoding</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    text <span class="op">=</span> f.read()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>On one machine the default is UTF-8; on another it is <code>cp1252</code>. The same file reads on one developer’s laptop and raises <code>UnicodeDecodeError</code> on a server. The bytes never changed; the <strong>interpretation</strong> did.</p>
+<p>File handling exists as a topic because these three mistakes — leaks, memory blow-ups, and encoding surprises — are cheap to prevent and expensive to debug.</p>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>File</strong></td>
+<td>A named block of bytes stored on disk.</td>
+</tr>
+<tr class="even">
+<td><strong>Path</strong></td>
+<td>The string that locates a file, like <code>/data/users.csv</code>.</td>
+</tr>
+<tr class="odd">
+<td><strong>File descriptor</strong></td>
+<td>A small integer the operating system gives your process for an open file. Closing the file returns it.</td>
+</tr>
+<tr class="even">
+<td><strong>File object / handle</strong></td>
+<td>Python’s object for an open file. It reads and writes, and holds the descriptor.</td>
+</tr>
+<tr class="odd">
+<td><strong><code>open()</code></strong></td>
+<td>The built-in that asks the OS to open a path and returns a file object.</td>
+</tr>
+<tr class="even">
+<td><strong>Mode</strong></td>
+<td>The string like <code>"r"</code>, <code>"w"</code>, <code>"a"</code>, <code>"rb"</code> that says how the file is opened.</td>
+</tr>
+<tr class="odd">
+<td><strong>Text mode</strong></td>
+<td>Mode without <code>b</code>. Reads and writes <code>str</code>, using an encoding.</td>
+</tr>
+<tr class="even">
+<td><strong>Binary mode</strong></td>
+<td>Mode with <code>b</code>. Reads and writes <code>bytes</code>, with no encoding step.</td>
+</tr>
+<tr class="odd">
+<td><strong>Encoding</strong></td>
+<td>The rule that maps bytes to characters. UTF-8 is the standard choice.</td>
+</tr>
+<tr class="even">
+<td><strong>UTF-8</strong></td>
+<td>A variable-width encoding for all human languages. ASCII is a subset.</td>
+</tr>
+<tr class="odd">
+<td><strong>Buffer</strong></td>
+<td>A small memory area that batches disk reads and writes for speed.</td>
+</tr>
+<tr class="even">
+<td><strong>Flush</strong></td>
+<td>Push buffered data to the OS.</td>
+</tr>
+<tr class="odd">
+<td><strong>Context manager</strong></td>
+<td>An object usable in <code>with</code>; guarantees cleanup when the block ends.</td>
+</tr>
+<tr class="even">
+<td><strong>Atomic</strong></td>
+<td>An operation that either fully happens or does not happen; never half-done.</td>
+</tr>
+<tr class="odd">
+<td><strong><code>pathlib</code></strong></td>
+<td>The modern object-oriented path library. <code>Path("/a") / "b.txt"</code>.</td>
+</tr>
+<tr class="even">
+<td><strong><code>os.path</code></strong></td>
+<td>The older string-based path functions. Still common in legacy code.</td>
+</tr>
+<tr class="odd">
+<td><strong>BOM</strong></td>
+<td>A hidden <code>\ufeff</code> marker some tools put at the start of a UTF-8 file.</td>
+</tr>
+<tr class="even">
+<td><strong>CSV</strong></td>
+<td>Comma-separated values: a text table, one record per line.</td>
+</tr>
+<tr class="odd">
+<td><strong>JSON</strong></td>
+<td>A text format for nested data: objects, arrays, strings, numbers.</td>
+</tr>
+<tr class="even">
+<td><strong>NDJSON</strong></td>
+<td>“Newline-delimited JSON”: one whole JSON value per line. Used for logs and streams.</td>
+</tr>
+</tbody>
+</table>
+<p>Two ideas carry the rest of this page.</p>
+<p><strong>A path is not a file.</strong> A <code>Path</code> is just a location. It can point at a file that does not exist yet. Creating a <code>Path</code> never touches the disk.</p>
+<p><strong>Text is bytes plus an encoding.</strong> The disk only stores bytes. When you read “text”, Python decodes bytes into <code>str</code>; when you write, Python encodes <code>str</code> into bytes. Get the encoding wrong and the bytes are still fine — your interpretation is not.</p>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Think of a <strong>library</strong>. The shelf label is the path. Pulling a book off the shelf is opening a file. Editing it is reading and writing. Putting it back is closing. If you walk away without reshelving, the library eventually runs out of free slots — that is a file descriptor leak.</p>
+<p>Encoding is the <strong>translation dictionary</strong>. The book is stored as printed symbols (bytes). To “read” it you apply a dictionary that maps symbols to meanings (characters). Two people using different dictionaries will disagree about the same symbols, even though the book never changed.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A["Disk: raw bytes&lt;br/&gt;62 69 74 65 73"] --&gt;|"decode with UTF-8"| B["Memory: str&lt;br/&gt;'bytes'"]
+    B --&gt;|"encode with UTF-8"| A
+    C["text mode&lt;br/&gt;open('f')"] --&gt;|"adds decoder"| A
+    D["binary mode&lt;br/&gt;open('f','rb')"] --&gt;|"no decoder"| A
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>Here is the whole topic in one table:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>Text mode (<code>"r"</code>, <code>"w"</code>)</th>
+<th>Binary mode (<code>"rb"</code>, <code>"wb"</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>What types do you read/write?</td>
+<td><code>str</code></td>
+<td><code>bytes</code></td>
+</tr>
+<tr class="even">
+<td>Is an encoding used?</td>
+<td>Yes, and you should set it</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td>Newline translation?</td>
+<td>Yes (<code>\r\n</code> becomes <code>\n</code>)</td>
+<td>No, bytes are untouched</td>
+</tr>
+<tr class="even">
+<td>Use it for</td>
+<td>text, CSV, JSON, logs</td>
+<td>images, PDFs, zip, any non-text bytes</td>
+</tr>
+</tbody>
+</table>
+<p>If you can open it in a text editor, use text mode and pass <code>encoding="utf-8"</code>. If not, use binary mode.</p>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong><code>open(path, mode, encoding=...)</code> asks the operating system for a file descriptor.</strong> The OS checks permissions and existence, then returns the handle.</li>
+<li><strong>In text mode, Python wraps the raw byte stream.</strong> It adds a <strong>decoder</strong> (bytes → <code>str</code>) on reads and an <strong>encoder</strong> (<code>str</code> → bytes) on writes, using the encoding you named.</li>
+<li><strong>Reads are buffered.</strong> Python fetches a chunk from the OS and hands you lines or characters from that chunk. This is why reading line by line is fast and memory-flat: the buffer is small and fixed.</li>
+<li><strong>Writes are buffered too.</strong> <code>write()</code> often just fills an in-memory buffer. Data reaches the OS when the buffer fills, on <code>flush()</code>, or on close.</li>
+<li><strong><code>close()</code> flushes and returns the descriptor.</strong> An unclosed file keeps its descriptor until garbage collection, which may be much later.</li>
+<li><strong>The <code>with</code> statement guarantees <code>close()</code></strong> on every exit path, including exceptions. This is the single most important habit in the topic.</li>
+<li><strong><code>open(mode="w")</code> truncates the file to zero bytes immediately.</strong> If the program then crashes mid-write, the old content is already gone. That is why atomic writes exist.</li>
+<li><strong><code>os.replace(tmp, target)</code> renames one path onto another in one OS call.</strong> On the same filesystem, other processes see either the old file or the complete new file, never a half-written one.</li>
+<li><strong><code>json</code> and <code>csv</code> are layers on top of text.</strong> They do not open files themselves; you pass an open file object to them.</li>
+</ol>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The mental shortcut.</strong> Open with <code>with</code>, name the encoding, and stream line by line. Almost every file bug disappears if you do those three things.</p>
+</div>
+</div>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>The <code>open()</code> modes.</strong> Memorise this table; interviewers ask it.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Mode</th>
+<th>Reads</th>
+<th>Writes</th>
+<th>Creates</th>
+<th>Truncates</th>
+<th>Position</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>"r"</code></td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>no</td>
+<td>start; error if missing</td>
+</tr>
+<tr class="even">
+<td><code>"w"</code></td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>start</td>
+</tr>
+<tr class="odd">
+<td><code>"a"</code></td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+<td>always at end</td>
+</tr>
+<tr class="even">
+<td><code>"x"</code></td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+<td>start; error if exists</td>
+</tr>
+<tr class="odd">
+<td><code>"r+"</code></td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>start</td>
+</tr>
+<tr class="even">
+<td><code>"b"</code></td>
+<td>binary</td>
+<td>binary</td>
+<td>—</td>
+<td>—</td>
+<td>combine as <code>"rb"</code>, <code>"wb"</code></td>
+</tr>
+</tbody>
+</table>
+<p>Important details: <code>"a"</code> writes at the end even after <code>seek(0)</code>. <code>"w"</code> erases the file the moment it opens. Add <code>"b"</code> for binary, so <code>"rb"</code> and <code>"wb"</code>.</p>
+<p><strong>The default pattern: <code>with open(...)</code>.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"notes.txt"</span>, <span class="st">"w"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    f.write(<span class="st">"héllo</span><span class="ch">\n</span><span class="st">"</span>)      <span class="co"># returns the number of characters written</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The handle closes even if <code>write</code> raises. There is no <code>close()</code> to forget.</p>
+<p><strong>Path objects with <code>pathlib</code>.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> Path(<span class="st">"data"</span>) <span class="op">/</span> <span class="st">"users.csv"</span>     <span class="co"># join with /</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(p.parent, p.name, p.suffix)  <span class="co"># data users.csv .csv</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>p.parent.mkdir(parents<span class="op">=</span><span class="va">True</span>, exist_ok<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>/</code> builds paths portably. <code>mkdir(parents=True, exist_ok=True)</code> creates missing folders and does not fail if they exist.</p>
+<p><strong>Convenience readers and writers.</strong> For small text files these open, read or write, and close in one call.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> Path(<span class="st">"notes.txt"</span>).read_text(encoding<span class="op">=</span><span class="st">"utf-8"</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>Path(<span class="st">"notes.txt"</span>).write_text(<span class="st">"new content</span><span class="ch">\n</span><span class="st">"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Iterate the file object for line-by-line streaming.</strong> The file itself is a lazy iterator; you never build a list.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"huge.log"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> line <span class="kw">in</span> f:</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="st">"ERROR"</span> <span class="kw">in</span> line:</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(line.rstrip(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>))   <span class="co"># strip the trailing newline</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Binary mode for anything that is not text.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"logo.png"</span>, <span class="st">"rb"</span>) <span class="im">as</span> f:</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    header <span class="op">=</span> f.read(<span class="dv">8</span>)      <span class="co"># bytes, not str</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>JSON: read and write whole documents.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"config.json"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> json.load(f)               <span class="co"># file -&gt; dict/list</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"config.json"</span>, <span class="st">"w"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    json.dump(config, f, ensure_ascii<span class="op">=</span><span class="va">False</span>, indent<span class="op">=</span><span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>ensure_ascii=False</code> keeps <code>café</code> readable instead of escaping it to <code>caf\u00e9</code>.</p>
+<p><strong>NDJSON: one JSON value per line, for logs and streams.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"events.ndjson"</span>, <span class="st">"a"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    f.write(json.dumps({<span class="st">"event"</span>: <span class="st">"search"</span>, <span class="st">"q"</span>: <span class="st">"python"</span>}) <span class="op">+</span> <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"events.ndjson"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    events <span class="op">=</span> [json.loads(line) <span class="cf">for</span> line <span class="kw">in</span> f <span class="cf">if</span> line.strip()]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Append one record at a time. If the process dies, earlier lines are still valid.</p>
+<p><strong>CSV with <code>newline=""</code>.</strong> The <code>csv</code> module handles quoting; you handle the newline rule.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> csv</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"people.csv"</span>, <span class="st">"w"</span>, newline<span class="op">=</span><span class="st">""</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    writer <span class="op">=</span> csv.DictWriter(f, fieldnames<span class="op">=</span>[<span class="st">"name"</span>, <span class="st">"age"</span>])</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    writer.writeheader()</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    writer.writerow({<span class="st">"name"</span>: <span class="st">"Ada"</span>, <span class="st">"age"</span>: <span class="dv">36</span>})</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"people.csv"</span>, newline<span class="op">=</span><span class="st">""</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    rows <span class="op">=</span> <span class="bu">list</span>(csv.DictReader(f))      <span class="co"># [{'name': 'Ada', 'age': '36'}]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>newline=""</code> stops Python from translating the <code>\r\n</code> line endings that the CSV format requires.</p>
+<p><strong>Atomic write: write to a temp file, then rename.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> atomic_write_json(path: Path, data: <span class="bu">dict</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Write JSON so readers never see a half-written file."""</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    path <span class="op">=</span> Path(path)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    fd, tmp <span class="op">=</span> tempfile.mkstemp(<span class="bu">dir</span><span class="op">=</span>path.parent, prefix<span class="op">=</span><span class="ss">f".</span><span class="sc">{</span>path<span class="sc">.</span>name<span class="sc">}</span><span class="ss">."</span>, suffix<span class="op">=</span><span class="st">".tmp"</span>)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">with</span> os.fdopen(fd, <span class="st">"w"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>            json.dump(data, f, ensure_ascii<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>            f.flush()</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>            os.fsync(f.fileno())        <span class="co"># force bytes to the disk</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        os.replace(tmp, path)           <span class="co"># atomic on the same filesystem</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">BaseException</span>:</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span>:</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>            os.unlink(tmp)              <span class="co"># clean up on any failure</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">except</span> <span class="pp">FileNotFoundError</span>:</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>            <span class="cf">pass</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The temporary file lives in the <strong>same directory</strong> as the target, because <code>os.replace</code> only works within one filesystem.</p>
+<p><code>fsync</code> on the temp file makes the new <strong>contents</strong> durable, and <code>os.replace</code> makes the swap atomic for readers, but the rename itself is not durable across a power loss until the <strong>containing directory</strong> is fsynced too; without that, a crash immediately after the replace can leave the old file in place. For a fully crash-safe atomic write on POSIX, fsync the directory after the replace:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>dir_fd <span class="op">=</span> os.<span class="bu">open</span>(path.parent, os.O_RDONLY)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    os.fsync(dir_fd)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="cf">finally</span>:</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    os.close(dir_fd)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Not every platform supports fsyncing a directory, so treat this as the durability step rather than a portability guarantee.</p>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — the leak, then the fix.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>f <span class="op">=</span> <span class="bu">open</span>(<span class="st">"data.txt"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    data <span class="op">=</span> f.read()</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="cf">finally</span>:</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    f.close()               <span class="co"># correct but easy to forget</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"data.txt"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    data <span class="op">=</span> f.read()         <span class="co"># closes on success AND on error</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured on this machine, opening twenty files without closing them left twenty extra file descriptors open. Descriptors are a finite resource shared by the whole process.</p>
+<p><strong>Example 2 — streaming a big file.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> error_lines(path):</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> <span class="bu">open</span>(path, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> line <span class="kw">in</span> f:                  <span class="co"># one line in memory at a time</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="st">"ERROR"</span> <span class="kw">in</span> line:</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                <span class="cf">yield</span> line.rstrip(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured with <code>tracemalloc</code> on a 20 MB file: <code>readlines()</code> peaked at about 30 MB, while iterating the file peaked at about 0.1 MB. Same lines, very different memory. Use <code>readlines()</code> only when the file is small and you truly need random access.</p>
+<p><strong>Example 3 — a JSON settings file, read and written atomically.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>path <span class="op">=</span> Path(<span class="st">"settings.json"</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> path.exists():</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> json.loads(path.read_text(encoding<span class="op">=</span><span class="st">"utf-8"</span>))</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> {<span class="st">"model"</span>: <span class="st">"gpt"</span>, <span class="st">"temperature"</span>: <span class="fl">0.0</span>}</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>config[<span class="st">"temperature"</span>] <span class="op">=</span> <span class="fl">0.2</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>atomic_write_json(path, config)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>If the process is killed during the write, <code>settings.json</code> still holds the previous valid JSON. A plain <code>open(..., "w")</code> would have truncated it first and left an empty or partial file.</p>
+<p><strong>Example 4 — CSV rows, and the string trap.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> csv</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"people.csv"</span>, newline<span class="op">=</span><span class="st">""</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> row <span class="kw">in</span> csv.DictReader(f):</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>        age <span class="op">=</span> <span class="bu">int</span>(row[<span class="st">"age"</span>])           <span class="co"># CSV gives strings, not numbers</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(row[<span class="st">"name"</span>], age <span class="op">+</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>DictReader</code> returns a dictionary of <code>str</code> values. <code>"36"</code> is text. Convert explicitly, or the arithmetic will be wrong or raise.</p>
+<p><strong>Example 5 — reading a file written in another encoding.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>raw <span class="op">=</span> Path(<span class="st">"legacy.txt"</span>).read_bytes()   <span class="co"># b'caf\xe9'</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    raw.decode(<span class="st">"utf-8"</span>)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">UnicodeDecodeError</span> <span class="im">as</span> err:</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"not UTF-8:"</span>, err.reason)     <span class="co"># unexpected end of data</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> raw.decode(<span class="st">"cp1252"</span>)             <span class="co"># b'caf\xe9' -&gt; 'café'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Read bytes first when a legacy file fails. <code>errors="replace"</code> produces <code>caf�</code> and <code>errors="ignore"</code> silently drops the character; both hide the problem. Fixing the encoding is better than papering over it.</p>
+<p><strong>Example 6 — listing and filtering paths.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> path <span class="kw">in</span> <span class="bu">sorted</span>(Path(<span class="st">"logs"</span>).glob(<span class="st">"*.log"</span>)):</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> path.stat().st_size <span class="op">&gt;</span> <span class="dv">10_000_000</span>:</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">"large:"</span>, path.name)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>glob</code> returns real <code>Path</code> objects, so you can check size, age, and suffix directly. <code>path.stat().st_size</code> is bytes.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Always pass <code>encoding="utf-8"</code> explicitly.</strong> The default is the machine’s locale, which differs between a laptop, a container, and CI. Explicit encoding is the difference between “works here” and “works everywhere”.</li>
+<li><strong>Never call <code>readlines()</code> on a file whose size you do not control.</strong> Stream with <code>for line in f</code> and keep peak memory flat. If you need random access, load it, but do it deliberately.</li>
+<li><strong>Write important files atomically.</strong> Config, state, checkpoints, and indexes should go through a temp file plus <code>os.replace</code>. A crash mid-write otherwise leaves a truncated file that fails to parse on restart.</li>
+<li><strong><code>flush()</code> is not durability.</strong> <code>flush()</code> moves data to the OS; only <code>os.fsync()</code> pushes it to the disk. Without <code>fsync</code>, a power loss can lose a file you thought was saved.</li>
+<li><strong>Create the temp file in the target directory.</strong> <code>os.replace</code> is atomic only within one filesystem. A temp file in <code>/tmp</code> may be on a different mount and the rename will fail.</li>
+<li><strong>Set permissions on secrets.</strong> <code>os.chmod(path, 0o600)</code> restricts a file to the owner. Files created by default follow the process <code>umask</code>, often <code>0o644</code>, which is world-readable. Never leave API keys at <code>0o644</code>.</li>
+<li><strong>Handle <code>FileNotFoundError</code> and <code>PermissionError</code> separately.</strong> A missing file is often normal (first run); a permission error is almost always a deployment or ownership bug. Catch them distinctly so the logs say which happened.</li>
+<li><strong>Do not use JSON for append-heavy logs.</strong> A JSON document is one value; appending breaks it. Use NDJSON (one JSON per line) or a real log system. JSON is for whole-document config and payloads.</li>
+<li><strong>Assume concurrent writers will corrupt each other.</strong> Two processes doing read-modify-write on the same JSON will lose updates. Use atomic replace plus a lock, or move shared state to a database or Redis.</li>
+<li><strong>Close handles promptly; do not cache them.</strong> Holding hundreds of open files exhausts descriptors. Open, read or write, close. If you must cache, bound the cache and evict.</li>
+<li><strong>Treat paths from users as hostile.</strong> <code>Path("../../etc/passwd")</code> escapes your data directory. Resolve the path and verify it stays under an allowed root before opening it.</li>
+<li><strong><code>Path.exists()</code> returns <code>False</code> on permission errors, not <code>True</code>.</strong> It cannot distinguish “missing” from “cannot see”. Use <code>stat()</code> and catch <code>PermissionError</code> when the difference matters.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="why-prefer-pathlib-over-os.path" class="level3">
+<h3 class="anchored" data-anchor-id="why-prefer-pathlib-over-os.path">1. Why prefer <code>pathlib</code> over <code>os.path</code>?</h3>
+<p><strong>Answer.</strong> <code>pathlib</code> makes paths objects instead of strings. You join with <code>/</code>, read attributes like <code>.name</code>, <code>.suffix</code>, and <code>.parent</code>, and call methods like <code>.exists()</code>, <code>.mkdir()</code>, and <code>.read_text()</code> directly. <code>os.path</code> is a set of string functions (<code>join</code>, <code>dirname</code>, <code>splitext</code>) that you have to chain. Both work; <code>pathlib</code> is clearer and harder to misuse.</p>
+<p><strong>Follow-up: “Can you pass a <code>Path</code> to <code>open()</code>?”</strong> Yes. <code>open()</code> accepts path-like objects, so <code>open(Path("a.txt"))</code> works. Most libraries accept <code>Path</code> too.</p>
+<p><strong>Trap.</strong> Manually joining with <code>"/"</code> or <code>"\\"</code> to stay portable. <code>Path("a") / "b"</code> picks the right separator; a literal backslash does not.</p>
+</section>
+<section id="explain-the-difference-between-text-mode-and-binary-mode." class="level3">
+<h3 class="anchored" data-anchor-id="explain-the-difference-between-text-mode-and-binary-mode.">2. Explain the difference between text mode and binary mode.</h3>
+<p><strong>Answer.</strong> Text mode reads and writes <code>str</code> and uses an encoding plus newline translation. Binary mode reads and writes raw <code>bytes</code> with no encoding and no translation. Use text mode for human-readable files, binary mode for images, archives, PDFs, and any data whose bytes matter.</p>
+<p><strong>Follow-up: “What happens to <code>\r\n</code> in text mode on Windows?”</strong> It is translated to <code>\n</code> on read and back on write, so Python code sees <code>\n</code>. Binary mode leaves <code>\r\n</code> untouched.</p>
+<p><strong>Trap.</strong> Opening a PNG with text mode and an encoding. It will raise <code>UnicodeDecodeError</code> immediately; the bytes are not text.</p>
+</section>
+<section id="why-should-you-always-pass-encodingutf-8" class="level3">
+<h3 class="anchored" data-anchor-id="why-should-you-always-pass-encodingutf-8">3. Why should you always pass <code>encoding="utf-8"</code>?</h3>
+<p><strong>Answer.</strong> Without it, Python uses the platform’s default encoding, which is UTF-8 on modern Linux and macOS but <code>cp1252</code> on many Windows systems. The same file then works on one machine and raises <code>UnicodeDecodeError</code> on another. Naming UTF-8 makes file I/O deterministic across every environment.</p>
+<p><strong>Follow-up: “What about <code>utf-8-sig</code>?”</strong> It reads UTF-8 and strips a leading byte-order mark if present. Use it when a tool writes a BOM; plain <code>"utf-8"</code> would leave <code>\ufeff</code> as the first character.</p>
+<p><strong>Trap.</strong> Assuming “UTF-8 is the default so it is fine”. The default is locale-dependent, and containers and CI may differ from your laptop.</p>
+</section>
+<section id="how-do-you-read-a-very-large-file-without-running-out-of-memory" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-read-a-very-large-file-without-running-out-of-memory">4. How do you read a very large file without running out of memory?</h3>
+<p><strong>Answer.</strong> Iterate the file object directly: <code>for line in f:</code>. The file is a lazy iterator backed by a small buffer, so memory stays flat regardless of file size. <code>readlines()</code> builds a list of every line and needs memory proportional to the whole file; <code>f.read()</code> needs the whole file at once.</p>
+<p><strong>Follow-up: “What if the file has no newlines?”</strong> Then iterate fixed-size chunks with <code>f.read(n)</code> in a loop, or use binary mode and process <code>read(n)</code> blocks. A single gigantic line still needs to fit in memory.</p>
+<p><strong>Trap.</strong> Thinking <code>readlines()</code> is fine because the file “is only a few hundred MB”. On a small container it is not fine, and it fails only under production load.</p>
+</section>
+<section id="how-do-you-write-a-file-atomically-and-why-does-it-matter" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-write-a-file-atomically-and-why-does-it-matter">5. How do you write a file atomically, and why does it matter?</h3>
+<p><strong>Answer.</strong> Write to a temporary file in the same directory, flush and <code>fsync</code> it, then <code>os.replace(tmp, target)</code>. <code>os.replace</code> is a single rename, so readers see either the old complete file or the new complete file, never a partial write. It matters for config, state, and checkpoints, where a crash during a normal <code>"w"</code> write would leave an empty or truncated file.</p>
+<p><strong>Follow-up: “Why must the temp file be in the same directory?”</strong> <code>os.replace</code> is atomic only within one filesystem. A temp file on a different mount forces a copy and is not atomic.</p>
+<p><strong>Trap.</strong> Calling <code>os.replace</code> without <code>flush</code>/<code>close</code> on the temp file first. The rename can happen before the buffered data is written, so the target ends up empty.</p>
+</section>
+<section id="when-do-you-use-json-csv-or-ndjson" class="level3">
+<h3 class="anchored" data-anchor-id="when-do-you-use-json-csv-or-ndjson">6. When do you use JSON, CSV, or NDJSON?</h3>
+<p><strong>Answer.</strong> JSON for a whole nested document such as config or an API payload. CSV for a flat table that other tools can open in a spreadsheet. NDJSON for an append-only stream of records, such as logs or events, because each line is an independent valid JSON value. JSON cannot be appended to without corrupting it.</p>
+<p><strong>Follow-up: “What does <code>csv.DictReader</code> return?”</strong> An iterator of dictionaries whose values are all strings. You convert numbers and dates yourself.</p>
+<p><strong>Trap.</strong> Using <code>json.dump</code> repeatedly on one open file. That produces concatenated JSON documents that no standard parser reads back correctly.</p>
+</section>
+<section id="how-do-you-handle-filenotfounderror-and-permissionerror" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-handle-filenotfounderror-and-permissionerror">7. How do you handle <code>FileNotFoundError</code> and <code>PermissionError</code>?</h3>
+<p><strong>Answer.</strong> Catch them separately because they mean different things. <code>FileNotFoundError</code> is often a normal first-run condition: create the file with defaults. <code>PermissionError</code> signals a real environment problem: wrong owner, read-only mount, or missing directory permission. Log the path and the errno so the cause is obvious.</p>
+<p><strong>Follow-up: “Is checking <code>Path.exists()</code> before opening correct?”</strong> It is a race: the file can be deleted between the check and the open. Prefer the EAFP style — try to open and catch <code>FileNotFoundError</code>.</p>
+<p><strong>Trap.</strong> Catching <code>OSError</code> and treating every failure as “file missing”. That hides permission bugs and disk errors.</p>
+</section>
+<section id="why-is-with-open...-better-than-a-bare-open" class="level3">
+<h3 class="anchored" data-anchor-id="why-is-with-open...-better-than-a-bare-open">8. Why is <code>with open(...)</code> better than a bare <code>open()</code>?</h3>
+<p><strong>Answer.</strong> It guarantees <code>close()</code> on every exit path, including exceptions, <code>return</code>, and <code>break</code>. A bare <code>open()</code> leaks a file descriptor if the block raises before <code>close()</code>, and leaks again if you forget the close entirely. The <code>with</code> form makes correct cleanup the default rather than something you remember.</p>
+<p><strong>Follow-up: “Can you open two files in one <code>with</code>?”</strong> Yes: <code>with open(src) as a, open(dst) as b:</code>. They are entered left to right and closed right to left.</p>
+<p><strong>Trap.</strong> Closing a file inside a <code>with</code> block and then using it. The handle is closed; the next read raises <code>ValueError: I/O operation on closed file</code>.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li>Use <strong><code>pathlib</code></strong> for paths, and <strong><code>with open(...)</code></strong> for handles.</li>
+<li>Always pass <strong><code>encoding="utf-8"</code></strong>; the default is platform-dependent.</li>
+<li><strong>Stream line by line</strong> with <code>for line in f</code>; never <code>readlines()</code> a file you do not control.</li>
+<li>Write important files <strong>atomically</strong>: temp file in the same directory → <code>fsync</code> → <code>os.replace</code>.</li>
+<li><strong>Text is bytes plus an encoding</strong>; read raw bytes when a legacy file fails to decode.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-01-production-python/07-exception-handling.html" class="pagination-link" aria-label="Exception Handling">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Exception Handling</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-01-production-python/09-async-and-asyncio.html" class="pagination-link" aria-label="Async and asyncio">
+        <span class="nav-page-text"><span class="chapter-title">Async and asyncio</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Threads and Processes – Agentic AI Engineering Study Book</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../phase-01-production-python/11-concurrency-patterns.html" rel="next">
+<link href="../phase-01-production-python/09-async-and-asyncio.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-89355393b13d2c35defd37e977706fc2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-54623c61267def5306c3b17f0a722ca1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../styles/custom.css">
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/10-threads-and-processes.html"><span class="chapter-title">Threads and Processes</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Agentic AI Engineering Study Book</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Study architecture</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../phase-01-production-python/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Phase 1 — Production Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/01-type-hints.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Type Hints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/02-dataclasses.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dataclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/03-pydantic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Pydantic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/04-decorators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Decorators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/05-iterators-and-generators.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Iterators and Generators</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/06-context-managers.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Context Managers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/07-exception-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Exception Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/08-file-handling.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">File Handling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/09-async-and-asyncio.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Async and asyncio</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/10-threads-and-processes.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Threads and Processes</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/11-concurrency-patterns.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Concurrency Patterns</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/12-packaging-and-virtual-environments.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Packaging and Virtual Environments</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/13-dependency-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dependency Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/14-logging.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/15-configuration-management.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Configuration Management</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/16-pytest.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">pytest</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/17-mocking.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mocking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/18-profiling-and-performance.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Profiling and Performance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/19-fastapi.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">FastAPI</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/20-sqlalchemy.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">SQLAlchemy</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/21-alembic.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alembic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/22-postgresql.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">PostgreSQL</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/23-redis.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Redis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/24-authentication-and-authorization.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Authentication and Authorization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/25-background-jobs.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Background Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/26-rate-limiting.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rate Limiting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/27-api-testing.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">API Testing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/28-dockerizing-python-applications.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dockerizing Python Applications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../phase-01-production-python/29-cicd-for-python-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">CI/CD for Python Services</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-this-exists" id="toc-why-this-exists" class="nav-link active" data-scroll-target="#why-this-exists">Why this exists</a></li>
+  <li><a href="#start-from-zero" id="toc-start-from-zero" class="nav-link" data-scroll-target="#start-from-zero">Start from zero</a></li>
+  <li><a href="#the-core-idea" id="toc-the-core-idea" class="nav-link" data-scroll-target="#the-core-idea">The core idea</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it works</a></li>
+  <li><a href="#the-syntax-you-will-use" id="toc-the-syntax-you-will-use" class="nav-link" data-scroll-target="#the-syntax-you-will-use">The syntax you will use</a></li>
+  <li><a href="#examples-simple-to-real" id="toc-examples-simple-to-real" class="nav-link" data-scroll-target="#examples-simple-to-real">Examples: simple to real</a></li>
+  <li><a href="#in-production" id="toc-in-production" class="nav-link" data-scroll-target="#in-production">In production</a></li>
+  <li><a href="#interview-questions" id="toc-interview-questions" class="nav-link" data-scroll-target="#interview-questions">Interview questions</a></li>
+  <li><a href="#remember-this" id="toc-remember-this" class="nav-link" data-scroll-target="#remember-this">Remember this</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../phase-01-production-python/index.html">Phase 1 — Production Python</a></li><li class="breadcrumb-item"><a href="../phase-01-production-python/10-threads-and-processes.html"><span class="chapter-title">Threads and Processes</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Threads and Processes</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Interview answer (say this first).</strong> A thread is a path of execution inside one process that shares memory; a process is a separate program with its own memory. The <strong>GIL</strong> lets only one thread run Python bytecode at a time, so threads help <strong>I/O-bound</strong> work but not CPU-bound work. For CPU-bound work you need processes, because each process has its own interpreter and its own GIL.</p>
+</blockquote>
+<section id="why-this-exists" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-exists">Why this exists</h2>
+<p>You need to run eight tasks. Which tool do you reach for? The answer depends entirely on <em>what those tasks spend their time doing</em>.</p>
+<p>Take the same function and run it two ways. First, as two threads:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> threading</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> cpu_burn(n):</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        s <span class="op">+=</span> i <span class="op">*</span> i</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> s</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> [threading.Thread(target<span class="op">=</span>cpu_burn, args<span class="op">=</span>(<span class="dv">25_000_000</span>,)) <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>)]</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> ts: t.start()</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> ts: t.join()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured on this machine: running the two calls sequentially took 1.28 s, and with two threads it took 1.23 s — a speed-up of only <strong>1.05×</strong>. The threads did not work in parallel, because the <strong>GIL</strong> allowed only one of them to run Python bytecode at a time.</p>
+<p>Now the same work in two <strong>processes</strong>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ProcessPoolExecutor</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> ProcessPoolExecutor(max_workers<span class="op">=</span><span class="dv">2</span>) <span class="im">as</span> ex:</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">list</span>(ex.<span class="bu">map</span>(cpu_burn, [<span class="dv">25_000_000</span>, <span class="dv">25_000_000</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured: <strong>0.71 s</strong>, a <strong>1.81×</strong> speed-up. Each process had its own interpreter and its own GIL, so both ran on separate cores at once.</p>
+<p>Flip the workload to I/O and threads win:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> io_wait():</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    time.sleep(<span class="fl">0.3</span>)     <span class="co"># a stand-in for a network or disk call</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Sequential: 0.61 s. Two threads: 0.31 s — <strong>1.98×</strong>. While one thread slept, the other ran, and the GIL was released during the sleep.</p>
+<p>That contrast is the whole topic. Threads and processes are not better or worse; they fit different shapes of work, and picking the wrong one wastes hours of engineering.</p>
+</section>
+<section id="start-from-zero" class="level2">
+<h2 class="anchored" data-anchor-id="start-from-zero">Start from zero</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Word</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Process</strong></td>
+<td>A running program with its own memory and at least one thread.</td>
+</tr>
+<tr class="even">
+<td><strong>Thread</strong></td>
+<td>An independent path of execution inside a process. Threads share the process’s memory.</td>
+</tr>
+<tr class="odd">
+<td><strong>GIL</strong></td>
+<td>Global Interpreter Lock. In CPython, a lock that lets only one thread execute Python bytecode at a time.</td>
+</tr>
+<tr class="even">
+<td><strong>CPU-bound</strong></td>
+<td>Bottlenecked by computation. The CPU is busy the whole time.</td>
+</tr>
+<tr class="odd">
+<td><strong>I/O-bound</strong></td>
+<td>Bottlenecked by waiting: network, disk, database. The CPU is mostly idle.</td>
+</tr>
+<tr class="even">
+<td><strong>Concurrency</strong></td>
+<td>Interleaving tasks so all make progress. Threads give this.</td>
+</tr>
+<tr class="odd">
+<td><strong>Parallelism</strong></td>
+<td>Executing tasks at the same instant on different cores. Processes give this.</td>
+</tr>
+<tr class="even">
+<td><strong>Race condition</strong></td>
+<td>A bug where the result depends on the exact timing of two threads touching shared data.</td>
+</tr>
+<tr class="odd">
+<td><strong>Lock / mutex</strong></td>
+<td>A flag that lets only one thread enter a critical section at a time.</td>
+</tr>
+<tr class="even">
+<td><strong>Critical section</strong></td>
+<td>Code that must not run concurrently because it touches shared state.</td>
+</tr>
+<tr class="odd">
+<td><strong>Deadlock</strong></td>
+<td>Two threads each holding a lock the other needs, so neither can proceed.</td>
+</tr>
+<tr class="even">
+<td><strong>Pickling</strong></td>
+<td>Converting a Python object to bytes so it can cross a process boundary.</td>
+</tr>
+<tr class="odd">
+<td><strong>Shared memory</strong></td>
+<td>Memory two processes can both read and write, avoiding copies.</td>
+</tr>
+<tr class="even">
+<td><strong>Executor</strong></td>
+<td>A managed pool of workers. <code>ThreadPoolExecutor</code> or <code>ProcessPoolExecutor</code>.</td>
+</tr>
+<tr class="odd">
+<td><strong>Future</strong></td>
+<td>A handle for a result that will arrive later. <code>future.result()</code> waits for it.</td>
+</tr>
+<tr class="even">
+<td><strong>Context switch</strong></td>
+<td>The OS saving one thread’s state and restoring another’s.</td>
+</tr>
+<tr class="odd">
+<td><strong>Daemon thread</strong></td>
+<td>A thread that is killed when the main program exits.</td>
+</tr>
+<tr class="even">
+<td><strong>Start method</strong></td>
+<td>How a process is created: <code>fork</code>, <code>spawn</code>, or <code>forkserver</code>. Changes what is inherited.</td>
+</tr>
+</tbody>
+</table>
+<p>Fix two ideas now.</p>
+<p><strong>Threads share memory; processes do not.</strong> Two threads read and write the same objects, so you need locks. Two processes each have private memory; moving data between them means pickling and copying, or an explicit shared-memory primitive.</p>
+<p><strong>The GIL is about Python bytecode, not about all code.</strong> A thread releases the GIL while blocked on I/O and, crucially, while inside many C extensions. So a C function can run in parallel even though Python loops cannot.</p>
+</section>
+<section id="the-core-idea" class="level2">
+<h2 class="anchored" data-anchor-id="the-core-idea">The core idea</h2>
+<p>Think of a <strong>meeting room with one microphone</strong>. Everyone can be in the room at once (threads share memory), but only the person holding the microphone may speak (execute Python bytecode). People hand the microphone around every few milliseconds, and they drop it entirely while waiting for a phone call (I/O). A guest speaker who brought their own amplifier (a C extension) can talk in parallel without the microphone.</p>
+<p><strong>Processes</strong> are separate rooms. Everyone in each room has their own microphone, so two rooms can talk at once — but they cannot hear each other without passing written notes (pickling) through the door.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    A["What is the work waiting on?"] --&gt; B{"I/O-bound?&lt;br/&gt;network, disk, DB"}
+    A --&gt; C{"CPU-bound?&lt;br/&gt;math, parsing, encoding"}
+    B --&gt;|"few tasks"| D["ThreadPoolExecutor&lt;br/&gt;or async"]
+    B --&gt;|"thousands of tasks"| E["asyncio"]
+    C --&gt;|"needs speed"| F["ProcessPoolExecutor"]
+    C --&gt;|"small or pickling-heavy"| G["Keep it in-process&lt;br/&gt;or use native code"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>Use this table as the summary:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Threads</th>
+<th>Processes</th>
+<th>Async</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Memory model</td>
+<td>Shared</td>
+<td>Separate</td>
+<td>Shared (one thread)</td>
+</tr>
+<tr class="even">
+<td>CPU-bound speed-up</td>
+<td>No (GIL)</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td>I/O-bound speed-up</td>
+<td>Yes</td>
+<td>Yes (costly)</td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td>Cost per worker</td>
+<td>Low</td>
+<td>High (new interpreter)</td>
+<td>Very low</td>
+</tr>
+<tr class="odd">
+<td>Data sharing</td>
+<td>Easy, needs locks</td>
+<td>Pickle or shared memory</td>
+<td>Easy, no locks on the loop</td>
+</tr>
+<tr class="even">
+<td>Best for</td>
+<td>Blocking I/O, small CPU in C</td>
+<td>Heavy CPU work</td>
+<td>Many I/O tasks</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<ol type="1">
+<li><strong>A process starts with one thread, the main thread.</strong> It has its own memory, file descriptors, and interpreter.</li>
+<li><strong><code>threading.Thread(target=f).start()</code> runs <code>f</code> in a new thread</strong> within the same process. All threads see the same objects.</li>
+<li><strong>The GIL allows one thread to run Python bytecode at a time.</strong> CPython switches the lock between runnable threads about every <code>sys.getswitchinterval()</code> seconds (default 5 ms).</li>
+<li><strong>The GIL is released while blocked on I/O.</strong> <code>time.sleep</code>, socket reads, and file reads let another thread run.</li>
+<li><strong>Many C extensions release the GIL around their heavy work.</strong> <code>hashlib</code>, <code>zlib</code>, and NumPy ufuncs do this, so threads can genuinely parallelise that code.</li>
+<li><strong><code>ThreadPoolExecutor</code> keeps a fixed set of threads alive</strong> and hands them submitted functions. Reusing threads avoids the cost of creating one per task.</li>
+<li><strong><code>ProcessPoolExecutor</code> starts separate Python interpreters.</strong> Arguments and return values are <strong>pickled</strong> across the boundary, which takes time proportional to the data.</li>
+<li><strong>Each process has its own GIL,</strong> so CPU-bound work runs in parallel across cores.</li>
+<li><strong>Processes do not share memory.</strong> To share, use <code>multiprocessing.Value</code>/<code>Array</code> (passed to <code>multiprocessing.Process</code>, or inherited under <code>fork</code>), a <code>Manager</code> proxy (passable, but slower), <code>Queue</code>/<code>Pipe</code> for messages, or <code>shared_memory.SharedMemory</code> for raw buffers. A synchronized <code>Value</code> cannot be sent through a pool queue; it must be inherited.</li>
+<li><strong>Threads coordinate with locks.</strong> <code>with lock:</code> marks a critical section that only one thread may enter. Locks prevent races but can cause deadlock if acquired in different orders.</li>
+<li><strong>Exceptions surface on <code>future.result()</code>.</strong> A worker that raises stores the exception in its future; if you never call <code>result()</code>, you never see it.</li>
+<li><strong>Any thread can join any other started thread,</strong> but a thread cannot join itself or join a thread that was never started, and only the main thread can install signal handlers. Keep coordination on the main thread.</li>
+</ol>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>The GIL is a CPython detail, not a language rule.</strong> Jython and IronPython never had one. CPython 3.13 introduced an experimental free-threaded build (no GIL), and 3.14 promoted it to officially supported (PEP 779) — but it is still optional and not the default. On the standard build, every <code>python3</code> you are likely to deploy still has the GIL, so plan around it.</p>
+</div>
+</div>
+</section>
+<section id="the-syntax-you-will-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-syntax-you-will-use">The syntax you will use</h2>
+<p><strong>Raw threads.</strong> Create, start, join. <code>join()</code> waits for the thread to finish.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> threading</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> worker(name: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"working"</span>, name)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> threading.Thread(target<span class="op">=</span>worker, args<span class="op">=</span>(<span class="st">"a"</span>,))</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>t.start()</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>t.join()                    <span class="co"># wait for it to finish</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>A lock around shared state.</strong> <code>with lock:</code> is the safe form; it releases even if the body raises.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>lock <span class="op">=</span> threading.Lock()</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>counter <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> increment() <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">global</span> counter</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> lock:</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        counter <span class="op">+=</span> <span class="dv">1</span>        <span class="co"># only one thread inside at a time</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>ThreadPoolExecutor</code> for a set of blocking calls.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ThreadPoolExecutor</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> ThreadPoolExecutor(max_workers<span class="op">=</span><span class="dv">8</span>) <span class="im">as</span> ex:</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    futures <span class="op">=</span> [ex.submit(fetch, url) <span class="cf">for</span> url <span class="kw">in</span> urls]</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    results <span class="op">=</span> [f.result() <span class="cf">for</span> f <span class="kw">in</span> futures]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>map</code> and <code>as_completed</code>.</strong> <code>map</code> preserves input order; <code>as_completed</code> yields in completion order.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ThreadPoolExecutor, as_completed</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> ThreadPoolExecutor(max_workers<span class="op">=</span><span class="dv">8</span>) <span class="im">as</span> ex:</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> value <span class="kw">in</span> ex.<span class="bu">map</span>(transform, <span class="bu">range</span>(<span class="dv">10</span>)):</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(value)                    <span class="co"># in order</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    futures <span class="op">=</span> {ex.submit(fetch, u): u <span class="cf">for</span> u <span class="kw">in</span> urls}</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> future <span class="kw">in</span> as_completed(futures):</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(futures[future], future.result())   <span class="co"># as they finish</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>ProcessPoolExecutor</code> for CPU-bound work.</strong> Functions must be importable at module level.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ProcessPoolExecutor</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> crunch(chunk: <span class="bu">bytes</span>) <span class="op">-&gt;</span> <span class="bu">bytes</span>:</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> encode(chunk)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">"__main__"</span>:              <span class="co"># required with the spawn start method</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> ProcessPoolExecutor(max_workers<span class="op">=</span><span class="dv">4</span>) <span class="im">as</span> ex:</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="bu">list</span>(ex.<span class="bu">map</span>(crunch, chunks))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>multiprocessing</code> primitives for shared state.</strong> <code>Value</code> and <code>Array</code> are shared ctypes; <code>Queue</code> passes messages. A <code>Value</code> carries its own lock, reached with <code>.get_lock()</code>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> multiprocessing <span class="im">as</span> mp</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bump(counter, n):</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">with</span> counter.get_lock():</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>            counter.value <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">"__main__"</span>:</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    counter <span class="op">=</span> mp.Value(<span class="st">"i"</span>, <span class="dv">0</span>)          <span class="co"># shared ctypes plus its own lock</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> mp.Process(target<span class="op">=</span>bump, args<span class="op">=</span>(counter, <span class="dv">1000</span>))</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    p.start()</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    p.join()</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(counter.value)                <span class="co"># 1000, updated by the child process</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>Manager</code> proxies for rich shared objects.</strong> Convenient, but every access is an IPC call, so they are much slower than local objects. Note that a proxy <code>Value</code> does not expose <code>.get_lock()</code>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> multiprocessing <span class="im">as</span> mp</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">"__main__"</span>:</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> mp.Manager() <span class="im">as</span> mgr:</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        shared <span class="op">=</span> mgr.<span class="bu">dict</span>()</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"status"</span>] <span class="op">=</span> <span class="st">"running"</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        shared[<span class="st">"count"</span>] <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(shared[<span class="st">"status"</span>], shared[<span class="st">"count"</span>])   <span class="co"># running 3</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong><code>shared_memory</code> for raw, zero-copy buffers.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> multiprocessing <span class="im">import</span> shared_memory</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>shm <span class="op">=</span> shared_memory.SharedMemory(create<span class="op">=</span><span class="va">True</span>, size<span class="op">=</span><span class="dv">1024</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    buf <span class="op">=</span> shm.buf          <span class="co"># a memoryview; all processes see the same bytes</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="cf">finally</span>:</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    shm.close()</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    shm.unlink()           <span class="co"># free it when every process is done</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Daemon threads do not block exit.</strong> Use them for background helpers that can be abandoned.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> threading.Thread(target<span class="op">=</span>poll, daemon<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>t.start()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>A cooperative stop flag instead of killing threads.</strong> Python cannot safely kill a thread, so ask it to stop.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>stop <span class="op">=</span> threading.Event()</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> loop_until_stopped():</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="kw">not</span> stop.is_set():</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        do_one_unit()</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>stop.<span class="bu">set</span>()          <span class="co"># the thread exits at its next check</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="examples-simple-to-real" class="level2">
+<h2 class="anchored" data-anchor-id="examples-simple-to-real">Examples: simple to real</h2>
+<p><strong>Example 1 — proving the GIL on CPU-bound work.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ThreadPoolExecutor</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> cpu_burn(n):</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>        s <span class="op">+=</span> i <span class="op">*</span> i</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> s</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>N <span class="op">=</span> <span class="dv">25_000_000</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>t0 <span class="op">=</span> time.perf_counter()<span class="op">;</span> cpu_burn(N)<span class="op">;</span> cpu_burn(N)</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>sequential <span class="op">=</span> time.perf_counter() <span class="op">-</span> t0</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>t0 <span class="op">=</span> time.perf_counter()</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> ThreadPoolExecutor(max_workers<span class="op">=</span><span class="dv">2</span>) <span class="im">as</span> ex:</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">list</span>(ex.<span class="bu">map</span>(cpu_burn, [N, N]))</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>threads <span class="op">=</span> time.perf_counter() <span class="op">-</span> t0</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"sequential </span><span class="sc">{</span>sequential<span class="sc">:.2f}</span><span class="ss">s, threads </span><span class="sc">{</span>threads<span class="sc">:.2f}</span><span class="ss">s"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured: 1.28 s sequential versus 1.23 s with threads — 1.05×. Two Python loops cannot run at the same time.</p>
+<p><strong>Example 2 — the same work in processes.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ProcessPoolExecutor</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">"__main__"</span>:</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> ProcessPoolExecutor(max_workers<span class="op">=</span><span class="dv">2</span>) <span class="im">as</span> ex:</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">list</span>(ex.<span class="bu">map</span>(cpu_burn, [N, N]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured: 0.71 s — 1.81×. The core count did the work, not the GIL. The gain is below 2× because starting processes and pickling results costs time; with longer jobs the overhead shrinks.</p>
+<p><strong>Example 3 — threads for I/O-bound work.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ThreadPoolExecutor</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> io_wait(seconds):</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    time.sleep(seconds)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>t0 <span class="op">=</span> time.perf_counter()</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>io_wait(<span class="fl">0.3</span>)<span class="op">;</span> io_wait(<span class="fl">0.3</span>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>sequential <span class="op">=</span> time.perf_counter() <span class="op">-</span> t0</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>t0 <span class="op">=</span> time.perf_counter()</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> ThreadPoolExecutor(max_workers<span class="op">=</span><span class="dv">2</span>) <span class="im">as</span> ex:</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">list</span>(ex.<span class="bu">map</span>(io_wait, [<span class="fl">0.3</span>, <span class="fl">0.3</span>]))</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>threads <span class="op">=</span> time.perf_counter() <span class="op">-</span> t0</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured: 0.61 s versus 0.31 s — 1.98×. The sleep releases the GIL, so both waits truly overlap. This is the same result you would get with async, but with two threads instead of one loop.</p>
+<p><strong>Example 4 — a race, and the lock that fixes it.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> threading, time</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> worker(counter):</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">100_000</span>):</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>        tmp <span class="op">=</span> counter[<span class="dv">0</span>]</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>        time.sleep(<span class="dv">0</span>)          <span class="co"># force a thread switch between read and write</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>        counter[<span class="dv">0</span>] <span class="op">=</span> tmp <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>counter <span class="op">=</span> [<span class="dv">0</span>]</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> [threading.Thread(target<span class="op">=</span>worker, args<span class="op">=</span>(counter,)) <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>)]</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> ts: t.start()</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> ts: t.join()</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(counter[<span class="dv">0</span>])              <span class="co"># typically around 100000, never 200000</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured: the counter typically lands around 100,000 instead of 200,000 — roughly half the updates lost; the exact count varies run to run. Each thread read <code>tmp</code>, then the other thread overwrote the value before the first wrote back. <code>time.sleep(0)</code> only makes a switch likely, not guaranteed. Adding <code>with lock:</code> around the read-modify-write makes the result exactly 200,000.</p>
+<p><strong>Example 5 — parallel API calls for an agent.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ThreadPoolExecutor</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ask_model(prompt: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> client.complete(prompt)          <span class="co"># blocking HTTP call</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> ThreadPoolExecutor(max_workers<span class="op">=</span><span class="dv">8</span>) <span class="im">as</span> ex:</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    answers <span class="op">=</span> <span class="bu">list</span>(ex.<span class="bu">map</span>(ask_model, prompts))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Eight blocking calls now overlap, so the wall time is roughly the slowest call instead of the sum. This is the threaded equivalent of <code>asyncio.gather</code> from the async chapter.</p>
+<p><strong>Example 6 — the process-pool pickling trap.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ProcessPoolExecutor</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> ProcessPoolExecutor(max_workers<span class="op">=</span><span class="dv">2</span>) <span class="im">as</span> ex:</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    ex.submit(<span class="kw">lambda</span> x: x <span class="op">+</span> <span class="dv">1</span>, <span class="dv">1</span>).result()</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co"># PicklingError: Can't pickle &lt;function &lt;lambda&gt; ...&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Measured: a lambda failed with <code>PicklingError</code>, because the child process cannot import a function that has no module-level name. A top-level <code>def</code> works. The same applies to functions defined inside <code>if __name__ == "__main__"</code> under the <code>spawn</code> start method: the child re-imports the module and cannot find them.</p>
+</section>
+<section id="in-production" class="level2">
+<h2 class="anchored" data-anchor-id="in-production">In production</h2>
+<ul>
+<li><strong>Choose by workload, not by fashion.</strong> CPU-bound → processes. Blocking I/O → threads or async. Mixed → isolate the CPU part in a process pool and keep the I/O in async.</li>
+<li><strong>Do not assume the GIL protects your data.</strong> It makes single bytecode instructions atomic, not multi-step sequences. Any read-modify-write on shared state needs a lock. Under free-threaded builds, even more needs protecting.</li>
+<li><strong>Guard shared state with a lock, and keep critical sections tiny.</strong> Holding a lock across I/O serialises the whole program. Compute outside the lock; mutate inside it.</li>
+<li><strong>Avoid nested locks with inconsistent order.</strong> Thread A taking <code>lock1</code> then <code>lock2</code> while thread B takes <code>lock2</code> then <code>lock1</code> deadlocks. Establish one global order, or use a single lock.</li>
+<li><strong>Pickling is the process-pool tax.</strong> Everything sent to or returned from a worker is pickled, so large payloads cost time and memory; functions must be top-level and importable (lambdas, closures, and local functions fail), and under <code>spawn</code> the entry point needs <code>if __name__ == "__main__":</code>.</li>
+<li><strong>Processes do not share module globals.</strong> A global list updated in a worker is a copy; the parent never sees it. Use <code>Manager</code>, <code>Queue</code>, <code>Value</code>, or <code>shared_memory</code> explicitly.</li>
+<li><strong><code>Manager</code> proxies are convenient and slow.</strong> Each attribute access is inter-process communication. Use them for control flow, not for hot inner loops.</li>
+<li><strong>Threads cannot be killed.</strong> Use an <code>Event</code> or a flag and stop cooperatively, or put the work in a process and terminate it.</li>
+<li><strong>Limit pool size.</strong> More workers is not faster. Thread pools default to <code>min(32, N + 4)</code> and process pools to <code>N</code>, where <code>N</code> is the CPU count available to the process; since Python 3.13 that is <code>os.process_cpu_count()</code>, not <code>os.cpu_count()</code>. Too many processes thrash memory and the scheduler.</li>
+<li><strong>Do not mix threads and asyncio carelessly.</strong> From async code, use <code>asyncio.to_thread</code> / <code>run_in_executor</code>. Never call <code>asyncio.run</code> inside a thread that already has a loop, and never block the loop with <code>future.result()</code>.</li>
+<li><strong>Always call <code>future.result()</code> or handle exceptions.</strong> A future that raised and is never inspected silently hides a failure and can leak resources.</li>
+<li><strong>Measure before parallelising.</strong> Overhead, pickling, and lock contention routinely turn a “parallel” version into a slower one. Benchmark the real workload.</li>
+</ul>
+</section>
+<section id="interview-questions" class="level2">
+<h2 class="anchored" data-anchor-id="interview-questions">Interview questions</h2>
+<section id="what-is-the-gil-and-what-does-it-actually-protect" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-gil-and-what-does-it-actually-protect">1. What is the GIL, and what does it actually protect?</h3>
+<p><strong>Answer.</strong> The Global Interpreter Lock is a mutex in CPython that lets only one thread execute Python bytecode at a time. It protects the interpreter’s internal state, such as reference counts and object headers, from corruption by concurrent threads. It is not a lock on your data, and it does not make multi-step operations atomic.</p>
+<p><strong>Follow-up: “Does it make list append thread-safe?”</strong> Individual built-in operations are effectively atomic under the GIL in CPython, but you should not rely on it. Multi-step logic and free-threaded builds will break that assumption.</p>
+<p><strong>Trap.</strong> Saying the GIL prevents all race conditions. It does not; a read-modify-write sequence can still lose updates, as the counter example shows.</p>
+</section>
+<section id="when-do-threads-help-and-when-do-they-not" class="level3">
+<h3 class="anchored" data-anchor-id="when-do-threads-help-and-when-do-they-not">2. When do threads help, and when do they not?</h3>
+<p><strong>Answer.</strong> Threads help I/O-bound work, because the GIL is released while a thread waits on a socket, disk, or sleep, letting another thread run. They do not help CPU-bound Python, because only one thread executes bytecode at a time. They <em>can</em> help CPU-bound work done inside C extensions that release the GIL, such as <code>hashlib</code> or <code>zlib</code>.</p>
+<p><strong>Follow-up: “Give a measured example.”</strong> Two threads doing pure-Python arithmetic ran at 1.05× speed, while two threads sleeping overlapped to 1.98×. The difference is whether the work holds the GIL.</p>
+<p><strong>Trap.</strong> Assuming “more threads equals more CPU”. For Python-level computation it does not, no matter how many cores you have.</p>
+</section>
+<section id="what-is-the-difference-between-a-thread-and-a-process" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-the-difference-between-a-thread-and-a-process">3. What is the difference between a thread and a process?</h3>
+<p><strong>Answer.</strong> A thread lives inside a process and shares its memory, so sharing data is cheap but needs locks. A process has its own memory and interpreter, so it is isolated and can run Python in parallel, but data must be pickled or placed in shared memory, and each process costs much more to start and keep alive.</p>
+<p><strong>Follow-up: “Which is safer for isolation?”</strong> Processes. A crash or memory corruption in one process does not take down the others, which is why CPU-heavy work is often farmed out to worker processes.</p>
+<p><strong>Trap.</strong> Saying processes are “just faster threads”. They have a completely different memory model and communication cost.</p>
+</section>
+<section id="what-is-a-race-condition-and-how-do-you-prevent-it" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-a-race-condition-and-how-do-you-prevent-it">4. What is a race condition, and how do you prevent it?</h3>
+<p><strong>Answer.</strong> A race is a bug where the outcome depends on the timing of concurrent access to shared data. You prevent it by identifying the critical section and guarding it with a lock, so only one thread mutates at a time. Alternatively, avoid shared mutable state entirely and pass messages through a queue.</p>
+<p><strong>Follow-up: “Why is <code>counter += 1</code> a race?”</strong> It is really read, add, write. A thread switch between the read and the write lets both threads read the same value, so one increment is lost. With a forced switch, 200,000 intended increments typically produce around 100,000.</p>
+<p><strong>Trap.</strong> Thinking the GIL makes <code>+=</code> safe. The GIL can switch between the bytecodes that make up the operation.</p>
+</section>
+<section id="how-does-pickling-affect-processpoolexecutor" class="level3">
+<h3 class="anchored" data-anchor-id="how-does-pickling-affect-processpoolexecutor">5. How does pickling affect <code>ProcessPoolExecutor</code>?</h3>
+<p><strong>Answer.</strong> Everything sent to a worker and returned from it is pickled to bytes and unpickled on the other side. That means arguments and results must be picklable, functions must be importable at module level, and large payloads cost real time and memory. It also means workers do not share your objects; they get copies.</p>
+<p><strong>Follow-up: “What fails to pickle?”</strong> Lambdas, local functions, open file handles, locks, sockets, and most objects tied to a live OS resource. Use top-level functions and send plain data.</p>
+<p><strong>Trap.</strong> Passing a lambda or an object with an open connection to a process pool, then being surprised by <code>PicklingError</code> or a dead process.</p>
+</section>
+<section id="how-do-you-share-state-between-processes" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-share-state-between-processes">6. How do you share state between processes?</h3>
+<p><strong>Answer.</strong> Use an explicit primitive. <code>multiprocessing.Value</code> and <code>Array</code> share fixed-size ctypes; <code>Queue</code> and <code>Pipe</code> pass messages; <code>Manager</code> gives dict, list, and <code>Value</code> proxies that can be passed to workers; <code>shared_memory.SharedMemory</code> exposes a raw byte buffer. Plain globals and ordinary lists are copied per process and are not shared.</p>
+<p><strong>Follow-up: “What are the trade-offs?”</strong> <code>Manager</code> is the easiest but each access is an IPC round-trip. <code>shared_memory</code> is fastest but you handle layout and cleanup yourself. <code>Value</code>/<code>Array</code> sit in the middle but sharing them through a pool requires inheritance or a Manager wrapper.</p>
+<p><strong>Trap.</strong> Updating a module-level global in a worker and expecting the parent to see it. It updated a copy.</p>
+</section>
+<section id="when-does-a-c-extension-release-the-gil" class="level3">
+<h3 class="anchored" data-anchor-id="when-does-a-c-extension-release-the-gil">7. When does a C extension release the GIL?</h3>
+<p><strong>Answer.</strong> When the extension author calls the C-API macro to release it around work that does not touch Python objects, typically for long computations or blocking I/O. <code>hashlib</code>, <code>zlib</code>, and many NumPy operations do this. Measured, two threads doing SHA-256 ran at 2.12× and zlib compression at 1.84× — real parallelism despite the GIL.</p>
+<p><strong>Follow-up: “Why doesn’t NumPy matrix multiply always speed up with threads?”</strong> BLAS libraries are often already multi-threaded, so adding Python threads oversubscribes the cores. Control the BLAS thread count, or use processes.</p>
+<p><strong>Trap.</strong> Assuming every third-party library releases the GIL. Check before building a threading strategy on it.</p>
+</section>
+<section id="how-do-you-choose-between-threads-processes-and-async" class="level3">
+<h3 class="anchored" data-anchor-id="how-do-you-choose-between-threads-processes-and-async">8. How do you choose between threads, processes, and async?</h3>
+<p><strong>Answer.</strong> For many network or database calls with modest per-task memory, use async: one thread, minimal overhead. For blocking libraries that have no async version, use a <code>ThreadPoolExecutor</code>. For CPU-bound Python, use a <code>ProcessPoolExecutor</code> so each task gets its own interpreter and core. The deciding question is what the task waits on and whether it holds the GIL.</p>
+<p><strong>Follow-up: “Can you combine them?”</strong> Yes. A common pattern is an async service that offloads blocking calls with <code>to_thread</code> and CPU-heavy work with a process pool via <code>run_in_executor</code>.</p>
+<p><strong>Trap.</strong> Choosing threads for CPU-bound work because they are “lighter than processes”. They are lighter, but they will not use the extra cores.</p>
+</section>
+</section>
+<section id="remember-this" class="level2">
+<h2 class="anchored" data-anchor-id="remember-this">Remember this</h2>
+<ul>
+<li><strong>The GIL lets one thread run Python bytecode at a time</strong>, so threads help I/O, not Python CPU work.</li>
+<li><strong>Processes run in parallel</strong> but have separate memory; moving data means pickling or shared-memory primitives.</li>
+<li><strong>Guard shared state with a lock</strong>, and remember the GIL does not make read-modify-write safe.</li>
+<li><strong>Hashlib, zlib, and many C extensions release the GIL</strong>, so threads can parallelise them.</li>
+<li>Pick the tool by the bottleneck: <strong>async for many I/O tasks, threads for blocking I/O, processes for CPU</strong>.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/ranjeet-h\.github\.io\/agentic-ai-engineer-book");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../phase-01-production-python/09-async-and-asyncio.html" class="pagination-link" aria-label="Async and asyncio">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Async and asyncio</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../phase-01-production-python/11-concurrency-patterns.html" class="pagination-link" aria-label="Concurrency Patterns">
+        <span class="nav-page-text"><span class="chapter-title">Concurrency Patterns</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
