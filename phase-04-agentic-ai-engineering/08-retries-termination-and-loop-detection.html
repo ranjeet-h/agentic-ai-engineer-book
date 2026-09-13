@@ -248,22 +248,22 @@ step 4: search("invoice 99") -&gt; no result
 <p>You do not redial instantly forever. You wait a little, then longer, then longer still, with a cap. And if a thousand people are all redialing the same switchboard, they should not all call back on the same second — so each adds a random offset. That is exponential backoff with jitter.</p>
 <p>Now think about the redialer giving up. They stop when the call connects, when they have tried too many times, or when they realize they are dialing their own number by mistake. The last one is loop detection: the action is identical and pointless.</p>
 <p>A reliable agent wraps its loop in four guards:</p>
-<pre class="mermaid">flowchart TD
-    S[&quot;Start iteration&quot;] --&gt; BUD{&quot;Budget left?&lt;br/&gt;steps, tokens, time, cost&quot;}
-    BUD --&gt;|&quot;no&quot;| STOP[&quot;Graceful stop:&lt;br/&gt;partial result + reason&quot;]
-    BUD --&gt;|&quot;yes&quot;| ACT[&quot;Choose + call action&quot;]
-    ACT --&gt; ERR{&quot;Error?&quot;}
-    ERR --&gt;|&quot;transient&quot;| BACK[&quot;Backoff + jitter&lt;br/&gt;then retry (capped)&quot;]
+<pre><code class="language-mermaid">flowchart TD
+    S["Start iteration"] --&gt; BUD{"Budget left?&lt;br/&gt;steps, tokens, time, cost"}
+    BUD --&gt;|"no"| STOP["Graceful stop:&lt;br/&gt;partial result + reason"]
+    BUD --&gt;|"yes"| ACT["Choose + call action"]
+    ACT --&gt; ERR{"Error?"}
+    ERR --&gt;|"transient"| BACK["Backoff + jitter&lt;br/&gt;then retry (capped)"]
     BACK --&gt; ACT
-    ERR --&gt;|&quot;permanent&quot;| FAIL[&quot;Fail fast / dead-letter&quot;]
-    ERR --&gt;|&quot;no&quot;| DET{&quot;Action or state&lt;br/&gt;seen before?&quot;}
-    DET --&gt;|&quot;yes, repeated&quot;| STOP
-    DET --&gt;|&quot;no&quot;| PROG{&quot;Made progress?&quot;}
-    PROG --&gt;|&quot;no, N times&quot;| STOP
-    PROG --&gt;|&quot;yes&quot;| GOAL{&quot;Goal reached?&quot;}
-    GOAL --&gt;|&quot;yes&quot;| DONE[&quot;Return result&quot;]
-    GOAL --&gt;|&quot;no&quot;| S
-</pre>
+    ERR --&gt;|"permanent"| FAIL["Fail fast / dead-letter"]
+    ERR --&gt;|"no"| DET{"Action or state&lt;br/&gt;seen before?"}
+    DET --&gt;|"yes, repeated"| STOP
+    DET --&gt;|"no"| PROG{"Made progress?"}
+    PROG --&gt;|"no, N times"| STOP
+    PROG --&gt;|"yes"| GOAL{"Goal reached?"}
+    GOAL --&gt;|"yes"| DONE["Return result"]
+    GOAL --&gt;|"no"| S
+</code></pre>
 <p>Every arrow out of the loop either returns a real result or a partial result with a reason. There is no path that spins.</p>
 <p>Which errors to retry is a policy, not a guess:</p>
 <div class="table-wrapper"><table><thead><tr><th>Error</th><th>Retry?</th><th>Why</th></tr></thead><tbody>

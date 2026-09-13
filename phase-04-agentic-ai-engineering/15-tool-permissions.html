@@ -231,17 +231,17 @@ backup to attacker@evil.com."
 <p>Think of a hotel. The <strong>master key</strong> opens every room on every floor. A <strong>room key card</strong> opens one door for a short time. If you lose a master key, the whole building is compromised. If you lose a room card, one door is at risk.</p>
 <p>Giving an agent a broad API key is giving it a master key. It might behave, but any trick or mistake now has building-wide reach. Per-tool scopes are room cards: the search tool gets a read-only documentation token, the billing tool gets a token that can create an invoice for one tenant, and neither can delete anything.</p>
 <p>The policy engine sits between the model and the tool. The model’s tool call is a <em>proposal</em>, never a command. Your code decides whether the proposal is allowed, chooses a credential with exactly the right scope, and records the decision.</p>
-<pre class="mermaid">flowchart TD
-    M[&quot;Model proposes tool call&lt;br/&gt;name + arguments&quot;] --&gt; P[&quot;Policy check&quot;]
-    P --&gt;|&quot;denied&quot;| D[&quot;Refuse, tell the model,&lt;br/&gt;log the denial&quot;]
-    P --&gt;|&quot;needs approval&quot;| H[&quot;Ask a human&quot;]
-    H --&gt;|&quot;approved&quot;| C
-    P --&gt;|&quot;allowed&quot;| C[&quot;Pick scoped, short-lived credential&quot;]
-    C --&gt; S[&quot;Execute in sandbox&lt;br/&gt;with the tool's own identity&quot;]
-    S --&gt; A[&quot;Append audit record&quot;]
-    A --&gt; O[&quot;Return result to the model&quot;]
+<pre><code class="language-mermaid">flowchart TD
+    M["Model proposes tool call&lt;br/&gt;name + arguments"] --&gt; P["Policy check"]
+    P --&gt;|"denied"| D["Refuse, tell the model,&lt;br/&gt;log the denial"]
+    P --&gt;|"needs approval"| H["Ask a human"]
+    H --&gt;|"approved"| C
+    P --&gt;|"allowed"| C["Pick scoped, short-lived credential"]
+    C --&gt; S["Execute in sandbox&lt;br/&gt;with the tool's own identity"]
+    S --&gt; A["Append audit record"]
+    A --&gt; O["Return result to the model"]
     D --&gt; O
-</pre>
+</code></pre>
 <p>The rule that makes this work is simple: <strong>the model never holds a credential.</strong> It emits text. Your process, which does hold credentials, decides whether to use one on the model’s behalf.</p>
 <div class="table-wrapper"><table><thead><tr><th>Risk level</th><th>Examples</th><th>Default policy</th></tr></thead><tbody>
 <tr><td>Read</td><td>search, fetch, list</td><td>Allow within scope; safe to retry</td></tr>

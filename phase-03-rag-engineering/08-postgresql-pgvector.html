@@ -238,17 +238,17 @@
 </ul>
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of pgvector as adding one new data type to a familiar toolbox. A <code>vector</code> column behaves like any other column: it can be <code>NOT NULL</code>, indexed, joined, filtered, and updated in a transaction. The only special part is the distance operators and the two index types.</p>
-<pre class="mermaid">flowchart LR
-    A[&quot;Application&quot;] --&gt; B[&quot;PostgreSQL&quot;]
-    subgraph B[&quot;PostgreSQL + pgvector&quot;]
-      T1[&quot;documents&lt;br/&gt;id, title, tenant_id&quot;]
-      T2[&quot;chunks&lt;br/&gt;id, document_id, content,&lt;br/&gt;embedding vector(1536)&quot;]
+<pre><code class="language-mermaid">flowchart LR
+    A["Application"] --&gt; B["PostgreSQL"]
+    subgraph B["PostgreSQL + pgvector"]
+      T1["documents&lt;br/&gt;id, title, tenant_id"]
+      T2["chunks&lt;br/&gt;id, document_id, content,&lt;br/&gt;embedding vector(1536)"]
       T1 --- T2
-      IX[&quot;HNSW index&lt;br/&gt;on embedding&quot;]
+      IX["HNSW index&lt;br/&gt;on embedding"]
       T2 --- IX
     end
-    B --&gt; Q[&quot;One SQL query:&lt;br/&gt;JOIN plus WHERE tenant_id = 7&lt;br/&gt;ORDER BY cosine distance&lt;br/&gt;LIMIT 5&quot;]
-</pre>
+    B --&gt; Q["One SQL query:&lt;br/&gt;JOIN plus WHERE tenant_id = 7&lt;br/&gt;ORDER BY cosine distance&lt;br/&gt;LIMIT 5"]
+</code></pre>
 <p>The query planner does the rest: it uses the vector index for the nearest-neighbour part and ordinary B-tree or partition pruning for the filter, then combines them. You do not write application-level merge logic.</p>
 <p>The decision between pgvector and a dedicated vector database is mostly about where your data already lives and how big it is:</p>
 <div class="table-wrapper"><table><thead><tr><th>Concern</th><th>pgvector</th><th>Dedicated vector database</th></tr></thead><tbody>

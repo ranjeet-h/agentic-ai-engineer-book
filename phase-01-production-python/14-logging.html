@@ -238,24 +238,24 @@ print("charge failed", order_id)
 <p>Your code says <em>what happened</em>. Configuration decides <em>where it goes and how it looks</em>.</p>
 </blockquote>
 <p>That is what lets you ship the same code to development (debug to console) and production (JSON to a collector) with no code change.</p>
-<pre class="mermaid">flowchart LR
-    A[&quot;log.info('user signed in',&lt;br/&gt;extra={'request_id': rid})&quot;] --&gt; B[&quot;Logger&lt;br/&gt;app.api&quot;]
-    B --&gt;|&quot;enabled for INFO?&quot;| C[&quot;LogRecord&lt;br/&gt;msg + level + time + extra&quot;]
-    C --&gt; F[&quot;Handler: console&quot;]
-    F --&gt; H[&quot;Formatter&lt;br/&gt;%(asctime)s %(levelname)s %(message)s&quot;]
-    C --&gt; G[&quot;Handler: JSON file&quot;]
-    G --&gt; I[&quot;Formatter&lt;br/&gt;{\&quot;ts\&quot;:..., \&quot;level\&quot;:...}&quot;]
-    C --&gt; D{&quot;propagate?&quot;}
-    D --&gt;|&quot;yes&quot;| E[&quot;ancestor handlers&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart LR
+    A["log.info('user signed in',&lt;br/&gt;extra={'request_id': rid})"] --&gt; B["Logger&lt;br/&gt;app.api"]
+    B --&gt;|"enabled for INFO?"| C["LogRecord&lt;br/&gt;msg + level + time + extra"]
+    C --&gt; F["Handler: console"]
+    F --&gt; H["Formatter&lt;br/&gt;%(asctime)s %(levelname)s %(message)s"]
+    C --&gt; G["Handler: JSON file"]
+    G --&gt; I["Formatter&lt;br/&gt;{\"ts\":..., \"level\":...}"]
+    C --&gt; D{"propagate?"}
+    D --&gt;|"yes"| E["ancestor handlers"]
+</code></pre>
 <p>The hierarchy matters because it lets you set one level for a whole subsystem. Set <code>app.db</code> to <code>WARNING</code> and every <code>app.db.*</code> logger becomes quiet, without touching their code.</p>
-<pre class="mermaid">flowchart TD
-    R[&quot;root (WARNING)&quot;] --&gt; A[&quot;app (INFO)&quot;]
-    A --&gt; B[&quot;app.api&quot;]
-    A --&gt; C[&quot;app.db (WARNING)&quot;]
-    C --&gt; D[&quot;app.db.pool&quot;]
-    C --&gt; E[&quot;app.db.query&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart TD
+    R["root (WARNING)"] --&gt; A["app (INFO)"]
+    A --&gt; B["app.api"]
+    A --&gt; C["app.db (WARNING)"]
+    C --&gt; D["app.db.pool"]
+    C --&gt; E["app.db.query"]
+</code></pre>
 <p><code>app.api</code> has no level of its own, so it inherits <code>INFO</code> from <code>app</code>. <code>app.db.pool</code> inherits <code>WARNING</code> from <code>app.db</code>. That inheritance of the level is the <strong>effective level</strong>.</p>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
 <p>Follow one call, <code>log.info("charged order %s", order_id)</code>, step by step.</p>

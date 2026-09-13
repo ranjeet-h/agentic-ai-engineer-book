@@ -244,18 +244,18 @@ INFO agent: tool call succeeded
 <li>The <strong>security camera</strong> is a <strong>trace</strong>. It shows the money moving through each station, with timestamps.</li>
 </ul>
 <p>An MCP tool call is a transaction. The user request is one camera recording that starts at the host, passes through the gateway, and ends inside the server:</p>
-<pre class="mermaid">flowchart LR
-    U[&quot;User request&lt;br/&gt;trace_id = abc123&quot;] --&gt; H[&quot;Host / agent&lt;br/&gt;span: agent.run&quot;]
-    H --&gt;|&quot;header: traceparent&quot;| G[&quot;MCP gateway&lt;br/&gt;span: gateway.tools_call&quot;]
-    G --&gt;|&quot;_meta: traceparent&quot;| S[&quot;MCP server&lt;br/&gt;span: tools/call process_refund&quot;]
-    S --&gt; T[&quot;Tool executes&lt;br/&gt;duration, result&quot;]
+<pre><code class="language-mermaid">flowchart LR
+    U["User request&lt;br/&gt;trace_id = abc123"] --&gt; H["Host / agent&lt;br/&gt;span: agent.run"]
+    H --&gt;|"header: traceparent"| G["MCP gateway&lt;br/&gt;span: gateway.tools_call"]
+    G --&gt;|"_meta: traceparent"| S["MCP server&lt;br/&gt;span: tools/call process_refund"]
+    S --&gt; T["Tool executes&lt;br/&gt;duration, result"]
     T --&gt; G
     G --&gt; H
     H --&gt; U
-    H -.-&gt; L[&quot;Logs + metrics + audit&quot;]
+    H -.-&gt; L["Logs + metrics + audit"]
     G -.-&gt; L
     S -.-&gt; L
-</pre>
+</code></pre>
 <p>The ids are what make the picture join up. The host generates <code>trace_id</code>. The gateway passes it on. The server attaches its span to the same trace. Without propagation, you have three unrelated log files.</p>
 <p>MCP supports this directly. The official SDK ships an OpenTelemetry middleware and helpers that <strong>inject and extract W3C trace context through the request <code>_meta</code> field</strong>. The <code>traceparent</code> value rides along with the tool call, so the server’s span nests under the host’s.</p>
 <p>The three pillars split the work like this:</p>

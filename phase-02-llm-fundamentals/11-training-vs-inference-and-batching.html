@@ -246,16 +246,16 @@ Many requests batched:   GPU utilisation  ~60-90%  tokens/sec high  cost per tok
 <li><strong>Continuous batching</strong> is a checkout lane where, the moment a customer pays, the next one steps up — even while others are still being served. The till never waits for a slow customer to finish before admitting the next.</li>
 </ul>
 <p>Continuous batching is the key idea behind modern LLM servers such as vLLM, TensorRT-LLM, and Text Generation Inference. It schedules at the granularity of a single decode step, not a whole request.</p>
-<pre class="mermaid">flowchart TD
-    A[&quot;Requests arrive&lt;br/&gt;different prompt and output lengths&quot;] --&gt; B{&quot;Scheduler&quot;}
-    B --&gt; C[&quot;Static batch&lt;br/&gt;pad to longest, run to completion&quot;]
-    B --&gt; D[&quot;Dynamic batch&lt;br/&gt;collect briefly, run to longest&quot;]
-    B --&gt; E[&quot;Continuous batch&lt;br/&gt;decide every decode step&quot;]
-    C --&gt; F[&quot;Padding waste&lt;br/&gt;head-of-line blocking&quot;]
-    D --&gt; G[&quot;Less idle&lt;br/&gt;still waits for slowest&quot;]
-    E --&gt; H[&quot;No padding&lt;br/&gt;slots refilled immediately&quot;]
-    H --&gt; I[&quot;Higher tokens/sec&lt;br/&gt;lower average latency&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart TD
+    A["Requests arrive&lt;br/&gt;different prompt and output lengths"] --&gt; B{"Scheduler"}
+    B --&gt; C["Static batch&lt;br/&gt;pad to longest, run to completion"]
+    B --&gt; D["Dynamic batch&lt;br/&gt;collect briefly, run to longest"]
+    B --&gt; E["Continuous batch&lt;br/&gt;decide every decode step"]
+    C --&gt; F["Padding waste&lt;br/&gt;head-of-line blocking"]
+    D --&gt; G["Less idle&lt;br/&gt;still waits for slowest"]
+    E --&gt; H["No padding&lt;br/&gt;slots refilled immediately"]
+    H --&gt; I["Higher tokens/sec&lt;br/&gt;lower average latency"]
+</code></pre>
 <p>Three batching policies, side by side:</p>
 <div class="table-wrapper"><table><thead><tr><th>Policy</th><th>When new requests join</th><th>Padding</th><th>Waits for slowest?</th><th>Used by</th></tr></thead><tbody>
 <tr><td>Static</td><td>Only when a fixed group finishes</td><td>Yes, to the longest in the group</td><td>Yes</td><td>Teaching, simple scripts</td></tr>

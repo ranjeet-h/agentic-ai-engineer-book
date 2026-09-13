@@ -239,16 +239,16 @@ GET  /runs/42  -&gt;  200 OK  {"status": "running"}
 <li>The bin for unreadable tickets = the dead-letter queue.</li>
 </ul>
 <p>The waiter never stands in the kitchen. That is the whole idea.</p>
-<pre class="mermaid">flowchart LR
-  C[&quot;Client&lt;br/&gt;POST /runs&quot;] --&gt; A[&quot;API process&lt;br/&gt;validate + enqueue&lt;br/&gt;returns 202&quot;]
-  A --&gt; B[&quot;Broker&lt;br/&gt;durable queue&lt;br/&gt;Redis / RabbitMQ&quot;]
-  B --&gt; W1[&quot;Worker 1&quot;]
-  B --&gt; W2[&quot;Worker 2&quot;]
-  W1 --&gt; R[&quot;Result backend&lt;br/&gt;status + output&quot;]
+<pre><code class="language-mermaid">flowchart LR
+  C["Client&lt;br/&gt;POST /runs"] --&gt; A["API process&lt;br/&gt;validate + enqueue&lt;br/&gt;returns 202"]
+  A --&gt; B["Broker&lt;br/&gt;durable queue&lt;br/&gt;Redis / RabbitMQ"]
+  B --&gt; W1["Worker 1"]
+  B --&gt; W2["Worker 2"]
+  W1 --&gt; R["Result backend&lt;br/&gt;status + output"]
   W2 --&gt; R
-  W1 --&gt; D[&quot;Dead-letter queue&lt;br/&gt;after max retries&quot;]
-  C2[&quot;Client&lt;br/&gt;GET /runs/42&quot;] --&gt; R
-</pre>
+  W1 --&gt; D["Dead-letter queue&lt;br/&gt;after max retries"]
+  C2["Client&lt;br/&gt;GET /runs/42"] --&gt; R
+</code></pre>
 <p>The result backend matters because the API process and the worker are different processes on different machines. They cannot share memory, so the worker must write the status somewhere the API can read.</p>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
 <ol>

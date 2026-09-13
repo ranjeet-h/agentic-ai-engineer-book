@@ -239,17 +239,17 @@ Let me know if you need anything else.
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Imagine a road with a fence on both sides. Without the fence, a driver can drift anywhere; you can only check afterward where they ended up. With the fence, the car physically cannot leave the road. That is constrained decoding: the invalid paths are removed <em>while driving</em>, not punished afterward.</p>
 <p>A JSON Schema is the fence plan. The provider compiles it into a <strong>grammar</strong>: a state machine describing which token sequences are valid. At each generation step the engine looks at the current state, computes the set of tokens that keep the output valid, and forbids every other token. Then it samples among the allowed ones as usual.</p>
-<pre class="mermaid">flowchart LR
-    A[&quot;Pydantic model&lt;br/&gt;or JSON Schema&quot;] --&gt; B[&quot;compile to grammar&lt;br/&gt;state machine&quot;]
-    B --&gt; C[&quot;at each step,&lt;br/&gt;mask invalid tokens&quot;]
-    C --&gt; D[&quot;sample next token&lt;br/&gt;from allowed set&quot;]
-    D --&gt; E{&quot;grammar&lt;br/&gt;complete?&quot;}
+<pre><code class="language-mermaid">flowchart LR
+    A["Pydantic model&lt;br/&gt;or JSON Schema"] --&gt; B["compile to grammar&lt;br/&gt;state machine"]
+    B --&gt; C["at each step,&lt;br/&gt;mask invalid tokens"]
+    C --&gt; D["sample next token&lt;br/&gt;from allowed set"]
+    D --&gt; E{"grammar&lt;br/&gt;complete?"}
     E --&gt;|no| C
-    E --&gt;|yes| F[&quot;valid JSON string&quot;]
-    F --&gt; G[&quot;validate again&lt;br/&gt;with Pydantic&quot;]
-    G --&gt;|invalid| H[&quot;retry with error&lt;br/&gt;in the prompt&quot;]
-    G --&gt;|valid| I[&quot;typed object&quot;]
-</pre>
+    E --&gt;|yes| F["valid JSON string"]
+    F --&gt; G["validate again&lt;br/&gt;with Pydantic"]
+    G --&gt;|invalid| H["retry with error&lt;br/&gt;in the prompt"]
+    G --&gt;|valid| I["typed object"]
+</code></pre>
 <p>The important consequence: with true constrained decoding, the output is <strong>syntactically guaranteed</strong>. It is not guaranteed to be <strong>semantically correct</strong>. A schema can force <code>action</code> to be one of three strings, but it cannot make the model choose the right one. Structured output removes parsing failures, not reasoning failures.</p>
 <div class="table-wrapper"><table><thead><tr><th>Approach</th><th>What it guarantees</th><th>Typical failure</th></tr></thead><tbody>
 <tr><td>Prompt only</td><td>Nothing</td><td>Prose, markdown fences, wrong fields</td></tr>

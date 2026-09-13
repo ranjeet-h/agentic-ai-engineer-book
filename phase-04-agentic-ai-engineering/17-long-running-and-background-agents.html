@@ -232,19 +232,19 @@ def handle_request(ticket: str) -&gt; str:
 </ul>
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of a restaurant. You do not stand in the kitchen while your food cooks. The waiter writes your order on a ticket, clips it to a rail, and hands you a number. The kitchen (workers) pulls tickets and cooks. The rail (the queue) holds tickets in order and survives a busy shift. You can watch progress, and occasionally ask to cancel.</p>
-<pre class="mermaid">flowchart LR
-    C[&quot;Client&lt;br/&gt;POST /tickets&quot;] --&gt; A[&quot;API&lt;br/&gt;validate + enqueue&quot;]
-    A --&gt; Q[(&quot;Job queue&lt;br/&gt;durable&quot;)]
-    Q --&gt; W1[&quot;Worker 1&quot;]
-    Q --&gt; W2[&quot;Worker 2&quot;]
-    W1 --&gt; P[&quot;Progress events&quot;]
+<pre><code class="language-mermaid">flowchart LR
+    C["Client&lt;br/&gt;POST /tickets"] --&gt; A["API&lt;br/&gt;validate + enqueue"]
+    A --&gt; Q[("Job queue&lt;br/&gt;durable")]
+    Q --&gt; W1["Worker 1"]
+    Q --&gt; W2["Worker 2"]
+    W1 --&gt; P["Progress events"]
     W2 --&gt; P
-    P --&gt; S[(&quot;Status store&quot;)]
+    P --&gt; S[("Status store")]
     S --&gt; C
-    W1 --&gt; D[(&quot;Durable state&lt;br/&gt;checkpoints&quot;)]
-    W1 -.-&gt;|&quot;cancel / timeout / budget&quot;| X[&quot;Stop cleanly&quot;]
-    B[&quot;Scheduler&lt;br/&gt;cron&quot;] --&gt; Q
-</pre>
+    W1 --&gt; D[("Durable state&lt;br/&gt;checkpoints")]
+    W1 -.-&gt;|"cancel / timeout / budget"| X["Stop cleanly"]
+    B["Scheduler&lt;br/&gt;cron"] --&gt; Q
+</code></pre>
 <p>The rail is the important part. If you keep jobs only in memory, a restart loses them. A <strong>durable queue</strong> (SQS, RabbitMQ, Redis with persistence, or a database table) holds the work until a worker ACKs it.</p>
 <p>The second important part is that <strong>the worker must be able to stop and restart a job</strong>. A handler that ran from the top is all-or-nothing. A worker that records each completed step can resume.</p>
 <div class="table-wrapper"><table><thead><tr><th>Approach</th><th>Survives restart?</th><th>Client gets an answer fast?</th><th>Can cancel?</th><th>Cost visible?</th></tr></thead><tbody>

@@ -220,17 +220,17 @@
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Picture a desk. The <strong>context window</strong> is how large the desk is. The <strong>KV cache</strong> is a pad of sticky notes where you write down everything said so far, so you never have to reread the whole conversation to answer the next question.</p>
 <p>Without the notes, every new sentence forces you to reread the entire transcript from the beginning. That is the no-cache case. With the notes, you read the new sentence, glance at the pad, and answer. Much faster — but the pad grows with the conversation, and the desk can only hold so many pads.</p>
-<pre class="mermaid">flowchart LR
-    A[&quot;prompt tokens&quot;] --&gt; B[&quot;PREFILL&lt;br/&gt;all tokens at once&quot;]
-    B --&gt; C[&quot;first token&quot;]
-    B --&gt; D[&quot;KV cache&lt;br/&gt;store K,V per layer&quot;]
-    C --&gt; E[&quot;DECODE&lt;br/&gt;one token per step&quot;]
-    E --&gt;|&quot;attend to cache&quot;| D
-    E --&gt;|&quot;append new K,V&quot;| D
-    E --&gt; F[&quot;next token&quot;]
-    F --&gt;|&quot;repeat&quot;| E
-    F --&gt; G[&quot;EOS or max_tokens&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart LR
+    A["prompt tokens"] --&gt; B["PREFILL&lt;br/&gt;all tokens at once"]
+    B --&gt; C["first token"]
+    B --&gt; D["KV cache&lt;br/&gt;store K,V per layer"]
+    C --&gt; E["DECODE&lt;br/&gt;one token per step"]
+    E --&gt;|"attend to cache"| D
+    E --&gt;|"append new K,V"| D
+    E --&gt; F["next token"]
+    F --&gt;|"repeat"| E
+    F --&gt; G["EOS or max_tokens"]
+</code></pre>
 <p>The cache size is not a mystery. Each token contributes one key vector and one value vector, for every layer and every key/value head:</p>
 <pre><code class="language-text">KV bytes per token = 2  x  n_layers  x  n_kv_heads  x  head_dim  x  bytes_per_number
                      ^

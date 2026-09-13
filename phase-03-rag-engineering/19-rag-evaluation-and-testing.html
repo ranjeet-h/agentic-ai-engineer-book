@@ -238,33 +238,33 @@
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think about how a backend team tests a web service. They do not click around the UI and call it tested. They write unit tests for each function, integration tests for the wiring, and a smoke test for the real endpoint. CI runs all of it on every commit. Production has dashboards for errors and latency. That is a mature test strategy, and RAG needs exactly the same shape.</p>
 <p>RAG evaluation has two loops that connect:</p>
-<pre class="mermaid">flowchart TD
-    subgraph Offline[&quot;Offline (every change, in CI)&quot;]
-        Q[&quot;Eval set&lt;br/&gt;real + synthetic questions&quot;] --&gt; R[&quot;Run pipeline&quot;]
-        R --&gt; M[&quot;Retrieval metrics&lt;br/&gt;+ generation metrics&quot;]
-        M --&gt; G{&quot;Gate: did any metric&lt;br/&gt;regress below threshold?&quot;}
-        G --&gt;|yes| F[&quot;Fail the build&lt;br/&gt;block the merge&quot;]
-        G --&gt;|no| P[&quot;Merge and deploy&quot;]
+<pre><code class="language-mermaid">flowchart TD
+    subgraph Offline["Offline (every change, in CI)"]
+        Q["Eval set&lt;br/&gt;real + synthetic questions"] --&gt; R["Run pipeline"]
+        R --&gt; M["Retrieval metrics&lt;br/&gt;+ generation metrics"]
+        M --&gt; G{"Gate: did any metric&lt;br/&gt;regress below threshold?"}
+        G --&gt;|yes| F["Fail the build&lt;br/&gt;block the merge"]
+        G --&gt;|no| P["Merge and deploy"]
     end
-    P --&gt; O[&quot;Production traffic&quot;]
-    O --&gt; S[&quot;Online signals&lt;br/&gt;thumbs, escalations,&lt;br/&gt;refusal rate, latency&quot;]
-    S --&gt; A[&quot;Collect failures&lt;br/&gt;into new eval questions&quot;]
+    P --&gt; O["Production traffic"]
+    O --&gt; S["Online signals&lt;br/&gt;thumbs, escalations,&lt;br/&gt;refusal rate, latency"]
+    S --&gt; A["Collect failures&lt;br/&gt;into new eval questions"]
     A --&gt; Q
-</pre>
+</code></pre>
 <p>The arrow from production back into the eval set is what makes the system improve. Every real failure becomes a permanent test, so the same bug cannot return. This is exactly how a good software team turns an incident into a regression test.</p>
 <p>Inside the pipeline, measurement points give you attribution. This is the part interviewers care about most:</p>
-<pre class="mermaid">flowchart LR
-    Q[&quot;Question&quot;] --&gt; R[&quot;Retrieve&quot;]
-    R --&gt; RM[&quot;Retrieval metrics&lt;br/&gt;Recall@K, NDCG@K&quot;]
-    RM --&gt; RR[&quot;Rerank&quot;]
-    RR --&gt; C[&quot;Build context&quot;]
-    C --&gt; CM[&quot;Context relevance&quot;]
-    CM --&gt; G[&quot;Generate&quot;]
-    G --&gt; GM[&quot;Faithfulness,&lt;br/&gt;answer relevance&quot;]
-    GM --&gt; V{&quot;Wrong answer?&quot;}
-    V --&gt;|recall low| F1[&quot;Retrieval fault:&lt;br/&gt;fix index, chunking, query&quot;]
-    V --&gt;|recall good,&lt;br/&gt;faithfulness low| F2[&quot;Generation fault:&lt;br/&gt;fix prompt, model, context&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart LR
+    Q["Question"] --&gt; R["Retrieve"]
+    R --&gt; RM["Retrieval metrics&lt;br/&gt;Recall@K, NDCG@K"]
+    RM --&gt; RR["Rerank"]
+    RR --&gt; C["Build context"]
+    C --&gt; CM["Context relevance"]
+    CM --&gt; G["Generate"]
+    G --&gt; GM["Faithfulness,&lt;br/&gt;answer relevance"]
+    GM --&gt; V{"Wrong answer?"}
+    V --&gt;|recall low| F1["Retrieval fault:&lt;br/&gt;fix index, chunking, query"]
+    V --&gt;|recall good,&lt;br/&gt;faithfulness low| F2["Generation fault:&lt;br/&gt;fix prompt, model, context"]
+</code></pre>
 <p>That decision tree is the single most useful thing on this page. <strong>Check recall first.</strong> It is cheap, it is upstream, and it eliminates a whole class of causes.</p>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
 <ol>

@@ -227,14 +227,14 @@
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Picture a <strong>single shared whiteboard in an office</strong>, not a notebook per person. Everyone can read it instantly. When someone writes, they write one whole line at a time — no one can interrupt halfway through a line. That “one line at a time” rule is what makes commands like <code>INCR</code> safe.</p>
 <p>The second half of the model is <strong>where the whiteboard lives</strong>. It is RAM, which is fast and volatile. Redis can periodically photograph the whiteboard (RDB) or write down every change in a journal (AOF), but the primary copy is still in memory. If the machine dies before the photo, recent writes are lost.</p>
-<pre class="mermaid">flowchart LR
-    A[&quot;API server 1&quot;] --&gt; R[&quot;Redis&lt;br/&gt;(shared, in RAM)&quot;]
-    B[&quot;API server 2&quot;] --&gt; R
-    C[&quot;Agent worker&quot;] --&gt; R
-    R --&gt;|&quot;cache miss&quot;| D[&quot;PostgreSQL&lt;br/&gt;(source of truth)&quot;]
-    D --&gt;|&quot;fill with TTL&quot;| R
-    R --&gt;|&quot;RDB / AOF&quot;| E[&quot;Disk&lt;br/&gt;(survives restart)&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart LR
+    A["API server 1"] --&gt; R["Redis&lt;br/&gt;(shared, in RAM)"]
+    B["API server 2"] --&gt; R
+    C["Agent worker"] --&gt; R
+    R --&gt;|"cache miss"| D["PostgreSQL&lt;br/&gt;(source of truth)"]
+    D --&gt;|"fill with TTL"| R
+    R --&gt;|"RDB / AOF"| E["Disk&lt;br/&gt;(survives restart)"]
+</code></pre>
 <p>The mental model to carry into an interview:</p>
 <blockquote>
 <p>Redis is a shared dictionary with atomic commands and optional expiry. It is fast because it is in memory and single-threaded; it is risky as a database because memory is volatile, and it is dangerous when one slow command blocks everyone.</p>

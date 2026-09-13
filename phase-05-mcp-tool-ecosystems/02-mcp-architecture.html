@@ -228,19 +228,19 @@
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of an office building. The <strong>host</strong> is the building and its reception desk. Each <strong>client</strong> is a dedicated phone line to one external supplier. Each <strong>server</strong> is that supplier. The receptionist (host) knows every line, decides who may call whom, and records what was said. The supplier never wanders the building.</p>
 <p>The shape is <strong>1 host : N clients : M servers</strong>. The counts are not symmetric, and that is the whole point.</p>
-<pre class="mermaid">flowchart TD
-    H[&quot;Host application&lt;br/&gt;model · UI · policy · audit&quot;]
-    H --&gt; C1[&quot;Client 1&quot;]
-    H --&gt; C2[&quot;Client 2&quot;]
-    H --&gt; C3[&quot;Client 3&quot;]
-    C1 &lt;--&gt;|&quot;stdio&quot;| S1[&quot;Server: filesystem&quot;]
-    C2 &lt;--&gt;|&quot;streamable HTTP&quot;| S2[&quot;Server: database&quot;]
-    C3 &lt;--&gt;|&quot;streamable HTTP&quot;| S3[&quot;Server: GitHub&quot;]
-    S2 -.-&gt;|&quot;many clients may share&quot;| H2[&quot;Another host&quot;]
-    H -.-&gt;|&quot;trust boundary: validate, allow, log&quot;| C1
+<pre><code class="language-mermaid">flowchart TD
+    H["Host application&lt;br/&gt;model · UI · policy · audit"]
+    H --&gt; C1["Client 1"]
+    H --&gt; C2["Client 2"]
+    H --&gt; C3["Client 3"]
+    C1 &lt;--&gt;|"stdio"| S1["Server: filesystem"]
+    C2 &lt;--&gt;|"streamable HTTP"| S2["Server: database"]
+    C3 &lt;--&gt;|"streamable HTTP"| S3["Server: GitHub"]
+    S2 -.-&gt;|"many clients may share"| H2["Another host"]
+    H -.-&gt;|"trust boundary: validate, allow, log"| C1
     H -.-&gt; C2
     H -.-&gt; C3
-</pre>
+</code></pre>
 <p>Read it as rules, not boxes:</p>
 <ul>
 <li><strong>One host, many clients.</strong> The host is a single policy point. It can see every tool call in the whole app.</li>
@@ -321,7 +321,7 @@ CLIENT -&gt; {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{
               "io.modelcontextprotocol/clientCapabilities":{}}}}
 </code></pre>
 <p>There is no handshake to keep alive. Every request repeats its metadata in <code>_meta</code>, so any server instance can serve any request. That is what makes a plain round-robin load balancer possible.</p>
-<pre class="mermaid">sequenceDiagram
+<pre><code class="language-mermaid">sequenceDiagram
     participant C as Client
     participant S as Server
     C-&gt;&gt;S: server/discover (version + capabilities)
@@ -331,10 +331,10 @@ CLIENT -&gt; {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{
     C-&gt;&gt;S: tools/call {name, arguments}
     S--&gt;&gt;C: content + isError
     Note over C,S: if the server needs input (MRTR)
-    S--&gt;&gt;C: resultType &quot;input_required&quot;
+    S--&gt;&gt;C: resultType "input_required"
     C-&gt;&gt;S: retry with inputResponses
     C-&gt;&gt;S: close transport
-</pre>
+</code></pre>
 <h3 id="what-crosses-the-boundary"><a class="header" href="#what-crosses-the-boundary">What crosses the boundary</a></h3>
 <p>Not everything is allowed in both directions. The protocol is deliberately asymmetric.</p>
 <div class="table-wrapper"><table><thead><tr><th>Direction</th><th>Examples</th><th>Notes</th></tr></thead><tbody>

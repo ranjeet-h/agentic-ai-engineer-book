@@ -233,19 +233,19 @@ allowed = [r for r in results if can_see(user, r)]   # filters afterwards
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Picture a law library with public shelves and a locked archive. A good librarian reads your badge, walks only to the shelves you may use, and brings back those folders. A bad librarian grabs every folder on every shelf, spreads them on the desk, and hides the classified ones behind a screen. The classified pages have already entered the room — and the librarian’s notes, the sign-out sheet, and the photocopier all saw them.</p>
 <p>Query-time enforcement is the good librarian. Post-filtering is the bad one.</p>
-<pre class="mermaid">flowchart TD
-    A[&quot;Request + credential&quot;] --&gt; B[&quot;Authenticate&lt;br/&gt;who are you?&quot;]
-    B --&gt; C[&quot;Resolve attributes&lt;br/&gt;tenant, groups, roles, clearance&quot;]
-    C --&gt; D[&quot;Load policy&lt;br/&gt;source of truth&quot;]
-    D --&gt; E[&quot;Compile ACL filter&quot;]
-    E --&gt; F[&quot;Retrieval store&lt;br/&gt;RLS / pre-filter / namespace&quot;]
-    F --&gt;|&quot;allowed chunks only&quot;| G[&quot;Scan retrieved text&lt;br/&gt;injection + PII&quot;]
-    G --&gt; H[&quot;Prompt with provenance labels&quot;]
-    H --&gt; I[&quot;Model generates answer&quot;]
-    I --&gt; J[&quot;Output guard&lt;br/&gt;PII + egress control&quot;]
-    J --&gt; K[&quot;Audit: allow, deny, doc ids&quot;]
-    F --&gt;|&quot;restricted rows&quot;| X[&quot;Never fetched&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart TD
+    A["Request + credential"] --&gt; B["Authenticate&lt;br/&gt;who are you?"]
+    B --&gt; C["Resolve attributes&lt;br/&gt;tenant, groups, roles, clearance"]
+    C --&gt; D["Load policy&lt;br/&gt;source of truth"]
+    D --&gt; E["Compile ACL filter"]
+    E --&gt; F["Retrieval store&lt;br/&gt;RLS / pre-filter / namespace"]
+    F --&gt;|"allowed chunks only"| G["Scan retrieved text&lt;br/&gt;injection + PII"]
+    G --&gt; H["Prompt with provenance labels"]
+    H --&gt; I["Model generates answer"]
+    I --&gt; J["Output guard&lt;br/&gt;PII + egress control"]
+    J --&gt; K["Audit: allow, deny, doc ids"]
+    F --&gt;|"restricted rows"| X["Never fetched"]
+</code></pre>
 <p>The critical edge is <code>F -&gt; X</code>: denied content does not merely fail to appear in the answer. It is never retrieved, so it cannot leak through a cache, a log, or a later bug.</p>
 <div class="table-wrapper"><table><thead><tr><th>Layer</th><th>Question it answers</th><th>Example control</th></tr></thead><tbody>
 <tr><td>Authentication</td><td>Who is calling?</td><td>Signed token, mTLS (mutual TLS: client and server each present a certificate), session</td></tr>

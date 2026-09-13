@@ -226,19 +226,19 @@ graph.invoke({"messages": ["hello"], "plan": ["search", "draft"]})
 </ul>
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of a video game. The <strong>checkpointer</strong> is the save system: it writes your position after every level, under a slot name (the <code>thread_id</code>). The <strong>interrupt</strong> is a cutscene that asks you a question and waits. When you answer, the game resumes from exactly where it paused.</p>
-<pre class="mermaid">flowchart TD
-    R[&quot;invoke(input, thread_id)&quot;] --&gt; N1[&quot;node runs&quot;]
-    N1 --&gt; CP[(&quot;Checkpoint&lt;br/&gt;state saved&quot;)]
-    CP --&gt; Q{&quot;interrupt?&quot;}
-    Q --&gt;|&quot;no&quot;| N2[&quot;next node&quot;]
-    Q --&gt;|&quot;yes&quot;| STOP[&quot;Return to caller&lt;br/&gt;with __interrupt__ payload&quot;]
-    STOP --&gt; HUMAN[&quot;Human decides&quot;]
-    HUMAN --&gt; RESUME[&quot;invoke(Command(resume=value))&quot;]
+<pre><code class="language-mermaid">flowchart TD
+    R["invoke(input, thread_id)"] --&gt; N1["node runs"]
+    N1 --&gt; CP[("Checkpoint&lt;br/&gt;state saved")]
+    CP --&gt; Q{"interrupt?"}
+    Q --&gt;|"no"| N2["next node"]
+    Q --&gt;|"yes"| STOP["Return to caller&lt;br/&gt;with __interrupt__ payload"]
+    STOP --&gt; HUMAN["Human decides"]
+    HUMAN --&gt; RESUME["invoke(Command(resume=value))"]
     RESUME --&gt; CP
-    N2 --&gt; DONE[&quot;END&quot;]
-    CP --&gt; HIST[(&quot;History&lt;br/&gt;get_state_history&quot;)]
-    HIST --&gt; TT[&quot;Time travel:&lt;br/&gt;rewind and edit&quot;]
-</pre>
+    N2 --&gt; DONE["END"]
+    CP --&gt; HIST[("History&lt;br/&gt;get_state_history")]
+    HIST --&gt; TT["Time travel:&lt;br/&gt;rewind and edit"]
+</code></pre>
 <p>The state is saved <strong>after every superstep</strong>, not only at the end. That is what makes resume cheap: at most one step is replayed. The cost is storage — a long run with a large state writes many checkpoints, so checkpointer choice and retention matter.</p>
 <div class="table-wrapper"><table><thead><tr><th>Checkpointer</th><th>Lives in</th><th>Survives process restart?</th><th>Use it for</th></tr></thead><tbody>
 <tr><td><code>InMemorySaver</code></td><td>Process memory</td><td>No</td><td>Tests, notebooks, local demos</td></tr>

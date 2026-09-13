@@ -241,14 +241,14 @@
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of an image as a stack of transparent sheets. Each Dockerfile instruction adds a sheet with the file changes it made. Sheets are <strong>shared and cached</strong>: if two images both start from <code>python:3.12-slim</code> and run the same <code>pip install</code>, they reuse the same sheet.</p>
 <p>Starting a container adds one more transparent sheet on top — the writable layer — that lasts only as long as the container. That is why data written inside a container disappears when it is replaced, and why databases need a <strong>volume</strong>.</p>
-<pre class="mermaid">flowchart LR
-  D[&quot;Dockerfile&lt;br/&gt;instructions&quot;] --&gt; B[&quot;BuildKit build&quot;]
-  B --&gt; I[&quot;Image&lt;br/&gt;layers + metadata&quot;]
-  I --&gt; R[&quot;Registry&lt;br/&gt;tag + digest&quot;]
-  R --&gt; P[&quot;Pull on any machine&quot;]
-  P --&gt; C[&quot;Container&lt;br/&gt;image + writable layer&quot;]
-  C --&gt; V[&quot;Volume&lt;br/&gt;durable data&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart LR
+  D["Dockerfile&lt;br/&gt;instructions"] --&gt; B["BuildKit build"]
+  B --&gt; I["Image&lt;br/&gt;layers + metadata"]
+  I --&gt; R["Registry&lt;br/&gt;tag + digest"]
+  R --&gt; P["Pull on any machine"]
+  P --&gt; C["Container&lt;br/&gt;image + writable layer"]
+  C --&gt; V["Volume&lt;br/&gt;durable data"]
+</code></pre>
 <p>The caching rule is the single most important thing to internalise: <strong>a layer is reused only if the instruction and every parent layer are unchanged.</strong> So order matters. Put things that change rarely (system packages, dependencies) early, and things that change often (your source code) late.</p>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
 <ol>

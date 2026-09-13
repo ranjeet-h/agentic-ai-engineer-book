@@ -242,15 +242,15 @@ fine-tune for code review       -&gt; 14 GB checkpoint
 <li><code>B @ A</code> has the same shape as <code>W</code>, but it can only express “low-rank” changes.</li>
 </ul>
 <p>The claim LoRA makes is that the change needed to adapt a model is itself close to low-rank: it does not need a full-size matrix to describe it.</p>
-<pre class="mermaid">flowchart LR
-    X[&quot;input x&quot;] --&gt; W[&quot;frozen W&lt;br/&gt;(no gradient)&quot;]
-    X --&gt; A[&quot;A&lt;br/&gt;(r x d_in)&lt;br/&gt;trained&quot;]
-    A --&gt; B[&quot;B&lt;br/&gt;(d_out x r)&lt;br/&gt;trained&quot;]
-    B --&gt; S[&quot;scale by alpha/r&quot;]
-    W --&gt; ADD[&quot;+&quot;]
+<pre><code class="language-mermaid">flowchart LR
+    X["input x"] --&gt; W["frozen W&lt;br/&gt;(no gradient)"]
+    X --&gt; A["A&lt;br/&gt;(r x d_in)&lt;br/&gt;trained"]
+    A --&gt; B["B&lt;br/&gt;(d_out x r)&lt;br/&gt;trained"]
+    B --&gt; S["scale by alpha/r"]
+    W --&gt; ADD["+"]
     S --&gt; ADD
-    ADD --&gt; Y[&quot;output&quot;]
-</pre>
+    ADD --&gt; Y["output"]
+</code></pre>
 <p>At the very start of training <code>B</code> is set to zero, so <code>B @ A</code> is zero and the model behaves exactly like the base model. Training then moves away from that safe starting point. That is why LoRA never makes the model worse on day zero.</p>
 <p>Here is why the parameter count drops so much. For one square matrix of width 4096, full training changes <code>4096 x 4096 = 16,777,216</code> weights. LoRA with <code>r = 8</code> changes <code>8 x 4096 + 4096 x 8 = 65,536</code> weights. That is <strong>0.39%</strong> of the original, and the frozen base is untouched.</p>
 <div class="table-wrapper"><table><thead><tr><th></th><th>Full fine-tuning</th><th>LoRA</th></tr></thead><tbody>

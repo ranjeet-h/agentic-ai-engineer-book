@@ -240,19 +240,19 @@
 <li>Even a great worker cannot take a job the client is not <strong>authorized</strong> to offer — this is permission.</li>
 <li>If the chosen worker is busy or unavailable, the client moves to the <strong>next candidate</strong> — this is fallback.</li>
 </ul>
-<pre class="mermaid">flowchart TD
-    P1[&quot;Peer: billing&lt;br/&gt;skill: refund&quot;] --&gt; REG[&quot;Capability registry&lt;br/&gt;index by skill, tag, version&quot;]
-    P2[&quot;Peer: compliance&lt;br/&gt;skill: policy-check&quot;] --&gt; REG
-    P3[&quot;Peer: docs&lt;br/&gt;skill: answer&quot;] --&gt; REG
-    T[&quot;Task arrives:&lt;br/&gt;'refund order A-100'&quot;] --&gt; M{&quot;Match task to skills&quot;}
+<pre><code class="language-mermaid">flowchart TD
+    P1["Peer: billing&lt;br/&gt;skill: refund"] --&gt; REG["Capability registry&lt;br/&gt;index by skill, tag, version"]
+    P2["Peer: compliance&lt;br/&gt;skill: policy-check"] --&gt; REG
+    P3["Peer: docs&lt;br/&gt;skill: answer"] --&gt; REG
+    T["Task arrives:&lt;br/&gt;'refund order A-100'"] --&gt; M{"Match task to skills"}
     REG --&gt; M
-    M --&gt; CAND[&quot;Candidates: billing, other-refund-peer&quot;]
-    CAND --&gt; TST{&quot;Trust + verification&lt;br/&gt;+ health probe&quot;}
-    TST --&gt; PERM{&quot;Permission:&lt;br/&gt;may this caller invoke&lt;br/&gt;this skill?&quot;}
-    PERM --&gt;|&quot;yes&quot;| INV[&quot;Invoke peer&lt;br/&gt;via A2A task&quot;]
-    PERM --&gt;|&quot;no&quot;| DENY[&quot;Deny + audit&quot;]
-    CAND -.-&gt;|&quot;no eligible peer&quot;| FB[&quot;Fallback: local tool&lt;br/&gt;or ask the user&quot;]
-</pre>
+    M --&gt; CAND["Candidates: billing, other-refund-peer"]
+    CAND --&gt; TST{"Trust + verification&lt;br/&gt;+ health probe"}
+    TST --&gt; PERM{"Permission:&lt;br/&gt;may this caller invoke&lt;br/&gt;this skill?"}
+    PERM --&gt;|"yes"| INV["Invoke peer&lt;br/&gt;via A2A task"]
+    PERM --&gt;|"no"| DENY["Deny + audit"]
+    CAND -.-&gt;|"no eligible peer"| FB["Fallback: local tool&lt;br/&gt;or ask the user"]
+</code></pre>
 <p>Discovery finds candidates. Verification narrows them. Permission decides whether the call may happen. Fallback handles the case where the answer is no candidate at all.</p>
 <div class="table-wrapper"><table><thead><tr><th>Layer</th><th>Question</th><th>Where it lives</th><th>Failure if skipped</th></tr></thead><tbody>
 <tr><td>Discovery</td><td>Who offers this skill?</td><td>Registry, well-known cards</td><td>Stale or missing peers</td></tr>

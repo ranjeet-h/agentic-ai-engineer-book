@@ -236,25 +236,25 @@ read_file("escape")  # passes a naive "starts with /srv/sandbox" check
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of a hotel safe-deposit box. The clerk can fetch and store items in <strong>your</strong> box, and only your box. The clerk has no authority over the rest of the building, even if asked politely. The box number is checked against your booking every time.</p>
 <p>The sandbox root is the box. The containment check is the booking check. It must run on the <strong>canonical</strong> path, after <code>..</code> and symlinks are applied:</p>
-<pre class="mermaid">flowchart TD
-    U[&quot;Requested path&lt;br/&gt;'reports/../../etc/passwd'&quot;] --&gt; AB{&quot;Absolute path?&quot;}
-    AB --&gt;|&quot;yes&quot;| X[&quot;Reject&quot;]
-    AB --&gt;|&quot;no&quot;| N{&quot;Any null byte?&quot;}
-    N --&gt;|&quot;yes&quot;| X
-    N --&gt;|&quot;no&quot;| J[&quot;Join to sandbox root&quot;]
-    J --&gt; R[&quot;resolve() to canonical path&lt;br/&gt;follow '.', '..', symlinks&quot;]
-    R --&gt; C{&quot;is_relative_to(root)?&quot;}
-    C --&gt;|&quot;no&quot;| X
-    C --&gt;|&quot;yes&quot;| S{&quot;Type, size, extension OK?&quot;}
-    S --&gt;|&quot;no&quot;| X
-    S --&gt;|&quot;yes&quot;| P{&quot;Read or write?&quot;}
-    P --&gt;|&quot;read&quot;| RD[&quot;Return contents, capped + typed&quot;]
-    P --&gt;|&quot;write&quot;| A{&quot;Approved?&quot;}
-    A --&gt;|&quot;no&quot;| X
-    A --&gt;|&quot;yes&quot;| W[&quot;Atomic write via temp + replace&quot;]
-    RD --&gt; L[&quot;Audit log&quot;]
+<pre><code class="language-mermaid">flowchart TD
+    U["Requested path&lt;br/&gt;'reports/../../etc/passwd'"] --&gt; AB{"Absolute path?"}
+    AB --&gt;|"yes"| X["Reject"]
+    AB --&gt;|"no"| N{"Any null byte?"}
+    N --&gt;|"yes"| X
+    N --&gt;|"no"| J["Join to sandbox root"]
+    J --&gt; R["resolve() to canonical path&lt;br/&gt;follow '.', '..', symlinks"]
+    R --&gt; C{"is_relative_to(root)?"}
+    C --&gt;|"no"| X
+    C --&gt;|"yes"| S{"Type, size, extension OK?"}
+    S --&gt;|"no"| X
+    S --&gt;|"yes"| P{"Read or write?"}
+    P --&gt;|"read"| RD["Return contents, capped + typed"]
+    P --&gt;|"write"| A{"Approved?"}
+    A --&gt;|"no"| X
+    A --&gt;|"yes"| W["Atomic write via temp + replace"]
+    RD --&gt; L["Audit log"]
     W --&gt; L
-</pre>
+</code></pre>
 <p>The same check protects MCP tools and MCP resources. The SDK’s server validates resource paths for traversal and absolute paths by default, but a tool that takes a <code>path</code> argument has no such automatic protection. You must call your own safe-path function in every tool.</p>
 <div class="table-wrapper"><table><thead><tr><th>Tool design</th><th>Risk</th><th>Notes</th></tr></thead><tbody>
 <tr><td><code>read_file(path)</code></td><td>Medium</td><td>Needs containment, size cap, binary policy.</td></tr>

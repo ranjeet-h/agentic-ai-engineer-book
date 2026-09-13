@@ -238,21 +238,21 @@ systemctl restart app
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of an assembly line with quality gates. Every commit enters at one end. It is inspected (lint, types, tests), assembled into a sealed package (the image), stamped with a serial number (the commit SHA), and only then moved to the shipping dock. The same sealed package goes to staging and production — nothing is rebuilt at the destination, because rebuilding would produce a slightly different package.</p>
 <p>That last rule has a name: <strong>build once, promote everywhere.</strong> The image digest that passed tests is the image that runs in production. If you rebuild per environment, you are shipping an untested artifact.</p>
-<pre class="mermaid">flowchart LR
-  P[&quot;git push&quot;] --&gt; L[&quot;Lint&quot;]
-  P --&gt; Y[&quot;Type check&quot;]
-  P --&gt; U[&quot;Tests (matrix)&quot;]
-  L --&gt; B[&quot;Build image&lt;br/&gt;tag = commit SHA&quot;]
+<pre><code class="language-mermaid">flowchart LR
+  P["git push"] --&gt; L["Lint"]
+  P --&gt; Y["Type check"]
+  P --&gt; U["Tests (matrix)"]
+  L --&gt; B["Build image&lt;br/&gt;tag = commit SHA"]
   Y --&gt; B
   U --&gt; B
-  B --&gt; R[&quot;Push to registry&lt;br/&gt;immutable digest&quot;]
-  R --&gt; S[&quot;Deploy staging&quot;]
-  S --&gt; G{&quot;Approval gate&quot;}
-  G --&gt;|approved| PR[&quot;Deploy production&quot;]
-  G --&gt;|rejected| X[&quot;Stop&quot;]
-  PR --&gt; SM[&quot;Smoke test&quot;]
-  SM --&gt;|fail| RB[&quot;Roll back to&lt;br/&gt;previous digest&quot;]
-</pre>
+  B --&gt; R["Push to registry&lt;br/&gt;immutable digest"]
+  R --&gt; S["Deploy staging"]
+  S --&gt; G{"Approval gate"}
+  G --&gt;|approved| PR["Deploy production"]
+  G --&gt;|rejected| X["Stop"]
+  PR --&gt; SM["Smoke test"]
+  SM --&gt;|fail| RB["Roll back to&lt;br/&gt;previous digest"]
+</code></pre>
 <p>Three rollout strategies cover almost every service:</p>
 <div class="table-wrapper"><table><thead><tr><th>Strategy</th><th>How it works</th><th>Infrastructure cost</th><th>Rollback</th><th>Main risk</th></tr></thead><tbody>
 <tr><td><strong>Rolling</strong></td><td>Replace instances a few at a time</td><td>Low</td><td>Roll forward or re-roll</td><td>Two versions serve traffic during the rollout</td></tr>

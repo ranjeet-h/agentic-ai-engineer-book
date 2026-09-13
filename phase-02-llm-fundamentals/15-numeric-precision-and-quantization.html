@@ -230,13 +230,13 @@
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of a ruler. A 30-centimetre ruler with millimetre marks measures small things precisely but cannot measure a house. A surveyor’s tape measures a house but not to the millimetre. Same idea: you cannot have both extreme range and extreme precision from the same bits. Floating point spends bits on the exponent to get range and on the mantissa to get precision.</p>
 <p>FP32 spends 23 bits on precision. FP16 spends 10, so it is about 8,192 times coarser (2^13) — but it also spends only 5 bits on the exponent, so its largest value is about 65,504, while FP32 reaches about 3.4e38. BF16 keeps 8 exponent bits, so it matches FP32’s range, and pays for it with only 7 mantissa bits.</p>
-<pre class="mermaid">flowchart TD
-    A[&quot;What are you doing?&quot;] --&gt;|training| B[&quot;BF16 compute&lt;br/&gt;+ FP32 master weights&quot;]
-    A --&gt;|inference, max quality| C[&quot;FP16 or BF16 weights&quot;]
-    A --&gt;|inference, save memory| D[&quot;Weight-only INT8 / INT4&quot;]
-    D --&gt; E[&quot;GPU serving&lt;br/&gt;GPTQ / AWQ / bitsandbytes&quot;]
-    D --&gt; F[&quot;CPU or Mac&lt;br/&gt;GGUF via llama.cpp&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart TD
+    A["What are you doing?"] --&gt;|training| B["BF16 compute&lt;br/&gt;+ FP32 master weights"]
+    A --&gt;|inference, max quality| C["FP16 or BF16 weights"]
+    A --&gt;|inference, save memory| D["Weight-only INT8 / INT4"]
+    D --&gt; E["GPU serving&lt;br/&gt;GPTQ / AWQ / bitsandbytes"]
+    D --&gt; F["CPU or Mac&lt;br/&gt;GGUF via llama.cpp"]
+</code></pre>
 <p>Quantization is a separate idea with its own picture. You have a range of real values, say from -6.4 to 6.4. You pick an integer grid, say -127 to 127. You compute one number, the <strong>scale</strong>, that converts between them. Then each weight is rounded to the nearest grid point:</p>
 <pre><code class="language-text">scale = max(abs(W)) / 127
 q     = round(W / scale)        # store q in 8 bits

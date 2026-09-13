@@ -235,16 +235,16 @@
 <li><strong>Convert ranks to comparable numbers.</strong> RRF turns “rank 2” into <code>1/(60+2)</code> and “rank 5” into <code>1/(60+5)</code>, then adds those small numbers across reviewers. Lower rank means a bigger number. Simple, robust, needs no tuning.</li>
 <li><strong>Convert scores to a shared scale.</strong> Normalise each reviewer’s scores, then take a weighted average. This keeps more information — a confident 0.99 and a reluctant 0.51 are both “rank 1” under RRF, but different under normalisation — at the cost of being sensitive to the score distribution.</li>
 </ul>
-<pre class="mermaid">flowchart LR
-    Q[&quot;Query&quot;] --&gt; D[&quot;Dense retriever&lt;br/&gt;embeddings + ANN&quot;]
-    Q --&gt; S[&quot;Sparse retriever&lt;br/&gt;BM25 / tsvector&quot;]
-    D --&gt; DL[&quot;Ranked list&lt;br/&gt;docA, docC, ...&quot;]
-    S --&gt; SL[&quot;Ranked list&lt;br/&gt;docB, docC, ...&quot;]
-    DL --&gt; F[&quot;Fusion&lt;br/&gt;RRF or weighted&lt;br/&gt;normalisation&quot;]
+<pre><code class="language-mermaid">flowchart LR
+    Q["Query"] --&gt; D["Dense retriever&lt;br/&gt;embeddings + ANN"]
+    Q --&gt; S["Sparse retriever&lt;br/&gt;BM25 / tsvector"]
+    D --&gt; DL["Ranked list&lt;br/&gt;docA, docC, ..."]
+    S --&gt; SL["Ranked list&lt;br/&gt;docB, docC, ..."]
+    DL --&gt; F["Fusion&lt;br/&gt;RRF or weighted&lt;br/&gt;normalisation"]
     SL --&gt; F
-    F --&gt; DD[&quot;Deduplicate&quot;]
-    DD --&gt; T[&quot;Top-K&lt;br/&gt;to the LLM&quot;]
-</pre>
+    F --&gt; DD["Deduplicate"]
+    DD --&gt; T["Top-K&lt;br/&gt;to the LLM"]
+</code></pre>
 <div class="table-wrapper"><table><thead><tr><th>Fusion method</th><th>Uses</th><th>Tuning</th><th>Strength</th><th>Weakness</th></tr></thead><tbody>
 <tr><td>RRF</td><td>Ranks only</td><td>One constant, <code>k=60</code></td><td>Robust, no score calibration</td><td>Throws away score confidence</td></tr>
 <tr><td>Min-max + weighted sum</td><td>Scores</td><td>Weight <code>alpha</code></td><td>Keeps confidence</td><td>Sensitive to outliers</td></tr>

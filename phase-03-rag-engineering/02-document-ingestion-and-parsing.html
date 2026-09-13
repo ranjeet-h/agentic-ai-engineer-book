@@ -231,23 +231,23 @@ Problem:           the word "indemnify" exists in no chunk
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of a <strong>photocopying room</strong> in a library. An operator receives boxes of material: printed books, handwritten notes, web printouts, spreadsheets. For each box, they choose the right machine, copy the pages, straighten the images, remove the library’s own stamps, and file the result under a stable catalogue number. If the operator copies a page upside down, the catalogue is wrong forever.</p>
 <p>Ingestion is that room. The pipeline is a set of format-specific extractors feeding one shared normaliser:</p>
-<pre class="mermaid">flowchart TD
-    A[&quot;Raw files&lt;br/&gt;PDF, DOCX, HTML, TXT, MD&quot;] --&gt; B[&quot;Detect type&quot;]
-    B --&gt;|PDF| C1[&quot;pypdf / pdfplumber&quot;]
-    B --&gt;|DOCX| C2[&quot;python-docx&quot;]
-    B --&gt;|HTML| C3[&quot;BeautifulSoup / readability&quot;]
-    B --&gt;|TXT / MD| C4[&quot;read bytes, decode&quot;]
-    C1 --&gt; D[&quot;Text + structure&quot;]
+<pre><code class="language-mermaid">flowchart TD
+    A["Raw files&lt;br/&gt;PDF, DOCX, HTML, TXT, MD"] --&gt; B["Detect type"]
+    B --&gt;|PDF| C1["pypdf / pdfplumber"]
+    B --&gt;|DOCX| C2["python-docx"]
+    B --&gt;|HTML| C3["BeautifulSoup / readability"]
+    B --&gt;|TXT / MD| C4["read bytes, decode"]
+    C1 --&gt; D["Text + structure"]
     C2 --&gt; D
     C3 --&gt; D
     C4 --&gt; D
-    D --&gt; E[&quot;Normalise&lt;br/&gt;unicode, whitespace, hyphenation, headers&quot;]
-    E --&gt; F[&quot;Deduplicate&lt;br/&gt;hash and near-duplicate check&quot;]
-    F --&gt; G[&quot;Attach metadata&lt;br/&gt;source, title, page, date, tenant, ACL&quot;]
-    G --&gt; H[&quot;Chunk and index&quot;]
-    C1 -.-&gt;|&quot;empty text&quot;| X[&quot;Needs OCR&quot;]
+    D --&gt; E["Normalise&lt;br/&gt;unicode, whitespace, hyphenation, headers"]
+    E --&gt; F["Deduplicate&lt;br/&gt;hash and near-duplicate check"]
+    F --&gt; G["Attach metadata&lt;br/&gt;source, title, page, date, tenant, ACL"]
+    G --&gt; H["Chunk and index"]
+    C1 -.-&gt;|"empty text"| X["Needs OCR"]
     X --&gt; D
-</pre>
+</code></pre>
 <p>Each format has one dominant failure mode. Knowing this table is most of the interview:</p>
 <div class="table-wrapper"><table><thead><tr><th>Format</th><th>Primary parser</th><th>What usually goes wrong</th></tr></thead><tbody>
 <tr><td>PDF with a text layer</td><td><code>pypdf</code>, <code>pdfplumber</code></td><td>Reading order, hyphenation, columns merged</td></tr>

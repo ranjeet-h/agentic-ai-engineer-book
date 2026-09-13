@@ -232,10 +232,10 @@ Every call returns "unknown tool", and the agent loops or gives up.
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of plugging a USB device into a laptop. The port does not know what the device is. So the laptop enumerates it: the device declares its class and capabilities, then describes each interface. Only after enumeration does the OS know whether it is a keyboard, a disk, or a camera.</p>
 <p>MCP does the same for capabilities. The handshake — <code>server/discover</code> on 2026-07-28, <code>initialize</code> on legacy servers — is enumeration at the capability level. The <code>*/list</code> calls are enumeration at the item level. The JSON Schema is the device descriptor — the precise shape the other side must speak.</p>
-<pre class="mermaid">sequenceDiagram
+<pre><code class="language-mermaid">sequenceDiagram
     participant C as MCP Client
     participant S as MCP Server
-    alt 2026-07-28 (default mode=&quot;auto&quot;)
+    alt 2026-07-28 (default mode="auto")
         C-&gt;&gt;S: server/discover
         S--&gt;&gt;C: DiscoverResult(supportedVersions, capabilities)
     else legacy server
@@ -254,7 +254,7 @@ Every call returns "unknown tool", and the agent loops or gives up.
     Note over C,S: Later, the catalog changes...
     S--&gt;&gt;C: notifications/tools/list_changed
     C-&gt;&gt;S: tools/list (refetch)
-</pre>
+</code></pre>
 <p>The negotiation is symmetric. The <strong>client</strong> advertises what <em>it</em> can do — for example <code>sampling</code> (let the server ask the client’s model to generate), <code>roots</code> (tell the server which folders are in scope), and <code>elicitation</code> (let the server ask the user for input). The <strong>server</strong> advertises <code>tools</code>, <code>resources</code> (with <code>subscribe</code> and <code>listChanged</code>), <code>prompts</code>, and <code>logging</code>. Each side reads the other’s flags and must not use a feature the other did not declare.</p>
 <div class="table-wrapper"><table><thead><tr><th>Server capability</th><th>Field to check</th><th>If missing</th></tr></thead><tbody>
 <tr><td>Tools</td><td><code>capabilities.tools</code></td><td>Do not call <code>tools/list</code> or <code>tools/call</code>.</td></tr>

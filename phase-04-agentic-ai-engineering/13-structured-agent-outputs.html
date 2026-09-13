@@ -244,16 +244,16 @@ Let me know if you want more.
 <p>Think of an airport departure board versus a handwritten note. The handwritten note says <em>“leave around 6, BA something, terminal maybe 5.”</em> A person can muddle through. The departure board has fixed columns — flight, time, gate, status — and every row must fill them. The board is machine-readable, unambiguous, and any malformed row is obviously wrong.</p>
 <p>An agent’s decision should be a departure board row, not a note. The fixed columns are the <strong>type tag</strong> (<code>action</code>) plus the fields that action requires. A <code>search</code> row must have a <code>query</code>. A <code>finish</code> row must have an <code>answer</code>. A row with an unknown action is rejected before boarding.</p>
 <p>The mechanism is a <strong>discriminated union</strong>. You define one Pydantic model per action, each with a <code>Literal</code> tag. Then you combine them with <code>Field(discriminator="action")</code>. The tag tells the validator which model to check against, so errors point at the right variant.</p>
-<pre class="mermaid">flowchart LR
-    M[&quot;Model output&lt;br/&gt;(text or constrained JSON)&quot;] --&gt; P[&quot;Parse&lt;br/&gt;json.loads or model_validate_json&quot;]
-    P --&gt;|&quot;syntax error&quot;| R[&quot;Retry&lt;br/&gt;with error in prompt&quot;]
-    P --&gt; V{&quot;Validate against&lt;br/&gt;discriminated union&quot;}
-    V --&gt;|&quot;unknown action&lt;br/&gt;wrong fields&quot;| R
-    V --&gt;|&quot;valid tag + fields&quot;| A[&quot;Typed action object&quot;]
-    A --&gt; S{&quot;Business rules&lt;br/&gt;permissions, limits&quot;}
-    S --&gt;|&quot;denied&quot;| B[&quot;Refuse / escalate&quot;]
-    S --&gt;|&quot;allowed&quot;| E[&quot;Execute the action&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart LR
+    M["Model output&lt;br/&gt;(text or constrained JSON)"] --&gt; P["Parse&lt;br/&gt;json.loads or model_validate_json"]
+    P --&gt;|"syntax error"| R["Retry&lt;br/&gt;with error in prompt"]
+    P --&gt; V{"Validate against&lt;br/&gt;discriminated union"}
+    V --&gt;|"unknown action&lt;br/&gt;wrong fields"| R
+    V --&gt;|"valid tag + fields"| A["Typed action object"]
+    A --&gt; S{"Business rules&lt;br/&gt;permissions, limits"}
+    S --&gt;|"denied"| B["Refuse / escalate"]
+    S --&gt;|"allowed"| E["Execute the action"]
+</code></pre>
 <p>The key insight: <strong>valid is not the same as allowed.</strong> The schema proves the object is well-formed. A second, independent check proves the action is permitted. Both must pass before anything with a side effect runs.</p>
 <div class="table-wrapper"><table><thead><tr><th>Approach</th><th>Guarantees</th><th>Typical failure</th></tr></thead><tbody>
 <tr><td>Free text</td><td>Nothing</td><td>Unparseable sentence, wrong intent</td></tr>

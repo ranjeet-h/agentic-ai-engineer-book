@@ -219,17 +219,17 @@
 <p>The two ideas to keep separate are <strong>attention</strong> (tokens exchange information) and the <strong>feed-forward network</strong> (each token is processed independently). Most of the model’s parameters live in the feed-forward layers, while most of the sequence-mixing happens in attention.</p>
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>A transformer is a <strong>factory assembly line</strong>. Raw token embeddings enter one end. Each station (block) does the same two jobs: tokens talk to each other (attention), then each token is thought about individually (feed-forward). A bypass lane (the residual connection) carries the original package alongside every station, so nothing is lost. A quality check (normalisation) keeps the signal at a consistent scale.</p>
-<pre class="mermaid">flowchart TD
-    X[&quot;input embeddings&lt;br/&gt;+ positional info&quot;] --&gt; LN1[&quot;LayerNorm&quot;]
-    LN1 --&gt; ATT[&quot;multi-head&lt;br/&gt;self-attention&quot;]
-    ATT --&gt; ADD1[&quot;+ residual&quot;]
+<pre><code class="language-mermaid">flowchart TD
+    X["input embeddings&lt;br/&gt;+ positional info"] --&gt; LN1["LayerNorm"]
+    LN1 --&gt; ATT["multi-head&lt;br/&gt;self-attention"]
+    ATT --&gt; ADD1["+ residual"]
     X --&gt; ADD1
-    ADD1 --&gt; LN2[&quot;LayerNorm&quot;]
-    LN2 --&gt; FF[&quot;feed-forward&lt;br/&gt;expand · nonlinearity · contract&quot;]
-    FF --&gt; ADD2[&quot;+ residual&quot;]
+    ADD1 --&gt; LN2["LayerNorm"]
+    LN2 --&gt; FF["feed-forward&lt;br/&gt;expand · nonlinearity · contract"]
+    FF --&gt; ADD2["+ residual"]
     ADD1 --&gt; ADD2
-    ADD2 --&gt; NEXT[&quot;next block ...&quot;]
-</pre>
+    ADD2 --&gt; NEXT["next block ..."]
+</code></pre>
 <p>Each block preserves the shape <code>(batch, sequence, d_model)</code>. That is deliberate: because every block consumes and produces the same shape, you can stack any number of them, and the only thing that changes with depth is representational power.</p>
 <p>The three families differ only in which masks and sublayers they keep.</p>
 <div class="table-wrapper"><table><thead><tr><th>Family</th><th>Attention</th><th>Extra sublayer</th><th>Example models</th><th>Typical use</th></tr></thead><tbody>

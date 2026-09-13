@@ -216,16 +216,16 @@
 <p>The pair to keep straight is <strong>forward vs backward</strong>. The forward pass computes values and saves what it needs; the backward pass computes derivatives using those saved values. Confusing which one stores memory is the source of most out-of-memory surprises.</p>
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of a row of gears. You turn the first gear; each gear turns the next; the last gear shows a speed. Backpropagation answers: <em>if I want the final speed to change, how much should I adjust the first gear?</em> It traces the train of gears backward, multiplying the ratio of each gear pair.</p>
-<pre class="mermaid">flowchart LR
-    X[&quot;input x&quot;] --&gt; M1[&quot;multiply&lt;br/&gt;u = w·x + b&quot;]
-    W[&quot;weight w&quot;] --&gt; M1
-    M1 --&gt; M2[&quot;square&lt;br/&gt;y = u²&quot;]
-    M2 --&gt; L[&quot;loss&lt;br/&gt;L = (y - t)²&quot;]
-    T[&quot;target t&quot;] --&gt; L
-    L -. &quot;dL/dy (upstream)&quot; .-&gt; M2
-    M2 -. &quot;dL/du = dL/dy · 2u&quot; .-&gt; M1
-    M1 -. &quot;dL/dw = dL/du · x&quot; .-&gt; W
-</pre>
+<pre><code class="language-mermaid">flowchart LR
+    X["input x"] --&gt; M1["multiply&lt;br/&gt;u = w·x + b"]
+    W["weight w"] --&gt; M1
+    M1 --&gt; M2["square&lt;br/&gt;y = u²"]
+    M2 --&gt; L["loss&lt;br/&gt;L = (y - t)²"]
+    T["target t"] --&gt; L
+    L -. "dL/dy (upstream)" .-&gt; M2
+    M2 -. "dL/du = dL/dy · 2u" .-&gt; M1
+    M1 -. "dL/dw = dL/du · x" .-&gt; W
+</code></pre>
 <p>The solid arrows are the forward pass. The dashed arrows are the backward pass. Each backward arrow multiplies the upstream gradient by a local gradient. That is the entire algorithm.</p>
 <p>Why it is efficient: the forward pass already computed <code>u</code>, <code>x</code>, and <code>y</code>. The backward pass reuses them, so each edge costs one small multiplication instead of a fresh forward evaluation.</p>
 <div class="table-wrapper"><table><thead><tr><th></th><th>Numeric gradient</th><th>Backpropagation</th></tr></thead><tbody>

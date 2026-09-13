@@ -242,14 +242,14 @@ def io_wait():
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of a <strong>meeting room with one microphone</strong>. Everyone can be in the room at once (threads share memory), but only the person holding the microphone may speak (execute Python bytecode). People hand the microphone around every few milliseconds, and they drop it entirely while waiting for a phone call (I/O). A guest speaker who brought their own amplifier (a C extension) can talk in parallel without the microphone.</p>
 <p><strong>Processes</strong> are separate rooms. Everyone in each room has their own microphone, so two rooms can talk at once — but they cannot hear each other without passing written notes (pickling) through the door.</p>
-<pre class="mermaid">flowchart TD
-    A[&quot;What is the work waiting on?&quot;] --&gt; B{&quot;I/O-bound?&lt;br/&gt;network, disk, DB&quot;}
-    A --&gt; C{&quot;CPU-bound?&lt;br/&gt;math, parsing, encoding&quot;}
-    B --&gt;|&quot;few tasks&quot;| D[&quot;ThreadPoolExecutor&lt;br/&gt;or async&quot;]
-    B --&gt;|&quot;thousands of tasks&quot;| E[&quot;asyncio&quot;]
-    C --&gt;|&quot;needs speed&quot;| F[&quot;ProcessPoolExecutor&quot;]
-    C --&gt;|&quot;small or pickling-heavy&quot;| G[&quot;Keep it in-process&lt;br/&gt;or use native code&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart TD
+    A["What is the work waiting on?"] --&gt; B{"I/O-bound?&lt;br/&gt;network, disk, DB"}
+    A --&gt; C{"CPU-bound?&lt;br/&gt;math, parsing, encoding"}
+    B --&gt;|"few tasks"| D["ThreadPoolExecutor&lt;br/&gt;or async"]
+    B --&gt;|"thousands of tasks"| E["asyncio"]
+    C --&gt;|"needs speed"| F["ProcessPoolExecutor"]
+    C --&gt;|"small or pickling-heavy"| G["Keep it in-process&lt;br/&gt;or use native code"]
+</code></pre>
 <p>Use this table as the summary:</p>
 <div class="table-wrapper"><table><thead><tr><th></th><th>Threads</th><th>Processes</th><th>Async</th></tr></thead><tbody>
 <tr><td>Memory model</td><td>Shared</td><td>Separate</td><td>Shared (one thread)</td></tr>

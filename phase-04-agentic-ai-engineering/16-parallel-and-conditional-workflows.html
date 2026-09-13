@@ -241,26 +241,26 @@ total            3.3s
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of a professional kitchen. The head chef (the agent) reads the order and decides what happens. Some tasks are independent — boil pasta, chop vegetables, reduce a sauce — and three cooks do them at once. Then comes the plate, and that step <strong>depends</strong> on all three, so it waits at the pass: the fan-in point. But two cooks cannot both salt the same pot without agreeing, and nobody plates before the pasta is done. Ordering and coordination are the whole game.</p>
 <p>A workflow graph is that kitchen. Nodes are steps. Edges are “happens before.” Conditional edges are the chef’s decision. Fan-out and fan-in are the cooks starting together and the plate waiting at the pass.</p>
-<pre class="mermaid">flowchart TD
-    Q[&quot;Goal&quot;] --&gt; R{&quot;Route by state&quot;}
-    R --&gt;|&quot;question&quot;| A[&quot;Fetch docs&quot;]
-    R --&gt;|&quot;order&quot;| B[&quot;Look up order&quot;]
-    R --&gt;|&quot;billing&quot;| C[&quot;Check charge + approval&quot;]
-    A --&gt; M[&quot;Merge&quot;]
+<pre><code class="language-mermaid">flowchart TD
+    Q["Goal"] --&gt; R{"Route by state"}
+    R --&gt;|"question"| A["Fetch docs"]
+    R --&gt;|"order"| B["Look up order"]
+    R --&gt;|"billing"| C["Check charge + approval"]
+    A --&gt; M["Merge"]
     B --&gt; M
     C --&gt; M
-    M --&gt; F[&quot;Final answer&quot;]
+    M --&gt; F["Final answer"]
 
-    subgraph P[&quot;Parallel, independent, read-only&quot;]
-        X1[&quot;Fetch policy&quot;]
-        X2[&quot;Fetch competitor page&quot;]
-        X3[&quot;Fetch purchase history&quot;]
+    subgraph P["Parallel, independent, read-only"]
+        X1["Fetch policy"]
+        X2["Fetch competitor page"]
+        X3["Fetch purchase history"]
     end
-    X1 --&gt; J[&quot;Join: wait for all,&lt;br/&gt;then combine&quot;]
+    X1 --&gt; J["Join: wait for all,&lt;br/&gt;then combine"]
     X2 --&gt; J
     X3 --&gt; J
     J --&gt; M
-</pre>
+</code></pre>
 <p>The safety test is a short list of questions:</p>
 <div class="table-wrapper"><table><thead><tr><th>Question</th><th>Safe to parallelize when…</th></tr></thead><tbody>
 <tr><td>Do the steps need each other’s output?</td><td>No — they are independent.</td></tr>

@@ -225,20 +225,20 @@
 <p>Picture a large office building. Every company rents a floor. Some buildings give each company its own locked floor with its own elevator (<strong>isolated</strong>). Others share one open-plan floor, and every desk has a nameplate; you are trusted to only read desks with your name (<strong>shared with a filter</strong>).</p>
 <p>The open-plan building is cheaper and easier to run. But if the nameplate rule is forgotten, one company reads another’s mail. The locked-floor building is safer, but empty floors cost money even when the tenant is small.</p>
 <p>That is the whole trade-off. Now the technical version:</p>
-<pre class="mermaid">flowchart TD
-    R[&quot;Request arrives&quot;] --&gt; A[&quot;Authenticate&lt;br/&gt;who + which tenant&quot;]
-    A --&gt; C[&quot;Load tenant context&lt;br/&gt;tenant_id in a ContextVar&quot;]
-    C --&gt; D{&quot;Sharing model&quot;}
-    D --&gt;|&quot;Shared index&quot;| E[&quot;Query with tenant_id filter&lt;br/&gt;enforced by RLS or the app&quot;]
-    D --&gt;|&quot;Namespace per tenant&quot;| F[&quot;Query that tenant's namespace only&quot;]
-    D --&gt;|&quot;Database per tenant&quot;| G[&quot;Connect to that tenant's database&quot;]
-    E --&gt; H[&quot;Ranked allowed chunks&quot;]
+<pre><code class="language-mermaid">flowchart TD
+    R["Request arrives"] --&gt; A["Authenticate&lt;br/&gt;who + which tenant"]
+    A --&gt; C["Load tenant context&lt;br/&gt;tenant_id in a ContextVar"]
+    C --&gt; D{"Sharing model"}
+    D --&gt;|"Shared index"| E["Query with tenant_id filter&lt;br/&gt;enforced by RLS or the app"]
+    D --&gt;|"Namespace per tenant"| F["Query that tenant's namespace only"]
+    D --&gt;|"Database per tenant"| G["Connect to that tenant's database"]
+    E --&gt; H["Ranked allowed chunks"]
     F --&gt; H
     G --&gt; H
-    H --&gt; I[&quot;Generate answer with citations&quot;]
-    I --&gt; J[&quot;Meter usage, log audit event&quot;]
-    J --&gt; K[&quot;Charge back to tenant&quot;]
-</pre>
+    H --&gt; I["Generate answer with citations"]
+    I --&gt; J["Meter usage, log audit event"]
+    J --&gt; K["Charge back to tenant"]
+</code></pre>
 <p>The important detail is that the tenant identity enters at the top and must survive every step. A filter added only at the end (post-filter) is too late, because the restricted data already left the store.</p>
 <p>Here are the three common sharing models, from cheapest to safest:</p>
 <div class="table-wrapper"><table><thead><tr><th>Model</th><th>How it stores</th><th>Isolation strength</th><th>Cost</th><th>Best for</th></tr></thead><tbody>

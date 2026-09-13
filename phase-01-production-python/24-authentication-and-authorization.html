@@ -242,18 +242,18 @@ GET /invoices/10043          # user 8's invoice -&gt; 200 OK, leaked!
 <li>A wristband that never expires lets a fired employee return forever — that is the <strong>expiry</strong>.</li>
 <li>A general-admission wristband does not unlock backstage, even though it is valid — that is <strong>authorization</strong>, and it is checked per resource, not once at login.</li>
 </ul>
-<pre class="mermaid">flowchart TD
-    A[&quot;Client: POST /login&lt;br/&gt;username + password&quot;] --&gt; B[&quot;Server: verify password hash&quot;]
-    B --&gt;|&quot;valid&quot;| C[&quot;Issue session or signed token&quot;]
-    C --&gt; D[&quot;Client stores it&lt;br/&gt;(cookie or bearer token)&quot;]
-    D --&gt; E[&quot;Request: Authorization: Bearer &amp;lt;token&amp;gt;&quot;]
-    E --&gt; F[&quot;Server validates&lt;br/&gt;signature, alg, exp, aud, iss&quot;]
-    F --&gt;|&quot;invalid&quot;| G[&quot;401 Unauthenticated&quot;]
-    F --&gt;|&quot;valid&quot;| H[&quot;Load roles / scopes&quot;]
-    H --&gt; I{&quot;Allowed on this resource?&quot;}
-    I --&gt;|&quot;no&quot;| J[&quot;403 Forbidden&quot;]
-    I --&gt;|&quot;yes&quot;| K[&quot;Execute the operation&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart TD
+    A["Client: POST /login&lt;br/&gt;username + password"] --&gt; B["Server: verify password hash"]
+    B --&gt;|"valid"| C["Issue session or signed token"]
+    C --&gt; D["Client stores it&lt;br/&gt;(cookie or bearer token)"]
+    D --&gt; E["Request: Authorization: Bearer &amp;lt;token&amp;gt;"]
+    E --&gt; F["Server validates&lt;br/&gt;signature, alg, exp, aud, iss"]
+    F --&gt;|"invalid"| G["401 Unauthenticated"]
+    F --&gt;|"valid"| H["Load roles / scopes"]
+    H --&gt; I{"Allowed on this resource?"}
+    I --&gt;|"no"| J["403 Forbidden"]
+    I --&gt;|"yes"| K["Execute the operation"]
+</code></pre>
 <p>The important part is the second half. A valid token only gets you to the permission check. Every endpoint that touches a specific object must ask: <em>does this principal own or have rights to this object?</em></p>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
 <ol>

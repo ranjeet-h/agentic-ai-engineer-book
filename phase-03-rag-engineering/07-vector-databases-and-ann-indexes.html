@@ -226,16 +226,16 @@
 <p>Imagine a library. Exact search is walking every shelf and reading every book. A vector index is the card catalog: it tells you which shelf to visit, so you read a handful of books instead of all of them.</p>
 <p><strong>IVF</strong> builds that catalog by clustering. Ten thousand books become fifty sections. A query first finds the closest few section centres, then reads only those sections. Fewer sections read means faster but more risk of missing a relevant book that was filed next door.</p>
 <p><strong>HNSW</strong> builds a different structure: a graph with shortcuts. The top layer is a highway with a few stops. The middle layer has more. The bottom layer connects every node to its nearest neighbours. Search starts at the top, moves to a close-enough node, drops a layer, and repeats. It is the same trick as a skip list, applied to nearest-neighbour search.</p>
-<pre class="mermaid">flowchart TD
-    subgraph HNSW[&quot;HNSW: layered graph&quot;]
-      L2[&quot;Layer 2 (sparse highway)&quot;] --&gt; L1[&quot;Layer 1&quot;]
-      L1 --&gt; L0[&quot;Layer 0 (all vectors, dense links)&quot;]
+<pre><code class="language-mermaid">flowchart TD
+    subgraph HNSW["HNSW: layered graph"]
+      L2["Layer 2 (sparse highway)"] --&gt; L1["Layer 1"]
+      L1 --&gt; L0["Layer 0 (all vectors, dense links)"]
     end
-    Q[&quot;Query vector&quot;] --&gt; E[&quot;Enter at top layer&quot;]
-    E --&gt; G[&quot;Greedy walk toward closer nodes&quot;]
-    G --&gt; D[&quot;Drop a layer, repeat&quot;]
-    D --&gt; K[&quot;Collect top-k from layer 0&quot;]
-</pre>
+    Q["Query vector"] --&gt; E["Enter at top layer"]
+    E --&gt; G["Greedy walk toward closer nodes"]
+    G --&gt; D["Drop a layer, repeat"]
+    D --&gt; K["Collect top-k from layer 0"]
+</code></pre>
 <p>Here is the comparison that matters in interviews:</p>
 <div class="table-wrapper"><table><thead><tr><th></th><th>Flat (exact)</th><th>IVF</th><th>HNSW</th></tr></thead><tbody>
 <tr><td>Recall</td><td>100%</td><td>Tunable (<code>probes</code>)</td><td>Tunable (<code>ef_search</code>)</td></tr>

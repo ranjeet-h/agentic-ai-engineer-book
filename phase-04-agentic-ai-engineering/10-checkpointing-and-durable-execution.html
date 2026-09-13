@@ -232,17 +232,17 @@
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Think of a <strong>video game save point</strong>. You do not restart the level when you die; you reload the last save. The save records your position, inventory, and progress. Between saves, a crash loses only the work since the last save point.</p>
 <p>A checkpoint is that save. The stronger idea — durable execution — is that the game engine itself restarts and reloads your save automatically, without you pressing anything.</p>
-<pre class="mermaid">flowchart TD
-    A[&quot;Step 1: fetch&quot;] --&gt; B[&quot;Step 2: summarise&quot;]
-    B --&gt; C[&quot;Step 3: email&lt;br/&gt;side effect&quot;]
-    C --&gt; D[&quot;Step 4: record&quot;]
-    B -.-&gt;|&quot;save point&quot;| S[(&quot;Checkpoint store&lt;br/&gt;thread_id + step&quot;)]
-    D -.-&gt;|&quot;save point&quot;| S
-    X[&quot;Crash / restart&quot;] --&gt; R{&quot;Load latest&lt;br/&gt;checkpoint&quot;}
+<pre><code class="language-mermaid">flowchart TD
+    A["Step 1: fetch"] --&gt; B["Step 2: summarise"]
+    B --&gt; C["Step 3: email&lt;br/&gt;side effect"]
+    C --&gt; D["Step 4: record"]
+    B -.-&gt;|"save point"| S[("Checkpoint store&lt;br/&gt;thread_id + step")]
+    D -.-&gt;|"save point"| S
+    X["Crash / restart"] --&gt; R{"Load latest&lt;br/&gt;checkpoint"}
     S --&gt; R
-    R --&gt;|&quot;step 2 done&quot;| C
-    R --&gt;|&quot;nothing yet&quot;| A
-</pre>
+    R --&gt;|"step 2 done"| C
+    R --&gt;|"nothing yet"| A
+</code></pre>
 <p>The essential detail is <strong>where</strong> the save point goes: after a completed step, and atomically with the record of any side effect. If the checkpoint says “email sent” but the email never left, the customer is never notified. If the email left but the record failed, the next replay sends it again.</p>
 <div class="table-wrapper"><table><thead><tr><th>Approach</th><th>On crash</th><th>Duplicate side effects</th><th>Lost work</th></tr></thead><tbody>
 <tr><td>No persistence</td><td>Start over</td><td>Yes</td><td>All of it</td></tr>

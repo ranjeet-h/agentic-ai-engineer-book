@@ -228,14 +228,14 @@
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Picture a <strong>bucket with a small hole in the bottom</strong>. A tap drips tokens in at a constant rate. Each request must take one token out of the bucket. If the bucket is empty, the request waits or is rejected. If the bucket is full — nobody has made a request for a while — extra tokens are simply lost, which caps the burst.</p>
 <p>That is the token bucket. Its two numbers are the <strong>refill rate</strong> (steady throughput) and the <strong>capacity</strong> (allowed burst). A limit of “5 per second with bursts up to 20” is one token bucket, not two rules.</p>
-<pre class="mermaid">flowchart TD
-  R[&quot;Incoming request&quot;] --&gt; K[&quot;Build key&lt;br/&gt;user / IP / tenant / route&quot;]
-  K --&gt; L[&quot;Limiter&lt;br/&gt;Redis + Lua (atomic)&quot;]
-  L --&gt;|&quot;tokens &gt;= cost&quot;| A[&quot;Allow&lt;br/&gt;subtract token(s)&quot;]
-  L --&gt;|&quot;tokens &lt; cost&quot;| D[&quot;Deny&lt;br/&gt;429 + Retry-After&quot;]
-  A --&gt; S[&quot;Run the work&quot;]
-  D --&gt; C[&quot;Client waits, then retries&quot;]
-</pre>
+<pre><code class="language-mermaid">flowchart TD
+  R["Incoming request"] --&gt; K["Build key&lt;br/&gt;user / IP / tenant / route"]
+  K --&gt; L["Limiter&lt;br/&gt;Redis + Lua (atomic)"]
+  L --&gt;|"tokens &gt;= cost"| A["Allow&lt;br/&gt;subtract token(s)"]
+  L --&gt;|"tokens &lt; cost"| D["Deny&lt;br/&gt;429 + Retry-After"]
+  A --&gt; S["Run the work"]
+  D --&gt; C["Client waits, then retries"]
+</code></pre>
 <p>Here is how the four algorithms compare. This table is the topic in one screen.</p>
 <div class="table-wrapper"><table><thead><tr><th>Algorithm</th><th>Burst behaviour</th><th>Memory per key</th><th>Precision</th><th>Typical use</th></tr></thead><tbody>
 <tr><td><strong>Fixed window</strong></td><td>Up to <strong>2×</strong> the limit at window boundaries</td><td>O(1), one counter</td><td>Coarse</td><td>Simple daily quotas</td></tr>

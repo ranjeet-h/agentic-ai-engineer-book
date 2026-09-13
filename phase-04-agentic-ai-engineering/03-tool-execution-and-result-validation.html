@@ -229,18 +229,18 @@ fn(**json.loads(call["function"]["arguments"]))
 <h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
 <p>Picture a <strong>customs checkpoint</strong>. Goods (the tool call) arrive from outside. The officer checks the paperwork: is this a permitted item (allowlist), does the form match the rules (schema), and is the declared value plausible (output validation)? Only then does the item enter the country. A suspicious item is refused with a note explaining why, and the sender can correct it.</p>
 <p>The tool box in the middle is the only place real work happens, and the model is always outside it.</p>
-<pre class="mermaid">flowchart LR
-    A[&quot;Model tool call&lt;br/&gt;name + JSON string&quot;] --&gt; B{&quot;Name in&lt;br/&gt;allowlist?&quot;}
-    B --&gt;|&quot;no&quot;| E[&quot;Error result&quot;]
-    B --&gt;|&quot;yes&quot;| C[&quot;Parse JSON&lt;br/&gt;validate schema&quot;]
-    C --&gt;|&quot;invalid&quot;| E
-    C --&gt;|&quot;valid&quot;| D[&quot;Execute with timeout&lt;br/&gt;least privilege&quot;]
-    D --&gt; F[&quot;Validate output&quot;]
-    F --&gt;|&quot;invalid&quot;| E
-    F --&gt;|&quot;valid&quot;| G[&quot;Serialize result&lt;br/&gt;append to context&quot;]
-    E --&gt; H[&quot;Append error result&lt;br/&gt;model can recover&quot;]
+<pre><code class="language-mermaid">flowchart LR
+    A["Model tool call&lt;br/&gt;name + JSON string"] --&gt; B{"Name in&lt;br/&gt;allowlist?"}
+    B --&gt;|"no"| E["Error result"]
+    B --&gt;|"yes"| C["Parse JSON&lt;br/&gt;validate schema"]
+    C --&gt;|"invalid"| E
+    C --&gt;|"valid"| D["Execute with timeout&lt;br/&gt;least privilege"]
+    D --&gt; F["Validate output"]
+    F --&gt;|"invalid"| E
+    F --&gt;|"valid"| G["Serialize result&lt;br/&gt;append to context"]
+    E --&gt; H["Append error result&lt;br/&gt;model can recover"]
     G --&gt; H
-</pre>
+</code></pre>
 <p>Every arrow from <code>B</code>, <code>C</code>, and <code>F</code> to <code>E</code> is a place where untrusted data is stopped before it can do harm. There are three validation layers, and each catches a different class of bug:</p>
 <div class="table-wrapper"><table><thead><tr><th>Layer</th><th>Checks</th><th>Catches</th><th>Does not catch</th></tr></thead><tbody>
 <tr><td>Name allowlist</td><td>Is this tool registered?</td><td>Hallucinated tools, injection via tool name</td><td>Wrong arguments</td></tr>

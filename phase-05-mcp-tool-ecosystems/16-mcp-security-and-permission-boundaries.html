@@ -241,25 +241,25 @@ The server receives a file it was never meant to see.
 <p>Picture an airport. Everyone who enters must pass a checkpoint, and each person’s boarding pass is valid for exactly one flight and one gate. Security does not ask each airline to police itself, and it does not trust a passenger’s own claim about what they carry. It also does not assume the checkpoint catches everything, so there are further checks at the gate and on the plane.</p>
 <p>MCP security works the same way. The <strong>host or gateway</strong> is the checkpoint. A <strong>scoped credential</strong> is a boarding pass for one service and a narrow set of actions. <strong>Human approval</strong> is the extra check for risky flights. <strong>Sandboxing</strong> limits what a passenger can reach after landing. <strong>Audit logs</strong> are the passenger manifest.</p>
 <p>The trust boundaries are the important part. Draw them before you draw the architecture:</p>
-<pre class="mermaid">flowchart TB
-    subgraph Untrusted[&quot;Untrusted by default&quot;]
-        S[&quot;MCP server&lt;br/&gt;and its tool descriptions&quot;]
-        W[&quot;External world&lt;br/&gt;web, email, third-party APIs&quot;]
-        P[&quot;Page / tool result text&lt;br/&gt;(may contain injection)&quot;]
+<pre><code class="language-mermaid">flowchart TB
+    subgraph Untrusted["Untrusted by default"]
+        S["MCP server&lt;br/&gt;and its tool descriptions"]
+        W["External world&lt;br/&gt;web, email, third-party APIs"]
+        P["Page / tool result text&lt;br/&gt;(may contain injection)"]
     end
-    subgraph Trusted[&quot;Trusted, but still enforced&quot;]
-        H[&quot;Host / Gateway&lt;br/&gt;PDP + PEP&quot;]
-        M[&quot;Model&quot;]
-        V[&quot;Secret vault&quot;]
+    subgraph Trusted["Trusted, but still enforced"]
+        H["Host / Gateway&lt;br/&gt;PDP + PEP"]
+        M["Model"]
+        V["Secret vault"]
     end
-    S --&gt;|&quot;describes tools&lt;br/&gt;untrusted text&quot;| H
-    H --&gt;|&quot;tool list + schemas&quot;| M
-    W --&gt; P --&gt;|&quot;reads&quot;| M
-    M --&gt;|&quot;proposes tool call&quot;| H
-    H --&gt;|&quot;authorize + scoped credential&quot;| S
-    V -.-&gt;|&quot;credential, never to model&quot;| H
-    H --&gt;|&quot;approval for dangerous actions&quot;| U[&quot;Human&quot;]
-</pre>
+    S --&gt;|"describes tools&lt;br/&gt;untrusted text"| H
+    H --&gt;|"tool list + schemas"| M
+    W --&gt; P --&gt;|"reads"| M
+    M --&gt;|"proposes tool call"| H
+    H --&gt;|"authorize + scoped credential"| S
+    V -.-&gt;|"credential, never to model"| H
+    H --&gt;|"approval for dangerous actions"| U["Human"]
+</code></pre>
 <p>The host’s job is to sit on every arrow. The model can propose, but it cannot grant. The server can describe, but it cannot authorize. The credential exists, but the model never holds it.</p>
 <p>A threat model is just a table. Build one for every server you add:</p>
 <div class="table-wrapper"><table><thead><tr><th>Adversary</th><th>Goal</th><th>Primary control</th><th>Limits of that control</th></tr></thead><tbody>
