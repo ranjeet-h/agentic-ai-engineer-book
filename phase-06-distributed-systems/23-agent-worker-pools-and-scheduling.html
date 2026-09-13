@@ -1,0 +1,624 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Agent Worker Pools and Scheduling - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="agent-worker-pools-and-scheduling"><a class="header" href="#agent-worker-pools-and-scheduling">Agent Worker Pools and Scheduling</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> An agent worker pool is a set of interchangeable processes that pull runs or steps off queues and execute them. Because agent work is heterogeneous — model calls, browsing, code execution, retrieval — you run a queue per capability and let workers register the capabilities they can serve. Sizing matters because each worker holds resources (tokens, GPU memory, browser sessions). A worker takes a task under a lease, renews it with a heartbeat, and the broker reclaims the task if the heartbeat stops, so a dead worker does not strand work. You autoscale on queue depth, not CPU, and you push back on the scheduler when the pool is saturated rather than accepting unlimited work.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>One agent run is easy to reason about. A thousand concurrent runs are not. They compete for the same scarce things: model rate limits, GPU slots, browser sessions, sandbox containers, and money. Without a pool and a scheduler you get the classic failure pattern: every request spawns a thread, the process runs out of file descriptors, the model provider returns 429s, and retries amplify the overload.</p>
+<p>The work is also not uniform. Some steps are cheap string parsing. Some call a large model. Some open a headless browser for thirty seconds. Some run untrusted code in a sandbox. If you run all of them on the same generic worker, one browser step occupies a slot that a fast step could have used, and you cannot scale the expensive capability separately.</p>
+<p>There is a third problem: <strong>ownership</strong>. A worker that picks up a long step may die. If the queue deleted the message on delivery, the step is lost forever. If it never deletes it, the step runs twice. You need a middle state — a lease — that says “worker W owns task T until time X,” renewable while the worker is alive and reclaimable when it is not.</p>
+<p>A worker pool with per-capability queues, leases, heartbeats, and depth-based autoscaling answers all three.</p>
+<blockquote>
+<p><strong>The one-sentence purpose.</strong> Run many agent runs safely by pulling work from capability queues under a renewable lease, sizing the pool to the work, and refusing overload instead of absorbing it.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Worker</strong></td><td>A long-lived process that repeatedly pulls one task, executes it, and reports the result.</td></tr>
+<tr><td><strong>Worker pool</strong></td><td>A group of interchangeable workers consuming the same queue(s).</td></tr>
+<tr><td><strong>Task queue</strong></td><td>A durable, ordered list of pending tasks for one capability.</td></tr>
+<tr><td><strong>Capability</strong></td><td>A kind of work a worker can serve: <code>llm</code>, <code>browser</code>, <code>code</code>, <code>search</code>.</td></tr>
+<tr><td><strong>Capability routing</strong></td><td>Sending a task to the queue for the capability it needs.</td></tr>
+<tr><td><strong>Lease</strong></td><td>A time-bounded claim on a task: only the holder may finish it, and it expires.</td></tr>
+<tr><td><strong>Visibility timeout</strong></td><td>How long a lease lasts before the broker makes the task visible again.</td></tr>
+<tr><td><strong>Heartbeat</strong></td><td>A periodic renewal of the lease while the worker is still working.</td></tr>
+<tr><td><strong>Stuck worker</strong></td><td>A worker whose lease expired without ack: it is presumed dead.</td></tr>
+<tr><td><strong>Poison task</strong></td><td>A task that fails every time; it must go to a dead-letter queue, not loop forever.</td></tr>
+<tr><td><strong>Backpressure</strong></td><td>Telling the producer to slow down or reject work because the pool is saturated.</td></tr>
+<tr><td><strong>Autoscaling</strong></td><td>Adding or removing workers based on a signal, usually queue depth.</td></tr>
+<tr><td><strong>Fair scheduling</strong></td><td>Prevents one tenant or one priority class from starving the others.</td></tr>
+<tr><td><strong>Priority</strong></td><td>A ranking so important tasks run before low-priority ones.</td></tr>
+<tr><td><strong>Token budget</strong></td><td>A cap on model tokens a pool may spend in a window; a resource like any other.</td></tr>
+</tbody></table>
+</div>
+<p>Two distinctions that decide your design.</p>
+<p><strong>Queue depth is the right autoscaling signal, not CPU.</strong> Agent workers are I/O-bound: they wait on models and browsers, so CPU is idle while the queue grows. Scale on pending tasks per capability, or on oldest-task age, not on CPU.</p>
+<p><strong>A lease is not a lock you hold forever.</strong> A lease expires. The worker must renew it with a heartbeat. If it forgets, the broker assumes death and redelivers the task — which is why every task must be idempotent.</p>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Think of a <strong>tool checkout desk at a repair shop</strong>. There are special tools — a torque wrench, a diagnostic computer — that only some technicians can use. A technician who needs one signs it out for a period. If they walk away and the timer runs out, the tool returns to the desk and another technician can take it. Nobody has to hunt down the missing technician.</p>
+<p>A worker is the technician. A capability queue is the drawer for a tool. A lease is the sign-out slip with a due time. A heartbeat is signing the slip again. Reclaim is the tool returning to the drawer when the timer lapses.</p>
+<pre><code class="language-mermaid">flowchart TB
+    S["Scheduler / API&lt;br/&gt;accepts runs"] --&gt; B["Broker"]
+    B --&gt; QL["queue: llm"]
+    B --&gt; QB["queue: browser"]
+    B --&gt; QC["queue: code"]
+    QL --&gt; WL["LLM workers"]
+    QB --&gt; WB["Browser workers"]
+    QC --&gt; WC["Sandbox workers"]
+    WL --&gt;|"lease + heartbeat"| B
+    WB --&gt;|"lease + heartbeat"| B
+    WC --&gt;|"lease + heartbeat"| B
+    B --&gt;|"expired lease"| DLQ["Dead-letter queue"]
+    AS["Autoscaler&lt;br/&gt;watches depth"] --&gt; WL
+    AS --&gt; WB
+    AS --&gt; WC
+    WL --&gt;|"depth / saturation"| BP["Backpressure signal"]
+    BP --&gt; S
+</code></pre>
+<p>The autoscaler watches depth per queue, so the browser fleet grows when browser tasks pile up, independent of the LLM fleet. The backpressure arrow is what keeps the system honest: when the pool is full, the scheduler is told to slow down or shed load.</p>
+<div class="table-wrapper"><table><thead><tr><th>Signal</th><th>What it tells you</th><th>Use it for</th></tr></thead><tbody>
+<tr><td>Queue depth</td><td>How much work is waiting</td><td>Autoscaling up</td></tr>
+<tr><td>Oldest task age</td><td>How long the queue has been stuck</td><td>Latency SLO alerts, autoscaling up</td></tr>
+<tr><td>In-flight / pool size</td><td>Utilisation of the current workers</td><td>Autoscaling down when low</td></tr>
+<tr><td>Error rate</td><td>Tasks failing, not just slow</td><td>Circuit breaking, human alert</td></tr>
+<tr><td>Token spend rate</td><td>Money burning per minute</td><td>Budget backpressure</td></tr>
+<tr><td>Heartbeat misses</td><td>Workers dying or wedged</td><td>Stuck-worker recovery</td></tr>
+</tbody></table>
+</div>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
+<li><strong>A scheduler accepts a run and enqueues its first step.</strong> The step is a task with a capability, a payload, and an idempotency key.</li>
+<li><strong>The broker stores the task in that capability’s queue.</strong> Priority and enqueue time decide its position.</li>
+<li><strong>A compatible worker polls the queue.</strong> It leases one task for a fixed visibility timeout (say 30 seconds) and starts work.</li>
+<li><strong>The worker renews the lease with heartbeats.</strong> Every few seconds it says “still alive, still working.” The lease expiry moves forward each time.</li>
+<li><strong>On success the worker acks the task; on failure it nacks it.</strong> Success removes the task and records the result; failure increments the task’s attempt count and requeues it, and once it reaches <code>max_attempts</code> the broker moves it to the dead-letter queue. (Backoff between attempts is a production refinement; the model below implements the counter and the DLQ.)</li>
+<li><strong>If the worker dies, heartbeats stop.</strong> When the lease expires, the broker reclaims the task and returns it to the queue. Another worker picks it up. The task runs again, so it must be idempotent.</li>
+<li><strong>An autoscaler adjusts the pool per queue.</strong> Depth above a high-water mark adds workers; sustained low utilisation removes them.</li>
+<li><strong>When the pool cannot keep up, it applies backpressure and caps.</strong> The scheduler gets a “busy, retry later” signal; budgets and fair-share caps stop any tenant or priority class from taking the whole pool.</li>
+</ol>
+<blockquote>
+<p><strong>Warning.</strong> A lease timeout that is shorter than your longest task is a bug factory. If a browser step takes 90 seconds and the visibility timeout is 30, the broker reclaims and re-runs it while the original is still working. Set the timeout with headroom and heartbeat inside it.</p>
+</blockquote>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p><strong>A task and a worker.</strong> A task names a capability and a cost; a worker declares the capabilities it serves and what it currently holds. The examples below show the full dataclasses.</p>
+<p><strong>Lease, heartbeat, reclaim.</strong> The broker hides a task while a worker owns it; heartbeats extend the lease; reclaim requeues tasks whose lease lapsed.</p>
+<pre><code class="language-text">lease(capability, worker, now):
+    task = highest-priority task from queues[capability]
+    leases[task.id] = (task, worker, now + lease_seconds)
+    return task
+
+heartbeat(task_id, now):   leases[task_id].expiry = now + lease_seconds
+reclaim(now):              for each lease with expiry &lt; now, requeue the task
+</code></pre>
+<p><strong>Autoscaling on depth.</strong> Scale up when work is waiting; scale down after sustained idleness. Base the decision on queue depth and oldest-task age, never CPU. The examples below implement it.</p>
+<p><strong>SQS-style visibility timeout, in the queue’s own words.</strong> The lease concept has a name in every broker.</p>
+<pre><code class="language-text">SQS:        VisibilityTimeout, ChangeMessageVisibility (heartbeat), ReceiveRequestAttemptId (dedupe)
+Kafka:      consumer group rebalance + offset commit; a slow consumer is removed from the group
+RabbitMQ:   consumer ack/nack, delivery tags, unacked message limit
+Temporal:   activity task with heartbeat timeout; a missed heartbeat fails the activity for retry
+Redis:      BRPOPLPUSH into a processing list; a reaper moves stale entries back
+</code></pre>
+<p><strong>Backpressure to the scheduler.</strong> Return “busy” instead of accepting a run.</p>
+<pre><code class="language-python">def submit(run) -&gt; dict:
+    if broker.total_depth() &gt; max_depth:
+        return {"accepted": False, "reason": "pool saturated", "retry_after_s": 30}
+    broker.publish(Task(run.run_id, run.capability, run.cost))
+    return {"accepted": True}
+</code></pre>
+<p><strong>A per-tenant fair share.</strong> Cap how much of the pool one tenant may occupy.</p>
+<pre><code class="language-python">def can_lease(tenant: str, in_flight: dict[str, int], pool_size: int) -&gt; bool:
+    cap = max(1, int(pool_size * 0.25))     # no tenant exceeds 25% of the pool
+    return in_flight.get(tenant, 0) &lt; cap
+</code></pre>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p><strong>Example 1 — the broker and worker model.</strong> Capability queues, leases, heartbeats, and reclaim. Verified below.</p>
+<pre><code class="language-python">from dataclasses import dataclass
+
+
+@dataclass
+class Task:
+    task_id: str
+    capability: str
+    cost: int          # ticks of work
+    priority: int = 0  # higher runs first
+
+
+@dataclass
+class Worker:
+    worker_id: str
+    capabilities: set[str]
+    speed: int = 1                       # work units per tick
+    busy_with: Task | None = None
+    remaining: int = 0
+    lease_expires_at: int = 0
+    last_heartbeat: int = 0
+    crashed: bool = False
+
+    def can_take(self, task: Task) -&gt; bool:
+        return self.busy_with is None and task.capability in self.capabilities
+
+
+class Broker:
+    """Per-capability queues. Leases hide a task while a worker owns it."""
+
+    def __init__(self, lease_seconds: int = 3, max_attempts: int = 3) -&gt; None:
+        self.queues: dict[str, list[Task]] = {}
+        self.leases: dict[str, tuple[Task, str, int]] = {}   # task_id -&gt; (task, worker, expiry)
+        self.completed: list[str] = []
+        self.lease_seconds = lease_seconds
+        self.max_attempts = max_attempts
+        self.attempts: dict[str, int] = {}                   # task_id -&gt; failed attempts
+        self.dead_letters: list[Task] = []                   # poison tasks, set aside
+
+    def publish(self, task: Task) -&gt; None:
+        self.queues.setdefault(task.capability, []).append(task)
+
+    def depth(self, capability: str) -&gt; int:
+        return len(self.queues.get(capability, []))
+
+    def total_depth(self) -&gt; int:
+        return sum(len(q) for q in self.queues.values())
+
+    def lease(self, capability: str, worker_id: str, now: int) -&gt; Task | None:
+        queue = self.queues.get(capability, [])
+        if not queue:
+            return None
+        queue.sort(key=lambda t: -t.priority)          # priority, then FIFO
+        task = queue.pop(0)
+        self.leases[task.task_id] = (task, worker_id, now + self.lease_seconds)
+        return task
+
+    def heartbeat(self, task_id: str, now: int) -&gt; None:
+        task, worker_id, _ = self.leases[task_id]
+        self.leases[task_id] = (task, worker_id, now + self.lease_seconds)
+
+    def ack(self, task_id: str) -&gt; None:
+        self.leases.pop(task_id, None)
+        self.completed.append(task_id)
+
+    def nack(self, task_id: str) -&gt; None:
+        task, _worker, _exp = self.leases.pop(task_id)
+        self.attempts[task_id] = self.attempts.get(task_id, 0) + 1
+        if self.attempts[task_id] &gt;= self.max_attempts:
+            self.dead_letters.append(task)              # poison task: stop the loop
+        else:
+            self.publish(task)                          # put it back for another try
+
+    def reclaim_expired(self, now: int) -&gt; list[str]:
+        reclaimed = []
+        for task_id, (task, _worker, expiry) in list(self.leases.items()):
+            if expiry &lt; now:                            # worker died or stalled
+                self.leases.pop(task_id)
+                self.publish(task)
+                reclaimed.append(task_id)
+        return reclaimed
+</code></pre>
+<p><strong>Example 2 — the simulation loop with autoscaling.</strong> Each tick reclaims expired leases, scales, and lets each worker pull work.</p>
+<pre><code class="language-python">class Sim:
+    """Ticks, not threads. One tick = one unit of simulated time."""
+
+    def __init__(self, broker: Broker, workers: list[Worker], max_workers: int = 6,
+                 scale_up_depth: int = 2, idle_ticks_before_shrink: int = 4) -&gt; None:
+        self.broker = broker
+        self.workers = workers
+        self.max_workers = max_workers
+        self.scale_up_depth = scale_up_depth
+        self.idle_ticks_before_shrink = idle_ticks_before_shrink
+        self.next_worker = len(workers)
+        self.idle_ticks = 0
+        self.log: list[str] = []
+
+    def autoscale(self) -&gt; None:
+        depth = self.broker.total_depth()
+        if depth &gt;= self.scale_up_depth and len(self.workers) &lt; self.max_workers:
+            self.next_worker += 1
+            w = Worker(f"w{self.next_worker}", {"llm", "search", "code"})
+            self.workers.append(w)
+            self.log.append(f"scale up -&gt; {len(self.workers)} workers (depth {depth})")
+            self.idle_ticks = 0
+        elif depth == 0 and len(self.workers) &gt; 1:
+            self.idle_ticks += 1
+            if self.idle_ticks &gt;= self.idle_ticks_before_shrink:
+                # Only evict a worker that holds no lease. Dropping a busy worker
+                # would orphan its task and let a second worker duplicate the work.
+                idle = [w for w in self.workers if w.busy_with is None and not w.crashed]
+                if idle:
+                    self.workers.remove(idle[-1])
+                    self.log.append(f"scale down -&gt; {len(self.workers)} workers")
+                    self.idle_ticks = 0
+                else:
+                    self.log.append("scale down skipped: all workers busy")
+        else:
+            self.idle_ticks = 0
+
+    def tick(self, now: int) -&gt; None:
+        reclaimed = self.broker.reclaim_expired(now)
+        for task_id in reclaimed:
+            self.log.append(f"reclaimed {task_id} from a dead worker")
+        self.autoscale()
+
+        for worker in self.workers:
+            if worker.crashed:
+                continue
+            if worker.busy_with is not None:
+                worker.remaining -= worker.speed
+                if worker.remaining &lt;= 0:
+                    self.broker.ack(worker.busy_with.task_id)
+                    self.log.append(f"{worker.worker_id} finished {worker.busy_with.task_id}")
+                    worker.busy_with = None
+                else:
+                    self.broker.heartbeat(worker.busy_with.task_id, now)
+                continue
+            # Pull work across capabilities; fairness comes from checking each in turn.
+            for capability in sorted(self.broker.queues):
+                task = self.broker.lease(capability, worker.worker_id, now)
+                if task is not None:
+                    worker.busy_with = task
+                    worker.remaining = task.cost
+                    self.log.append(f"{worker.worker_id} leased {task.task_id} ({capability})")
+                    break
+</code></pre>
+<p><strong>Example 3 — run it: autoscale up, lose a worker, recover the orphaned task.</strong> Verified output. <code>t3</code> is a priority code task that <code>w1</code> leases first; <code>w1</code> then dies, its lease expires, and <code>w2</code> reclaims and finishes it.</p>
+<pre><code class="language-python">broker = Broker(lease_seconds=2)
+for i, (cap, cost, prio) in enumerate([
+    ("llm", 2, 0), ("llm", 3, 0), ("search", 1, 0),
+    ("code", 4, 1), ("code", 2, 0), ("llm", 4, 0),
+]):
+    broker.publish(Task(f"t{i}", cap, cost, prio))
+
+workers = [Worker("w1", {"llm", "search", "code"})]
+sim = Sim(broker, workers)
+
+for tick in range(16):
+    if tick == 1:
+        workers[0].crashed = True                  # hard death: no more heartbeats
+        sim.log.append("w1 crashed mid-task (lease not renewed)")
+    sim.tick(tick)
+
+for line in sim.log:
+    print(line)
+print("completed:", sorted(broker.completed))
+print("still leased (in flight):", sorted(broker.leases))
+print("remaining queue depth:", broker.total_depth())
+print("worker count at end:", len(sim.workers))
+</code></pre>
+<p>Verified output:</p>
+<pre><code class="language-text">scale up -&gt; 2 workers (depth 6)
+w1 leased t3 (code)
+w2 leased t4 (code)
+w1 crashed mid-task (lease not renewed)
+scale up -&gt; 3 workers (depth 4)
+w3 leased t0 (llm)
+scale up -&gt; 4 workers (depth 3)
+w2 finished t4
+w4 leased t1 (llm)
+reclaimed t3 from a dead worker
+scale up -&gt; 5 workers (depth 3)
+w2 leased t3 (code)
+w3 finished t0
+w5 leased t5 (llm)
+w3 leased t2 (search)
+w3 finished t2
+w4 finished t1
+w2 finished t3
+w5 finished t5
+scale down -&gt; 4 workers
+scale down -&gt; 3 workers
+</code></pre>
+<p>Read the important line: <code>reclaimed t3 from a dead worker</code>, then <code>w2 leased t3 (code)</code>. The task was not lost and not duplicated. That is the lease and heartbeat doing their job.</p>
+<p><strong>Example 4 — priority scheduling.</strong> <code>t3</code> has <code>priority=1</code>, so it is leased before the other code task.</p>
+<pre><code class="language-python">q = Broker()
+q.publish(Task("low", "code", 1, priority=0))
+q.publish(Task("high", "code", 1, priority=5))
+print("leased first:", q.lease("code", "w1", now=0).task_id)
+</code></pre>
+<p>Verified output:</p>
+<pre><code class="language-text">leased first: high
+</code></pre>
+<p>Priority is a blunt tool. In production, pair it with fair-share caps so a flood of high-priority work cannot starve everyone else.</p>
+<p><strong>Example 5 — backpressure.</strong> The scheduler refuses work when the queue is beyond its limit, instead of accepting runs it cannot finish.</p>
+<pre><code class="language-python">def submit(broker, run, max_depth=100) -&gt; dict:
+    if broker.total_depth() &gt; max_depth:
+        return {"accepted": False, "reason": "pool saturated", "retry_after_s": 30}
+    broker.publish(Task(run, "llm", 1))
+    return {"accepted": True}
+
+full = Broker()
+for i in range(101):
+    full.publish(Task(f"x{i}", "llm", 1))
+print(submit(full, "run-200"))
+</code></pre>
+<p>Verified output:</p>
+<pre><code class="language-text">{'accepted': False, 'reason': 'pool saturated', 'retry_after_s': 30}
+</code></pre>
+<p>Saying “busy” is a feature. A system that never says no eventually fails on everything instead of failing on the excess.</p>
+<blockquote>
+<p><strong>Tip.</strong> Instrument <strong>oldest task age</strong> per capability, not just depth. A queue of 10 tasks where the oldest is two hours old is a worse signal than a queue of 1,000 tasks that are all seconds old.</p>
+</blockquote>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>Idempotency is mandatory, because leases re-deliver.</strong> A worker can finish the work and die before acking. The task runs again. Use a stable idempotency key per task so the second run is a no-op.</li>
+<li><strong>Set the visibility timeout above your p99 task duration.</strong> Too short causes duplicate work; too long delays recovery from a real crash. Heartbeat at roughly a third of the timeout.</li>
+<li><strong>Scale on queue depth and oldest-task age.</strong> CPU is a misleading signal for I/O-bound agent workers. Scale each capability independently.</li>
+<li><strong>Use a dead-letter queue for poison tasks.</strong> A task that fails five times will fail forever. Move it aside, alert, and keep the queue flowing.</li>
+<li><strong>Size workers to the resource, not just the task count.</strong> A worker running four browser sessions needs four times the memory. Cap concurrency per worker and model the scarce resource per capability.</li>
+<li><strong>Apply backpressure at admission, not at the queue.</strong> Once work is accepted you owe a result. Refuse early, with a retry hint, when the pool is saturated.</li>
+<li><strong>Budget tokens across the pool.</strong> A token budget is a shared resource. Track spend per tenant and per window, and pause low-priority work when the budget is exhausted.</li>
+<li><strong>Fair-share, then priority.</strong> Priority alone lets one noisy tenant starve others. Cap each tenant’s share of in-flight work and reserve a slice of the pool for interactive traffic.</li>
+<li><strong>Distinguish liveness from progress.</strong> A worker that heartbeats but makes no progress (a wedged browser) still holds its lease. Track per-task progress, not just heartbeats.</li>
+<li><strong>Watch cost per completed run, not just cost per token.</strong> A pool that retries, reclaims, and re-runs tasks can spend more on duplicate work than on real work. Reclaim rate is a key metric.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-why-run-a-worker-pool-instead-of-one-process-per-run"><a class="header" href="#1-why-run-a-worker-pool-instead-of-one-process-per-run">1. Why run a worker pool instead of one process per run?</a></h3>
+<p><strong>Answer.</strong> Because runs compete for scarce resources. A pool bounds concurrency to what the system can handle, reuses long-lived processes, and lets you size each capability independently. One process per run explodes under load, cannot be rate-limited easily, and loses work when the process dies.</p>
+<p><strong>Follow-up: “What does the pool give up?”</strong> Isolation and simplicity. Every task now shares a worker, so a crash affects in-flight work and you must add leases and idempotency to recover it.</p>
+<p><strong>Trap.</strong> Assuming more workers always means more throughput. When the bottleneck is the model provider or a database, extra workers just add contention and 429s.</p>
+<h3 id="2-why-a-queue-per-capability"><a class="header" href="#2-why-a-queue-per-capability">2. Why a queue per capability?</a></h3>
+<p><strong>Answer.</strong> Because agent steps need different machines and different resources. Model calls need GPU or provider rate-limit headroom; browser steps need session memory; code steps need sandboxes. Separate queues let you route to the right workers, scale each fleet on its own depth, and stop a slow capability from blocking a fast one.</p>
+<p><strong>Follow-up: “How does a workflow choose a queue?”</strong> It names the queue when it schedules the activity. The engine routes; the workflow does not know or care which machine runs it.</p>
+<p><strong>Trap.</strong> One generic pool with one queue. Browser steps then hog slots and the autoscaler, which watches CPU, stays at the wrong size.</p>
+<h3 id="3-how-do-leases-and-heartbeats-prevent-lost-or-duplicated-work"><a class="header" href="#3-how-do-leases-and-heartbeats-prevent-lost-or-duplicated-work">3. How do leases and heartbeats prevent lost or duplicated work?</a></h3>
+<p><strong>Answer.</strong> A lease gives one worker exclusive, time-bounded ownership. While working, the worker heartbeats to extend the lease. If it dies, the lease expires and the broker reclaims the task for another worker, so work is not lost. Because a reclaimed task may have partially run, the task must be idempotent, so the retry does not duplicate the effect.</p>
+<p><strong>Follow-up: “What if the worker finishes but dies before acking?”</strong> The task is reclaimed and re-run. The idempotency key makes the second run observe that the effect already happened and skip it.</p>
+<p><strong>Trap.</strong> Using a lease without a heartbeat on a long task. The lease expires mid-work, the task is reclaimed, and two workers run it at once.</p>
+<h3 id="4-what-signal-do-you-autoscale-on"><a class="header" href="#4-what-signal-do-you-autoscale-on">4. What signal do you autoscale on?</a></h3>
+<p><strong>Answer.</strong> Queue depth and oldest-task age, per capability. Agent workers are I/O-bound, so CPU stays low while tasks wait. Depth tells you how much is waiting; oldest-task age tells you whether users are actually feeling it. Scale in on low utilisation over a sustained window to avoid flapping.</p>
+<p><strong>Follow-up: “What about scaling on token spend?”</strong> Token spend is a budget signal, not a capacity signal. Use it to throttle or shed work when the budget is exhausted, and to choose cheaper models — not to add workers.</p>
+<p><strong>Trap.</strong> Autoscaling on CPU. It does not move when the queue is deep because the workers are blocked on network I/O.</p>
+<h3 id="5-how-do-you-handle-priority-and-fairness"><a class="header" href="#5-how-do-you-handle-priority-and-fairness">5. How do you handle priority and fairness?</a></h3>
+<p><strong>Answer.</strong> Priority orders tasks within a queue; fairness caps how much of the pool any one tenant or class can occupy. Typical scheme: reserve a slice of the pool for interactive work, cap each tenant at a share of in-flight tasks, and let background work use the remainder. Priority alone starves; fairness alone ignores urgency.</p>
+<p><strong>Follow-up: “What is starvation here?”</strong> One tenant submits a huge batch, fills the queue and every worker, and other tenants’ interactive runs never get a slot. The cap prevents it.</p>
+<p><strong>Trap.</strong> Letting a single global priority number decide everything. It is easy to reason about but impossible to keep fair as tenants and task types grow.</p>
+<h3 id="6-what-is-backpressure-and-where-do-you-apply-it"><a class="header" href="#6-what-is-backpressure-and-where-do-you-apply-it">6. What is backpressure and where do you apply it?</a></h3>
+<p><strong>Answer.</strong> Backpressure means telling producers to slow down when the system is saturated. Apply it at admission: reject or defer new runs when queue depth exceeds a limit, return a retry-after, and stop pulling from upstream sources. Once a run is accepted you owe a result, so the cheapest place to shed load is before acceptance.</p>
+<p><strong>Follow-up: “Is dropping work ever correct?”</strong> Yes, for low-priority or expired work. An analytics job from yesterday can be dropped or deferred when interactive traffic spikes. State the policy explicitly.</p>
+<p><strong>Trap.</strong> Accepting everything and hoping the queue absorbs it. The queue grows without bound until something times out or crashes.</p>
+<h3 id="7-how-do-you-recover-a-stuck-worker"><a class="header" href="#7-how-do-you-recover-a-stuck-worker">7. How do you recover a stuck worker?</a></h3>
+<p><strong>Answer.</strong> Its lease expires because heartbeats stop, the broker reclaims the task, and a healthy worker picks it up. You also need a way to detect a worker that heartbeats but makes no progress: track per-task checkpoints and fail tasks whose last checkpoint is too old. For a permanently wedged task, send it to the dead-letter queue after max attempts and alert a human.</p>
+<p><strong>Follow-up: “How do you avoid reclaim storms?”</strong> Add jitter to visibility timeouts and backoff, and don’t set the timeout so tight that normal long tasks get reclaimed. A reclaim storm duplicates work and makes the outage worse.</p>
+<p><strong>Trap.</strong> Detecting stuck workers only by process liveness. A hung process that still answers a ping looks alive but is stuck.</p>
+<h3 id="8-how-do-you-control-cost-across-a-worker-pool"><a class="header" href="#8-how-do-you-control-cost-across-a-worker-pool">8. How do you control cost across a worker pool?</a></h3>
+<p><strong>Answer.</strong> Treat tokens and money as first-class resources. Track spend per tenant and per window, set budget caps, route easy work to cheaper models, cache repeated prompts, and pause background work when the budget is exhausted. Measure cost per completed run, including duplicate work from retries and reclaims, not just cost per token.</p>
+<p><strong>Follow-up: “What if a single run is genuinely expensive?”</strong> Cap per-run token and time budgets and fail the run with a clear reason. An unbounded run can consume the pool’s entire budget.</p>
+<p><strong>Trap.</strong> Optimising only the model price while ignoring retries and reclaims. A cheap model that fails often can cost more than an expensive one that succeeds.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>One queue per capability, workers register what they can serve</strong>, and each fleet scales on its own depth.</li>
+<li><strong>Lease + heartbeat + reclaim</strong> is how work survives a dead worker; idempotency makes the re-run safe.</li>
+<li><strong>Autoscale on queue depth and oldest-task age</strong>, because agent workers are I/O-bound, not CPU-bound.</li>
+<li><strong>Priority orders, fairness caps, backpressure at admission.</strong> Refusing excess work early beats accepting everything and failing all of it.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-06-distributed-systems/22-workflow-engines-and-distributed-task-execution.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-06-distributed-systems/24-distributed-state-management.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-06-distributed-systems/22-workflow-engines-and-distributed-task-execution.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-06-distributed-systems/24-distributed-state-management.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

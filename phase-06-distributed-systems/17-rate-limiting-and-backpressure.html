@@ -1,0 +1,527 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Rate Limiting and Backpressure - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="rate-limiting-and-backpressure"><a class="header" href="#rate-limiting-and-backpressure">Rate Limiting and Backpressure</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> Rate limiting caps how many requests a caller may make in a window, so one caller cannot exhaust shared capacity or spend the budget. The common algorithms are fixed window, sliding window, token bucket, and leaky bucket; token bucket is the usual default because it allows short bursts. In a distributed system the counter must be shared and updated atomically, usually in Redis with a Lua script. When the limit is hit you return <code>429 Too Many Requests</code> with <code>Retry-After</code> for user traffic, and you apply backpressure with bounded queues for internal producers. An unbounded queue is not backpressure — it just moves the failure later and makes it bigger.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>Every service has finite capacity: CPU, database connections, worker slots, network bandwidth, and — for AI products — tokens and money. A limit is what stops one caller from consuming all of it.</p>
+<p>Without rate limiting, four failures happen again and again:</p>
+<ol>
+<li><strong>The retry storm.</strong> A client hits an error and retries immediately. Every retry adds load, which causes more errors, which causes more retries. The service spends all its time rejecting work and none doing it.</li>
+<li><strong>The runaway agent.</strong> An agent endpoint calls a paid model. A loop with no stop condition can spend thousands of dollars in minutes. Request limits alone do not help if each request is very expensive.</li>
+<li><strong>The noisy neighbour.</strong> One tenant sends ten times the traffic of everyone else, saturates the database, and every other tenant sees timeouts.</li>
+<li><strong>The provider limit.</strong> Your model provider allows, say, 100,000 tokens per minute. When you exceed it, the provider returns <code>429</code> for everyone, including your well-behaved requests.</li>
+</ol>
+<p>Notice that “requests” and “tokens” are different resources. You need both a request rate limit and a cost or token budget, because one agent call can cost as much as a thousand simple calls.</p>
+<p>The second half of the topic is <strong>backpressure</strong>. A rate limiter rejects work before it starts. Backpressure slows the producer when the consumer cannot keep up. If you only reject and never signal, producers keep pushing and the queue between you grows without limit. Backpressure is how a system says “slow down” instead of silently dying.</p>
+<blockquote>
+<p><strong>Note.</strong> Rate limiting and backpressure are both about <em>flow control</em>. Rate limiting answers “may this caller start?” Backpressure answers “is the system able to accept more work at all?”</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Rate limit</strong></td><td>The maximum number of requests allowed per unit of time.</td></tr>
+<tr><td><strong>Window</strong></td><td>The period the limit is measured over: 1 second, 1 minute, 1 day.</td></tr>
+<tr><td><strong>Fixed window</strong></td><td>A counter that resets at a fixed boundary, such as each whole second.</td></tr>
+<tr><td><strong>Sliding window</strong></td><td>A window that always looks back from now, so it never resets abruptly.</td></tr>
+<tr><td><strong>Token bucket</strong></td><td>A bucket that refills at a constant rate; each request spends tokens.</td></tr>
+<tr><td><strong>Leaky bucket</strong></td><td>A queue that drains at a constant rate, smoothing traffic.</td></tr>
+<tr><td><strong>Burst</strong></td><td>A short spike above the steady rate.</td></tr>
+<tr><td><strong>Capacity</strong></td><td>The largest burst a bucket allows.</td></tr>
+<tr><td><strong>Refill rate</strong></td><td>How fast a token bucket refills, in tokens per second.</td></tr>
+<tr><td><strong>Cost</strong></td><td>How many tokens one request consumes. An LLM call may cost many.</td></tr>
+<tr><td><strong>429</strong></td><td>HTTP status for “too many requests”, defined in RFC 6585.</td></tr>
+<tr><td><strong><code>Retry-After</code></strong></td><td>Response header telling the client how long to wait.</td></tr>
+<tr><td><strong>Backpressure</strong></td><td>Making the producer slow down because the consumer is behind.</td></tr>
+<tr><td><strong>Rejection</strong></td><td>Refusing work immediately with a <code>429</code> or an error.</td></tr>
+<tr><td><strong>Load shedding</strong></td><td>Deliberately dropping lower-priority work to protect the system.</td></tr>
+<tr><td><strong>Bounded queue</strong></td><td>A queue with a maximum size, so backlog cannot grow forever.</td></tr>
+<tr><td><strong>Unbounded queue</strong></td><td>A queue with no limit; it hides overload until it runs out of memory.</td></tr>
+<tr><td><strong>Little’s law</strong></td><td><code>concurrency = arrival rate × latency</code>; how many requests are in flight.</td></tr>
+<tr><td><strong>Distributed limiter</strong></td><td>A limiter whose counter is shared by all app instances.</td></tr>
+<tr><td><strong>Atomic</strong></td><td>An update that cannot be split by another update.</td></tr>
+<tr><td><strong>Lua script</strong></td><td>A small program Redis runs atomically inside the server.</td></tr>
+<tr><td><strong>Atomic counter</strong></td><td>A shared number incremented without lost updates.</td></tr>
+<tr><td><strong>Fair queue</strong></td><td>A scheduler that gives each tenant a turn, so no one starves.</td></tr>
+<tr><td><strong>Quota</strong></td><td>A budget over a long window: per day, per month, per dollar.</td></tr>
+</tbody></table>
+</div>
+<p>Two distinctions that matter most:</p>
+<ul>
+<li><strong>Burst vs steady rate.</strong> “10 per second” is steady. “Up to 30 at once, then refill” allows a burst. Token bucket expresses both; fixed window cannot.</li>
+<li><strong>Reject vs backpressure vs shed.</strong> Reject returns an error now. Backpressure queues and slows the producer. Shedding drops the least important work to save the most important.</li>
+</ul>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Picture a bucket with a small hole in the bottom. A tap drips tokens in at a constant rate. Each request must take a token out. If the bucket is empty, the request is rejected or waits. If the bucket is full, extra tokens are simply lost, which caps the burst.</p>
+<p>That is the <strong>token bucket</strong>. Its two numbers are the <strong>refill rate</strong> (steady throughput) and the <strong>capacity</strong> (largest allowed burst). “5 per second with bursts up to 20” is one bucket, not two rules.</p>
+<p>Now picture a rainwater tank with a drain. Water pours in from the top, and the drain lets it out at a fixed rate. If the tank overflows, the excess is rejected. That is the <strong>leaky bucket</strong>, and it produces a perfectly even output stream, which is what a fragile downstream needs.</p>
+<p>Backpressure is the third picture: a pipe that is narrower at the far end. You cannot push water through faster than it drains. The pressure builds up at the source and forces the producer to slow down. If you replace the pipe with a giant tank of unlimited size, the pressure disappears — until the tank bursts.</p>
+<p>The flow of one request:</p>
+<pre><code class="language-mermaid">flowchart TD
+    R["Incoming request"] --&gt; K["Build key:&lt;br/&gt;user / IP / tenant / route"]
+    K --&gt; L["Limiter (shared, atomic)"]
+    L --&gt;|"tokens &gt;= cost"| A["Allow: subtract cost"]
+    L --&gt;|"tokens &lt; cost"| D["Deny"]
+    A --&gt; S["Run the work"]
+    A --&gt; Q["Bounded queue&lt;br/&gt;(internal producers)"]
+    Q --&gt; W["Worker pool"]
+    Q --&gt;|"full"| B["Backpressure or shed"]
+    D --&gt; H["429 + Retry-After"]
+</code></pre>
+<p>Here is how the algorithms compare. This table is the topic on one screen.</p>
+<div class="table-wrapper"><table><thead><tr><th>Algorithm</th><th>Burst behaviour</th><th>Memory</th><th>Precision</th><th>Typical use</th></tr></thead><tbody>
+<tr><td><strong>Fixed window</strong></td><td>Up to 2× at boundaries</td><td>O(1) counter</td><td>Coarse</td><td>Simple daily quotas</td></tr>
+<tr><td><strong>Sliding window log</strong></td><td>None at boundaries</td><td>O(limit) entries</td><td>Exact</td><td>Small, strict limits</td></tr>
+<tr><td><strong>Sliding window counter</strong></td><td>Nearly smooth</td><td>O(1), two counters</td><td>Approximate</td><td>High-volume APIs</td></tr>
+<tr><td><strong>Token bucket</strong></td><td>Up to capacity</td><td>O(1), two numbers</td><td>Exact</td><td>Public APIs, LLM calls</td></tr>
+<tr><td><strong>Leaky bucket</strong></td><td>Smooths to a constant rate</td><td>O(capacity) queue</td><td>Exact pacing</td><td>Protecting a slow downstream</td></tr>
+</tbody></table>
+</div>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p><strong>Fixed window counter.</strong></p>
+<ol>
+<li>Build a key that includes the window: <code>rl:user:42:1710000000</code>.</li>
+<li><code>INCR</code> the key.</li>
+<li>If the result is 1, this is the first hit; set an expiry equal to the window.</li>
+<li>If the result is greater than the limit, reject; otherwise allow.</li>
+</ol>
+<p>It is one round trip and O(1) memory. Its flaw is the boundary: at the end of one window a client can send the full limit, and at the start of the next window send it again. Nearly 2× the limit lands in a fraction of a second.</p>
+<p><strong>Sliding window log.</strong></p>
+<ol>
+<li>Store each hit in a sorted set with its timestamp as the score.</li>
+<li>Remove entries older than <code>now - window</code>.</li>
+<li>Count what remains. If below the limit, add this hit and allow.</li>
+</ol>
+<p>It is exact and never bursts at a boundary. The cost is memory: a limit of 1,000 per minute keeps up to 1,000 timestamps per key.</p>
+<p><strong>Sliding window counter.</strong> An approximation that blends two fixed windows:</p>
+<pre><code class="language-text">estimate = previous_count * (1 - elapsed_fraction) + current_count
+</code></pre>
+<p>O(1) memory and nearly as smooth as the log. It is what many large APIs use, at the price of a small over- or under-count.</p>
+<p><strong>Token bucket.</strong></p>
+<ol>
+<li>Read the token count and the timestamp of the last update.</li>
+<li>Add <code>elapsed_seconds × refill_rate</code> tokens, capped at capacity.</li>
+<li>If at least <code>cost</code> tokens remain, subtract them and allow. Otherwise reject.</li>
+<li>Store the new count and timestamp.</li>
+</ol>
+<p>Refill is computed lazily from the clock, so no background job is needed. Two numbers per key, exact burst control.</p>
+<p><strong>Leaky bucket.</strong></p>
+<ol>
+<li>Add the request’s cost to a level.</li>
+<li>Subtract <code>elapsed × drain_rate</code> to model the drain.</li>
+<li>If the level would exceed capacity, reject. Otherwise accept.</li>
+</ol>
+<p>Output is smooth, which protects a fragile downstream, at the cost of latency for queued work.</p>
+<p><strong>Making it distributed.</strong> In-process counters only limit one process. With several app instances, each has its own counter, so the effective limit becomes <code>limit × instances</code>. Move the counter to Redis and make every update atomic. A <strong>Lua script</strong> runs as one atomic unit on the Redis server, so the read-modify-write cannot interleave.</p>
+<p><strong>Backpressure.</strong></p>
+<ol>
+<li>Bound every queue. Pick a maximum size from memory and from the worker drain rate.</li>
+<li>When the queue is full, pick a policy: block the producer, reject the item, or drop the oldest.</li>
+<li>Never grow the queue to hide the problem. Memory is a finite resource too, and an unbounded queue turns a throughput problem into an out-of-memory crash.</li>
+<li>Use Little’s law to size worker pools: <code>concurrency = arrival rate × latency</code>. If 100 requests per second arrive and each takes 0.25 s, about 25 are in flight.</li>
+</ol>
+<p><strong>Which policy when.</strong></p>
+<ul>
+<li><strong>User-facing read traffic:</strong> reject with <code>429</code> and <code>Retry-After</code>.</li>
+<li><strong>Internal producers you control:</strong> apply backpressure; block or slow the producer.</li>
+<li><strong>Under overload with priorities:</strong> shed the least important work first.</li>
+<li><strong>Paid model calls:</strong> limit by tokens and dollars, not just requests.</li>
+</ul>
+<blockquote>
+<p><strong>Tip.</strong> Pick by what you must protect. Need bursts for real users? Token bucket. Need perfectly even output for a slow downstream? Leaky bucket. Need a simple daily quota? Fixed window. Need exactness at small scale? Sliding window log.</p>
+</blockquote>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p><strong>A distributed token bucket in Redis with an atomic Lua script.</strong> This is the production form; the script is one atomic read-modify-write.</p>
+<pre><code class="language-lua">-- KEYS[1] bucket key; ARGV: now_ms, refill/ms, capacity, cost
+local b = redis.call('HMGET', KEYS[1], 'tokens', 'ts')
+local tokens = tonumber(b[1]) or tonumber(ARGV[3])
+local ts = tonumber(b[2]) or tonumber(ARGV[1])
+local delta = math.max(0, tonumber(ARGV[1]) - ts)
+tokens = math.min(tonumber(ARGV[3]), tokens + delta * tonumber(ARGV[2]))
+local allowed = tokens &gt;= tonumber(ARGV[4])
+if allowed then tokens = tokens - tonumber(ARGV[4]) end
+redis.call('HMSET', KEYS[1], 'tokens', tokens, 'ts', ARGV[1])
+redis.call('PEXPIRE', KEYS[1], 60000)
+return allowed and 1 or 0
+</code></pre>
+<p><strong>Calling it from Python.</strong> The cost argument is how you make one expensive LLM call consume many tokens.</p>
+<pre><code class="language-python">script = redis_client.register_script(LUA_TOKEN_BUCKET)
+
+def allow(key, now_ms, rate_per_s=5, capacity=5, cost=1):
+    # capacity must be &gt;= cost, or a request costlier than the bucket is always denied
+    ok = script(keys=[key], args=[now_ms, rate_per_s / 1000, capacity, cost])
+    return bool(ok)
+
+allow("rl:tenant:acme", now_ms, rate_per_s=500, capacity=1000, cost=1)     # a cheap request
+allow("rl:tenant:acme", now_ms, rate_per_s=500, capacity=1000, cost=500)   # one expensive model call
+</code></pre>
+<p><strong>A shared fixed-window counter is just <code>INCR</code> plus <code>EXPIRE</code>.</strong> Simple, but expect boundary bursts.</p>
+<pre><code class="language-python">def fixed_window(key, limit, window_s=1):
+    n = redis_client.incr(key)
+    if n == 1:
+        redis_client.expire(key, window_s)
+    return n &lt;= limit
+</code></pre>
+<p><strong>Returning a <code>429</code> with <code>Retry-After</code>.</strong> Tell the client exactly how long to wait; otherwise it will guess and retry immediately. <code>Retry-After</code> may be seconds or an HTTP date.</p>
+<pre><code class="language-python">from fastapi import HTTPException
+
+def deny(retry_after_s: int):
+    raise HTTPException(
+        status_code=429,
+        detail="rate limit exceeded",
+        headers={"Retry-After": str(retry_after_s)},
+    )
+</code></pre>
+<p><strong>A bounded queue is backpressure.</strong> <code>asyncio.Queue(maxsize=...)</code> forces the producer to wait or to shed.</p>
+<pre><code class="language-python">q = asyncio.Queue(maxsize=100)          # bounded, so backlog cannot explode
+
+await q.put(item)                       # producer waits when full (backpressure)
+q.put_nowait(item)                      # or raises QueueFull, so you can shed
+</code></pre>
+<p><strong>A semaphore sheds load before the queue.</strong> If every slot is busy, reject rather than queue forever.</p>
+<pre><code class="language-python">slots = asyncio.Semaphore(20)          # max concurrent agent runs
+
+async def handle():
+    if slots.locked():                 # all 20 permits are held
+        deny(retry_after_s=1)          # shed load instead of queueing
+    async with slots:
+        return await run_agent()
+</code></pre>
+<p><strong>Cost-based limiting for model providers.</strong> Estimate tokens before the call and charge the bucket accordingly.</p>
+<pre><code class="language-python">estimated_tokens = len(prompt.split()) * 1.3 + max_tokens
+if not allow(f"rl:model:{tenant}", now_ms, rate_per_s=2000, capacity=50000,
+             cost=estimated_tokens):
+    deny(retry_after_s=2)
+</code></pre>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p><strong>Example 1 — a token bucket allows a burst, then throttles.</strong> Capacity 10, refill 5 per second. Ten calls pass at once, then the next two are rejected. As the clock advances, tokens come back.</p>
+<pre><code class="language-text">burst: [True, True, True, True, True, True, True, True, True, True, False, False]
+tokens after burst: 0.0
+at t=0.5 (2.5 refilled): True  tokens: 1.5
+at t=0.6 (+0.5 refilled): True tokens: 1.0
+at t=0.7 (+0.5 refilled): True tokens: 0.5
+at t=0.8 (needs 1, has 0.5 refilled): True tokens: 0.0
+again at t=0.8 (bucket empty): False tokens: 0.0
+</code></pre>
+<p>This is the shape real users want: a quick burst is fine, sustained overload is not.</p>
+<p><strong>Example 2 — the fixed-window boundary bug.</strong> Five calls at <code>t=0.9</code> and five at <code>t=1.1</code> are all allowed, even with a limit of five per second. Ten calls land in 0.2 seconds.</p>
+<pre><code class="language-text">fixed window: 10 allowed in 0.2s across the boundary: True
+</code></pre>
+<p>The counter is correct per window and still wrong in reality. This is why production limiters rarely use a naive fixed window for bursty traffic.</p>
+<p><strong>Example 3 — the sliding window counter smooths the boundary.</strong> At <code>t=1.1</code>, 10% into the new window, 90% of the previous window’s five hits are still counted, so the estimate is 4.5.</p>
+<pre><code class="language-text">sliding estimate at t=1.1: 4.5 -&gt; reject? False
+</code></pre>
+<p>It is approximate, but the 2× surge is gone.</p>
+<p><strong>Example 4 — a leaky bucket paces a slow downstream.</strong> Rate 2 per second, capacity 3. A burst of five fills it, and two are rejected. After a second of draining, one more fits.</p>
+<pre><code class="language-text">leaky burst: [True, True, True, False, False]
+level: 3.0
+after 1s (drained 2): True level: 2.0
+after 2s (drained): True level: 1.0
+</code></pre>
+<p>The output leaves at a steady two per second, which is what a fragile dependency needs.</p>
+<p><strong>Example 5 — a bounded queue signals overload; an unbounded one hides it.</strong> With capacity 3, the fourth and fifth items are rejected immediately. An unbounded queue accepts all six and simply grows.</p>
+<pre><code class="language-text">bounded produce: ['enqueue', 'enqueue', 'enqueue', 'reject', 'reject', 'reject']
+                 -&gt; queue [0, 1, 2] dropped 3
+unbounded backlog length: 6 (no limit -&gt; no signal)
+</code></pre>
+<p>The bounded queue told you it was full. The unbounded one did not, and that is the entire danger.</p>
+<p><strong>Example 6 — distributed limiting with Redis over fakeredis.</strong> One bucket is shared by every caller. Five requests cost one token each; the sixth is denied. After 200 ms one token has refilled.</p>
+<pre><code class="language-text">6 calls at t=0 (limit 5/s, cap 5): [True, True, True, True, True, False]
+after 200ms: True (one token refilled)
+after 1000ms: [True, True, True, True, False, False]
+fixed window (limit 3/s): [True, True, True, False, False]
+</code></pre>
+<p>The Lua script makes the read-modify-write atomic, so ten app instances share one honest limit instead of each allowing the full amount.</p>
+<p><strong>Example 7 — sizing the worker pool from Little’s law.</strong> If 100 requests per second arrive and each takes 0.25 s, about 25 are in flight. A pool of 5 will queue; a pool of 25 with headroom will keep up.</p>
+<pre><code class="language-text">concurrency in flight: 25.0
+</code></pre>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>Return <code>429</code> with <code>Retry-After</code>.</strong> Without a hint, clients retry immediately and turn a limit into a retry storm. Add jitter guidance if many clients share the limit.</li>
+<li><strong>Limits are per key, and the key choice is the policy.</strong> <code>user:42</code>, <code>ip:1.2.3.4</code>, <code>tenant:acme</code>, <code>route:/chat</code>, <code>model:gpt</code>. Choose keys that match fairness and cost.</li>
+<li><strong>Use token bucket as the default.</strong> It handles real bursts gracefully. Reach for leaky bucket only when the downstream must receive an even stream.</li>
+<li><strong>Do not count every request the same.</strong> A chat completion and a health check are not equal. Charge by cost: tokens, estimated spend, or CPU seconds.</li>
+<li><strong>The counter must be shared and atomic.</strong> In-process counters multiply the effective limit by the number of instances. Use Redis with a Lua script, and set a TTL so keys do not leak.</li>
+<li><strong>Bound every queue.</strong> An unbounded queue is a delayed outage. Set the size from worker drain rate and memory, and alert on queue depth.</li>
+<li><strong>Choose a full-queue policy explicitly.</strong> Block the producer (backpressure), reject the item, or drop the oldest. Decide which one suits the work, and write it down.</li>
+<li><strong>Reject early and cheaply.</strong> Check the limiter before parsing the body, loading the model, or opening a database transaction. Wasted work is still work.</li>
+<li><strong>Protect provider limits like your own.</strong> A provider <code>429</code> affects all your tenants at once. Keep a local token budget just under the provider’s, and queue or degrade before you hit the hard edge.</li>
+<li><strong>Watch for the thundering herd.</strong> When a limit resets, every blocked client wakes at the same instant. Add jitter to retries and round reset times.</li>
+<li><strong>Make limits configurable and observable.</strong> Track allowed, denied, and shed counts per key. A limit that never triggers is untested; one that always triggers is misconfigured.</li>
+<li><strong>Separate fairness from protection.</strong> A per-tenant quota is fairness; a global shed policy protects the system. You usually need both, and they should be tuned separately.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-explain-the-four-main-rate-limiting-algorithms-and-their-trade-offs"><a class="header" href="#1-explain-the-four-main-rate-limiting-algorithms-and-their-trade-offs">1. Explain the four main rate-limiting algorithms and their trade-offs.</a></h3>
+<p><strong>Answer.</strong> <strong>Fixed window</strong> is one counter per time bucket: O(1) memory but it allows up to 2× at boundaries. <strong>Sliding window log</strong> stores every hit and looks back exactly: precise but O(limit) memory. <strong>Sliding window counter</strong> blends two fixed windows: O(1) and nearly smooth but approximate. <strong>Token bucket</strong> refills at a constant rate and allows a burst up to capacity: two numbers per key and the usual default. <strong>Leaky bucket</strong> drains at a constant rate and smooths output, which suits a fragile downstream.</p>
+<p><strong>Follow-up: “Why is token bucket so common?”</strong> It matches how real clients behave — mostly quiet with short bursts — and it expresses both steady rate and burst size with two numbers. It also handles cost-based charging naturally: a request can spend more than one token.</p>
+<p><strong>Trap.</strong> Saying fixed window is “good enough” without mentioning the boundary burst. That burst is exactly when systems are most fragile.</p>
+<h3 id="2-how-do-you-build-a-distributed-rate-limiter"><a class="header" href="#2-how-do-you-build-a-distributed-rate-limiter">2. How do you build a distributed rate limiter?</a></h3>
+<p><strong>Answer.</strong> Keep the counter in a shared store, usually Redis, and perform the read-modify-write atomically. The standard approach is a Lua script that reads the bucket, refills from the clock, checks the cost, writes the new state, and returns allow or deny — all in one server-side step. Set a TTL so idle keys are cleaned up. Never use per-process counters, because N instances make the real limit N times too high.</p>
+<p><strong>Follow-up: “What if Redis is unavailable?”</strong> Decide the failure mode in advance: fail open (allow traffic, risking overload) or fail closed (reject, risking an outage). Many systems fail open for availability and add a small local limiter as a backstop.</p>
+<p><strong>Trap.</strong> Doing <code>GET</code> then <code>INCR</code> in application code. Two concurrent callers can both read the same value and both be allowed, so the limit leaks.</p>
+<h3 id="3-what-is-the-difference-between-rate-limiting-backpressure-and-load-shedding"><a class="header" href="#3-what-is-the-difference-between-rate-limiting-backpressure-and-load-shedding">3. What is the difference between rate limiting, backpressure, and load shedding?</a></h3>
+<p><strong>Answer.</strong> Rate limiting decides whether a specific caller may start, based on a per-key budget. Backpressure slows the producer when the consumer is behind, usually by blocking on a bounded queue. Load shedding drops work under overload, choosing low-priority work first. They are complementary: limit per caller, apply backpressure to internal producers, and shed when the system is genuinely saturated.</p>
+<p><strong>Follow-up: “Why is an unbounded queue not backpressure?”</strong> Because it never signals the producer. The queue absorbs the mismatch, memory grows, latency climbs, and the eventual failure is an out-of-memory crash rather than a clean rejection. A bound is what creates the pressure.</p>
+<p><strong>Trap.</strong> Treating them as synonyms. Rejection returns an error immediately; backpressure makes the producer wait; shedding makes a priority decision.</p>
+<h3 id="4-why-must-a-rate-limiter-use-the-callers-key-correctly"><a class="header" href="#4-why-must-a-rate-limiter-use-the-callers-key-correctly">4. Why must a rate limiter use the caller’s key correctly?</a></h3>
+<p><strong>Answer.</strong> The key defines who shares a budget and therefore what fairness means. Per-user keys stop one user from starving others. Per-tenant keys give a customer their whole allocation. Per-IP keys help against anonymous abuse but punish users behind shared NAT. Per-route keys protect an expensive endpoint. You often apply several at once: a global limit, a per-tenant limit, and a per-route limit.</p>
+<p><strong>Follow-up: “What goes wrong with IP keys?”</strong> Many legitimate users share one IP (offices, mobile carriers), so a per-IP limit rejects them together while an attacker rotates IPs freely. Use IP limits as a blunt backstop, not your main fairness rule.</p>
+<p><strong>Trap.</strong> Picking a key and never revisiting it. Traffic changes; a key that worked at launch can become the bottleneck later.</p>
+<h3 id="5-how-do-you-limit-by-tokens-or-cost-instead-of-requests"><a class="header" href="#5-how-do-you-limit-by-tokens-or-cost-instead-of-requests">5. How do you limit by tokens or cost instead of requests?</a></h3>
+<p><strong>Answer.</strong> Make the cost a parameter of the bucket. Estimate the request’s cost before running it — input tokens plus maximum output tokens for a model call — and spend that many tokens from the bucket. The refill rate is then in tokens per second, and the capacity is the largest burst of spend you allow. This catches the case where few requests are each very expensive.</p>
+<p><strong>Follow-up: “What if the estimate is wrong?”</strong> Reconcile after the call using the provider’s reported usage: refund or charge the difference. Track a hard daily or monthly budget as a second line of defence, because a per-second limiter cannot stop slow, sustained overspend.</p>
+<p><strong>Trap.</strong> Limiting only request counts for an AI product. One agent loop with a large context can cost more than thousands of small requests.</p>
+<h3 id="6-what-should-a-well-behaved-client-do-when-it-gets-a-429"><a class="header" href="#6-what-should-a-well-behaved-client-do-when-it-gets-a-429">6. What should a well-behaved client do when it gets a <code>429</code>?</a></h3>
+<p><strong>Answer.</strong> Honour <code>Retry-After</code>, then wait and retry with exponential backoff and jitter. Do not retry immediately, and do not retry in parallel. Better still, reduce concurrency and prefer a degraded path. A client that ignores <code>Retry-After</code> is the reason the next incident is worse than the first.</p>
+<p><strong>Follow-up: “What if <code>Retry-After</code> is missing?”</strong> Use your own backoff with random jitter, and cap the number of retries. Report the missing header, because it is a server bug.</p>
+<p><strong>Trap.</strong> Retrying a non-idempotent request. A retried payment or tool call can double a side effect; combine retries with idempotency keys.</p>
+<h3 id="7-how-do-you-protect-against-a-model-providers-own-rate-limits"><a class="header" href="#7-how-do-you-protect-against-a-model-providers-own-rate-limits">7. How do you protect against a model provider’s own rate limits?</a></h3>
+<p><strong>Answer.</strong> Treat the provider’s limit as a shared resource for all your tenants. Keep a local budget slightly below it, so you queue or degrade before the provider rejects you. Use a token bucket with a cost per call, a concurrency cap per provider, and a queue for overflow. On a provider <code>429</code>, back off globally, not per request, so you do not amplify the problem.</p>
+<p><strong>Follow-up: “Why a global budget rather than per-tenant only?”</strong> Per-tenant limits can each be fine while the sum exceeds the provider’s cap. You need a global limiter above the per-tenant ones.</p>
+<p><strong>Trap.</strong> Assuming every tenant is small. One large customer can consume the entire provider allowance if nothing tracks the total.</p>
+<h3 id="8-what-is-your-strategy-when-the-system-is-already-overloaded"><a class="header" href="#8-what-is-your-strategy-when-the-system-is-already-overloaded">8. What is your strategy when the system is already overloaded?</a></h3>
+<p><strong>Answer.</strong> Shed load deliberately and protect the core. Reject new low-priority work early with a clear status, keep serving the most important traffic, and let queues stay bounded so latency does not explode. Reduce retries and turn up timeouts if retries are feeding the fire. Above all, give operators a way to turn features off, because a fast degraded mode beats a slow total failure.</p>
+<p><strong>Follow-up: “How do you decide what to shed?”</strong> Rank work by business value and by cost. Health checks, logins, and paid critical paths survive; batch jobs, analytics, and best-effort enrichment go first. Encode the ranking before the incident, not during it.</p>
+<p><strong>Trap.</strong> Shedding at random. Random drops hit critical and non-critical work equally, which loses trust without protecting the system.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>Token bucket is the default.</strong> Two numbers — refill rate and capacity — express both steady rate and burst.</li>
+<li><strong>Share and atomise the counter.</strong> Use Redis with a Lua script; per-process counters multiply the real limit.</li>
+<li><strong>Return <code>429</code> with <code>Retry-After</code>,</strong> and have clients back off with jitter.</li>
+<li><strong>Bound every queue.</strong> An unbounded queue is not backpressure; it is a delayed out-of-memory failure.</li>
+<li><strong>Limit cost, not just requests.</strong> For AI, tokens and dollars are the resource that actually runs out.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-06-distributed-systems/16-circuit-breakers-and-bulkheads.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-06-distributed-systems/18-caching-and-distributed-caching.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-06-distributed-systems/16-circuit-breakers-and-bulkheads.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-06-distributed-systems/18-caching-and-distributed-caching.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

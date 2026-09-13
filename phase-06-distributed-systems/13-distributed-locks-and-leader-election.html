@@ -1,0 +1,588 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Distributed Locks and Leader Election - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="distributed-locks-and-leader-election"><a class="header" href="#distributed-locks-and-leader-election">Distributed Locks and Leader Election</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> A distributed lock is a shared agreement that only one node runs a critical section at a time. The naive “write a key, delete it when done” version is unsafe, because a lock can expire while its holder is paused — a GC stop-the-world pause, a slow network, a process freeze — and a second holder starts while the first still believes it holds the lock. The fix is a <strong>fencing token</strong>: every lock grant carries a monotonically increasing number, and the protected resource rejects any operation carrying a token lower than one it has already seen. Prefer <strong>leases</strong> (locks with a TTL) over permanent locks. Leader election is the same problem with one winner; use a consensus system built on Raft or Paxos, not an ad-hoc “highest ID wins” algorithm. And often the strongest answer is to remove the need for a lock entirely with a single-writer design.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>Some work must happen exactly once, or strictly in order, and no amount of retrying and idempotency fixes that.</p>
+<ul>
+<li>A scheduled job that compiles a daily report must run on one node, not all twenty.</li>
+<li>A consumer must own a partition so its messages are processed in order by a single writer.</li>
+<li>A background compaction must not run twice and corrupt the same files.</li>
+<li>A leader must be unique so the cluster does not accept two conflicting decisions.</li>
+</ul>
+<p>A single machine solves this with an operating-system mutex: one thread holds it, others wait. In a distributed system there is no shared memory, no kernel to arbitrate, and no reliable way to know whether another node is alive or merely slow. You have to build mutual exclusion out of messages and timeouts, and every timeout is a guess.</p>
+<p>That guess is the danger. A lock with a 30-second lease does not mean “the holder cannot be running after 30 seconds.” It means “if the holder has not renewed by 30 seconds, the lock service will let someone else in.” If the first holder was frozen by a long garbage-collection pause, it will wake up still running its critical section, now with a competitor. Both believe they hold the lock. This is the central failure mode, and understanding it is what separates a candidate who has read about locks from one who has run them.</p>
+<blockquote>
+<p><strong>Note:</strong></p>
+<p><strong>The one-sentence purpose.</strong> A lock tells you who <em>probably</em> is allowed to work; a fencing token tells the protected resource which worker’s write is <em>actually</em> allowed to win.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Coordination</strong></td><td>Getting independent nodes to agree on a shared fact, such as “who is the leader?”</td></tr>
+<tr><td><strong>Mutual exclusion</strong></td><td>Only one actor is inside the critical section at a time.</td></tr>
+<tr><td><strong>Critical section</strong></td><td>The code that must not run concurrently.</td></tr>
+<tr><td><strong>Lock</strong></td><td>A token granting the right to enter the critical section.</td></tr>
+<tr><td><strong>Lease</strong></td><td>A lock with an expiry time. It is released automatically if not renewed.</td></tr>
+<tr><td><strong>TTL</strong></td><td>Time to live: how long a lease is valid before it expires.</td></tr>
+<tr><td><strong>Expiry race</strong></td><td>The window where a lease has expired but the old holder has not noticed and keeps working.</td></tr>
+<tr><td><strong>GC pause</strong></td><td>A stop-the-world garbage-collection pause. The process is frozen and does not learn that its lease expired.</td></tr>
+<tr><td><strong>Fencing token</strong></td><td>A monotonically increasing number attached to each lock grant, used by the resource to reject stale holders.</td></tr>
+<tr><td><strong>Clock skew</strong></td><td>Two machines disagree about the current time. Fatal for lock safety if not bounded.</td></tr>
+<tr><td><strong>Consensus</strong></td><td>A protocol where a set of nodes agree on one value (or one leader) even when some fail. Raft and Paxos are examples.</td></tr>
+<tr><td><strong>Quorum / majority</strong></td><td>More than half the nodes. Any two majorities overlap, which is why they are safe.</td></tr>
+<tr><td><strong>Leader election</strong></td><td>Choosing exactly one node to act as coordinator.</td></tr>
+<tr><td><strong>Split brain</strong></td><td>Two nodes both believe they are leader. Consensus protocols prevent it; ad-hoc ones do not.</td></tr>
+<tr><td><strong>Term / epoch</strong></td><td>A monotonically increasing round number in Raft. A stale leader from an old term is rejected.</td></tr>
+<tr><td><strong>Advisory lock</strong></td><td>A lock the database exposes to applications; it coordinates, but enforces nothing on its own.</td></tr>
+<tr><td><strong>Single-writer pattern</strong></td><td>Design so that only one component is responsible for a piece of state, removing the need to lock.</td></tr>
+<tr><td><strong>Compare-and-swap (CAS)</strong></td><td>Update a value only if it still equals the expected old value. The building block of lock-free coordination.</td></tr>
+</tbody></table>
+</div>
+<p>Two distinctions to hold onto:</p>
+<ul>
+<li><strong>A lock is a performance optimization, not a correctness guarantee.</strong> Correctness must come from the protected resource (fencing tokens, unique constraints, version checks). If a bug can occur when two holders overlap, the lock did not save you.</li>
+<li><strong>A lease is a bet on liveness, not a proof of death.</strong> “The lease expired” means “we stopped hearing from you,” not “you are stopped.” You cannot know the difference without a fencing mechanism.</li>
+</ul>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Picture a single restroom key at a gas station. There is exactly one key, so only one customer can be inside at a time. That works until the key-holder falls asleep. The attendant then makes a copy and hands it to the next impatient customer. Now two people believe they hold the only key. The mutual exclusion is gone.</p>
+<p>The repair is a <strong>display above the door that always shows the highest ticket number served</strong>. When you enter, the door stamps you with the next number in sequence. If someone presents ticket 5 while the display already shows 7, the door refuses.</p>
+<p>That display is a fencing token:</p>
+<ul>
+<li>The lock service hands out <strong>increasing</strong> numbers (1, 2, 3, …).</li>
+<li>The resource (database, storage, downstream API) remembers the <strong>highest</strong> number it has accepted.</li>
+<li>Any request with a <strong>lower</strong> number is rejected as stale.</li>
+</ul>
+<p>The paused holder wakes up and tries to write with token 5. The resource has already served token 7, so it refuses. Two nodes ran the code, but only one effect landed. You cannot prevent the overlap; you make the overlap harmless. That is the same strategy as idempotency: accept the failure, neutralize its effect.</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant A as Worker A
+    participant L as Lock service
+    participant B as Worker B
+    participant S as Storage
+    A-&gt;&gt;L: acquire (lease 10s)
+    L--&gt;&gt;A: granted, token=33
+    Note over A: long GC pause
+    L--&gt;&gt;L: lease expires
+    B-&gt;&gt;L: acquire
+    L--&gt;&gt;B: granted, token=34
+    B-&gt;&gt;S: write(value=2, token=34)
+    S--&gt;&gt;B: accepted (highest=34)
+    A-&gt;&gt;S: write(value=1, token=33)
+    S--&gt;&gt;A: REJECTED - stale token
+</code></pre>
+<p>The story is in the last two arrows. The lock’s expiry let a second worker in, but the storage’s token check kept the stale write out.</p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p>Follow one lease-based lock with fencing, end to end.</p>
+<ol>
+<li><strong>Acquire with a TTL and a unique identity.</strong> The client writes its lock key with <code>SET key &lt;owner-token&gt; NX PX &lt;ttl&gt;</code> (Redis) or a conditional row insert. <code>NX</code> means “only if absent,” so exactly one client wins.</li>
+<li><strong>The lock service returns a fencing token.</strong> In a lock service designed for this, the token is a monotonic counter (or the lock’s version number). A simple Redis lock can use a value derived from <code>INCR</code> on a shared counter per lock.</li>
+<li><strong>The client does its work, passing the token to every write.</strong> The downstream resource must understand the token. A token nobody checks is decoration.</li>
+<li><strong>The client renews the lease while working.</strong> A background heartbeat extends the TTL. This reduces, but does not eliminate, expiry races.</li>
+<li><strong>If the client dies or pauses, the lease expires.</strong> The lock service makes the lock available again.</li>
+<li><strong>A second client acquires and receives a higher token.</strong> It proceeds.</li>
+<li><strong>The paused client wakes and attempts a write with its old, lower token.</strong> The resource compares the token to the highest it has seen and rejects the write, or ignores it, or logs it.</li>
+<li><strong>The client releases the lock only if it still owns it.</strong> Release must be a compare-and-delete (<code>if value == my-token then delete</code>), not a blind delete, or a slow client will free someone else’s lock.</li>
+</ol>
+<p>Steps 2, 3, and 7 are the part most implementations skip, and they are the part that makes the lock safe.</p>
+<h3 id="leases-instead-of-locks"><a class="header" href="#leases-instead-of-locks">Leases instead of locks</a></h3>
+<p>A lock with no expiry can be held forever by a crashed process. Every practical distributed lock is therefore a lease:</p>
+<ul>
+<li>The holder promises to renew.</li>
+<li>The service promises to release after the TTL.</li>
+<li>The TTL is a trade-off: short TTLs recover quickly but expire during normal slowness; long TTLs are safer for the holder but leave the resource locked longer after a crash.</li>
+</ul>
+<p>Leases are also how sessions, leader terms, and partition ownership are modeled. The lease is the primitive; the “lock” is a lease that a well-behaved client releases early.</p>
+<h3 id="redlock-and-its-criticisms"><a class="header" href="#redlock-and-its-criticisms">Redlock and its criticisms</a></h3>
+<p><strong>Redlock</strong> is a Redis recipe for a lock across N independent Redis masters. The client tries to acquire on a majority; the lock has a validity time computed from the elapsed time, and a clock-drift factor. It was proposed as a safer alternative to a single Redis lock.</p>
+<p>The criticism, most famously from Martin Kleppmann, is that Redlock does not solve the fundamental problem:</p>
+<ul>
+<li>It depends on <strong>bounded clock drift</strong>; a node whose clock jumps can violate the validity window.</li>
+<li>It has <strong>no fencing tokens</strong>, so a paused holder can still write after its lease expires.</li>
+<li>It assumes <strong>independent failures</strong> of the Redis nodes; correlated pauses (a VM freeze, a network partition) can break the majority assumption.</li>
+</ul>
+<p>Antirez’s reply is that Redlock is fine for efficiency locks (avoiding duplicate work) but not for correctness locks. Kleppmann’s conclusion is the important one for interviews: <strong>a lock used for correctness needs fencing tokens at the resource, regardless of how many Redis nodes you use.</strong> If your lock is only an optimization, a single Redis <code>SET NX PX</code> is often enough. If it protects money, use a consensus system and fencing tokens.</p>
+<h3 id="leader-election-high-level"><a class="header" href="#leader-election-high-level">Leader election, high level</a></h3>
+<p>Leader election picks one coordinator so that decisions have a single source.</p>
+<ul>
+<li><strong>Bully algorithm.</strong> The node with the highest ID becomes leader; nodes detect failures and hold an election. It is simple and was used in early systems, but it is <strong>not partition-safe</strong>: during a network split, each side can elect a leader, producing split brain.</li>
+<li><strong>Raft.</strong> Nodes are followers, candidates, or leaders. Time is divided into <strong>terms</strong> (monotonic numbers). A follower that hears no heartbeat becomes a candidate, increments the term, and requests votes. It needs a <strong>majority</strong> to win. The leader replicates a log to followers and commits entries with a majority. A stale leader from an older term is rejected because its term is lower. This gives at most one leader per term, and a leader for the current term. etcd, Consul, and ZooKeeper (via ZAB, ZooKeeper’s atomic-broadcast consensus protocol) implement equivalents.</li>
+<li><strong>Paxos.</strong> The original consensus family. Same majority intuition, different mechanics. Raft is generally described as more understandable.</li>
+</ul>
+<p>Use a consensus-backed election (etcd’s lease + <code>Campaign</code>, or ZooKeeper ephemeral sequential nodes) rather than writing your own. The details of timeouts, term numbers, and log matching are exactly the kind of thing that is wrong in a home-grown version.</p>
+<h3 id="when-to-avoid-locks-entirely"><a class="header" href="#when-to-avoid-locks-entirely">When to avoid locks entirely</a></h3>
+<p>Locks add a dependency, a failure mode, and a latency hit. Many systems avoid them:</p>
+<ul>
+<li><strong>Single-writer by partitioning.</strong> Kafka assigns each partition to exactly one consumer in a group. Ownership is the lock.</li>
+<li><strong>Unique constraints.</strong> A <code>UNIQUE</code> index lets the database reject the duplicate; no lock needed.</li>
+<li><strong>Compare-and-swap.</strong> Update only if the version matches; a conflict is retried.</li>
+<li><strong>Idempotent operations.</strong> If a duplicate is harmless, you do not need mutual exclusion (chapter 12).</li>
+<li><strong>Queues as serializers.</strong> Push work to a single-consumer queue instead of locking a shared resource.</li>
+<li><strong>Transactional outbox.</strong> Let the database transaction be the coordinator.</li>
+</ul>
+<p>The interview-safe framing: <em>a lock is one way to coordinate, but every lock is a potential outage. Prefer designs where only one writer ever exists.</em></p>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p><strong>Redis: acquire with <code>SET NX PX</code>, release with a Lua compare-and-delete.</strong> The Lua script makes the ownership check and the delete atomic.</p>
+<pre><code class="language-python">RELEASE_LUA = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+  return redis.call('del', KEYS[1])
+else
+  return 0
+end
+"""
+
+def release(r, key, owner):
+    return r.eval(RELEASE_LUA, 1, key, owner)   # 0 if we no longer own it
+</code></pre>
+<p>Blind <code>DEL</code> is wrong: a client whose lease expired would delete the new owner’s lock.</p>
+<p><strong>Redis: a per-lock fencing counter.</strong> <code>INCR</code> gives every grant a higher number.</p>
+<pre><code class="language-python">def acquire(redis, lock_name, owner, ttl_ms=30_000):
+    token = redis.incr(f"fence:{lock_name}")     # monotonic grant number
+    # the lock value is the unique owner (so release can compare-and-delete);
+    # the return value is the separate fencing token the resource checks
+    ok = redis.set(f"lock:{lock_name}", owner, nx=True, px=ttl_ms)
+    return token if ok else None
+</code></pre>
+<p>If <code>ok</code> is false, another holder owns the lock; the counter still advanced, which is safe because tokens only ever need to increase.</p>
+<p><strong>etcd: a lease plus an election.</strong> The lease is the TTL; <code>campaign</code> blocks until the node becomes leader.</p>
+<pre><code class="language-python">lease = etcd.lease(ttl=10)                 # server-side TTL
+lease.refresh()                             # background heartbeat
+election = etcd.election("report-leader", lease.id)
+election.campaign("worker-3")               # returns when this node is leader
+</code></pre>
+<p>etcd uses Raft, so this is a real consensus-backed election with terms under the hood. ZooKeeper offers the same idea with ephemeral sequential nodes: the lowest sequence number becomes leader, and ephemeral nodes vanish when the session dies, so a crashed leader is removed automatically.</p>
+<p><strong>Postgres: advisory lock.</strong> Cheap mutual exclusion scoped to a database, but it is gone if the session ends — and it still needs fencing for correctness.</p>
+<pre><code class="language-sql">SELECT pg_try_advisory_lock(42);   -- true if we got it, false if someone else has it
+-- ... critical section ...
+SELECT pg_advisory_unlock(42);
+</code></pre>
+<p><strong>DynamoDB: a conditional write as a lease.</strong> Atomic without a lock service.</p>
+<pre><code class="language-python">try:
+    table.update_item(
+        Key={"name": "report-lock"},
+        UpdateExpression="SET holder = :h, expires = :e",
+        ConditionExpression="attribute_not_exists(holder) OR expires &lt; :now",
+        ExpressionAttributeValues={":h": node, ":e": now + 30, ":now": now},
+    )
+except ClientError as e:
+    # ConditionalCheckFailedException -&gt; someone else holds it
+    raise LockHeld from e
+</code></pre>
+<p>The condition is the compare-and-swap: only take the lock if it is free or expired.</p>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p><strong>Example 1 — the blind-delete bug.</strong> A lock released without checking ownership frees the wrong holder.</p>
+<pre><code class="language-python">class NaiveLock:
+    def __init__(self) -&gt; None:
+        self.holder: str | None = None
+    def acquire(self, name: str) -&gt; bool:
+        if self.holder is None:
+            self.holder = name
+            return True
+        return False
+    def release(self, name: str) -&gt; None:
+        self.holder = None          # BUG: ignores `name`
+
+lock = NaiveLock()
+lock.acquire("A")
+lock.holder = None              # A's lease expired; B takes over
+lock.acquire("B")
+lock.release("A")               # A wakes and frees B's lock!
+print(lock.holder)              # None -&gt; C can now enter while B is working
+</code></pre>
+<p>A release must be conditional. This is why the Lua compare-and-delete exists.</p>
+<p><strong>Example 2 — the expiry race that no lock key can fix.</strong> A lease expires during a pause, so two workers overlap.</p>
+<pre><code class="language-python">class LeaseLock:
+    def __init__(self, ttl: float) -&gt; None:
+        self.ttl = ttl
+        self.holder: str | None = None
+        self.expires_at = 0.0
+    def acquire(self, name: str, now: float) -&gt; bool:
+        if self.holder is None or now &gt;= self.expires_at:
+            self.holder = name
+            self.expires_at = now + self.ttl
+            return True
+        return False
+
+lock = LeaseLock(ttl=10.0)
+print(lock.acquire("A", now=0))       # True
+# A pauses for 15 seconds (GC). B acquires at t=15.
+print(lock.acquire("B", now=15))      # True -&gt; now two workers think they hold it
+</code></pre>
+<p>From the lock service’s point of view this is correct: the lease expired. From the data’s point of view it is a disaster unless writes are fenced.</p>
+<p><strong>Example 3 — fencing tokens make the overlap harmless.</strong> Storage rejects a lower token.</p>
+<pre><code class="language-python">class FencedStorage:
+    def __init__(self) -&gt; None:
+        self.highest_token = 0
+        self.value: str | None = None
+    def write(self, token: int, value: str) -&gt; str:
+        if token &lt; self.highest_token:
+            return f"REJECTED stale token={token} (&lt; {self.highest_token})"
+        self.highest_token = token
+        self.value = value
+        return f"accepted token={token}"
+
+store = FencedStorage()
+print(store.write(33, "A's result"))   # accepted token=33
+print(store.write(34, "B's result"))   # accepted token=34
+print(store.write(33, "A wakes up"))   # REJECTED stale token=33 (&lt; 34)
+print(store.value)                      # B's result
+</code></pre>
+<p>Two workers ran, one effect landed. This is the fix, and it lives in the <strong>resource</strong>, not the lock service.</p>
+<p><strong>Example 4 — a correct Redis lock, verified with <code>fakeredis</code>.</strong> Acquire with <code>NX PX</code>; release only if you still own the key.</p>
+<pre><code class="language-python">import fakeredis
+
+r = fakeredis.FakeRedis(decode_responses=True)
+RELEASE_LUA = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+  return redis.call('del', KEYS[1])
+else
+  return 0
+end
+"""
+
+def acquire(key: str, token: str, ttl_ms: int = 30_000) -&gt; bool:
+    return bool(r.set(key, token, nx=True, px=ttl_ms))
+
+def release(key: str, token: str) -&gt; bool:
+    return bool(r.eval(RELEASE_LUA, 1, key, token))
+
+print(acquire("lock:job", "token-A"))      # True
+print(acquire("lock:job", "token-B"))      # False
+print(release("lock:job", "token-B"))      # False -&gt; B cannot release A's lock
+print(release("lock:job", "token-A"))      # True
+print(acquire("lock:job", "token-C"))      # True
+</code></pre>
+<p>Run this with the <code>fakeredis[lua]</code> extra (<code>uv run --with 'fakeredis[lua]' python ...</code>); plain <code>fakeredis</code> raises <code>unknown command 'eval'</code>, because Lua scripting is only enabled by that extra.</p>
+<p>Note there is still no fencing here. This lock is safe for efficiency (avoid duplicate work) and unsafe for correctness unless the downstream write is fenced.</p>
+<p><strong>Example 5 — leader election on a lease.</strong> One leader, re-elected when it stops renewing.</p>
+<pre><code class="language-python">class LeaderElection:
+    def __init__(self, lease: float) -&gt; None:
+        self.lease = lease
+        self.leader: str | None = None
+        self.expires_at = 0.0
+    def campaign(self, node: str, now: float) -&gt; bool:
+        if self.leader is None or now &gt;= self.expires_at:
+            self.leader = node
+            self.expires_at = now + self.lease
+        return self.leader == node
+    def renew(self, node: str, now: float) -&gt; bool:
+        if self.leader == node:
+            self.expires_at = now + self.lease
+            return True
+        return False
+
+elect = LeaderElection(lease=5.0)
+print(elect.campaign("A", now=0))    # True
+print(elect.campaign("B", now=1))    # False
+print(elect.renew("A", now=4))       # True -&gt; A keeps leadership
+print(elect.campaign("B", now=9))    # True -&gt; A stopped renewing, B wins
+</code></pre>
+<p>A real system uses a consensus store for this so that a network partition cannot produce two leaders. The lease is the mechanism; consensus is what makes it safe.</p>
+<p><strong>Example 6 — avoid the lock with a single-writer key.</strong> The database itself guarantees one winner, so nothing needs to coordinate.</p>
+<pre><code class="language-python">import sqlite3
+
+conn = sqlite3.connect(":memory:")
+conn.execute("CREATE TABLE jobs (job_id TEXT PRIMARY KEY, owner TEXT)")
+
+def claim(job_id: str, owner: str) -&gt; bool:
+    cur = conn.execute(
+        "INSERT INTO jobs (job_id, owner) VALUES (?, ?) "
+        "ON CONFLICT(job_id) DO NOTHING",
+        (job_id, owner),
+    )
+    return cur.rowcount == 1     # exactly one caller gets True
+
+print(claim("daily-report", "worker-A"))   # True
+print(claim("daily-report", "worker-B"))   # False
+</code></pre>
+<p>The unique key is the lock, the database is the arbiter, and there is no TTL, clock, or fence to get wrong. This should be your first instinct, not your last.</p>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>A lock without a fencing check is an optimization.</strong> Use it to avoid duplicate work, not to guarantee correctness. If two overlapping holders could corrupt data, fix the resource.</li>
+<li><strong>Release conditionally.</strong> Compare-and-delete, never blind delete. The most common lock bug is a slow holder deleting the new holder’s lock.</li>
+<li><strong>Renew the lease in a background task, and measure the pause.</strong> If your GC pause or CPU stall can exceed the TTL, you have an expiry race. Either lengthen the TTL or add fencing — ideally both.</li>
+<li><strong>Keep the critical section short.</strong> A lock held across a network call to an LLM is a lock held for seconds. Serialize the smallest possible unit of work.</li>
+<li><strong>A lock service is a new single point of failure.</strong> If Redis or etcd is down, can your system make progress? Decide whether the lock is mandatory (availability drops) or advisory (proceed without it).</li>
+<li><strong>Clock skew breaks lease math.</strong> Compute validity from monotonic time where possible, and never trust wall-clock comparison across machines for safety.</li>
+<li><strong>Redlock is not a correctness lock.</strong> The bounded-clock-drift and no-fencing objections are well known. If the lock protects money, use consensus and fencing tokens.</li>
+<li><strong>Prefer consensus-backed elections.</strong> etcd, Consul, and ZooKeeper implement Raft/ZAB and handle terms, quorums, and partitions. Hand-rolled bully election splits under partition.</li>
+<li><strong>Watch the network partition case.</strong> A leader on the minority side of a partition must stop acting. Quorum-based protocols do this by refusing writes without a majority.</li>
+<li><strong>Fencing tokens must be checked at every write path.</strong> A single unfenced code path (a cache write, a metrics write) can undo the protection.</li>
+<li><strong>Leases expire, so design for at-least-once execution.</strong> Even with fencing, the old holder may have performed non-fenced side effects (an email). Combine with idempotency.</li>
+<li><strong>Single-writer and partitions beat locks.</strong> Kafka consumer groups, unique constraints, and CAS are less code and fewer failure modes than a distributed lock.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-why-is-a-distributed-lock-harder-than-a-local-mutex"><a class="header" href="#1-why-is-a-distributed-lock-harder-than-a-local-mutex">1. Why is a distributed lock harder than a local mutex?</a></h3>
+<p><strong>Answer.</strong> A local mutex relies on shared memory and a kernel that knows whether a thread is alive. A distributed lock relies on messages and timeouts, and a timeout cannot distinguish a dead node from a slow one. A held lock can expire while its owner is paused, so two nodes may believe they hold it. Correctness therefore has to come from the protected resource, not the lock.</p>
+<p><strong>Follow-up: “So are distributed locks useless?”</strong> No. They are useful as efficiency locks (avoid duplicate work) and, combined with fencing tokens, as correctness locks. The mistake is trusting the lock alone.</p>
+<p><strong>Trap.</strong> Assuming a lock with a TTL gives mutual exclusion. It gives mutual exclusion only while the holder keeps renewing and never pauses past the TTL.</p>
+<h3 id="2-what-is-a-fencing-token-and-how-does-it-fix-the-expiry-race"><a class="header" href="#2-what-is-a-fencing-token-and-how-does-it-fix-the-expiry-race">2. What is a fencing token and how does it fix the expiry race?</a></h3>
+<p><strong>Answer.</strong> A fencing token is a monotonically increasing number granted with each lock acquisition. Every write to the protected resource carries the token, and the resource remembers the highest token it has accepted and rejects lower ones. A holder that was paused, lost its lease, and woke up will have a lower token than the new holder, so its write is rejected.</p>
+<p><strong>Follow-up: “What if the resource has no token support?”</strong> You must add a version check, a CAS, or a dedup key at that resource. If the resource truly cannot check anything, the lock cannot guarantee correctness.</p>
+<p><strong>Trap.</strong> Putting the token in the lock service but never passing it to the resource. An unchecked token does nothing.</p>
+<h3 id="3-why-do-locks-use-leases-instead-of-permanent-ownership"><a class="header" href="#3-why-do-locks-use-leases-instead-of-permanent-ownership">3. Why do locks use leases instead of permanent ownership?</a></h3>
+<p><strong>Answer.</strong> A permanent lock leaks forever if the holder crashes. A lease has a TTL, so the lock service can recover automatically after a timeout. The cost is the expiry race: a holder that pauses past the TTL can overlap with the next holder. TTL length is the trade-off between fast recovery and overlap risk.</p>
+<p><strong>Follow-up: “How do you choose the TTL?”</strong> Longer than the worst realistic pause plus renewal jitter, short enough that a crashed holder does not block work for long. Measure it; do not guess.</p>
+<p><strong>Trap.</strong> Reasoning only about crash time and forgetting pauses. GC and scheduler stalls are the usual cause of expired leases, not crashes.</p>
+<h3 id="4-what-is-wrong-with-redlock"><a class="header" href="#4-what-is-wrong-with-redlock">4. What is wrong with Redlock?</a></h3>
+<p><strong>Answer.</strong> It relies on bounded clock drift across nodes and provides no fencing tokens, so a paused holder can still write after its lease has (in real time) expired. It also assumes independent failures, which correlated pauses or partitions violate. It is acceptable for efficiency locks but not for correctness locks.</p>
+<p><strong>Follow-up: “What would you use instead?”</strong> A consensus-backed lock (etcd, ZooKeeper), and fencing tokens at the resource. Or redesign so the lock is not needed: single-writer assignment or a unique constraint.</p>
+<p><strong>Trap.</strong> Answering “Redlock is fine because it uses a majority of Redis nodes.” Majority does not fix clock skew or missing fencing.</p>
+<h3 id="5-how-does-raft-elect-a-leader-at-a-high-level"><a class="header" href="#5-how-does-raft-elect-a-leader-at-a-high-level">5. How does Raft elect a leader at a high level?</a></h3>
+<p><strong>Answer.</strong> Nodes are followers, candidates, or leaders, and time is divided into monotonic terms. A follower that misses heartbeats becomes a candidate, increments the term, and asks for votes. It needs a majority to become leader. The leader heartbeats to suppress other candidates and replicates its log. A node with an older term is rejected, so at most one leader exists per term.</p>
+<p><strong>Follow-up: “Why majority instead of all nodes?”</strong> Any two majorities overlap in at least one node, so two leaders in the same term would need a node to vote twice. Majority also tolerates failures: a five-node cluster survives two failures.</p>
+<p><strong>Trap.</strong> Describing elections by “highest ID” (the bully algorithm). That is not consensus and produces split brain under partition.</p>
+<h3 id="6-what-is-split-brain-and-how-do-you-prevent-it"><a class="header" href="#6-what-is-split-brain-and-how-do-you-prevent-it">6. What is split brain, and how do you prevent it?</a></h3>
+<p><strong>Answer.</strong> Split brain is when two nodes both believe they are the leader, often after a network partition, and both accept writes. Prevent it with quorum: only the side with a majority may serve writes, and the minority side steps down. Consensus protocols enforce this with terms and majorities.</p>
+<p><strong>Follow-up: “How does the minority side behave?”</strong> It cannot commit anything, because it cannot reach a quorum. It should stop serving and report unavailability rather than risk divergence.</p>
+<p><strong>Trap.</strong> Using heartbeats alone to decide leadership. During a partition, each side stops hearing the other and may elect a leader unless a quorum rules it out.</p>
+<h3 id="7-when-should-you-avoid-a-distributed-lock-entirely"><a class="header" href="#7-when-should-you-avoid-a-distributed-lock-entirely">7. When should you avoid a distributed lock entirely?</a></h3>
+<p><strong>Answer.</strong> Whenever the system can be shaped so only one writer exists. Partition work by key and assign each partition to one consumer (Kafka consumer groups); rely on a database unique constraint; use compare-and-swap on a version; serialize through a single-consumer queue; or make the operation idempotent. Locks add a dependency and a failure mode, so the best lock is often no lock.</p>
+<p><strong>Follow-up: “Give a concrete AI example.”</strong> Assign each agent run to one worker by run ID through a queue rather than locking shared agent state. The queue’s partition assignment is the ownership mechanism.</p>
+<p><strong>Trap.</strong> Reaching for a lock first. Most “we need a lock” situations are really “we have two writers for one piece of state,” which is a design fix.</p>
+<h3 id="8-how-do-locks-interact-with-idempotency"><a class="header" href="#8-how-do-locks-interact-with-idempotency">8. How do locks interact with idempotency?</a></h3>
+<p><strong>Answer.</strong> They solve different problems and combine well. A lock prevents concurrent execution; idempotency makes repeated execution harmless. Because leases expire and holders pause, a lock cannot prevent all repeats, so the operation behind it should still be idempotent. Fencing tokens stop stale writes; idempotency keys stop duplicate creates.</p>
+<p><strong>Follow-up: “Which do you need for a payment?”</strong> Both. A fence stops a stale holder from overwriting state, and an idempotency key stops a retried charge from doubling. Neither alone is sufficient.</p>
+<p><strong>Trap.</strong> Believing a lock makes retries unnecessary. A crash after the effect but before release means the work will be retried by the next holder.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>A lease can expire while its holder is paused</strong>, so two holders can overlap.</li>
+<li><strong>Fencing tokens fix the overlap</strong>: increasing grant numbers, highest token wins at the resource.</li>
+<li><strong>Release locks conditionally</strong>, never with a blind delete.</li>
+<li><strong>Use consensus, not ad-hoc tricks</strong>: Redlock is only an efficiency lock, and leader election belongs to Raft terms and majorities.</li>
+<li><strong>The best lock is often no lock</strong> — use single-writer, unique constraints, or CAS.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-06-distributed-systems/12-idempotency.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-06-distributed-systems/14-retries-backoff-jitter-and-timeouts.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-06-distributed-systems/12-idempotency.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-06-distributed-systems/14-retries-backoff-jitter-and-timeouts.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
