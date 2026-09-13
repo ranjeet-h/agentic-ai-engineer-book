@@ -1,0 +1,161 @@
+---
+title: "Type Hints"
+---
+
+> **Interview answer (say this first).** Type hints are optional metadata that describe what a function or variable is supposed to contain. Python stores them but does **not** enforce them at runtime — they are checked by static tools like mypy or pyright, and by runtime validators like Pydantic.
+
+## Why this exists
+
+Python is dynamically typed. The interpreter decides everything at runtime, and a variable can hold a string now and a number a moment later. That flexibility is great for writing code quickly, but it creates a specific problem: **the intent of the code lives only in the author's head.**
+
+A few consequences:
+
+- A function named `process(data)` tells you nothing about what `data` should be.
+- A wrong type often fails far from where the mistake was made, which makes debugging slow.
+- IDEs cannot help you, because they have no idea what types are flowing around.
+- Refactoring is risky, because nothing warns you when a change breaks a caller.
+
+Type hints fix this by letting you write the intent down:
+
+```python
+def process(data: dict[str, int]) -> list[str]:
+    ...
+```
+
+This line is still Python. It runs exactly as before. The extra text is a **promise**, not a rule — and that distinction is the whole topic.
+
+## The core idea
+
+Think of a parcel in a warehouse. The label says *"fragile — this side up"*. The label is useful and everyone reads it, but the delivery driver is not physically stopped from turning the box upside down. The label describes the contents; it does not enforce anything.
+
+Type hints are that label. The **inspector** is a static type checker (`mypy`, `pyright`). The inspector reads the labels *before* the parcel ships, and complains loudly if a label contradicts how the box is used.
+
+The mental model to keep:
+
+> **Type hints are data attached to your code that other programs can read. Python itself reads the hint, stores it, and then ignores it when the function is called.**
+
+Under the hood, this is literal. Annotations are collected into a dictionary:
+
+```python
+def greet(name: str, times: int = 1) -> str:
+    ...
+
+print(greet.__annotations__)
+# {'name': <class 'str'>, 'times': <class 'int'>, 'return': <class 'str'>}
+```
+
+Three different worlds read that dictionary:
+
+| World | Who checks | When | Enforces? |
+| --- | --- | --- | --- |
+| Static checking | mypy, pyright, IDEs | before the code runs | no, but fails the build |
+| Runtime validation | Pydantic, typeguard | while the code runs | yes, raises an error |
+| Nothing | the Python interpreter | on every call | no |
+
+## How it works
+
+1. **You write annotations** on parameters, return values, variables, and class attributes.
+2. **Python evaluates them** at definition time and stores the result in `__annotations__`. (From Python 3.14 they are evaluated *lazily* by default, so this step is deferred until something asks for them.)
+3. **A static checker reads them** without running your code, and reports contradictions like `Argument 1 to "greet" has incompatible type "int"; expected "str"`.
+4. **A runtime validator reads them** when data actually arrives, and raises an error if the data does not match.
+5. **Nothing happens on a normal call.** If you never run a checker and never use a validator, the hints have no effect at all.
+
+::: {.callout-note}
+**Definition true for every version.** Hints never change what a function accepts. `greet(123)` runs fine even though the hint says `str`. Any behavior you get from hints (errors, coercion, validation) comes from a *tool* that reads the hints.
+:::
+
+## A small example
+
+```python
+def greet(name: str, times: int = 1) -> str:
+    return f"Hi {name}! " * times
+
+
+greet("Ada", 3)   # 'Hi Ada! Hi Ada! Hi Ada! '
+greet(123)        # runs fine — returns 'Hi 123! ' and never complains
+greet("Ada", "3") # runs, then fails deep inside with a TypeError
+```
+
+The third call is the important one. The hint said `times: int`. Python ignored it, started the call, and the error only appeared when `*` received a string. With a type checker in your editor, that mistake is underlined **before** you ever run the program:
+
+```text
+error: Argument 2 to "greet" has incompatible type "str"; expected "int"
+```
+
+That is the entire value proposition: catch the mistake at the cheapest possible moment.
+
+## In production
+
+- **Run a checker in CI.** mypy or pyright turns hints into a real safety net. Without this, hints slowly drift out of date and become misleading.
+- **Type the edges, not everything.** Public functions, request/response models, and module boundaries matter most. Annotating every local variable adds noise.
+- **Validate at the boundary, then trust inside.** Parse incoming data once with Pydantic (HTTP requests, LLM outputs, queue messages). After that, internal code can rely on the types without re-checking.
+- **Accept wide, return narrow.** Parameters should use abstract types like `Sequence[str]`, `Iterable[int]`, or `Mapping[str, int]` so callers are not forced to convert. Return types should be concrete, like `list[str]`.
+- **Beware of `Any`.** `Any` disables checking for that value and silently spreads. It is sometimes necessary, but treat every `Any` as a small hole in your net.
+- **Getting started on a large codebase.** Turn on checking module by module, allow `Any` initially, and tighten over time. A checker that blocks all progress gets disabled by the team.
+- **Version differences.** `X | None` requires Python 3.10+. On older code use `Optional[X]` and `from __future__ import annotations` to defer evaluation and avoid circular-import problems.
+
+## Interview questions
+
+### 1. Does Python enforce type hints at runtime?
+
+**Answer.** No. Annotations are stored in `__annotations__` and otherwise ignored by the interpreter. A function with `name: str` will happily accept an integer. Enforcement only happens through an external tool — a static checker such as mypy, or a runtime validator such as Pydantic.
+
+**Follow-up: "Then how do type hints reduce bugs?"** They move the check earlier. A static checker catches mismatches before deployment, and a runtime validator catches bad data at the boundary where it enters the system.
+
+**Trap to avoid.** Saying "Python 3.12 (or later) enforces annotations." It does not. Another trap is calling hints "just comments" — they are real objects with real structure, which is exactly why tools and frameworks can read them.
+
+### 2. What is the difference between a type hint and Pydantic validation?
+
+**Answer.** A type hint is a *description*: static, optional, free at runtime. Pydantic is a *validator*: it reads those hints and checks real data at runtime, raising `ValidationError` when the data does not fit. Type hints are for the developer and the checker; Pydantic is for untrusted data entering the program.
+
+**Follow-up: "Where would you use each?"** Hints everywhere the code's intent matters. Pydantic at every boundary you do not control — HTTP bodies, queue messages, third-party APIs, and LLM output.
+
+**Trap to avoid.** Claiming Pydantic is "mypy at runtime." Pydantic also coerces (`"3"` to `3`) and applies rules mypy cannot express, such as "must be a valid email."
+
+### 3. What does `from __future__ import annotations` do, and why use it?
+
+**Answer.** It stores annotations as strings instead of evaluating them immediately. That lets you refer to names that are not defined yet (forward references), avoids importing modules just for a type, and speeds up import time. From Python 3.14, annotations are evaluated lazily anyway, so the behavior is becoming the default.
+
+**Follow-up: "What can break?"** Code that reads `__annotations__` at runtime and expects real objects. Frameworks handle this with `typing.get_type_hints()`, which resolves the strings back into types.
+
+**Trap to avoid.** Describing it as only a circular-import workaround. That is one benefit, not the purpose.
+
+### 4. Why prefer `Sequence[str]` over `list[str]` in a function parameter?
+
+**Answer.** `Sequence[str]` describes what you actually need — something ordered and indexable. It accepts a `list`, a `tuple`, and more. `list[str]` forces callers to convert to a list even when they have a perfectly good tuple. Widen inputs, narrow outputs.
+
+**Follow-up: "When would `Iterable[str]` be better?"** When you only loop once and do not need indexing or length. It is the widest useful contract, but it warns callers that the data is single-pass.
+
+**Trap to avoid.** Using abstract types for return values. Return the concrete type you actually produce, so callers know what they get.
+
+### 5. How do you type a value that might be `None`?
+
+**Answer.** `str | None` (Python 3.10+), which is the same as `Optional[str]`. It means "either a `str` or `None`", and the checker forces you to handle the `None` case before using the value.
+
+**Follow-up: "Is a parameter with a default of `None` the same thing?"** No. `def f(x: str = None)` is actually a type error, because the default is not allowed by the hint. If `None` is valid, the type must say so.
+
+**Trap to avoid.** Reading `Optional[str]` as "this argument is optional." It says nothing about whether the caller must pass it — only that `None` is an accepted value.
+
+### 6. What is `Protocol` used for?
+
+**Answer.** `Protocol` describes the *shape* a value must have, without requiring inheritance. A class satisfies a protocol simply by having the right methods or attributes — this is structural typing, or "duck typing that a checker can verify."
+
+```python
+from typing import Protocol
+
+class SupportsClose(Protocol):
+    def close(self) -> None: ...
+
+def shutdown(resource: SupportsClose) -> None:
+    resource.close()          # any object with close() works
+```
+
+**Follow-up: "How is that different from an abstract base class?"** An ABC requires explicit inheritance (nominal typing). A protocol is satisfied implicitly, so existing classes and third-party types work without modification — ideal for depending on a small behavior instead of a concrete class.
+
+**Trap to avoid.** Forgetting that `isinstance()` on a protocol needs `@runtime_checkable`, and that this only checks method *names*, not signatures.
+
+## Remember this
+
+- Type hints are **metadata, not enforcement**. Python stores them and moves on.
+- Bugs are caught by **static checkers before running** and **validators at the boundary**.
+- **Widen inputs, narrow outputs**; type the edges, not every line.
