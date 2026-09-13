@@ -1,0 +1,353 @@
+# What an AI Agent Is
+
+> **Interview answer (say this first).** An AI agent is a language model placed inside a loop, given a goal plus tools and memory, that repeatedly decides what to do next, acts, looks at the result, and decides again until it stops. The model supplies the judgment; your code supplies the loop, the tools, the memory, and the limits. If a fixed sequence of steps can do the job, that is a workflow, not an agent, and the workflow is almost always cheaper and safer.
+
+## Why this exists
+
+A plain language model call is a single question and a single answer. You send text, you get text. It is fast, cheap, and easy to reason about, but it cannot do anything beyond producing words. It cannot look up today's order, write to your database, or check whether its own answer made sense.
+
+The first fix people reach for is a **workflow**: a fixed pipeline of calls that the developer wires together. Read the email, extract the fields, look up the account, draft a reply. Each step runs in a hard-coded order. Workflows are excellent — they are deterministic, cheap, and predictable. But they break when the task does not have one fixed shape.
+
+Consider a support inbox. Some tickets need a refund lookup, some need a password reset, some need an engineer to be paged. A fixed pipeline that always runs all three wastes work, and a pipeline that tries to branch in Python becomes a huge pile of `if` statements. The order of steps depends on what each step returns, and the set of possible paths grows faster than you can enumerate.
+
+That is the gap an agent fills. Instead of you enumerating the paths, the **model chooses the next step at runtime**. The developer provides a menu of safe actions and a bounded loop; the model decides which action, with which arguments, and when to stop.
+
+The danger is that "agent" became a buzzword, and teams now build autonomous loops for problems a ten-line function solves. An agent is a distributed system with a stochastic component. It costs more per task, it is harder to test, and it fails in compound ways. Knowing when **not** to build one is the most senior part of this topic.
+
+> **Note:**
+>
+> **The one-sentence purpose.** An agent moves the decision of "what happens next" out of your `if` statements and into the model, while your code keeps control of what the model is allowed to do.
+
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **LLM** | Large language model. A program that predicts the next token (a chunk of text) from what came before. It reads text and writes text. |
+| **Model call** | One request to the LLM, and its reply. Also called an **inference** or a **completion**. |
+| **Turn** | One model call plus whatever your code does with the reply before the next call. |
+| **Agent** | A model plus tools, memory, and a goal, wrapped in a loop that runs until a stopping condition. |
+| **Tool** | A function your code exposes to the model, such as `lookup_order` or `send_email`. The model asks for it; your code runs it. |
+| **Memory** | Information the agent carries forward: the conversation so far, a scratchpad, and longer-term storage. |
+| **Goal** | The task stated in words, usually the user's request plus a system prompt that defines the agent's job. |
+| **Loop** | The repeated cycle: model decides, code acts, result goes back to the model. |
+| **State** | The data that defines where the agent is: messages, plan, step counter, tool results, and any saved fields. |
+| **Workflow** | A fixed sequence of steps written in code. Also called a **chain** or a **pipeline**. |
+| **Chain** | A workflow built by connecting components, often used loosely for any fixed multi-step LLM pipeline. |
+| **Orchestration** | The code that decides what runs and in what order. In a workflow it is yours; in an agent some of it is the model's. |
+| **Autonomy** | How much the model decides versus how much the code fixes in advance. |
+| **Deterministic** | The same input always produces the same output. Workflows are deterministic; model calls are not. |
+| **Agentic** | Adjective for systems that show agent-like behavior: choosing steps, using tools, and adapting. |
+| **Context window** | The maximum amount of text (measured in tokens) the model can consider at once. |
+| **ReAct** | A classic pattern that alternates a short reasoning note with an action, repeated until an answer. |
+| **RAG** | Retrieval-augmented generation: fetching relevant text and putting it in the prompt so the model can use it. |
+
+Three pairs cause most confusion:
+
+- **Agent vs workflow.** An agent decides the order of steps at runtime. A workflow has the order baked into code. Both can call tools and both can use an LLM.
+- **Agent vs tool-using chat.** A chatbot that can call one tool in a single turn is not really an agent. The loop and the runtime choice of *what next* are what make it one.
+- **Model capability vs system capability.** The model gives judgment. Memory, tools, safety, and stopping rules come from your system. A weak model with good scaffolding often beats a strong model with none.
+
+## The core idea
+
+Think of a **taxi ride versus a train line**.
+
+A train follows a fixed route. It is cheap, reliable, and you know exactly when it arrives. That is a workflow. A taxi takes you wherever you ask, choosing turns based on traffic. That is an agent. The taxi needs a driver (the model), a map and a meter (tools and state), and rules about where it may and may not go (guardrails). Taxis are more flexible and more expensive, and a badly driven one can crash.
+
+Compare the three approaches directly:
+
+| Property | Plain model call | Workflow (chain) | Agent |
+| --- | --- | --- | --- |
+| Who fixes the order of steps | Nobody (one step) | Developer | Model at runtime |
+| Handles novel paths | No | Only planned branches | Yes, within tool limits |
+| Deterministic | No (but one shot) | Yes | No |
+| Cost per task | Lowest | Low to medium | Medium to high |
+| Latency | One round trip | Sum of fixed steps | Sum of turns, unknown |
+| Easiest to test | Easy | Easy | Hard; use invariants |
+| Best for | Drafting, extraction | Stable pipelines | Open-ended tasks |
+
+Read the table left to right as "add only what you need." Every column to the right buys flexibility and pays for it in cost, latency, and testability.
+
+Here is the same contrast as a flow:
+
+```mermaid
+flowchart TD
+    subgraph W["Workflow (fixed route)"]
+        A1["step 1"] --> A2["step 2"] --> A3["step 3"] --> A4["done"]
+    end
+    subgraph G["Agent (route chosen at runtime)"]
+        B0["goal"] --> B1["model decides"]
+        B1 --> B2{"next?"}
+        B2 -->|"call tool"| B3["run tool"]
+        B3 --> B1
+        B2 -->|"answer"| B4["done"]
+    end
+```
+
+The right-hand picture has a loop and a decision. That decision is the whole difference. Everything else — tools, memory, prompts — supports it.
+
+Now place both on an **autonomy spectrum**. More autonomy buys flexibility and costs predictability:
+
+| Level | Name | Who chooses the steps | Good for | Main risk |
+| --- | --- | --- | --- | --- |
+| 0 | Deterministic workflow | Code | Stable, repeatable tasks | Cannot handle novel paths |
+| 1 | LLM step in a workflow | Code, with one model call | Extraction, classification, drafting | Model errors at that step |
+| 2 | Tool-using chat | Model, one or two turns | Q&A with lookups | Wrong tool, no recovery |
+| 3 | Bounded agent | Model, code caps turns | Research, multi-step tasks | Cost, loops, side effects |
+| 4 | Autonomous agent | Model, with weak limits | Open-ended long tasks | Compounding errors, unsafe actions |
+
+Most production "agents" should live at level 2 or 3. Level 4 is rare and needs heavy guardrails. A useful interview rule: **pick the lowest level that solves the task.**
+
+The components of an agent fit together like this:
+
+```mermaid
+flowchart LR
+    G["Goal + system prompt"] --> M["Model"]
+    H["Memory<br/>conversation + scratchpad"] --> M
+    M --> D{"Decide"}
+    D -->|"tool call"| T["Tool registry<br/>validated + permissioned"]
+    T --> R["Result"]
+    R --> H
+    D -->|"final"| O["Answer"]
+    T -.->|"logs"| L["Observability"]
+    M -.->|"tokens, latency"| L
+```
+
+Five parts, and each is an engineering concern: **goal** (prompt), **model** (judgment), **memory** (context), **tools** (actions), and the **loop** (control). Remove any one and it is no longer an agent. Remove the loop and it is a single call. Remove the tools and it is a chatbot. Remove the goal and it drifts. Remove the limits and it is a liability.
+
+## How it works
+
+1. **You define the goal.** A system prompt states the agent's job, its constraints, and its tone. The user message supplies the concrete task.
+2. **You register tools.** Each tool is a function with a name, a description, and an argument schema. Only registered tools can ever run.
+3. **You assemble context.** The current messages, the tool descriptions, and any memory (recent turns, a scratchpad, retrieved documents) are packed into the prompt.
+4. **The model decides.** It either answers directly or returns one or more tool calls. This is the runtime choice that makes it an agent.
+5. **Your code parses and validates.** Arguments arrive as JSON. You parse them, check them against the schema, and reject bad input before touching anything real.
+6. **Your code executes.** A registry maps the tool name to the function. Unknown names return an error instead of running something unexpected.
+7. **The result goes back into context.** You append the tool result and call the model again. Now the model can see what happened and choose the next step.
+8. **The loop repeats.** Each pass is a turn. The conversation grows, and so does the cost.
+9. **A stopping condition ends it.** The model answers without a tool call, a turn limit is hit, a budget is exhausted, or a human denies an action.
+10. **You log the trajectory.** Tools, arguments, results, turns, tokens, and latency. Without the trajectory, debugging is guesswork.
+
+The critical property is **closed feedback**. In a single call, the model never learns what happened. In a loop, each action's result becomes input to the next decision. That is what lets an agent recover from a bad tool call, try a different approach, and stop when it is done.
+
+## The syntax you will use
+
+These are the shapes you will see in real codebases, from most fixed to most free. Read them in order; each one adds a piece.
+
+**Shape 1 — a deterministic workflow.** No model judgment about order. The steps are hard-coded.
+
+```python
+def workflow(text: str) -> dict:
+    cleaned = clean(text)                 # step 1
+    words = word_count(cleaned)           # step 2
+    return {"cleaned": cleaned, "words": words, "summary": summarize(cleaned)}
+```
+
+Every call runs the same three steps in the same order. Easy to test, cheap to run.
+
+**Shape 2 — one model call inside a workflow.** The model does one judgment step; code owns the rest.
+
+```python
+def classify(text: str) -> str:
+    prompt = f"Return one label: refund, reset, or escalate.\n\n{text}"
+    return call_model(prompt).strip().lower()   # one call, no tools
+```
+
+This is the workhorse of production. Most "AI features" are this shape.
+
+**Shape 3 — a bounded tool loop.** This is the smallest honest agent. It adds a loop and tools, and it caps the turns.
+
+```python
+MAX_TURNS = 6
+messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": task}]
+
+for turn in range(MAX_TURNS):
+    reply = call_model(messages, tools=TOOL_SCHEMAS)
+    messages.append(reply)
+    if not reply.get("tool_calls"):
+        break                                   # model answered: stop
+    for call in reply["tool_calls"]:
+        result = execute(call)                  # validate, then run
+        messages.append(to_tool_message(call, result))
+else:
+    raise RuntimeError("turn limit reached")    # never loop forever
+```
+
+The `else` on a `for` runs when the loop finishes without `break`. It is the safety net, not an optional flourish.
+
+**Shape 4 — a graph of steps.** Large agents model the loop as a state machine: nodes do work, edges decide where to go next, and a shared state object carries data.
+
+```python
+# Pseudo-shape: the real version comes in the LangGraph topics.
+graph.add_node("reason", reason_node)
+graph.add_node("act", act_node)
+graph.add_conditional_edges("reason", should_act, {"act": "act", "end": END})
+graph.add_edge("act", "reason")
+```
+
+The graph form gives you explicit state, checkpoints, and human pauses. It is the same loop, made inspectable.
+
+**Shape 5 — a tool registry.** No matter which shape, tools are looked up in a fixed table. Never `eval` a model-provided name.
+
+```python
+TOOLS = {"lookup_order": lookup_order, "send_email": send_email}
+
+def execute(call):
+    name = call["function"]["name"]
+    if name not in TOOLS:
+        return {"error": f"unknown tool: {name}"}
+    return TOOLS[name](**json.loads(call["function"]["arguments"]))
+```
+
+The registry is the security boundary. Only what you registered can run.
+
+## Examples: simple to real
+
+**Example 1 — a workflow that should stay a workflow.** This is the sketch below: a three-step pipeline that always runs all three steps, for every input.
+
+```python
+def workflow(text: str) -> dict:
+    cleaned = clean(text)
+    return {"cleaned": cleaned, "words": word_count(cleaned),
+            "summary": summarize(cleaned)}
+```
+
+Output for two very different inputs:
+
+```text
+workflow A: {'cleaned': 'hello world from a fixed pipeline', 'words': 6,
+             'summary': 'hello world from a fixed pipeline'}
+workflow B: {'cleaned': 'totally different input', 'words': 3,
+             'summary': 'totally different input'}
+```
+
+Same steps, same cost, fully testable. If this solves your problem, stop here.
+
+**Example 2 — the same task, but with runtime choice.** Now suppose the task is "count words, and summarize only if the text is long." A workflow needs an `if`; an agent lets the model choose. In the sketch below, the short task (`"fix typo"`) produces two tool calls and the long task produces three; `summarize` is a stub that reports the word count rather than real prose:
+
+```text
+agent short: [{'tool': 'clean', 'result': 'fix typo'},
+              {'tool': 'word_count', 'result': 2}]
+agent long : [{'tool': 'clean', 'result': 'the quarterly report is late and needs a careful review'},
+              {'tool': 'word_count', 'result': 10},
+              {'tool': 'summarize', 'result': 'STUB: 10 words'}]
+```
+
+The choice came from the model, not from a hard-coded branch. That is the trade: flexibility in exchange for non-determinism.
+
+**Example 3 — the same input, different next steps.** An agent that looks up an order and then decides. If the order exists, it drafts a reply. If not, it asks the user for the order number. In code, one loop handles both; the model picks the branch after seeing the lookup result.
+
+```text
+lookup_order("A100") -> {"status": "shipped"}
+model: order is shipped, so draft a shipping update.
+
+lookup_order("B999") -> {"error": "not found"}
+model: order not found, so ask the user to re-check the number.
+```
+
+A fixed chain would need a branch per case. The agent handles the case it has never seen.
+
+**Example 4 — when the agent should have been a workflow.** The task is "extract the invoice number from a PDF." There is one correct field and one correct method. An agent that can browse, call APIs, and reason in a loop will be slower, dearer, and less accurate than a single extraction call. This is the most common production mistake, and interviews probe for it.
+
+**Example 5 — a real agent task.** "Investigate why customer 42's last payment failed, and either fix it or page the billing team." The path genuinely depends on what each lookup returns: payment history, bank decline code, subscription state, then a decision to retry or escalate. No fixed sequence covers it. This is where an agent earns its cost.
+
+**Example 6 — the spectrum as a checklist.** Before building, walk the levels:
+
+```text
+L0 deterministic workflow   code owns every step
+L1 LLM step in a workflow   code owns the path; one model call
+L2 tool-using chat          model picks a tool once or twice
+L3 bounded agent            model loops; code caps turns
+L4 autonomous agent         model plans and acts; weak limits
+```
+
+Start at L0 and climb only when the task forces you to. The correct answer to "should we build an agent?" is often "not yet."
+
+## In production
+
+- **Default to a workflow.** Reach for an agent only when the path genuinely cannot be known in advance. This one decision saves more money and incidents than any prompt trick.
+- **Bound the loop.** Always set a maximum number of turns and tool calls. A confused model can otherwise loop forever, burning tokens and money.
+- **Non-determinism is a feature and a bug.** The same input can take different paths. That flexibility is why you chose an agent; it also means tests must assert on invariants, not exact transcripts.
+- **Cost is per turn, not per task.** Each turn resends the growing context, so a long agent run costs more than the sum of its parts. Track tokens per turn.
+- **Latency compounds.** Every turn is another model round trip. An agent that takes ten turns feels slow even when each turn is fast.
+- **Agents fail in compound ways.** One bad tool result can poison later reasoning. Keep results small, validated, and clearly labelled as data.
+- **Tool output is untrusted.** A web page or database row can contain text aimed at the model. Never let a tool result change what the agent is allowed to do.
+- **The model proposes; code disposes.** The model never executes anything. Permissions, allowlists, and confirmations live in your code.
+- **Autonomy is a dial, not a switch.** Keep reads free, gate writes, and require human approval for irreversible actions such as payments or deletions.
+- **Observability is not optional.** Log the full trajectory: turns, tool names, arguments, results, tokens, latency, and errors.
+- **Testing shifts left.** Unit-test the loop logic with a fake model, and evaluate the end-to-end behavior on a labelled set of tasks.
+- **Watch the prompt, not just the model.** Vague tool descriptions and missing constraints cause "model failures" that are really design failures.
+
+## Interview questions
+
+### 1. What is an AI agent?
+
+**Answer.** An agent is a language model inside a loop, with a goal, tools, and memory. On each turn the model decides what to do next, the code executes it, the result goes back into context, and the cycle repeats until a stopping condition. The model provides judgment; the code provides limits and execution.
+
+**Follow-up: "Is a model with tools an agent?"** Only if it loops. One tool call in one turn is tool use; the loop that lets the model choose the next step based on results is what makes it an agent.
+
+**Trap.** Defining an agent by the framework. LangGraph, the OpenAI Agents SDK, and hand-written Python are all just ways to implement the same loop.
+
+### 2. When would you not use an agent?
+
+**Answer.** When the steps are known in advance. Extraction, classification, routing, summarisation, and most "AI features" are better as a single call or a fixed workflow: cheaper, faster, testable, and deterministic. Use an agent only when the path depends on runtime results and cannot be enumerated.
+
+**Follow-up: "What if the workflow has a few branches?"** Branches written in code are still a workflow. An agent becomes justified when the number of paths is open-ended or unknown.
+
+**Trap.** Saying "agents are more advanced, so use them." Complexity is a cost, not a maturity signal.
+
+### 3. What are the components of an agent?
+
+**Answer.** Goal and system prompt, a model, memory (conversation, scratchpad, long-term), a tool registry, and the loop that connects them. Around those sit the safety parts: validation, permissions, limits, approvals, and logging.
+
+**Follow-up: "Which component is usually the bottleneck?"** Rarely the model. Tools, context quality, and termination logic cause most failures.
+
+**Trap.** Forgetting memory. Without it, each turn is a fresh start and multi-step tasks fall apart.
+
+### 4. What is the difference between an agent and a workflow?
+
+**Answer.** In a workflow, the developer fixes the order of steps in code. In an agent, the model chooses the order at runtime. Both can use an LLM and tools; the difference is where control lives.
+
+**Follow-up: "Can you mix them?"** Yes, and you should. Most systems are a workflow with one or two agentic steps inside, which keeps the overall path predictable.
+
+**Trap.** Thinking workflows cannot use LLMs. A workflow with an LLM step is still a workflow.
+
+### 5. What is the autonomy spectrum?
+
+**Answer.** A scale from fully fixed to fully free: deterministic workflow, LLM step in a workflow, tool-using chat, bounded agent, and autonomous agent. Each level adds flexibility and removes predictability. The engineering skill is choosing the lowest level that solves the task.
+
+**Follow-up: "Where do most production systems sit?"** At levels 1 to 3. Fully autonomous agents are rare because the failure modes are expensive.
+
+**Trap.** Treating autonomy as binary. It is a dial you can set per action, with reads free and writes gated.
+
+### 6. Why is an agent loop more powerful than a single model call?
+
+**Answer.** Because each action's result feeds the next decision. The model can observe a failure, choose a different tool, retry with better arguments, or stop. A single call gets one shot and never sees the consequences.
+
+**Follow-up: "What is the cost of that power?"** More tokens, more latency, more ways to fail, and behaviour that changes between runs.
+
+**Trap.** Assuming more turns always means better answers. Past a point, extra turns add cost without adding quality.
+
+### 7. What are the main production risks of agents?
+
+**Answer.** Runaway loops, unbounded cost, wrong tool selection, irreversible side effects, prompt injection through tool output, memory growth, and silent compounding errors. The mitigations are turn and budget limits, validated allowlisted tools, least-privilege permissions, approvals for writes, compacted memory, and full trajectory logging.
+
+**Follow-up: "Which risk would you fix first?"** Unbounded side effects. A cost overrun is recoverable; an unauthorised payment or deletion may not be.
+
+**Trap.** Trusting the model's tool name. Always validate the name against your registry.
+
+### 8. How do you test an agent?
+
+**Answer.** Split the testing. Unit-test the loop with a fake or scripted model so control flow is deterministic. Test each tool in isolation, including bad arguments and timeouts. Then run an end-to-end evaluation set of realistic tasks and score outcomes, tool choice, turns, and cost. Assert on invariants such as "never calls a write tool without approval," not exact wording.
+
+**Follow-up: "What does a fake model let you test?"** Turn limits, error handling, recovery paths, and stopping conditions — the parts that are hard to trigger reliably with a real model.
+
+**Trap.** Only testing the happy path. The interesting agent bugs live in the retry, timeout, and denial branches.
+
+## Remember this
+
+- An agent is **model + tools + memory + goal + loop**. Remove the loop and it is just a call.
+- **Choose the lowest autonomy** that solves the task; a workflow is usually cheaper and safer.
+- The **model decides, the code executes**. Permissions and limits never leave your code.
+- Agents **fail in compound ways**: bound turns, budget, tools, and side effects.
+- **Log the trajectory.** Turns, tools, arguments, results, tokens, and latency are how you debug an agent.

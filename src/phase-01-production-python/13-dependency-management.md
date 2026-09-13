@@ -1,0 +1,383 @@
+# Dependency Management
+
+> **Interview answer (say this first).** Declare the versions you are willing to accept in `pyproject.toml`, resolve them once into a **lockfile** that records every transitive package and its hash, and install from that lock everywhere. In CI, verify the lock is in sync (`--locked`) so a build cannot silently resolve different versions. Then audit, upgrade in reviewed batches, and test.
+
+## Why this exists
+
+A Python project is mostly other people's code. A typical service depends on a handful of direct packages, which bring in dozens of transitive ones. If you do not record exactly which versions you use, the build is different every day:
+
+```text
+# requirements.txt
+httpx          # installs today's latest
+```
+
+Today's build gets `httpx==0.28.1`; next month it gets `0.29.0`, which may have removed an argument you pass. Your code did not change, but production breaks. This is the "works on my machine" failure at the dependency layer.
+
+The problem is worse for transitive dependencies, which you never chose:
+
+```text
+your-service -> httpx -> httpcore -> h11
+                                  -> certifi
+```
+
+A patch release of `h11` can break your service, and `h11` appears nowhere in your code. You cannot review what you never wrote down.
+
+Security is the third pressure. A scanner only helps if it knows the exact installed versions and can compare them with an advisory database. "Some version of requests" cannot be audited.
+
+Dependency management exists to make installs **deterministic, reviewable, and auditable**.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Dependency** | Another package your project needs to run. |
+| **Direct dependency** | One you declared yourself. |
+| **Transitive dependency** | One your dependencies pull in. You did not choose it. |
+| **Version specifier** | A constraint such as `>=1.2,<2.0`. It describes a range. |
+| **Pin** | An exact version, such as `==1.2.3`. It describes one point. |
+| **Resolver** | The algorithm that picks versions satisfying every constraint at once. |
+| **Resolution** | The result of running the resolver: one version per package. |
+| **Lockfile** | A file recording the full resolution, including transitive packages and usually hashes. |
+| **Reproducible build** | Installing the same lockfile produces the same package versions every time. |
+| **Semantic versioning (semver)** | A promise about what `MAJOR.MINOR.PATCH` changes mean. |
+| **Prerelease** | A version before a final release, such as `2.0.0rc1`. It sorts lower than `2.0.0`. |
+| **Environment marker** | A condition on a dependency, such as "only on Windows" or "only for Python < 3.12". |
+| **Extra** | An optional group of dependencies you install by name, such as `requests[security]`. |
+| **Dependency group** | A named group for development-only packages (PEP 735), for example `dev`. |
+| **Hash** | A checksum of an artifact. It proves the downloaded file is exactly the expected one. |
+| **Advisory / CVE** | A published security vulnerability with an identifier and affected versions. |
+| **Dependency confusion** | An attack where a public package shadows a private one with the same name. |
+
+Two ideas carry the whole topic. A **specifier** is a statement of intent ("this range is compatible"); a **lockfile** is a statement of fact ("these are the exact bytes that were tested"). You need both.
+
+## The core idea
+
+Think of a recipe and a shopping receipt. `pyproject.toml` is the recipe: "any good bread, 500 g of tomatoes, some cheese". A lockfile is the receipt from the one shopping trip that actually produced a good dinner: brand, weight, price, and barcode for every item, including the ones you did not plan to buy.
+
+The recipe lets a chef adapt to the shop; the receipt lets you reproduce last night's dinner exactly.
+
+```mermaid
+flowchart LR
+    A["pyproject.toml<br/>intent: ranges"] --> R["Resolver"]
+    B["PyPI metadata<br/>what each version needs"] --> R
+    R --> L["uv.lock / requirements.txt<br/>fact: exact versions + hashes"]
+    L --> I["Install everywhere<br/>local, CI, Docker"]
+    I --> S["Scanner<br/>compare with advisories"]
+```
+
+The two-file model is the key: **ranges for humans, the lock for machines**. Editing the lock by hand breaks the chain, because the next resolve overwrites it.
+
+A resolver must satisfy all constraints simultaneously. If `httpx` needs `anyio>=4` and another package needs `anyio<3`, there is no solution and resolution fails. That is a feature: failing at resolve time is far cheaper than failing in production.
+
+## How it works
+
+1. **You declare direct dependencies with ranges.** In `pyproject.toml`, `dependencies = ["httpx>=0.27,<1"]`. This is the only place a human edits versions.
+2. **The resolver reads the dependency metadata of every candidate.** It walks the graph, gathering each package's own requirements and markers, and backtracks when a choice leads to a conflict.
+3. **It chooses one version per package that satisfies everyone.** Constraints from all packages must hold at once, not one at a time.
+4. **Environment markers split the graph by platform and Python version.** A Windows-only package is recorded with a marker and is not installed on Linux. The lock therefore describes several possible environments, not one.
+5. **The lockfile records the full resolution.** Every direct and transitive package, pinned exactly, with the URLs and hashes of the artifacts.
+6. **Installs read the lock, not the ranges.** `uv sync` or `pip install -r requirements.txt` installs those exact versions. Resolution already happened; installation is now deterministic.
+7. **Hashes are checked at download time.** `--require-hashes` (or uv's default hash verification for locked installs) refuses a file whose hash does not match, which blocks tampered or substituted artifacts.
+8. **Development groups stay out of production.** Dev packages are locked like everything else but installed only when asked, so production images do not ship a test framework.
+9. **Upgrading is a deliberate re-resolve.** `uv lock --upgrade` or `uv lock --upgrade-package httpx` produces a new resolution; you review the diff and run the tests. The lock never changes as a side effect of running code.
+10. **Scanning compares the locked versions with an advisory database.** Tools report the package, installed version, vulnerability identifier, and the version that fixes it.
+
+> **Tip:**
+>
+> **The rule to remember.** `pip install -U` in production is not dependency management; it is an unreviewed deployment. Change the lock in a pull request, test it, then deploy.
+
+
+## The syntax you will use
+
+**Declare intent in `pyproject.toml`.**
+
+```toml
+[project]
+name = "agent-service"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.27,<1",          # a range: accept compatible releases
+    "pydantic>=2.7,<3",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.2"]   # install with: pip install ".[postgres]"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]      # PEP 735 dev group
+```
+
+**Add dependencies through the tool, not by hand.**
+
+```bash
+uv add "httpx>=0.27"           # runtime dependency
+uv add --dev "pytest>=8"       # dev dependency group
+```
+
+`uv add` updates `pyproject.toml`, resolves, and rewrites `uv.lock` in one step.
+
+**Resolve and lock.**
+
+```bash
+uv lock                        # resolve and write uv.lock
+uv lock --check                # fail if the lock is out of date
+uv lock --upgrade-package httpx  # move one package forward only
+uv lock --upgrade              # re-resolve everything (review the diff!)
+```
+
+**Install from the lock.**
+
+```bash
+uv sync                        # install exactly the lock
+uv sync --locked               # fail if the lock needs updating
+uv sync --frozen               # use the lock as-is, even if out of date
+uv sync --no-dev               # production install: skip the dev group
+```
+
+`--locked` is for CI (the lock must match `pyproject.toml`). `--frozen` is for Docker, where you intentionally ship a pre-made lock and never want a resolve.
+
+**Bridge to plain pip with `requirements.txt`.**
+
+```bash
+uv export --format requirements-txt --no-hashes --no-dev > requirements.txt
+uv export --format requirements-txt > requirements.with-hashes.txt
+```
+
+**Compile a requirements file when you are not using `pyproject.toml`.**
+
+```bash
+uv pip compile requirements.in -o requirements.txt                  # pins transitives
+uv pip compile requirements.in --generate-hashes -o requirements.txt
+```
+
+The compiled file looks like this (real output for `httpx>=0.27`):
+
+```text
+anyio==4.15.1
+    # via httpx
+certifi==2026.7.22
+    # via
+    #   httpcore
+    #   httpx
+h11==0.16.0
+    # via httpcore
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via -r requirements.in
+idna==3.19
+    # via
+    #   anyio
+    #   httpx
+typing-extensions==4.16.0
+    # via anyio
+```
+
+**Install with hash enforcement.**
+
+```bash
+pip install --require-hashes -r requirements.txt
+```
+
+**See why a package is present, and what is outdated.**
+
+```bash
+uv tree                        # the dependency graph of the project
+uv pip list --outdated         # installed versions with newer releases available
+```
+
+**Audit for known vulnerabilities.**
+
+```bash
+uv run --with pip-audit pip-audit          # audit the current project
+uv run --with pip-audit pip-audit -r requirements.txt
+pip-audit --fix                            # upgrade past known-vulnerable versions
+```
+
+A clean result prints `No known vulnerabilities found`. Otherwise pip-audit lists each affected package, the installed version, the advisory ID, and the fixed version.
+
+**Semantic version specifiers, and what they mean.**
+
+| Form | Means | Accepts | Rejects |
+| --- | --- | --- | --- |
+| `==1.4.2` | exactly this version | `1.4.2` | everything else |
+| `>=1.4,<2` | this range | `1.9` | `2.0` |
+| `~=1.4.2` | `>=1.4.2, ==1.4.*` | `1.4.9` | `1.5.0` |
+| `~=1.4` | `>=1.4, ==1.*` | `1.9.9` | `2.0.0` |
+| `!=1.5` | exclude one version | `1.4`, `1.6` | `1.5` |
+| `>=2.0.0rc1` | allow prereleases from rc1 upward | `2.0.0rc1`, `2.0.0` | `2.0.0a1` |
+
+Prereleases sort below the final release: `1.0.0a1` is lower than `1.0.0`. Resolvers such as pip and uv skip prereleases unless a constraint explicitly names one.
+
+## Examples: simple to real
+
+**Example 1 — the range is not the build. The lock is.**
+
+```toml
+dependencies = ["httpx>=0.27"]
+```
+
+The next day this resolves to `0.28.1`; a year later it may resolve to `0.30.0`. The declared range is stable, but the installed code is not. That is why a lockfile must be committed: the range describes compatibility, the lock describes what you actually tested.
+
+**Example 2 — a lockfile captures transitive dependencies.**
+
+`uv pip compile requirements.in` for `httpx>=0.27` produced a file with **seven** pinned packages: `anyio`, `certifi`, `h11`, `httpcore`, `httpx`, `idna`, and `typing-extensions`, each annotated with `# via` showing who required it. Only `httpx` was declared. The other six are the surface area you must keep patched.
+
+**Example 3 — a project lock with dev groups and a graph.**
+
+`uv add --dev pytest` wrote `[dependency-groups] dev = ["pytest>=9.1.1"]` into `pyproject.toml` (uv records the resolved lower bound rather than the range you typed) and updated `uv.lock`. `uv tree` then shows the whole graph, with the dev group marked:
+
+```text
+depdemo v0.1.0
+├── httpx v0.28.1
+│   ├── anyio v4.15.1
+│   │   ├── idna v3.19
+│   │   └── typing-extensions v4.16.0
+│   ├── certifi v2026.7.22
+│   ├── httpcore v1.0.9
+│   │   ├── certifi v2026.7.22
+│   │   └── h11 v0.16.0
+│   └── idna v3.19
+└── pytest v9.1.1 (group: dev)
+    ├── iniconfig v2.3.0
+    ├── packaging v26.3
+    ├── pluggy v1.6.0
+    └── pygments v2.21.0
+```
+
+`uv export --format requirements-txt --no-dev` writes a production `requirements.txt` without `pytest`, and `uv sync --no-dev` uninstalls it from the environment. That is how the same lock serves development and production.
+
+**Example 4 — drift detection is what makes CI safe.**
+
+Starting from a project whose lock was in sync, adding a dependency to `pyproject.toml` without locking produced:
+
+```text
+$ uv lock --check
+The lockfile at `uv.lock` needs to be updated, but `--check` was provided.
+
+$ uv sync --locked
+The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+
+$ uv sync --frozen
+Audited 12 packages in 1ms        # proceeds, using the stale lock
+```
+
+`--locked` fails loudly; `--frozen` trusts the lock. Use `--locked` in CI tests so an unlocked change cannot merge, and `--frozen` in the deployment image so a resolve cannot happen at deploy time.
+
+**Example 5 — semver specifiers behave exactly as the table says.**
+
+```python
+from packaging.specifiers import SpecifierSet
+from packaging.version import Version
+
+Version("1.10.0") > Version("1.2.3")          # True  (numeric, not text)
+Version("1.0.0a1") < Version("1.0.0")         # True  (prerelease sorts lower)
+Version("1.4.9") in SpecifierSet("~=1.4.2")   # True
+Version("1.5.0") in SpecifierSet("~=1.4.2")   # False
+Version("1.9.9") in SpecifierSet("~=1.4")     # True
+Version("2.0.0") in SpecifierSet("~=1.4")     # False
+```
+
+`~=` is the "compatible release" operator. `~=1.4.2` means "`1.4.2` or later, but still `1.4.x`". `~=1.4` means "`1.4` or later, but still `1.x`". It is the closest Python has to a caret range.
+
+**Example 6 — audit, then upgrade one package at a time.**
+
+```bash
+uv run --with pip-audit pip-audit
+# No known vulnerabilities found
+uv lock --upgrade-package httpx     # one reviewed change
+uv sync
+pytest
+```
+
+Scanning tells you what is currently exposed. Upgrading one package at a time keeps the diff reviewable and the bisect short when a test fails.
+
+## In production
+
+- **Commit the lockfile and review it in pull requests.** A lock diff is a dependency review. If the lock is not committed, two developers are running different software with the same job title.
+- **Ranges in `pyproject.toml`, exact pins in the lock.** Hand-editing the lock to add a range, or to force a version, breaks the invariant that the lock is the resolver's output.
+- **Use `--locked` in CI and `--frozen` in the Docker build.** `--locked` fails when `pyproject.toml` and the lock disagree; `--frozen` guarantees the image installs exactly what CI tested and never resolves at deploy time.
+- **Separate dev from production dependencies.** Put test and lint tools in a dev group or extra, export with `--no-dev`, and use `uv sync --no-dev` in the runtime image. Shipping `pytest` widens the attack surface for no benefit.
+- **Turn on hashes for anything security-sensitive.** `--generate-hashes` plus `pip install --require-hashes` rejects a package whose bytes do not match the lock. This is the main defense against substituted or tampered artifacts.
+- **Audit transitively, not just your direct list.** `httpx` is one line, but the lock has seven packages. Run `pip-audit` against the lock in CI, and make known-exploited vulnerabilities a failing check.
+- **Treat semver as a promise, not a guarantee.** `0.y.z` is explicitly "anything can change", and even a patch release occasionally breaks someone. The lock is what actually protects you; the range only limits how far the resolver can wander.
+- **Upgrade deliberately, in small batches.** `uv lock --upgrade-package X` moves one package; `uv lock --upgrade` may move dozens at once, and when a test fails you will not know which one caused it.
+- **Watch markers and Python versions.** A lock resolved for Python 3.12 may include different transitive packages than one resolved for 3.13, because markers in package metadata select different dependencies. Lock for the interpreter you actually deploy.
+- **Do not use `pip install -U` in a running production environment.** It resolves against today's index with today's constraints and leaves the environment in a state nobody reviewed or recorded.
+- **Serve private packages from a controlled index and prefer hashes.** Otherwise a public package with the same name as your internal one can be picked up instead — the dependency-confusion attack — and your build runs someone else's code.
+- **Pin build dependencies too.** The `[build-system] requires` list runs arbitrary code at build time. A floating build backend is as risky as a floating runtime dependency.
+
+## Interview questions
+
+### 1. Should you pin exact versions or use ranges?
+
+**Answer.** Both, in different files. Declare ranges in `pyproject.toml` to express compatibility and let the resolver find a working set. Record the resolved exact versions in a lockfile. Ranges decide what is *allowed*; the lock decides what is *installed*. Installing from a floating range in production means every build can differ.
+
+**Follow-up: "When is a tight `==` pin in `pyproject.toml` right?"** For an application you deploy yourself, tight constraints are reasonable. For a library others install, they are hostile, because your pin conflicts with the consumer's other dependencies. Libraries should declare compatible ranges and test against several.
+
+**Trap.** Confusing the two audiences. A library pins nothing in its published metadata; an application pins everything in its lock.
+
+### 2. What is a lockfile, and why commit it?
+
+**Answer.** A lockfile is the complete resolution of all direct and transitive dependencies at exact versions, usually with hashes. Committing it makes builds reproducible: CI, a colleague's laptop, and the production image all install the same bytes. It also makes upgrades reviewable, because the diff shows exactly which packages moved.
+
+**Follow-up: "Do transitive dependencies belong in it?"** Yes, that is the point. You did not choose them, but they run in production. `httpx` pulls in six other packages; the lock is the only place that records them.
+
+**Trap.** Committing a lock but never using it. If `pip install -r requirements.txt` installs from an unpinned file while a lock sits in the repo, the lock is documentation, not a guarantee.
+
+### 3. What is the difference between `requirements.txt` and `pyproject.toml`?
+
+**Answer.** `pyproject.toml` is project metadata: name, version, dependencies, extras, entry points, and the build backend. `requirements.txt` is a flat install list, often a compiled lock for pip. `pyproject.toml` declares intent; a compiled `requirements.txt` records a resolution. You can use both: `pyproject.toml` as the source of truth and `uv export --no-dev` to produce a `requirements.txt` for images that use plain pip.
+
+**Follow-up: "How do you keep them from drifting?"** Generate the `requirements.txt` from the lock in CI and fail if the working tree changes. Never edit the generated file by hand.
+
+**Trap.** Declaring dependencies only in `requirements.txt` and leaving `pyproject.toml` empty. Anyone installing your distribution gets no dependencies, and pip has to guess whether your project is installable.
+
+### 4. How does semantic versioning work, and what does `~=` mean?
+
+**Answer.** `MAJOR.MINOR.PATCH`: major may break compatibility, minor adds features without breaking, patch fixes bugs. `~=` is the compatible-release operator: `~=1.4.2` means `>=1.4.2, ==1.4.*`, and `~=1.4` means `>=1.4, ==1.*`. Prereleases such as `1.0.0a1` sort below the final release and are excluded unless you ask for one.
+
+**Follow-up: "Is version comparison lexical?"** No. `1.10.0` is greater than `1.2.3`, because each numeric part is compared as a number, not as text. That is why sorting version strings is a bug.
+
+**Trap.** Trusting semver absolutely. A patch release can still break you if the maintainer makes a mistake or takes a shortcut. The lock limits your exposure; it does not eliminate it.
+
+### 5. Why are transitive dependencies dangerous?
+
+**Answer.** They are code you run but never chose. They can break your service with a patch release, they can carry vulnerabilities, and they expand your supply-chain surface. A single declared package can pull in dozens of transitives. You manage them by locking them, scanning them, and upgrading them deliberately.
+
+**Follow-up: "How do you see where one came from?"** `uv tree` (or `pip show` plus `pipdeptree`) shows the path: `h11` is present because `httpcore` needs it, which is present because `httpx` needs it. That tells you which direct dependency to bump.
+
+**Trap.** Assuming a lockfile makes you safe. A locked vulnerable version stays vulnerable until someone upgrades it. Locking is necessary but not sufficient; scanning and upgrading are the other half.
+
+### 6. How do you make a build reproducible?
+
+**Answer.** Three things: pin every transitive dependency in a lockfile, include hashes, and install from that lock with a command that refuses to resolve. In CI use `--locked` to catch drift; in the image use `--frozen` with `--no-dev`. Also lock build dependencies, because the build backend runs at install time.
+
+**Follow-up: "What else can make builds differ?"** The base image, the compiler, the Python patch version, environment markers, and the index. Reproducibility is a spectrum; the lock removes the largest source of variation, the package graph.
+
+**Trap.** Claiming `pip install -r requirements.txt` is reproducible when the file has ranges or no hashes. It still resolves against the index each time.
+
+### 7. Compare uv, pip-tools, and Poetry.
+
+**Answer.** `pip-tools` compiles a `.in` file into a pinned `requirements.txt` and is a small addition to plain pip. `Poetry` is an all-in-one project manager: `pyproject.toml`, lockfile, virtualenv handling, and publishing. `uv` does the same job as Poetry plus a fast pip replacement, writes `uv.lock`, and has a `uv pip compile` mode that behaves like pip-tools. All three solve the resolver and lock problem; they differ in speed, scope, and ecosystem integration.
+
+**Follow-up: "What matters more than the tool?"** The workflow. Commit the lock, verify it in CI, install from it in the image, and review upgrades. A team can do this with any of the three.
+
+**Trap.** Treating the lockfile as portable between tools. `uv.lock`, `poetry.lock`, and a compiled `requirements.txt` are different formats. Pick one as the source of truth rather than mixing resolvers.
+
+### 8. How do you upgrade dependencies and handle security findings safely?
+
+**Answer.** Scan the lock in CI with `pip-audit` and fail on known-exploited issues. For an upgrade, re-resolve a small set of packages (`uv lock --upgrade-package X`), review the diff, run the tests, and merge it as its own change. For a security fix, prefer the smallest version move that clears the advisory, and verify the fixed version matches what the advisory names.
+
+**Follow-up: "What if the fixed version is a major bump?"** Isolate it. Upgrade that package alone, read the changelog, and add a test for the behavior you rely on. If it cannot be done immediately, document the exposure and add a compensating control rather than silently ignoring the alert.
+
+**Trap.** Running `uv lock --upgrade` and merging the result because tests pass. A green test suite does not cover every behavior, and a fifty-package diff cannot be reviewed. Small, deliberate upgrades are what keep the lock trustworthy.
+
+## Remember this
+
+- **Intent in `pyproject.toml`, facts in the lockfile.** Ranges say what is allowed; the lock says what is installed.
+- **Commit the lock, and use it everywhere.** `--locked` in CI, `--frozen` in the image.
+- **Transitive dependencies are your code.** Lock, scan, and upgrade them, not just your direct list.
+- **`~=` pins a compatible range**: `~=1.4.2` stays in `1.4.x`, `~=1.4` stays in `1.x`.
+- **Upgrade in reviewed batches**, and prefer the smallest move that fixes a security finding.

@@ -1,0 +1,465 @@
+# Long-Running and Background Agents
+
+> **Interview answer (say this first).** A long-running agent is work that outlives the request that started it. You acknowledge the request immediately, enqueue a job, run the agent in a background worker, persist each step so a restart can resume, stream progress and heartbeats back, and enforce cancellation, timeouts, and a cost budget so a run cannot quietly burn money forever.
+
+## Why this exists
+
+An HTTP request is a promise to answer in seconds. An agent breaks that promise. It may call a model twenty times, wait on a slow tool, retry a failure, or ask a human for approval. A careful workflow can easily take ten minutes, an hour, or a day.
+
+If you run that work inside the request handler, three bad things happen:
+
+1. **The client gives up.** Browsers, load balancers, and API gateways time out after 30–60 seconds. The user sees an error even though the work is still running server-side.
+2. **The work dies with the process.** A deploy, a crash, or an autoscaler restart kills the handler. Everything computed so far is lost, because it only lived in memory.
+3. **Nobody can see or stop it.** There is no progress, no cancel button, no cost meter. A runaway loop keeps spending until someone notices the bill.
+
+Here is the failure in miniature: a function that sleeps while "working", called directly by a web handler.
+
+```python
+import time
+
+def run_agent(ticket: str) -> str:
+    time.sleep(300)          # model calls and tools, simulated
+    return f"done: {ticket}"
+
+def handle_request(ticket: str) -> str:
+    return run_agent(ticket)     # blocks; the gateway times out at 30s -> 504
+```
+
+The fix is to separate **submitting** work from **running** it. Submission is fast and always succeeds. Running is slow, happens somewhere else, and is tracked. That separation is what this page is about.
+
+This matters for agentic AI because agents are exactly the workloads that are slow, stateful, expensive, and worth resuming. The same machinery that runs a nightly report also runs a coding agent that opens a pull request over forty minutes.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Synchronous** | The caller waits, blocked, until the work finishes. A normal function call is synchronous. |
+| **Asynchronous** | The caller starts work and continues; the result arrives later. Python's `async`/`await` is one form. |
+| **Background job** | Work that runs outside the request that created it. The request only enqueues a description of the job. |
+| **Job** | One unit of work with an id, an input, a status, and a result. |
+| **Job queue** | A durable list of pending jobs that workers pull from. Often a database table or a broker such as Redis, RabbitMQ, or SQS. |
+| **Worker** | A long-lived process that pulls jobs from a queue and runs them. It is not tied to any request. |
+| **Producer / consumer** | The producer creates jobs; the consumer (worker) executes them. They are separate processes. |
+| **Acknowledge (ACK)** | The worker tells the queue "I finished this job" so it can be removed. Without an ACK the job is retried. |
+| **Visibility timeout** | How long a queue hides a job from other workers while one worker runs it. If the worker dies, the job becomes visible again. |
+| **Progress reporting** | Writing a job's percentage, current step, or status where the client can read it. |
+| **Cancellation** | A request to stop a running job. The worker checks a flag and exits at the next safe point. |
+| **Timeout** | A maximum time a step or a whole job may take before it is declared failed. |
+| **Heartbeat** | A periodic "I am still alive" signal. A missing heartbeat means the job is stuck or the worker died. |
+| **Idempotent** | Running the same job twice has the same effect as running it once. Essential, because queues retry. |
+| **Durable execution** | Recording each completed step so a crash resumes from the last step instead of restarting. |
+| **Checkpoint** | A saved snapshot of a job's state at a point in time. |
+| **Cron** | A time format and scheduler for "run this at these times" (for example, every weekday at 09:00). |
+| **Budget** | A hard cap on tokens, money, or steps for a run. When it is hit, the run stops. |
+
+Two words are worth pinning down now:
+
+- **Queue vs worker** is about *who owns the work*. The queue stores it; the worker executes it.
+- **Timeout vs heartbeat** is about *what you detect*. A timeout catches a step that is too slow; a heartbeat catches a worker that silently stopped reporting.
+
+## The core idea
+
+Think of a restaurant. You do not stand in the kitchen while your food cooks. The waiter writes your order on a ticket, clips it to a rail, and hands you a number. The kitchen (workers) pulls tickets and cooks. The rail (the queue) holds tickets in order and survives a busy shift. You can watch progress, and occasionally ask to cancel.
+
+```mermaid
+flowchart LR
+    C["Client<br/>POST /tickets"] --> A["API<br/>validate + enqueue"]
+    A --> Q[("Job queue<br/>durable")]
+    Q --> W1["Worker 1"]
+    Q --> W2["Worker 2"]
+    W1 --> P["Progress events"]
+    W2 --> P
+    P --> S[("Status store")]
+    S --> C
+    W1 --> D[("Durable state<br/>checkpoints")]
+    W1 -.->|"cancel / timeout / budget"| X["Stop cleanly"]
+    B["Scheduler<br/>cron"] --> Q
+```
+
+The rail is the important part. If you keep jobs only in memory, a restart loses them. A **durable queue** (SQS, RabbitMQ, Redis with persistence, or a database table) holds the work until a worker ACKs it.
+
+The second important part is that **the worker must be able to stop and restart a job**. A handler that ran from the top is all-or-nothing. A worker that records each completed step can resume.
+
+| Approach | Survives restart? | Client gets an answer fast? | Can cancel? | Cost visible? |
+| --- | --- | --- | --- | --- |
+| Run in request handler | No | No, it blocks | No | No |
+| In-memory `threading.Thread` | No | Yes | Partly | No |
+| Durable queue + worker | Yes, if jobs are ACKed | Yes | Yes | Yes |
+| Durable queue + checkpoints | Yes, mid-run | Yes | Yes | Yes |
+
+The bottom row is where production agents live.
+
+## How it works
+
+1. **The API validates the request and creates a job.** It writes a row or message with a unique job id, the input, and status `queued`. It returns `202 Accepted` with the job id in milliseconds. No agent work happens here.
+2. **A durable queue holds the job.** The job is not lost if the API crashes between "accept" and "worker picks it up". This is the difference between a queue and a thread pool.
+3. **A worker pulls the job and marks it `running`.** Only one worker should hold a given job. Queues use a visibility timeout so a crashed worker's job returns to the queue.
+4. **The agent runs step by step.** Each step is a model call, a tool call, or a decision. Before and after each step, the worker writes a checkpoint of what has been done.
+5. **The worker reports progress.** It writes status, percentage, and a human-readable message to a status store the client can poll, or pushes them over a WebSocket or a server-sent events (SSE) stream — a one-way HTTP connection where the server keeps pushing text events to the client.
+6. **The worker sends heartbeats.** A background timer updates a `last_seen` timestamp. A supervisor marks jobs with stale heartbeats as failed and requeues or alerts.
+7. **Guards interrupt the loop.** At every step boundary the worker checks: has cancellation been requested? Has the step or job exceeded its timeout? Has the cost budget been exceeded? If yes, it stops cleanly and records why.
+8. **A failure is retried, but safely.** Because queues deliver *at least once*, a step may run twice. Idempotency keys (a stable id per side-effecting operation) make the retry harmless.
+9. **Completion is recorded, then ACKed.** The worker writes the result and status `succeeded`, then acknowledges the job. If it dies before the ACK, the queue redelivers and the checkpoint prevents duplicate work.
+10. **A scheduler creates jobs on a timetable.** Cron does not run the agent; it enqueues it. This keeps scheduling and execution separate.
+11. **Cleanup expires old jobs.** Status rows and checkpoints are pruned after a retention window so storage does not grow forever.
+
+> **Warning:**
+>
+> **At-least-once delivery is the default.** Most queues guarantee a job runs *at least* once, not exactly once. Any tool that changes the world (charges a card, sends an email, opens a pull request) must be idempotent or guarded by a dedupe key. "Exactly once" is usually a property you build on top, not one the broker gives you.
+
+
+## The syntax you will use
+
+**A queue and a worker pool.** A `queue.Queue` is in-process; in production you swap it for a durable broker without changing the worker shape.
+
+```python
+import queue
+import threading
+
+jobs: "queue.Queue[Job]" = queue.Queue()
+
+def worker() -> None:
+    while True:
+        job = jobs.get()          # blocks until a job arrives
+        try:
+            run(job)
+        finally:
+            jobs.task_done()      # tells queue.join() this job is handled
+
+threading.Thread(target=worker, daemon=True).start()
+jobs.put(job)                     # the producer side
+jobs.join()                       # wait for all queued jobs to finish
+```
+
+**A job with a status, progress, and a cancel flag.** Every background system needs this object.
+
+```python
+from dataclasses import dataclass, field
+import threading
+
+@dataclass
+class Job:
+    id: str
+    steps: int
+    status: str = "queued"
+    progress: int = 0
+    cost: float = 0.0
+    last_heartbeat: float = 0.0
+    error: str = ""
+    cancel: threading.Event = field(default_factory=threading.Event)
+```
+
+**Cancellation.** Set the event from another thread; the worker checks it at safe points.
+
+```python
+class Cancelled(Exception):
+    pass
+
+if job.cancel.is_set():
+    raise Cancelled
+```
+
+**A timeout around an awaitable.** `asyncio.timeout` cancels the inner task and raises `TimeoutError` when the budget elapses.
+
+```python
+import asyncio
+
+async def call_with_timeout(prompt: str) -> str:
+    async with asyncio.timeout(30):      # raises TimeoutError after 30 seconds
+        return await call_model(prompt)
+```
+
+**Cancelling an asyncio task.** `task.cancel()` raises `CancelledError` inside the task at the next `await`.
+
+```python
+async def cancel_task(task: asyncio.Task) -> None:
+    task.cancel()                        # request cancellation
+    await task                           # raises CancelledError
+```
+
+**A heartbeat timestamp.** A watchdog compares `time.monotonic()` to the last beat.
+
+```python
+job.last_heartbeat = time.monotonic()   # worker touches this each step
+stale = time.monotonic() - job.last_heartbeat > 60   # True means stuck
+```
+
+**A cron schedule.** `croniter` (a small third-party package, `pip install croniter`) computes the next run times from a five-field expression.
+
+```python
+from croniter import croniter
+from datetime import datetime
+
+it = croniter("0 9 * * 1-5", datetime(2026, 9, 13, 10, 30))   # 09:00 on weekdays
+it.get_next(datetime)   # 2026-09-14T09:00:00
+```
+
+| Field | Meaning | Example |
+| --- | --- | --- |
+| minute | 0–59 | `*/15` = every 15 minutes |
+| hour | 0–23 | `9` = 09:00 |
+| day of month | 1–31 | `1` = the first |
+| month | 1–12 | `*` = every month |
+| day of week | 0–6 (0 = Sunday) | `1-5` = weekdays |
+
+**A durable journal.** Append one line per completed step; on restart, skip what is already there.
+
+```python
+import json
+from pathlib import Path
+
+def completed_steps(path: str) -> set[str]:
+    file = Path(path)
+    if not file.exists():
+        return set()
+    lines = file.read_text().splitlines()
+    return {json.loads(line)["step"] for line in lines if line}
+
+def run_workflow(steps: list[str], path: str) -> None:
+    done = completed_steps(path)
+    for step in steps:
+        if step in done:
+            continue                     # already finished before the crash
+        do_work(step)
+        with open(path, "a") as f:        # record only after success
+            f.write(json.dumps({"step": step}) + "\n")
+```
+
+## Examples: simple to real
+
+**Example 1 — a fire-and-forget thread is not enough.** The request returns fast, but the work is invisible and dies with the process.
+
+```python
+import threading
+
+def handle(ticket: str):
+    threading.Thread(target=run_agent, args=(ticket,), daemon=True).start()
+    return {"status": "running"}     # no job id, no progress, no retry
+```
+
+This looks like a background job, but there is no queue, so a crash loses the work, and there is no way to query or cancel it. Use it only for best-effort work that does not matter if it is lost.
+
+**Example 2 — a queue, a worker, and progress events.** This is the smallest honest version of the restaurant rail.
+
+```python
+import queue, threading, time
+from dataclasses import dataclass, field
+
+@dataclass
+class Job:
+    id: str
+    steps: int
+    status: str = "queued"
+    progress: int = 0
+    cancel: threading.Event = field(default_factory=threading.Event)
+
+jobs: "queue.Queue[Job]" = queue.Queue()
+events: "queue.Queue[tuple[str, str]]" = queue.Queue()
+
+def run(job: Job) -> None:
+    job.status = "running"
+    events.put((job.id, "started"))
+    for i in range(job.steps):
+        if job.cancel.is_set():
+            job.status = "cancelled"
+            events.put((job.id, "cancelled"))
+            return
+        time.sleep(0.01)                 # the model or tool call
+        job.progress = i + 1
+        events.put((job.id, f"progress {job.progress}/{job.steps}"))
+    job.status = "succeeded"
+
+def worker() -> None:
+    while True:
+        job = jobs.get()
+        try:
+            run(job)
+        finally:
+            jobs.task_done()
+
+threading.Thread(target=worker, daemon=True).start()
+
+summarise = Job(id="summarise", steps=4)
+crawl = Job(id="crawl", steps=1)
+crawl.cancel.set()                    # cancel requested before the worker starts it
+translate = Job(id="translate", steps=3)
+for job in (summarise, crawl, translate):
+    jobs.put(job)
+jobs.join()                           # wait for the worker to drain the queue
+```
+
+After the worker drains, the statuses are the visible contract:
+
+```python
+# summarise  status=succeeded    progress=  4
+# crawl      status=cancelled    progress=  0   (cancel was requested before it started)
+# translate  status=succeeded    progress=  3
+```
+
+The key line is `if job.cancel.is_set()`: cancellation is cooperative. The worker only stops at a boundary it chose, so long steps must be broken into smaller ones.
+
+**Example 3 — a step that exceeds its timeout is killed.** A step that takes longer than the limit is abandoned instead of blocking the worker forever.
+
+```python
+class TimedOut(Exception):
+    pass
+
+def run_step(job: Job, step_seconds: float, timeout: float) -> None:
+    start = time.monotonic()
+    time.sleep(step_seconds)                 # the tool call
+    if time.monotonic() - start > timeout:
+        raise TimedOut
+    job.last_heartbeat = time.monotonic()
+
+def run_job(job: Job, step_seconds: float = 0.05, timeout: float = 0.02) -> None:
+    try:
+        run_step(job, step_seconds, timeout)
+        job.status = "succeeded"
+    except TimedOut:                         # map the exception onto the job
+        job.status = "timed_out"
+        job.error = "no heartbeat within timeout"
+
+# job with step_seconds=0.05 and timeout=0.02
+# -> status=timed_out, progress=0, error='no heartbeat within timeout'
+```
+
+Splitting `step_seconds` and `timeout` makes the guard testable: a tool that hangs is exactly the case this catches.
+
+**Example 4 — a cost budget stops a runaway run.** Agents spend money per token and per tool call. A budget is a hard stop, not a warning.
+
+```python
+class OverBudget(Exception):
+    pass
+
+def charge(job: Job, cost_per_step: float, budget: float, spent: list[float]) -> None:
+    spent[0] += cost_per_step
+    if spent[0] > budget:
+        raise OverBudget(f"budget {budget:.2f} exceeded at {spent[0]:.2f}")
+    job.cost += cost_per_step
+
+# job with 10 steps at 0.10 each, budget 0.25
+# -> status=over_budget, progress=2, cost=0.20, error='budget 0.25 exceeded at 0.30'
+```
+
+Notice the run stopped after two completed steps, not after ten. The budget is checked *before* committing each step, so the overspend is bounded by one step.
+
+**Example 5 — resuming after a crash.** Restart the process, and the journal lets the workflow pick up where it stopped.
+
+```python
+# first run
+run_workflow(["fetch", "plan", "write"], path)
+# ran: fetch / ran: plan / ran: write
+
+# process restarts, same journal path
+run_workflow(["fetch", "plan", "write", "publish"], path)
+# skip already-done: fetch / plan / write
+# ran: publish
+```
+
+This is durable execution in its simplest form. The cost is that `do_work(step)` must be idempotent, because the crash may have happened *after* the work but *before* the journal line was written.
+
+**Example 6 — cron schedules jobs, it does not run them.** The scheduler computes the next time and enqueues a job; the worker stays simple.
+
+```python
+from croniter import croniter
+from datetime import datetime
+
+def due_times(expr: str, start: datetime, count: int) -> list[str]:
+    it = croniter(expr, start)
+    return [it.get_next(datetime).isoformat() for _ in range(count)]
+
+# due_times("*/15 * * * *", datetime(2026, 9, 13, 10, 30), 4)
+# ['2026-09-13T10:45:00', '2026-09-13T11:00:00',
+#  '2026-09-13T11:15:00', '2026-09-13T11:30:00']
+
+# due_times("0 9 * * 1-5", datetime(2026, 9, 13, 10, 30), 3)
+# ['2026-09-14T09:00:00', '2026-09-15T09:00:00', '2026-09-16T09:00:00']
+```
+
+## In production
+
+- **Return `202 Accepted` with a job id, never the result.** The client polls `GET /jobs/{id}` or subscribes to a stream. This one decision removes most gateway timeouts.
+- **Make the queue durable, not in-memory.** An in-process `queue.Queue` is a good learning model and a bad production store: a restart drops every pending job. Use SQS, RabbitMQ, Redis Streams, Postgres `SELECT ... FOR UPDATE SKIP LOCKED` (atomically lock the rows a worker takes and skip rows other workers already hold, so two workers never claim the same job), or Celery/RQ on top of one.
+- **Design every side-effecting step to be idempotent.** Queues retry after crashes and visibility timeouts, so an email or a payment may be attempted twice. Use a dedupe key (a stable id derived from the job and step) and a uniqueness constraint at the effect's destination.
+- **Cancellation is cooperative and has a propagation delay.** A worker checks a flag; a long model call does not notice until it returns. Break work into small steps and check between them, and treat "cancelled" as best-effort rather than instant.
+- **Heartbeats detect a different failure than timeouts.** A timeout catches a slow step; a stale heartbeat catches a worker that died or wedged. Have a supervisor reclaim jobs whose heartbeat is older than a threshold, and make each `last_seen` update cheap.
+- **Budget at the run level and the tenant level.** A per-job cap stops one runaway agent; a per-tenant cap stops one bad user from spending the whole month. Check budgets before each model or tool call, and record the reason on the job when you stop.
+- **Persist state after each step, then ACK.** Writing the checkpoint before the ACK means a crash between them replays one step (safe if idempotent). ACKing before writing means a crash loses the step. Choose the safer order.
+- **Separate the scheduler from the executor.** Cron is a producer, not a worker. If the scheduler also runs the agent, a long run blocks the next scheduled tick.
+- **Bound concurrency and protect downstreams.** A hundred workers hammering the same API will trigger rate limits. Use a shared rate limiter and a bounded worker pool, and let the queue absorb bursts.
+- **Retention beats infinite storage.** Progress rows, checkpoints, and logs grow without bound. Set a retention window, archive results to object storage, and delete the rest.
+- **Observability is not optional.** Emit a structured event per step (job id, step name, tokens, cost, duration). Without per-step traces, a stuck long run is invisible until it appears on the invoice.
+
+## Interview questions
+
+### 1. Why can't you run a 20-minute agent inside an HTTP request?
+
+**Answer.** Most clients and gateways time out after 30–60 seconds, so the caller sees an error while the work keeps running server-side. The work also lives in the handler's memory, so a crash or deploy loses it. There is no progress, no cancellation, and no retry. The fix is to accept the request quickly, enqueue a job, and run the agent in a background worker that persists state.
+
+**Follow-up: "What does the API return?"** `202 Accepted` with a job id. The client then polls a status endpoint or subscribes to a stream of progress events.
+
+**Trap.** Saying a thread pool is enough. An in-memory thread dies with the process and has no retry; durability comes from the queue and the store, not the thread.
+
+### 2. What is the difference between a timeout and a heartbeat?
+
+**Answer.** A timeout is a maximum duration for a step or a job; when it passes, the work is declared failed. A heartbeat is a periodic "still alive" signal; when it goes stale, a supervisor concludes the worker died or is stuck. A timeout catches slow work; a heartbeat catches silent death.
+
+**Follow-up: "How do you pick the threshold?"** Base it on the expected step duration with margin, and alert on the rate of timeouts, not just their existence. A sudden rise in timeouts usually means a downstream dependency degraded.
+
+**Trap.** Using a heartbeat as a timeout or the reverse. A worker can heartbeat while a single call hangs forever, and a slow-but-progressing job can exceed a naive timeout.
+
+### 3. How does cancellation work for a running job?
+
+**Answer.** Cancellation is cooperative. The requester sets a flag (a database column or a `threading.Event`), and the worker checks it at safe step boundaries and exits cleanly. A blocked call does not see the flag until it returns, so long steps are split so the check happens often.
+
+**Follow-up: "How do you cancel an asyncio task?"** Call `task.cancel()`, which raises `CancelledError` inside the task at its next `await`. Catch it only to clean up, then re-raise so the task is marked cancelled.
+
+**Trap.** Saying cancellation is instant and reliable. It is best-effort; the worker may finish the current step, and a process kill can leave a job claimed until the visibility timeout expires.
+
+### 4. The queue delivers at least once. Why does that matter?
+
+**Answer.** A worker can crash after doing the work but before acknowledging the job, so the queue redelivers it and a second worker runs it again. Any step that changes the world must therefore be idempotent: a stable dedupe key plus a uniqueness constraint, an upsert, or a "already done" check. Exactly-once behavior is built on top of at-least-once delivery.
+
+**Follow-up: "Where do you put the idempotency key?"** At the boundary of the side effect — a unique index on `(job_id, step_name)`, an idempotency header sent to the payment API, or a conditional write. The key must be derived from stable data, not a random value generated per attempt.
+
+**Trap.** Assuming a queue provides exactly-once. Most brokers do not; document the actual guarantee and design for the weakest one.
+
+### 5. Why is durable execution harder than saving the final result?
+
+**Answer.** Saving the final result only helps after success. Durable execution records each completed step, so a crash resumes from the last step instead of retrying the whole run. That requires a checkpoint after every step, deterministic step boundaries, and idempotent steps. Then a restart replays at most one step, and the cost of a crash is one step rather than the whole run.
+
+**Follow-up: "What can make a step non-deterministic?"** Time, randomness, and model sampling. If a step branches on `now()` or a sampled output, replaying it can take a different path. Capture those values in the checkpoint so replay is deterministic.
+
+**Trap.** Confusing durable execution with a retry. A retry restarts the job; durable execution continues it.
+
+### 6. How do you control cost for a long run?
+
+**Answer.** Set a hard budget in tokens, money, and steps per job, and also per tenant and per day. Check it before each model or tool call, stop the run when it is exceeded, and record the reason on the job. Add alerts on spend rate, not just totals, so a runaway loop is caught in minutes. Model routing to a cheaper model and caching identical calls reduce the burn rate too.
+
+**Follow-up: "What is the failure mode without a per-tenant cap?"** One user or one buggy agent can consume the entire monthly budget. Per-job caps limit one run; per-tenant caps limit blast radius.
+
+**Trap.** Treating a cost alert as control. An alert tells a human after the money is spent; only a check inside the loop stops it.
+
+### 7. How do you report progress from a background agent?
+
+**Answer.** The worker writes status, percentage, and a short message to a status store after each step, keyed by job id. The client polls `GET /jobs/{id}`, or the server pushes events over server-sent events or a WebSocket. For agents, also report the current step name and tool, because "on step 7 of 20: searching" is far more useful than a bare percentage.
+
+**Follow-up: "How often should you write?"** As often as is useful and cheap, not on every token. Writing on every step is usually right; writing on every token floods the store. Throttle to a few updates per second at most.
+
+**Trap.** Reporting 0% for ten minutes and then 100%. Progress that does not move looks like a hang, and users cancel jobs that are actually healthy.
+
+### 8. How do you schedule recurring agent runs like a nightly report?
+
+**Answer.** Keep the scheduler separate from the executor. A cron definition (for example, `0 2 * * *`) fires a small producer that enqueues a job with a unique id; the normal worker pool runs it. Missed ticks should be handled explicitly: either skip, or backfill one catch-up run, but do not launch every missed run at once.
+
+**Follow-up: "What about overlapping runs?"** Prevent overlap with a distributed lock or a "only one active job per schedule" constraint. A report that takes 90 minutes will otherwise overlap with the next 60-minute tick.
+
+**Trap.** Running the agent inside the cron process. One slow run then delays or blocks the schedule, and there is no queue to absorb bursts.
+
+## Remember this
+
+- **Submit fast, run slow.** Return `202` with a job id; do the work in a background worker.
+- **The queue and the checkpoint are what make work durable.** Threads and in-memory state are not enough.
+- **Guards live in the loop:** cancellation, timeout, heartbeat, and budget are checked at step boundaries.
+- **At-least-once delivery means every side effect must be idempotent.** Dedupe keys are not optional.
+- **Scheduling is a producer, not an executor.** Cron enqueues; workers run.

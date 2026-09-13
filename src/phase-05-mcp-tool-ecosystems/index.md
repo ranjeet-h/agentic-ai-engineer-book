@@ -1,0 +1,67 @@
+# Phase 5 — MCP and Tool Ecosystems
+
+The Model Context Protocol (MCP) is how agents connect to the outside world in a standard way. Instead of every agent framework inventing its own tool format, MCP defines one: a server exposes tools, resources, and prompts; a client discovers them and calls them; a host (the app the user runs) brokers the connection and enforces trust.
+
+Before MCP, giving an agent a new capability meant writing glue code for one framework. With MCP, a capability is written once and works across hosts and frameworks. That is the whole point, and it is why MCP became the default tool ecosystem for agentic AI.
+
+## What you will be able to do
+
+By the end of this phase you should be able to:
+
+- Explain MCP and its architecture: hosts, clients, servers, and transports.
+- Work with the three primitives: tools, resources, and prompts.
+- Implement discovery, schemas, and validation for tools and capabilities.
+- Secure MCP with authentication, authorization, and permission boundaries.
+- Handle sessions and choose between stateful and stateless servers.
+- Build MCP servers and clients, including database, GitHub, filesystem, browser, and internal-API integrations.
+- Operate an enterprise MCP gateway with registries, versioning, observability, and audit logging.
+- Explain agent-to-agent communication and A2A, capability discovery, and interoperability.
+
+## Where MCP sits
+
+```mermaid
+flowchart TD
+    H["Host<br/>(app the user runs)"] --> C1["Client A"]
+    H --> C2["Client B"]
+    C1 <-->|"transport: stdio or HTTP"| S1["MCP server<br/>filesystem"]
+    C2 <-->|"transport: HTTP"| S2["MCP server<br/>database"]
+    S1 --> R1["tools · resources · prompts"]
+    S2 --> R2["tools · resources · prompts"]
+    H -.->|"enforces trust"| G["Permissions · auth · audit"]
+    G -.-> C1
+    G -.-> C2
+```
+
+The **host** is the application. Each **client** is one connection managed by the host. Each **server** is a capability provider. The **transport** is how bytes move — local (stdio) or remote (HTTP). Security is enforced by the host and the gateway, not by the server's good intentions.
+
+## Topic order
+
+1. [MCP fundamentals](01-mcp-fundamentals.md) — the problem MCP solves.
+2. [MCP architecture](02-mcp-architecture.md) — hosts, clients, and servers.
+3. [MCP transports](03-mcp-transports.md) — stdio, HTTP, local, and remote.
+4. [MCP tools, resources, and prompts](04-mcp-tools-resources-prompts.md) — the three primitives.
+5. [Tool and capability discovery](05-tool-and-capability-discovery.md) — schemas and validation.
+6. [MCP authentication and authorization](06-mcp-authentication-and-authorization.md) — identity and scopes.
+7. [Sessions and stateful vs stateless servers](07-sessions-and-stateful-stateless-servers.md) — connection lifecycle.
+8. [Building MCP servers](08-building-mcp-servers.md) — exposing capabilities correctly.
+9. [Building MCP clients](09-building-mcp-clients.md) — connecting and calling.
+10. [Database MCP servers](10-database-mcp-servers.md) — queries, safety, and read-only modes.
+11. [GitHub MCP integration](11-github-mcp-integration.md) — issues, PRs, and repositories.
+12. [Filesystem MCP integration](12-filesystem-mcp-integration.md) — scoped file access.
+13. [Browser MCP integration](13-browser-mcp-integration.md) — web automation as a tool.
+14. [Internal API MCP integration](14-internal-api-mcp-integration.md) — wrapping your own services.
+15. [Enterprise MCP gateways](15-enterprise-mcp-gateways.md) — one front door for many servers.
+16. [MCP security and permission boundaries](16-mcp-security-and-permission-boundaries.md) — least privilege for tools.
+17. [MCP observability and audit logging](17-mcp-observability-and-audit-logging.md) — seeing and proving what happened.
+18. [MCP tool versioning and registries](18-mcp-tool-versioning-and-registries.md) — evolving tools safely.
+19. [Agent-to-agent communication and A2A](19-agent-to-agent-communication-and-a2a.md) — agents calling agents.
+20. [Agent capability discovery and interoperability](20-agent-capability-discovery-and-interoperability.md) — finding and trusting peers.
+
+> **Tip:**
+>
+> **How to study this phase.** MCP is a protocol, so the exam is about the *contract*: who owns what, what crosses the boundary, and what can go wrong. Ask of every design: if this server is malicious or compromised, what can it do? If this tool changes, who breaks?
+
+
+## Checkpoint project
+
+At the end of the phase, build **Project 6 — Enterprise MCP Gateway**: a gateway in front of several MCP servers with authentication, authorization, tool allowlists, versioning, audit logging, and monitoring. The exact scope lives in the projects part of the book.

@@ -1,0 +1,360 @@
+# Context Managers
+
+> **Interview answer (say this first).** A context manager is an object that guarantees setup before a block of code runs and cleanup after it finishes — even if the block raises an exception. The `with` statement drives it, using `__enter__` to set up and `__exit__` to tear down.
+
+## Why this exists
+
+Almost every useful resource needs releasing: files, database connections, network sockets, locks, and temporary directories. Releasing them correctly by hand is easy to get wrong.
+
+```python
+f = open("data.csv")
+rows = f.readlines()
+process(rows)
+f.close()          # if process() raises, this line never runs
+```
+
+If `process(rows)` throws, `f.close()` is skipped and the file handle leaks. In a long-running service the process eventually runs out of file descriptors and starts failing everything, long after the original mistake.
+
+The manual fix is a `try/finally`:
+
+```python
+f = open("data.csv")
+try:
+    rows = f.readlines()
+    process(rows)
+finally:
+    f.close()      # always runs
+```
+
+This is correct but verbose, and it is repeated around every resource. It is also easy to forget one of the steps when the setup is more involved, such as opening a connection, starting a transaction, and acquiring a lock.
+
+Worse, some resources are *only* safe with a guarantee. A database transaction that is not rolled back on failure leaves locks held and connections poisoned. A lock that is not released deadlocks the service. A temporary directory that is not removed fills the disk. These are not `close()` calls you can remember; they are correctness requirements.
+
+Context managers exist to make correct cleanup the default and forgetting it hard.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Resource** | Something acquired and later released: a file, socket, lock, transaction, connection. |
+| **Setup / teardown** | Code that runs before and after a block, also called acquire and release. |
+| **`with` statement** | The syntax that runs setup, the block, and teardown in a guaranteed order. |
+| **`__enter__`** | The method called when the block starts. Its return value is what `as` binds. |
+| **`__exit__`** | The method called when the block ends, normally or with an exception. |
+| **Context manager** | Any object that implements `__enter__` and `__exit__` (the context manager protocol). |
+| **Suppression** | Returning a truthy value from `__exit__` to stop an exception from propagating. |
+| **Traceback** | The report of the exception's type, value, and call chain. |
+
+Two distinctions matter.
+
+**A context manager is not the same as a resource.** The resource is the file or connection. The context manager is the object that knows how to open and close it. `open("f")` returns a file object, which happens to *also* be a context manager — that is why `with open(...)` works.
+
+**Setup always runs; teardown always runs.** That guarantee is the entire value. The `with` block cannot skip `__exit__`, even on `return`, `break`, `continue`, or an exception.
+
+The `with` statement is sugar you could write yourself:
+
+```python
+cm = SomeContextManager()
+value = cm.__enter__()
+try:
+    # the with-block body
+    ...
+except BaseException as exc:
+    if not cm.__exit__(type(exc), exc, exc.__traceback__):
+        raise
+else:
+    cm.__exit__(None, None, None)
+```
+
+Everything in this topic follows from that expansion.
+
+## The core idea
+
+Think of a **hospital operating room**. A patient is prepared, the procedure happens, and a cleanup protocol runs afterward no matter how the procedure goes. Nobody says "if the surgery goes well, remember to sterilise." The cleanup is part of the room, not part of the surgeon's memory.
+
+A context manager is that protocol attached to the block:
+
+> **The `with` statement is a promise that cleanup happens.**
+
+```mermaid
+flowchart LR
+  A["with cm as x:"] --> B["__enter__() → x"]
+  B --> C["body runs"]
+  C -->|"normal"| D["__exit__(None, None, None)"]
+  C -->|"exception"| E["__exit__(type, value, tb)"]
+  E -->|"returns truthy"| F["exception suppressed"]
+  E -->|"returns falsy"| G["exception propagates"]
+```
+
+The elegant part is the exception path. `__exit__` is handed the exception details *before* the error escapes, which lets it decide: clean up and re-raise (the normal case), or handle the exception and suppress it.
+
+## How it works
+
+1. **Python evaluates the expression after `with`** to get the context manager object.
+2. **It calls `__enter__()`.** The value returned is bound to the name after `as`. Many managers return `self`; `open()` returns the file.
+3. **The block body runs.**
+4. **If the body finishes normally, `__exit__` is called with three `None` arguments.**
+5. **If the body raises, `__exit__` is called with the exception type, value, and traceback.**
+6. **`__exit__` returns a value.** A falsy return (including `None`) lets the exception propagate. A truthy return suppresses it, and execution continues after the `with` block.
+7. **`__exit__` runs on every exit path** — normal completion, exception, `return`, `break`, and `continue`. This is the guarantee.
+8. **`contextlib.contextmanager` builds a context manager from a generator.** Code before `yield` is the setup, the yielded value is what `as` receives, and code after `yield` is the teardown.
+9. **Multiple managers in one `with` are nested.** `with a, b:` is equivalent to `with a: with b:`.
+
+> **Warning:**
+>
+> **Suppression is powerful and easy to misuse.** Returning `True` from `__exit__` makes the exception vanish. Doing this by accident — for example, returning `self` — silently swallows every error in the block. Return `False` or `None` unless you are deliberately handling the exception.
+
+
+## The syntax you will use
+
+**Class-based context manager.** Implement both methods. `__exit__` receives the exception details, or three `None`s.
+
+```python
+class Timer:
+    def __enter__(self):
+        import time
+        self.start = time.perf_counter()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        import time
+        self.elapsed = time.perf_counter() - self.start
+        return False      # never suppress
+```
+
+**`contextlib.contextmanager` for the simple case.** Write a generator with exactly one `yield`; everything before it is setup and everything after is teardown. Use `try/finally` around the `yield` so cleanup runs on error.
+
+```python
+from contextlib import contextmanager
+
+@contextmanager
+def timed(label):
+    import time
+    start = time.perf_counter()
+    try:
+        yield                    # the with-block executes here
+    finally:
+        print(f"{label}: {time.perf_counter() - start:.3f}s")
+
+with timed("load"):
+    do_work()
+```
+
+**Binding the yielded value.** Whatever you `yield` becomes the value after `as`.
+
+```python
+@contextmanager
+def connection(url):
+    conn = connect(url)
+    try:
+        yield conn               # `as conn` receives this
+    finally:
+        conn.close()
+
+with connection("db://...") as conn:
+    conn.execute("SELECT 1")
+```
+
+**Multiple managers in one statement.** They are entered left to right and exited right to left.
+
+```python
+with open("in.txt") as src, open("out.txt", "w") as dst:
+    dst.write(src.read())
+```
+
+**`contextlib.suppress` for expected errors.** It is a readable alternative to an empty `except` block.
+
+```python
+from contextlib import suppress
+
+with suppress(FileNotFoundError):
+    os.remove("maybe.txt")
+```
+
+**`contextlib.closing` for objects that have `close()` but are not context managers.**
+
+```python
+from contextlib import closing
+
+with closing(open("data.txt")) as f:
+    data = f.read()
+```
+
+**`contextlib.ExitStack` for a variable number of resources.** This is the tool when you do not know up front how many things to clean up.
+
+```python
+from contextlib import ExitStack
+
+with ExitStack() as stack:
+    files = [stack.enter_context(open(p)) for p in paths]
+    # all files close together when the block ends
+```
+
+**Async context managers.** For `async` code, use `async with` and implement `__aenter__` / `__aexit__`.
+
+```python
+async with session.get(url) as response:
+    data = await response.json()
+```
+
+## Examples: simple to real
+
+**Example 1 — the resource guarantee.**
+
+```python
+with open("data.csv") as f:
+    rows = f.readlines()
+    process(rows)          # even if this raises, f is closed
+```
+
+Compare this with the manual version at the top of the page. There is no `close()` to forget, and the cleanup is attached to the resource rather than buried in the body.
+
+**Example 2 — a database transaction.**
+
+```python
+@contextmanager
+def transaction(conn):
+    conn.begin()
+    try:
+        yield conn
+        conn.commit()          # only on success
+    except Exception:
+        conn.rollback()        # on any failure
+        raise                  # do not swallow
+    finally:
+        conn.close()
+
+with transaction(pool.connect()) as conn:
+    conn.execute("UPDATE accounts SET balance = balance - 100 WHERE id = 1")
+    conn.execute("UPDATE accounts SET balance = balance + 100 WHERE id = 2")
+```
+
+Either both updates apply or neither does. If the second statement fails, the rollback undoes the first, and the `raise` makes the failure visible to the caller. This is the shape of every real transaction helper.
+
+**Example 3 — a lock that is always released.**
+
+```python
+from threading import Lock
+
+lock = Lock()
+
+with lock:                 # acquires on enter, releases on exit
+    update_shared_state()
+```
+
+If `update_shared_state()` raises, the lock is still released. A manual `acquire()`/`release()` pair that misses the release deadlocks every other thread.
+
+**Example 4 — timing, with correct cleanup.**
+
+```python
+@contextmanager
+def timed(label):
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        elapsed = time.perf_counter() - start
+        log.info("%s took %.3fs", label, elapsed)
+
+with timed("retrieve"):
+    results = retriever.search(query)
+```
+
+Using `try/finally` around the `yield` means the timing is recorded even when `retriever.search` raises — which is exactly when you most want the number.
+
+**Example 5 — suppressing a predictable failure.**
+
+```python
+from contextlib import suppress
+
+with suppress(KeyError, RedisError):
+    cache.delete(key)       # a cache miss or outage must not break the request
+```
+
+Be careful: this hides the error completely. Suppression belongs only where the failure is genuinely acceptable and understood.
+
+## In production
+
+- **Prefer `with` over manual acquire/release.** Every unguarded resource is a leak waiting for an exception. This is the cheapest correctness win in Python.
+- **Return `False` from `__exit__` unless suppressing is the point.** Returning a truthy value by accident swallows errors. `contextlib.suppress` exists precisely so that suppression is explicit and named.
+- **Use `try/finally` inside `@contextmanager` generators.** An exception in the block is thrown into the generator at the `yield` point. Without `try/finally`, your cleanup code after `yield` may be skipped.
+- **Never swallow exceptions silently.** Log with the traceback, or convert to a domain error and re-raise. A bare `except: pass` inside a context manager is how outages become invisible.
+- **Keep `__exit__` from raising.** If cleanup itself fails, it can replace the original exception, making the real cause much harder to find. Log cleanup failures; do not mask the original.
+- **Use `ExitStack` for dynamic cleanup.** Spawning a variable number of tasks, opening several optional files, or registering callbacks is exactly its job. It also makes cleanup order explicit (last in, first out).
+- **Remember the guarantee includes `return`.** A `return` inside a `with` still runs `__exit__`, so a partially built result can be cleaned up correctly. Do not disable cleanup with flags out of worry.
+- **Watch for long-lived context managers.** Holding a connection or lock for the whole request is right; holding it across the entire process is a bottleneck. Acquire late and release early.
+- **Use `async with` in async code.** A regular `with` around an async resource either does not work or blocks the event loop. Match the context manager to the execution model.
+
+## Interview questions
+
+### 1. What problem do context managers solve?
+
+**Answer.** Guaranteed cleanup. They attach setup and teardown to a block so the teardown runs even if the block raises, returns, or breaks. This prevents leaked files, connections, locks, and transactions — resource leaks that are usually invisible until the service fails under load.
+
+**Follow-up: "How did people do this before `with`?"** With `try/finally`. That is still the underlying mechanism; `with` just packages it with the resource so it cannot be forgotten.
+
+**Trap.** Saying context managers are only for files. They are for any acquire/release pair, including locks, transactions, temporary state, and timing.
+
+### 2. What are `__enter__` and `__exit__` responsible for?
+
+**Answer.** `__enter__` runs at the start of the block and its return value is bound by `as`. `__exit__` runs at the end and receives the exception type, value, and traceback, or three `None`s on normal completion. Returning a truthy value from `__exit__` suppresses the exception.
+
+**Follow-up: "What does `__exit__` receive when there is no error?"** `(None, None, None)`. Checking `exc_type is None` is how a manager detects normal completion.
+
+**Trap.** Returning `self` from `__exit__`. That is truthy, so it silently suppresses every exception in the block.
+
+### 3. How does `@contextlib.contextmanager` work?
+
+**Answer.** It turns a generator function into a context manager. Code before `yield` is the setup, the yielded value is what `as` receives, and code after `yield` is the teardown. If the block raises, the exception is thrown into the generator at the `yield` point.
+
+**Follow-up: "Why wrap the `yield` in `try/finally`?"** So cleanup runs even when the block raises. Without it, code after `yield` can be skipped.
+
+**Trap.** Writing more than one `yield`, or none. The decorator requires exactly one yield; it raises a `RuntimeError` otherwise.
+
+### 4. What does it mean for `__exit__` to suppress an exception?
+
+**Answer.** If `__exit__` returns a truthy value, the exception is considered handled and does not propagate; execution continues after the `with` block. Returning `False` or `None` lets it propagate normally.
+
+**Follow-up: "When is suppression appropriate?"** Only when the failure is expected and safe to ignore, such as deleting a missing cache key. Use `contextlib.suppress` to make that intent explicit.
+
+**Trap.** Using suppression as a substitute for error handling. It hides real failures and makes debugging much harder.
+
+### 5. Does `__exit__` run if the block returns early or raises?
+
+**Answer.** Yes. The `with` statement guarantees `__exit__` on every path: normal completion, exception, `return`, `break`, and `continue`. That is exactly why the statement is more reliable than a manual cleanup call.
+
+**Follow-up: "What if `__exit__` itself raises?"** Its exception replaces the original one, unless it handles the situation first. That is why cleanup code should not raise carelessly.
+
+**Trap.** Assuming `return` skips cleanup. It does not.
+
+### 6. When would you use `ExitStack`?
+
+**Answer.** When the number of resources is not known until runtime: opening a variable list of files, entering a variable set of context managers, or registering cleanups as you go. `ExitStack` tracks them and unwinds them in reverse order, so the cleanup order is well defined.
+
+**Follow-up: "How does it relate to nesting `with` statements?"** It is the dynamic equivalent. `with a, b, c:` is nesting for a fixed count; `ExitStack` handles a count you only know at runtime.
+
+**Trap.** Manually tracking a list of opened resources and forgetting one on an early error path. `ExitStack` exists to remove that class of bug.
+
+### 7. What is the difference between `with` and `async with`?
+
+**Answer.** `with` uses `__enter__` and `__exit__`, which are synchronous. `async with` uses `__aenter__` and `__aexit__`, which are awaited, so they can perform I/O — for example, opening a network connection — without blocking the event loop.
+
+**Follow-up: "Can you use `with` on an async resource?"** Not correctly. Either the protocol is missing, or the synchronous variant blocks the event loop, which harms all concurrent tasks.
+
+**Trap.** Mixing the two, such as using a synchronous database driver inside async code. That blocks the loop and looks like a performance mystery.
+
+### 8. How do you write a context manager that is both correct and safe to reuse?
+
+**Answer.** Keep `__enter__` and `__exit__` idempotent and stateless where possible, return `False` from `__exit__` unless suppression is intentional, and use `try/finally` in generator-based managers. If the manager stores per-use state, do not reuse one instance across concurrent uses.
+
+**Follow-up: "What is a sign a context manager is unsafe?"** It stores mutable state on `self` during `__enter__` and relies on it during `__exit__`, so overlapping uses corrupt each other. Prefer creating a fresh manager per block.
+
+**Trap.** Reusing a single manager instance concurrently in threaded code and assuming each `with` is isolated.
+
+## Remember this
+
+- A context manager guarantees **setup before and cleanup after** a block, on every exit path.
+- Implement `__enter__`/`__exit__`, or write a generator with one `yield` and `@contextmanager`.
+- `__exit__` receives the exception; **return `False`/`None`** unless you mean to suppress.
+- Wrap the `yield` in **`try/finally`**, or cleanup can be skipped.
+- Use **`ExitStack`** when the number of resources is only known at runtime.

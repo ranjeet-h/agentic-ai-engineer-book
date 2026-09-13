@@ -1,0 +1,383 @@
+# Numeric Precision and Quantization
+
+> **Interview answer (say this first).** Floating-point formats trade range against precision by splitting bits between an exponent and a mantissa: FP32 and BF16 have a wide exponent, FP16 has a narrow one but more precision. Quantization stores weights in fewer bits, usually INT8 or INT4, by mapping a real range onto a small set of integer levels with a scale. It cuts memory roughly in proportion to the bits, at the cost of some accuracy.
+
+## Why this exists
+
+Every number in a model takes up space, and a modern model has billions of them. The default format for scientific computing is **FP32** (32-bit floating point), which uses 4 bytes per number. For a 7-billion-parameter model that is 28 GB just for the weights, before any activations or optimizer state. Training needs even more.
+
+The obvious fix is to use fewer bits per number. But floating point is not a fixed number of decimal places. It is closer to scientific notation, and it makes a trade-off:
+
+- Some values in a neural network are large, and a few are extremely small. If the format's **range** is too small, small gradients become zero and large activations become infinity.
+- Training is sensitive to tiny differences. If the format's **precision** is too low, updates get rounded away and learning stalls.
+
+Choosing a format is choosing how to split a fixed budget of bits between range and precision. Get it wrong and training produces `NaN` or silently stops improving.
+
+Then there is **inference**. Once a model is trained, you usually do not need gradient-level precision to run it. You can store the weights in 8 bits or 4 bits and still get nearly the same answers, which roughly halves or quarters memory. This is **quantization**, and it is why a 70B model can run on hardware that could never hold it in FP32.
+
+Concrete failure: GPUs originally ran FP16 training with no protection, and gradients underflowed to zero, so models stopped learning. The fix was **loss scaling**, which multiplies the loss up before backward and divides it back afterward. BF16 later avoided the problem by keeping FP32's wide exponent. These are not cosmetic details; they are the reason training works at all.
+
+> **Note:**
+>
+> **The one-sentence purpose.** Precision formats decide how many bits describe each number; quantization shrinks those bits to save memory, trading a measurable amount of accuracy for a large drop in cost.
+
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Bit** | One binary digit, 0 or 1. Eight bits make a byte. |
+| **Floating point** | A way to store real numbers as `sign * mantissa * 2^exponent`, like scientific notation in base 2. |
+| **Sign bit** | One bit saying positive or negative. |
+| **Exponent** | The power of two. It sets **range**: how large and how tiny a number can be. |
+| **Mantissa** (fraction) | The significant digits. It sets **precision**: how finely values are spaced. |
+| **FP32** | 32-bit float: 1 sign, 8 exponent, 23 mantissa. The traditional default. |
+| **FP16** | 16-bit float: 1 sign, 5 exponent, 10 mantissa. More precision, much less range. |
+| **BF16** | 16-bit "brain float": 1 sign, 8 exponent, 7 mantissa. FP32's range, low precision. |
+| **Epsilon** | The gap between 1.0 and the next representable number. A precision measure. |
+| **Overflow** | A number too large to represent, becoming infinity. |
+| **Underflow** | A number too small to represent, becoming zero (or a denormal). |
+| **Denormal** | A tiny number below the smallest normal one, with reduced precision. |
+| **INT8 / INT4** | 8-bit and 4-bit integers. 256 and 16 distinct levels. |
+| **Quantization** | Mapping real numbers onto a small integer grid using a scale (and usually a zero point). |
+| **Dequantization** | Converting the integer back to an approximate real number. |
+| **Scale** | The real-world size of one integer step. |
+| **Zero point** | The integer that represents real zero. Needed when the range is not centered. |
+| **Symmetric** | Zero maps to zero; the grid is centered. Simple and fast. |
+| **Asymmetric** | The grid is shifted by a zero point so it fits an uneven range exactly. |
+| **Per-tensor** | One scale for a whole weight matrix. |
+| **Per-channel** | One scale per row or column. Better accuracy. |
+| **Per-group** | One scale per small block of weights, for example 64 or 128 values. |
+| **Mixed precision** | Using more than one format in the same run, for example bf16 compute with fp32 master weights. |
+| **GPTQ / AWQ** | Methods that choose quantization scales to minimize output error. |
+| **GGUF** | A file format for quantized models used by `llama.cpp` on CPUs and Macs. |
+
+The key mental split is **range vs precision**. The exponent controls range; the mantissa controls precision. A fixed number of bits cannot maximize both.
+
+## The core idea
+
+Think of a ruler. A 30-centimetre ruler with millimetre marks measures small things precisely but cannot measure a house. A surveyor's tape measures a house but not to the millimetre. Same idea: you cannot have both extreme range and extreme precision from the same bits. Floating point spends bits on the exponent to get range and on the mantissa to get precision.
+
+FP32 spends 23 bits on precision. FP16 spends 10, so it is about 8,192 times coarser (2^13) — but it also spends only 5 bits on the exponent, so its largest value is about 65,504, while FP32 reaches about 3.4e38. BF16 keeps 8 exponent bits, so it matches FP32's range, and pays for it with only 7 mantissa bits.
+
+```mermaid
+flowchart TD
+    A["What are you doing?"] -->|training| B["BF16 compute<br/>+ FP32 master weights"]
+    A -->|inference, max quality| C["FP16 or BF16 weights"]
+    A -->|inference, save memory| D["Weight-only INT8 / INT4"]
+    D --> E["GPU serving<br/>GPTQ / AWQ / bitsandbytes"]
+    D --> F["CPU or Mac<br/>GGUF via llama.cpp"]
+```
+
+Quantization is a separate idea with its own picture. You have a range of real values, say from -6.4 to 6.4. You pick an integer grid, say -127 to 127. You compute one number, the **scale**, that converts between them. Then each weight is rounded to the nearest grid point:
+
+```text
+scale = max(abs(W)) / 127
+q     = round(W / scale)        # store q in 8 bits
+W'    = q * scale               # dequantize to use it
+```
+
+The rounded result `W'` is not exactly `W`. The difference is **quantization error**, and it is bounded by half a scale step. Everything about quantization is about choosing scales and grid shapes so that this error hurts the model as little as possible.
+
+| Format | Bits (s/e/m) | Epsilon at 1.0 | Largest value | Bytes per weight |
+| --- | --- | --- | --- | --- |
+| FP32 | 1 / 8 / 23 | ~1.19e-07 | ~3.40e+38 | 4 |
+| FP16 | 1 / 5 / 10 | ~9.77e-04 | ~6.55e+04 | 2 |
+| BF16 | 1 / 8 / 7 | ~7.81e-03 | ~3.39e+38 | 2 |
+| INT8 | — | 1 of 256 levels | depends on scale | 1 |
+| INT4 | — | 1 of 16 levels | depends on scale | 0.5 |
+
+## How it works
+
+**Part 1 — how a floating-point number is stored.**
+
+1. **Split the bits into three fields.** One sign bit, some exponent bits, and the rest mantissa bits.
+2. **The exponent sets range.** It is a power of two applied to the mantissa. More exponent bits means larger and smaller magnitudes are representable.
+3. **The mantissa sets precision.** It holds the significant digits after the leading 1. More mantissa bits means finer spacing between nearby numbers.
+4. **Precision is relative, not absolute.** The gap between representable numbers grows as the value grows. Near 1.0 in FP32 the gap is about `1.19e-07`; near 1,000 it is about a thousand times larger. This is why `1.0 + 1e-8` rounds back to `1.0` in FP32.
+5. **Out-of-range values saturate to infinity.** In FP16, 65,000 is fine and 70,000 becomes `inf`. Operations involving infinity poison the rest of the computation unless the code checks.
+
+**Part 2 — how quantization works.**
+
+6. **Pick a range.** Usually the observed minimum and maximum of the weights, or a symmetric `-max` to `+max`.
+7. **Compute the scale.** For symmetric quantization, `scale = max(abs(W)) / qmax`, where `qmax` is 127 for signed INT8 or 7 for signed INT4 (the signed 4-bit range is -8..7; 15 is the unsigned 4-bit maximum).
+8. **Choose a zero point** for asymmetric quantization: `zero = round(qmin - min(W) / scale)`. Symmetric needs none, because real zero already maps to integer zero.
+9. **Quantize.** `q = clip(round(W / scale) + zero, qmin, qmax)`. Clip prevents wrap-around if a value falls slightly outside the chosen range.
+10. **Dequantize.** `W' = (q - zero) * scale`. The model uses these approximate values.
+11. **Choose the granularity.** One scale per tensor is cheapest and least accurate. One per output channel (row) is common and much better. One per small group of values is better still and is what GPTQ and AWQ use.
+12. **Choose the method for the best scales.** GPTQ uses second-order information to pick weights that minimize output error layer by layer. AWQ protects the weights that multiply large activations, because those matter most. GGUF stores a mix of quantization types chosen per layer for CPU inference.
+13. **Mixed precision keeps accuracy where it matters.** During training, keep an FP32 master copy of the weights, compute forward and backward in BF16, and update the master copy in FP32. This gets speed and range without losing small updates.
+
+## The syntax you will use
+
+**Inspect a format with NumPy.** `np.finfo` tells you the exact bits and limits.
+
+```python
+import numpy as np
+
+info = np.finfo(np.float16)
+info.bits        # 16
+info.nmant       # 10 mantissa bits
+info.nexp        # 5 exponent bits
+info.eps         # 0.000977  (gap near 1.0)
+info.tiny        # 6.104e-05 (smallest normal)
+info.max         # 6.55e+04  (largest finite)
+```
+
+**Move between precisions.** Converting down loses information; converting up cannot restore it.
+
+```python
+a = np.float32(1.2345678)
+a.astype(np.float16)      # 1.234  (rounded to fp16 grid)
+a.astype(np.float32)      # unchanged
+```
+
+**Clip before quantizing.** Real values can exceed the chosen range; clipping stops them wrapping to the opposite sign.
+
+```python
+q = np.clip(np.round(W / scale), -127, 127).astype(np.int8)
+W_approx = q.astype(np.float32) * scale
+```
+
+**Symmetric quantization, per tensor and per channel.**
+
+```python
+def quant_symmetric(W):
+    s = np.abs(W).max() / 127.0
+    q = np.clip(np.round(W / s), -127, 127).astype(np.int8)
+    return q, s, q.astype(np.float32) * s
+
+def quant_per_channel(W, axis=1):
+    s = np.abs(W).max(axis=axis, keepdims=True) / 127.0
+    q = np.clip(np.round(W / s), -127, 127).astype(np.int8)
+    return q, s, q.astype(np.float32) * s
+```
+
+**Asymmetric quantization with a zero point.**
+
+```python
+scale = (hi - lo) / (qmax - qmin)
+zero  = int(round(qmin - lo / scale))
+q     = np.clip(np.round(v / scale) + zero, qmin, qmax).astype(np.uint8)
+v_approx = (q.astype(np.float32) - zero) * scale
+```
+
+**Choose a dtype in PyTorch.**
+
+```python
+import torch
+
+w = torch.randn(4, 4, dtype=torch.float32)
+w.to(torch.bfloat16)     # wide range, low precision
+w.to(torch.float16)      # narrow range, more precision
+```
+
+**Mixed-precision autocast.** PyTorch picks a safe dtype per operation.
+
+```python
+with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+    output = model(input_ids)
+    loss = loss_fn(output, labels)
+```
+
+**Load a 4-bit model with bitsandbytes.** This is the config used for QLoRA; it needs a supported GPU.
+
+```python
+from transformers import BitsAndBytesConfig
+
+bnb = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.bfloat16,
+)
+```
+
+**Load an already-quantized model.** GPTQ and AWQ models carry their own config.
+
+```python
+from transformers import AutoModelForCausalLM
+
+gptq_model = AutoModelForCausalLM.from_pretrained("model-gptq-4bit")
+awq_model  = AutoModelForCausalLM.from_pretrained("model-awq-4bit")
+```
+
+## Examples: simple to real
+
+**Example 1 — read the actual limits.** These are real values from `np.finfo`, and they show the trade-off directly.
+
+```text
+float32
+  exponent/mantissa bits: 8 / 23
+  eps: 1.1920929e-07
+  smallest normal: 1.1754944e-38
+  largest: 3.4028235e+38
+float16
+  exponent/mantissa bits: 5 / 10
+  eps: 0.000977
+  smallest normal: 6.104e-05
+  largest: 6.55e+04
+```
+
+FP16 has more precision than the tiny BF16 mantissa but a maximum around 65,504, which is small enough that ordinary neural-network values can overflow.
+
+**Example 2 — precision at 1.0.** Adding a small number to 1.0 is the cleanest precision test.
+
+```text
+fp32 1 + 1e-8  = 1.0          # rounded away
+fp32 1 + 1e-6  = 1.000001     # kept
+fp16 1 + 1e-4  = 1.0          # rounded away
+fp16 1 + 5e-3  = 1.005        # kept
+```
+
+This is exactly why tiny gradient updates vanish in low precision unless you keep an FP32 master copy.
+
+**Example 3 — range, and the overflow.** FP16 runs out of range where FP32 does not.
+
+```text
+fp16(65000) = 6.5e+04
+fp16(70000) = inf            # overflow
+fp32(1e30)  = 1e+30
+fp16 vs fp32 largest ratio: 5.19e+33
+```
+
+An `inf` in one layer propagates through the network and produces `NaN` losses. This is the failure that made FP16 training need loss scaling.
+
+**Example 4 — BF16 by construction.** BF16 keeps the sign and 8 exponent bits and drops 16 of the 23 mantissa bits. Frameworks do not simply truncate: they round to nearest even, so a value lands on the closest BF16 grid point.
+
+```text
+fp32 value:    1.2345678
+bf16-rounded:  1.234375
+to_bf16(1e-4): 1.001358e-04        # round-to-nearest, what torch does
+truncated:     9.9658966e-05       # low 16 bits dropped instead (not torch)
+bf16 spacing at 1.0 = 2^-7 = 0.0078125
+```
+
+From PyTorch, `torch.finfo(torch.bfloat16)` gives `eps = 0.0078125` and `max = 3.3895e+38` — the same range as FP32, at coarser precision. In BF16, `1.0 + 1e-4 = 1.0` but `1.0 + 0.01 = 1.0078125`.
+
+**Example 5 — per-tensor vs per-channel error.** Here is a 4x6 weight matrix where one row is large and another is tiny. Per-channel scales fit each row; per-tensor cannot.
+
+```text
+row abs maxes: [6.4042, 1.3040, 2.3250, 0.0683]
+per-tensor scale:    0.050427  max abs err: 0.024137
+per-channel scales:  [0.050427, 0.010268, 0.018307, 0.000538]
+per-channel max err: 0.014792
+row-3 error per-tensor:  0.020582
+row-3 error per-channel: 0.000178
+```
+
+The small row is quantized about 100x more accurately with per-channel scales, because its own scale is tiny. This is why production quantization is rarely per-tensor.
+
+**Example 6 — asymmetric quantization of a shifted range.** When values are all positive, a zero point fits the grid tightly.
+
+```text
+values: [-1.0, 0.0, 0.5, 1.0, 2.0, 4.0]
+scale: 0.019608   zero point: 51   (not 0)
+codes:      [0, 51, 77, 102, 153, 255]
+dequant:    [-1.0, 0.0, 0.5098, 1.0, 2.0, 4.0]
+max abs err: 0.009804
+```
+
+The zero point is what lets a `uint8` grid cover `-1.0` to `4.0`. Symmetric quantization would waste half the codes to cover the unused negative side.
+
+**Example 7 — memory math for weights.** Memory is parameters times bytes per weight.
+
+```text
+7B weights:  FP32 28.00 GB | FP16/BF16 14.00 GB | INT8 7.00 GB | INT4 3.50 GB
+```
+
+The same arithmetic drives the KV cache, which grows with sequence length. For a 32-layer model with 32 heads, head dimension 128, and 8,192 tokens in FP16:
+
+```text
+2 * 32 layers * 32 heads * 128 * 8192 * 2 bytes = 4,294,967,296 bytes = 4.295 GB
+```
+
+The leading 2 is for keys and values. Halving the cache precision to INT8 would halve this, which is why KV-cache quantization is a common optimization for long contexts.
+
+## In production
+
+- **Quantize weights, keep activations higher precision first.** Weight-only INT8/INT4 is the safest large win; quantizing activations as well (W8A8) is harder and more accuracy-sensitive.
+- **Prefer per-channel or per-group scales.** Per-tensor is simple and can badly hurt layers with uneven weight ranges. Group sizes of 64 or 128 are standard.
+- **Measure on your own evaluation set.** A model can lose almost nothing on a benchmark and still break on your task. Never ship a quantized model on vibes.
+- **Use BF16 for training, FP16 only with loss scaling.** BF16 matches FP32's range and is the default on modern accelerators. FP16 has better precision but can underflow, so it relies on scaled loss.
+- **Keep FP32 master weights in mixed precision.** The optimizer update must not be rounded away. This is the whole reason the master copy exists.
+- **Watch for `inf` and `NaN` early.** Add a check for non-finite values in the first steps of a run. A single overflow can poison training for hours before anyone notices.
+- **Quantization error is not uniform.** The first and last layers are often kept in higher precision because they are more sensitive. Some pipelines exclude them from quantization.
+- **GPTQ, AWQ, and GGUF are not interchangeable.** GPTQ and AWQ target GPU serving with different error-minimization strategies; GGUF targets CPU and Apple silicon with a family of mixed formats such as `Q4_K_M`. Match the format to the runtime.
+- **4-bit is usually the practical floor for weights.** Below that, quality degrades quickly on hard tasks. 3-bit and 2-bit methods exist but need careful evaluation.
+- **Memory is not the only win.** Quantized inference is often faster because it is memory-bandwidth bound: moving fewer bytes per weight speeds up the layer even when the maths is the same.
+- **Check the hardware support.** Some accelerators have fast INT8 and no fast INT4, so an INT4 model can be slower despite using less memory.
+- **Calibration data matters.** Post-training quantization uses sample inputs to choose scales. Poor or unrepresentative calibration data quietly biases every scale.
+
+## Interview questions
+
+### 1. What is the difference between FP32, FP16, and BF16?
+
+**Answer.** All three are floating-point formats, but they split their bits differently. FP32 uses 8 exponent and 23 mantissa bits. FP16 uses 5 exponent and 10 mantissa bits, so it has a small range (max about 65,504) but decent precision. BF16 uses 8 exponent and 7 mantissa bits, so it matches FP32's range but has much coarser precision. BF16 is the default for training because range matters for gradients and it needs no loss scaling.
+
+**Follow-up: "Why not always use FP16, since it is more precise?"** Its narrow range causes overflow and underflow, so FP16 training needs loss scaling. BF16 avoids that at the cost of precision, which training tolerates.
+
+**Trap.** Saying BF16 is "just FP32 with fewer bits". It keeps FP32's exponent but loses most of the mantissa, so the precision is much lower than FP32.
+
+### 2. What do the exponent and mantissa control?
+
+**Answer.** The exponent sets range: it is the power of two, so more exponent bits allow larger and smaller magnitudes. The mantissa sets precision: it holds the significant digits, so more mantissa bits mean representable numbers are closer together. Because the precision is relative, the absolute gap grows with the magnitude of the value.
+
+**Follow-up: "Why is `1.0 + 1e-8` equal to `1.0` in FP32?"** Because FP32's epsilon near 1.0 is about `1.19e-07`, which is larger than `1e-8`. The true result lies between representable numbers and rounds back to 1.0.
+
+**Trap.** Thinking precision is a fixed number of decimal places. Floating point has significant digits, so precision scales with magnitude.
+
+### 3. What is quantization, and how does it save memory?
+
+**Answer.** Quantization maps real weights onto a small integer grid using a scale and often a zero point. Storing 8-bit or 4-bit integers instead of 16-bit floats cuts memory by 2x or 4x. The model dequantizes on the fly to compute in a higher-precision format. It saves memory because each weight needs fewer bits; it can also speed up bandwidth-bound inference.
+
+**Follow-up: "Where does the accuracy loss come from?"** Rounding to the grid introduces error bounded by half a scale step. The error is larger where the scale is large, so scale choice and granularity determine quality.
+
+**Trap.** Claiming quantization is lossless. It is a compression with measurable error; stating the trade-off is part of a good answer.
+
+### 4. Symmetric vs asymmetric quantization — what is the difference?
+
+**Answer.** Symmetric quantization centers the grid on zero, so real zero maps to integer zero and no zero point is stored. It is simple and fast. Asymmetric quantization adds a zero point that shifts the grid to fit an uneven range, such as an all-positive distribution, using all available levels. It is more accurate for skewed ranges but costs a little extra computation.
+
+**Follow-up: "When does symmetric waste levels?"** When the data range is not centered on zero, for example all-positive values. Half the grid covers values that never occur, so those levels are wasted and the effective step is larger.
+
+**Trap.** Assuming asymmetric is always better. It is better for skewed ranges but adds a zero point and is slightly more complex, and symmetric often wins in hardware that has specialized support for it.
+
+### 5. Per-tensor vs per-channel vs per-group quantization?
+
+**Answer.** Per-tensor uses one scale for a whole matrix, per-channel uses one scale per output channel (row or column), and per-group uses one scale per small block of weights, commonly 64 or 128 values. Finer granularity means scales fit local ranges better, so accuracy improves, at the cost of storing and applying more scales.
+
+**Follow-up: "How much difference can granularity make?"** In a measured 4x6 example where one row had max 6.40 and another had max 0.068, the largest error on the small row was 0.020582 per-tensor versus 0.000178 per-channel — about two orders of magnitude better.
+
+**Trap.** Believing one scale per tensor is enough. Real weight matrices have rows with very different magnitudes, and a single scale is set by the largest one, punishing the smallest.
+
+### 6. What are GPTQ, AWQ, and GGUF?
+
+**Answer.** They are quantization approaches and formats for inference. GPTQ quantizes layer by layer and uses second-order information to pick weights that minimize output error. AWQ is activation-aware: it protects the weight channels that multiply the largest activations, because those matter most. GGUF is a file format from `llama.cpp` that stores weights at mixed quantization types for CPU and Apple-silicon inference.
+
+**Follow-up: "Which should I pick?"** It depends on the runtime. GPU serving usually picks GPTQ or AWQ; CPU and Mac inference usually picks GGUF. The best choice for your accuracy target is the one you measured.
+
+**Trap.** Treating them as equivalent. They differ in what they optimize, and their quality at the same bit width can differ on your task.
+
+### 7. What is mixed-precision training, and why keep FP32 master weights?
+
+**Answer.** Mixed precision computes forward and backward passes in BF16 or FP16 for speed, while keeping an FP32 master copy of the weights. The optimizer updates the master weights in FP32, so tiny updates are not rounded away, then casts them to the compute format for the next step. It gives most of the speed benefit with stable training.
+
+**Follow-up: "Why does FP16 need loss scaling and BF16 not?"** FP16's small exponent makes small gradients underflow to zero, so the loss is scaled up before backward and scaled back after. BF16 has FP32's exponent range, so gradients stay representable and scaling is unnecessary.
+
+**Trap.** Thinking mixed precision only saves memory. Its main benefit is speed from faster low-precision matrix maths, and the memory saving is secondary.
+
+### 8. How does quantization interact with KV cache and context length?
+
+**Answer.** The KV cache stores the keys and values for every past token, so it grows linearly with context length and can rival the weights. Quantizing the cache to INT8 or lower halves or quarters that memory, which directly extends the usable context. The arithmetic is the same as for weights: bytes equal values times bytes per value, and a 32-layer, 32-head, head-dimension-128 model at 8,192 tokens needs about 4.3 GB at FP16.
+
+**Follow-up: "Is cache quantization safe?"** It is usually more sensitive than weight-only quantization because attention scores depend on fine differences in keys. Test it; many systems keep the cache at FP16 and quantize only the weights.
+
+**Trap.** Forgetting the cache when estimating memory. On long-context serving the KV cache is often the bottleneck, not the weights.
+
+## Remember this
+
+- **Exponent sets range, mantissa sets precision.** A fixed bit budget cannot maximize both.
+- **FP16 has more precision and less range; BF16 has FP32's range and less precision.** BF16 is the training default.
+- **Quantization maps values onto an integer grid with a scale**, plus a zero point when the range is not centered.
+- **Finer granularity means better accuracy**: per-channel or per-group beats per-tensor.
+- **INT8 and INT4 cut memory 2x and 4x.** Measure quality yourself; do not assume it is free.

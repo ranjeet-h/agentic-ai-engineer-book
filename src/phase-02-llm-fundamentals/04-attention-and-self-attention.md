@@ -1,0 +1,360 @@
+# Attention and Self-Attention
+
+> **Interview answer (say this first).** Attention lets each token build its output by taking a weighted average of the **values** of other tokens, where the weights come from the similarity between that token's **query** and every token's **key**. The standard formula is `softmax(QKᵀ / √d_k) V`. **Self-attention** means the queries, keys, and values all come from the same sequence. **Causal masking** stops a token from looking at future tokens, which is what makes next-token prediction honest. Attention replaced recurrence because it is fully parallel and links any two positions in one step, at the price of quadratic cost in sequence length.
+
+## Why this exists
+
+Imagine translating the sentence "The cat sat on the mat because **it** was tired."
+
+To understand `it`, the model must look back at `cat`. To understand `mat`, it must relate to `sat` and `on`. In general, **every word depends on some other words, sometimes far away.**
+
+The older solution was a recurrent network (RNN). It read the sentence one token at a time, carrying a hidden state forward:
+
+```text
+h₀ → h₁ → h₂ → ... → h_n        (one step per token, strictly sequential)
+```
+
+That has two problems.
+
+1. **It cannot parallelise.** Token 10 cannot be processed until tokens 1–9 are done. On hardware built for massive parallelism, that wastes most of the machine.
+2. **Distant information fades.** The signal from `cat` has to survive many steps to reach `it`. Gradients vanish over long chains, so the model forgets.
+
+Attention fixes both. Instead of passing information through a chain, it lets every position **look directly at every other position at once**. That is one matrix multiplication, which is exactly what GPUs do best, and the path between any two positions has length one.
+
+| Property | Recurrence (RNN) | Attention |
+| --- | --- | --- |
+| Processing order | strictly sequential | fully parallel |
+| Path between two tokens | length grows with distance | length 1 |
+| Time per layer | linear in `n` | quadratic in `n` |
+| Long-range signal | decays | direct |
+| Hardware fit | poor (serial) | excellent (matmul) |
+
+The table shows the trade: attention gives up linear cost to buy parallelism and direct long-range links. For sequence lengths in the thousands, that trade is overwhelmingly worth it.
+
+This is the single architectural idea that made modern LLMs possible. Everything else in a transformer is plumbing around attention.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Token** | A chunk of text (roughly a word-piece), represented inside the model by an integer id. Its **embedding** is the vector that id maps to. A sequence is a list of token ids. |
+| **Embedding** | The vector representing a token. Shape is `(sequence_length, d_model)`. |
+| **Query (Q)** | What this token is *looking for*. A vector per token. |
+| **Key (K)** | What this token *offers* to others. A vector per token. |
+| **Value (V)** | The information this token *passes along* if attended to. A vector per token. |
+| **Attention score** | The dot product of a query and a key: a number measuring how relevant that key is to that query. |
+| **Attention weight** | The score after softmax, so weights over all positions sum to 1. |
+| **Scaled dot-product attention** | The specific recipe `softmax(QKᵀ / √d_k) V`; the `√d_k` scaling keeps the scores from saturating. |
+| **Self-attention** | Q, K, and V all come from the same sequence. |
+| **Cross-attention** | Q comes from one sequence and K, V from another (for example, a decoder reading an encoder). |
+| **Causal mask** | A rule that blocks attention to future positions, so position *i* can only see positions ≤ *i*. |
+| **Softmax** | A function turning a vector of scores into positive weights that sum to 1. |
+| **Projection** | A learned linear layer that produces Q, K, or V from the input (matrices `W_Q`, `W_K`, `W_V`). |
+| **d_model** | The width of the hidden vectors, for example 768. |
+| **d_k** | The width of each query/key head; used in the `√d_k` scaling. |
+| **Head** | One independent attention computation. Multiple heads run in parallel (multi-head attention). |
+| **Permutation equivariance** | Without positional information, attention treats the input as an unordered set. |
+| **Quadratic cost** | The score matrix has `n × n` entries, so time and memory grow with the square of sequence length. |
+
+The three terms people mix up are **Q, K, and V**. Use the library analogy: a **query** is your search phrase, a **key** is a book's title, and a **value** is the book's contents. You compare your query to every title, use the scores to decide how much of each book to read, and combine the contents you selected.
+
+## The core idea
+
+Attention is a **soft, differentiable dictionary lookup**.
+
+A normal dictionary lookup is hard: you match one key exactly and get one value. Attention is soft: you compare your query to *every* key, get a similarity score for each, turn the scores into weights with softmax, and return a **weighted mixture** of all the values.
+
+```mermaid
+flowchart LR
+    X["input X<br/>(n, d)"] --> Q["Q = X W_Q"]
+    X --> K["K = X W_K"]
+    X --> V["V = X W_V"]
+    Q --> S["scores<br/>Q · Kᵀ / √d_k"]
+    K --> S
+    S --> SM["softmax<br/>weights (n, n)"]
+    SM --> O["output<br/>weights · V"]
+    V --> O
+```
+
+Read the diagram right to left for the mental model: every row of the output is a weighted average of all the value vectors, and the weights say how much this token cared about each other token.
+
+**Self-attention** is this same block applied when Q, K, and V all come from the same sequence. That is what a decoder-only LLM uses at every layer.
+
+| Attention type | Q from | K, V from | Example use |
+| --- | --- | --- | --- |
+| Self-attention | same sequence | same sequence | transformer encoder or decoder block |
+| Cross-attention | decoder | encoder output | translation decoder reading the source |
+| Causal self-attention | same sequence | same sequence, past only | GPT-style next-token prediction |
+
+The key consequence of raw self-attention is **permutation equivariance**: because every position looks at every other, shuffling the input shuffles the output the same way. Attention has no built-in sense of order. That is why positional information must be added — the subject of the next chapter.
+
+## How it works
+
+1. **Project the input into Q, K, and V.** From the input `X` of shape `(n, d_model)`, compute `Q = X W_Q`, `K = X W_K`, `V = X W_V`. Each `W` is a learned matrix of shape `(d_model, d_k)`. `n` is the sequence length.
+2. **Score every query against every key.** Compute `scores = Q Kᵀ`. The result is `(n, n)`: entry `(i, j)` is the dot product of query `i` with key `j`, a measure of relevance.
+3. **Scale by `√d_k`.** Divide the scores by the square root of the key dimension. Dot products of independent random vectors grow with `d_k`, and without this scaling the softmax saturates (one weight near 1, all others near 0), which kills the gradient.
+4. **Mask the future if causal.** Set the scores for positions `j > i` to negative infinity. After softmax those entries become exactly 0, so no future information leaks in.
+5. **Apply softmax over the last dimension.** Each row of `(n, n)` becomes non-negative weights that sum to 1. Row `i` says how much token `i` attends to every token `j`.
+6. **Take the weighted sum of the values.** `output = weights @ V`. Row `i` is the mixture of value vectors chosen for query `i`, shape `(n, d_k)`.
+7. **Wrap it in multiple heads.** Instead of one attention with dimension `d_model`, split into `h` heads of width `d_k = d_model / h`, run steps 1–6 per head in parallel, concatenate, and project. Different heads can learn different relations.
+8. **Stack and train.** The output feeds a feed-forward network and the next block. Gradients flow through the whole thing because attention is built from differentiable matmuls, softmax, and additions.
+
+> **Note:**
+>
+> **Why the softmax is the point.** The softmax makes the lookup *differentiable*. A hard argmax lookup has zero gradient almost everywhere and cannot be trained. A weighted average has a useful gradient at every weight, so the model learns where to look.
+
+
+## The syntax you will use
+
+**The formula, in plain PyTorch.** This is the whole of scaled dot-product attention.
+
+```python
+import math
+import torch
+
+scores = Q @ K.transpose(-2, -1) / math.sqrt(d_k)   # (..., n, n)
+weights = torch.softmax(scores, dim=-1)             # rows sum to 1
+out = weights @ V                                   # (..., n, d_k)
+```
+
+**Transpose the last two dimensions.** For batched tensors, `K.transpose(-2, -1)` swaps the sequence and head dimensions, which is more robust than `.T`.
+
+```python
+K = torch.randn(2, 4, 5, 8)          # (batch, heads, seq, d_k)
+K.transpose(-2, -1).shape            # (2, 4, 8, 5)
+```
+
+**Causal mask with `-inf`.** Add it before softmax; the masked positions become 0.
+
+```python
+n = 5
+mask = torch.triu(torch.ones(n, n, dtype=torch.bool), diagonal=1)
+scores = scores.masked_fill(mask, float("-inf"))
+weights = torch.softmax(scores, dim=-1)
+```
+
+**Softmax can overflow.** Subtracting the per-row maximum first is what `torch.softmax` does internally; do the same if you write it by hand.
+
+```python
+def softmax(x, dim=-1):
+    x = x - x.max(dim=dim, keepdim=True).values
+    e = torch.exp(x)
+    return e / e.sum(dim=dim, keepdim=True)
+```
+
+**The built-in, fused version.** `scaled_dot_product_attention` is what production code calls.
+
+```python
+out = torch.nn.functional.scaled_dot_product_attention(q, k, v)
+out = torch.nn.functional.scaled_dot_product_attention(q, k, v, is_causal=True)
+```
+
+**Re-normalising after an explicit mask.** If you mask with `0.0` instead of `-inf`, you must renormalise, or the rows no longer sum to 1.
+
+```python
+weights = weights.masked_fill(mask, 0.0)
+weights = weights / weights.sum(dim=-1, keepdim=True)
+```
+
+**Splitting into heads.** Reshape, then move the head dimension next to the batch.
+
+```python
+B, S, D, H = 2, 5, 16, 4
+Dh = D // H
+q = q.view(B, S, H, Dh).transpose(1, 2)   # (B, H, S, Dh)
+```
+
+## Examples: simple to real
+
+**Example 1 — the whole computation.** Four tokens, eight dimensions. The weights form a probability distribution over positions.
+
+```python
+import math
+import torch
+
+torch.manual_seed(0)
+X = torch.randn(4, 8)
+Wq, Wk, Wv = (torch.randn(8, 8) * 0.1 for _ in range(3))
+
+Q, K, V = X @ Wq, X @ Wk, X @ Wv
+scores = Q @ K.T / math.sqrt(8)
+weights = torch.softmax(scores, dim=-1)
+out = weights @ V
+
+# Q shape (4, 8), scores shape (4, 4), out shape (4, 8)
+# weights.sum(dim=-1) -> tensor([1., 1., 1., 1.])
+```
+
+Each output row is a weighted average of the four value vectors. Nothing is hand-coded; the weights are the only thing that varies with the input.
+
+**Example 2 — why the `√d_k` scaling matters.** Scores from random vectors have standard deviation growing with `d`, so unscaled softmax saturates. Entropy here measures how spread out the weights are: lower means more concentrated.
+
+```python
+import math
+import torch
+
+torch.manual_seed(0)
+
+def entropy(w):
+    return float(-(w * (w + 1e-12).log()).sum(-1).mean())
+
+for d in (64, 512):
+    q = torch.randn(16, d)
+    k = torch.randn(16, d)
+    raw = torch.softmax(q @ k.T, dim=-1)
+    scaled = torch.softmax(q @ k.T / math.sqrt(d), dim=-1)
+    print(d, round(raw.max().item(), 4), round(entropy(raw), 2),
+          round(scaled.max().item(), 4), round(entropy(scaled), 2))
+
+# d=64  unscaled max 0.9995, entropy 0.46   |  scaled max 0.3642, entropy 2.35
+# d=512 unscaled max 1.0,    entropy 0.15   |  scaled max 0.3888, entropy 2.38
+```
+
+When one weight is near 1.0 and the rest are near 0, the softmax gradient is nearly zero and the model cannot learn to look elsewhere. Scaling keeps the distribution soft.
+
+**Example 3 — causal masking.** A lower-triangular mask means position *i* sees only positions ≤ *i*.
+
+```python
+mask = torch.triu(torch.ones(4, 4, dtype=torch.bool), diagonal=1)  # True = future
+scores_masked = scores.masked_fill(mask, float("-inf"))
+causal_weights = torch.softmax(scores_masked, dim=-1)
+causal_out = causal_weights @ V
+
+# row sums -> tensor([1., 1., 1., 1.])
+# position 0 weights -> tensor([1., 0., 0., 0.])  — it can only see itself
+```
+
+Row 0 attending only to itself is the defining property of causal attention: the first token has no past.
+
+**Example 4 — causality is real, not cosmetic.** Change a future token and the earlier outputs must not move.
+
+```python
+X2 = X.clone()
+X2[3] += 100.0                             # edit the last token
+Q2, K2, V2 = X2 @ Wq, X2 @ Wk, X2 @ Wv
+scores2 = (Q2 @ K2.T / math.sqrt(8)).masked_fill(mask, float("-inf"))
+out2 = torch.softmax(scores2, dim=-1) @ V2
+
+# earlier outputs unchanged by the future edit: True
+# last output changed: True
+```
+
+This is the guarantee that makes next-token training valid. The model never sees the answer it is being asked to predict.
+
+**Example 5 — the fused kernel and the quadratic cost.** Production code calls one function; the cost is visible in the score matrix.
+
+```python
+q = torch.randn(1, 2, 4, 8)   # (batch, heads, seq, d_k)
+k = torch.randn(1, 2, 4, 8)
+v = torch.randn(1, 2, 4, 8)
+
+sdpa = torch.nn.functional.scaled_dot_product_attention(q, k, v, is_causal=True)
+# matches the manual softmax(QKᵀ/√d_k)V with a causal mask: True
+
+# score matrix size grows with n²:
+# n = 128  -> 16,384 entries
+# n = 256  -> 65,536 entries
+# n = 512  -> 262,144 entries
+# n = 1024 -> 1,048,576 entries
+```
+
+Every doubling of context length quadruples the score matrix. That is the single biggest reason long-context inference is expensive.
+
+**Example 6 — attention as a weighted lookup in code.** A one-line trace of what the model is doing at one position.
+
+```python
+# output for token 0 is a weighted average of all value vectors
+out_row0 = weights[0, 0] * V[0] + weights[0, 1] * V[1] + weights[0, 2] * V[2] + weights[0, 3] * V[3]
+# this equals out[0] up to floating-point error: True
+```
+
+That sum is the entire mechanism. Multi-head attention runs several of these lookups with different learned projections and concatenates the results.
+
+## In production
+
+- **Cost is quadratic in sequence length, not linear.** The `(n, n)` score matrix dominates attention memory and time. Doubling context quadruples both. This is why FlashAttention and other IO-aware kernels exist, and why long-context calls are much more expensive than their token count suggests.
+- **The KV cache turns that into linear inference.** During generation, keys and values for past tokens do not change, so you cache them instead of recomputing. Memory for the cache still grows linearly with context and batch, and it is often the binding constraint.
+- **Always mask before softmax, never after.** Masking the weights after softmax and renormalising gives a different (and usually wrong) distribution; masking with `-inf` before softmax gives exactly zero weight.
+- **Use `-inf`, not a large negative number like `-1e9`.** In `float16` the largest finite magnitude is 65504, so `-1e9` overflows to `-inf`; in `bfloat16` the exponent range matches `float32`, so `-1e9` stays finite (about `-9.98e8`). A finite mask value can leave a nonzero softmax weight when the other scores are very negative, and the exact behaviour varies by dtype and kernel; `-inf` is exact and dtype-independent.
+- **Scaling is not optional.** Drop `√d_k` and large head dimensions saturate the softmax, gradients vanish, and training stalls. It is one of the cheapest and most important lines in the model.
+- **Attention is permutation-equivariant.** With no positional signal, the model literally cannot tell "dog bites man" from "man bites dog". Positional encoding must be added; the next chapter covers three ways to do it.
+- **Multi-head is not just parallelism.** Heads project into different subspaces and can specialise. Reducing heads too far loses capacity; increasing them without reducing head width shrinks each subspace.
+- **Masking bugs are silent.** A wrong mask either lets the model cheat during training (loss looks great, generation is broken) or blocks too much and starves the sequence. Test causality explicitly by editing a future token and checking that earlier outputs do not change.
+- **Attention weights are not explanations.** A high weight means the value was used heavily in that layer and head, not that the model "decided" that token caused the output. Circuit and ablation analyses are needed to make causal claims.
+- **The softmax is over the key axis, not the value axis.** Mixing up `dim=-1` versus `dim=-2` still runs and produces plausible shapes, but the weights no longer sum to 1 over the intended positions.
+- **Prefer the fused kernel.** `F.scaled_dot_product_attention` selects an optimised implementation (including FlashAttention where available), is numerically stable, and handles causal masking; hand-rolled attention in a training loop is slower and easier to get wrong.
+- **Long sequences need memory-efficient variants.** Sliding-window, sparse, and low-rank attention reduce the quadratic term, usually by assuming most attention weights are near zero. They trade accuracy on long-range links for speed.
+
+## Interview questions
+
+### 1. What problem does attention solve?
+
+**Answer.** Recurrent networks process tokens sequentially and carry a hidden state, which prevents parallelisation and makes long-range dependencies fade. Attention lets every position look at every other position directly in one step. That is parallel (one big matmul) and gives a path length of one between any two tokens, so distant information does not decay through a chain.
+
+**Follow-up: "What does it cost?"** Quadratic time and memory in sequence length, because the score matrix has `n × n` entries. Recurrence is linear in length but sequential; attention trades that for parallelism.
+
+**Trap.** Saying attention "understands" relationships. It computes weighted averages from learned similarity scores; the interpretation is ours.
+
+### 2. Explain queries, keys, and values.
+
+**Answer.** Each token produces three projections: a query (what it is looking for), a key (what it offers), and a value (what it passes along). The dot product of a query with each key gives a relevance score. Softmax turns the scores into weights, and the output is the weighted sum of the values. It is a soft dictionary lookup: query like your search phrase, key like a title, value like the contents.
+
+**Follow-up: "Why separate projections instead of using the input directly?"** The input vector must play three different roles. Learned `W_Q`, `W_K`, and `W_V` let the model decide what to match on and what to transmit, rather than forcing the same representation to do both.
+
+**Trap.** Thinking Q, K, and V are different data. They are different linear projections of the same input in self-attention.
+
+### 3. What exactly does the softmax do here?
+
+**Answer.** It turns the vector of raw similarity scores for one query into a probability distribution: all weights are positive and sum to 1. That lets the output be a convex combination of the value vectors, and makes the whole lookup differentiable, so gradients flow to the scores and the projections.
+
+**Follow-up: "Why not just use a hard argmax?"** Argmax has zero gradient almost everywhere, so it cannot be trained. The softmax is a smooth approximation that still concentrates on the highest scores when they are much larger than the rest.
+
+**Trap.** Getting the direction of the temperature backwards. Dividing by `√d_k` *raises* the effective temperature, which softens the distribution; removing the scale therefore *lowers* the temperature and drives the softmax toward one-hot. The chapter's own numbers show it: at `d = 512` the scaled attention peaks at weight 0.3888 with entropy 2.38, while the unscaled version peaks at 1.0 with entropy 0.15, so almost all gradient vanishes.
+
+### 4. Why divide by the square root of `d_k`?
+
+**Answer.** The dot product of two independent random vectors of dimension `d_k` grows roughly like `√d_k`. Without scaling, scores get large as the head dimension grows, the softmax saturates to nearly one-hot, and its gradient vanishes. Dividing by `√d_k` normalises the variance so the softmax stays in a useful range. Verified: at `d = 512`, unscaled attention peaks at weight ≈ 1.0 with entropy 0.15, while scaled attention keeps entropy around 2.4.
+
+**Follow-up: "What if you scale by `d_k` instead?"** You over-shrink the scores, the softmax becomes nearly uniform, and the model cannot distinguish relevant tokens. The square root is the value that equalises variance.
+
+**Trap.** Calling it a minor implementation detail. It is essential for stable training at realistic head sizes.
+
+### 5. What is causal masking and why is it needed?
+
+**Answer.** Causal masking sets the attention scores for future positions to negative infinity before softmax, so position *i* can only attend to positions ≤ *i*. It is needed for next-token prediction training: without it, the model could look at the token it is supposed to predict, the loss would look excellent, and generation would fail because the future is unavailable at inference.
+
+**Follow-up: "How do you test it?"** Change a future token and confirm earlier outputs do not change; and confirm the first position attends only to itself. Both checks pass in the verified example.
+
+**Trap.** Masking after the softmax. That produces a different distribution unless you renormalise, and the bug is easy to miss because the shapes still look correct.
+
+### 6. What is self-attention versus cross-attention?
+
+**Answer.** In self-attention, Q, K, and V all come from the same sequence, so tokens relate to each other within one input. In cross-attention, queries come from one sequence (such as a decoder) while keys and values come from another (such as an encoder output), so one sequence can read another. Decoder-only LLMs like GPT use causal self-attention only.
+
+**Follow-up: "Do modern LLMs use cross-attention?"** Most decoder-only models do not; retrieval and tool results are appended to the context instead, where self-attention can read them. Cross-attention remains common in translation and speech models.
+
+**Trap.** Assuming self-attention implies causality. Self-attention can be bidirectional (encoder) or causal (decoder); the mask is a separate choice.
+
+### 7. What is multi-head attention?
+
+**Answer.** Several attention computations run in parallel on different learned projections of the same input. Each head has width `d_model / h`, so the total cost stays roughly the same as one full-width attention. The outputs are concatenated and projected. Different heads can specialise in different relations, such as previous-token links or matching brackets.
+
+**Follow-up: "Why not one big head?"** Splitting gives the model several independent similarity spaces, so it can attend to different things at once. One head must average all of those relations into a single weight distribution.
+
+**Trap.** Saying heads are just for speed. They add representational capacity; the parallelism is a side benefit of the batched matmul.
+
+### 8. Why is attention `O(n²)` and what do you do about it?
+
+**Answer.** Every token's query is compared with every token's key, so the score matrix has `n²` entries and both time and memory grow quadratically. At `n = 1024` that is about one million scores per head per layer. Remedies include FlashAttention (same maths, better memory movement), the KV cache for generation (linear instead of quadratic recomputation), and sparse, sliding-window, or low-rank attention that assumes most weights are small.
+
+**Follow-up: "Does the KV cache remove the quadratic cost?"** It removes the recomputation of past keys and values during generation, making per-token cost linear in context. The attention score computation for the current token is still linear in context length, and cache memory grows linearly with context and batch.
+
+**Trap.** Saying attention memory is `O(n)`. That is true for the embeddings, but the attention score matrix and the KV cache are the real constraints.
+
+## Remember this
+
+- Attention is a **differentiable weighted lookup**: `softmax(QKᵀ / √d_k) V`.
+- **Q** is what you look for, **K** is what you match, **V** is what you copy.
+- **Self-attention** uses one sequence for Q, K, and V; **causal masking** hides the future.
+- The `√d_k` scaling and the softmax are what keep attention trainable; without them it saturates.
+- Cost is **quadratic** in sequence length; the **KV cache** makes generation linear per token.

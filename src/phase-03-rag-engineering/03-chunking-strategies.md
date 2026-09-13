@@ -1,0 +1,399 @@
+# Chunking Strategies
+
+> **Interview answer (say this first).** Chunking splits documents into the small units that get embedded and retrieved. It sets the granularity of your whole search: too large and the embedding is diluted and wastes context; too small and the facts are torn apart. The practical default is structure-aware recursive splitting to a target token size with 10–20% overlap, plus metadata on every chunk.
+
+## Why this exists
+
+A retrieval system cannot search at the level of "a document," because a document is about many things. A 40-page employee handbook contains leave, expenses, security, travel, and conduct. If you embed the whole handbook into one vector, that vector is the *average* of all those topics. It is close to every question and useful for none.
+
+So you cut the document into **chunks**, embed each one, and retrieve the few chunks that match the question. Chunking is the decision about where to cut.
+
+Cut badly and retrieval breaks in two opposite directions.
+
+**Too large.** The chunk covers three topics. Its embedding is vague, so it matches everything weakly. It also consumes context tokens with mostly-irrelevant text.
+
+```text
+Query:    "How many days of leave carry over?"
+Chunk:    2,000 tokens about leave, expenses, security, and travel
+Problem:  the leave answer is 40 tokens inside a 2,000-token chunk;
+          the model must find it, and you paid for all of it
+```
+
+**Too small.** The chunk holds a fact but not the fact it refers to.
+
+```text
+Query:    "How many days of leave carry over?"
+Chunk A:  "Up to 5 days may carry over."
+Chunk B:  "Employees receive 20 days of annual leave."
+Problem:  Chunk A is only meaningful next to Chunk B;
+          retrieved alone, the model cannot tell 5 days of what
+```
+
+There is no universally correct chunk size. There is a target: **a chunk should be one self-contained idea, small enough to be precise and large enough to be understood alone.** Everything else is about approaching that target on real documents.
+
+Chunking also decides your economics. Smaller chunks mean more vectors, more rows, and more candidates to search; larger chunks mean fewer vectors but more tokens per retrieved result. This page is about choosing deliberately.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Token** | The unit models read and bill in, roughly ¾ of an English word. |
+| **Character** | A single letter or symbol. Splitters often measure characters, not tokens. |
+| **Chunk** | One retrievable piece of a document. |
+| **Chunk size** | The target length of a chunk, in tokens or characters. |
+| **Overlap** | Text repeated at the end of one chunk and the start of the next. |
+| **Stride** | How far the window moves each step: `size − overlap`. |
+| **Boundary** | A natural place to cut: paragraph, sentence, heading, table row. |
+| **Separator** | The string a splitter prefers to cut on, such as `"\n\n"` or `". "`. |
+| **Recursive splitting** | Try the biggest separator first, then fall back to smaller ones. |
+| **Semantic chunking** | Cut where the meaning shifts, measured by embedding similarity. |
+| **Structure-aware chunking** | Use the document's own structure (headings, sections) as boundaries. |
+| **Parent-child / small-to-big** | Embed small children but return the larger parent for context. |
+| **Dilution** | One embedding averaged over several topics, matching all of them weakly. |
+| **Context budget** | The token allowance you spend on retrieved text in the prompt. |
+| **Metadata** | Data attached to a chunk: source, section, page, position. |
+
+Two pairs are easy to confuse:
+
+- **Size vs stride.** Size is how big each chunk is. Stride is how far you move. With size 512 and overlap 64, the stride is 448.
+- **Boundary vs separator.** A boundary is a *concept* (cut at a paragraph). A separator is the *string* a library uses to find it (`"\n\n"`).
+
+Keep one more number in mind. Overlap has a cost: with size 512 and overlap 64, you store about 14% more chunks than the text strictly needs. At overlap 128 it is 33%, and at overlap 256 it is 100% — every token stored twice.
+
+## The core idea
+
+Think of a researcher filing a long scroll onto **index cards**. A card should carry one idea. If you write three unrelated ideas on one card, you can never file it anywhere useful. If you tear a sentence in half across two cards, neither card makes sense. And if you are worried about tearing, you repeat the last line on the next card — that is overlap.
+
+The goal is not "small chunks." The goal is **one idea per card**.
+
+Here is the decision path most teams follow:
+
+```mermaid
+flowchart TD
+    A["Document"] --> B{"Has clear structure?<br/>Markdown, HTML headings, DOCX styles"}
+    B -->|Yes| C["Structure-aware split<br/>on headings"]
+    B -->|No| D{"Clean paragraphs<br/>or sentences?"}
+    D -->|Yes| E["Recursive split<br/>paragraph -> sentence -> space"]
+    D -->|No| F["Fixed-size split<br/>with overlap"]
+    C --> G["Check sizes"]
+    E --> G
+    F --> G
+    G --> H{"Chunks too vague<br/>or too fragmented?"}
+    H -->|Too vague| I["Add parent-child:<br/>small child vector,<br/>big parent text"]
+    H -->|Too fragmented| J["Increase size<br/>or overlap"]
+    H -->|Still vague| K["Semantic split<br/>on similarity drops"]
+    I --> L["Embed, attach metadata, index"]
+    J --> L
+    K --> L
+```
+
+Each strategy trades a different cost against quality:
+
+| Strategy | How it cuts | Best for | Cost | Common failure |
+| --- | --- | --- | --- | --- |
+| Fixed-size | Every N tokens, with overlap | Uniform text, quick baseline | Cheapest | Cuts mid-sentence and mid-idea |
+| Recursive | Biggest separator that fits | General prose, docs | Cheap | Still cuts semantically related text |
+| Structure-aware | Headings and sections | Markdown, HTML, DOCX | Cheap | Tiny or huge sections |
+| Semantic | Where embedding similarity drops | Dense, unstructured prose | Expensive (needs embeddings) | Sensitive to model and threshold |
+| Parent-child | Small child, large parent | Precise retrieval plus context | More storage | More moving parts |
+
+## How it works
+
+1. **Pick the unit of measure.** Tokens are what the model bills and limits, so a token target is the honest one. Many libraries default to characters; know which one you are setting.
+2. **Choose a target size.** For prose, 256–512 tokens is a common starting range. For dense technical text, 256–384. For short Q&A or FAQ data, one item per chunk.
+3. **Choose an overlap.** About 10–20% of the chunk size. Overlap protects against a sentence or idea landing on a boundary. It is insurance, not a substitute for a good boundary.
+4. **Choose separators, largest first.** Paragraph, then line, then sentence, then space, then character. This is recursive splitting: prefer the largest natural break that keeps the chunk under the size limit.
+5. **Prefer structure when it exists.** A Markdown `##` section or a DOCX `Heading 2` is a better boundary than a character count. Keep the heading path as metadata.
+6. **Split, then measure.** Count tokens per chunk. Look at the distribution, not the average: a few enormous chunks are where retrieval quality dies.
+7. **Add overlap only at real boundaries.** Blind overlap on fixed windows creates duplicated text; overlap on sentence boundaries creates clean, repeated context.
+8. **Attach metadata.** Source, title, section, page, chunk index, character span, and token count. Metadata makes filtering, citations, and debugging possible.
+9. **Test retrieval, not chunk aesthetics.** A chunking choice is good if recall improves on your labelled questions. Chunks that "look nice" prove nothing.
+10. **Version the chunker.** The chunk config is part of the index. Change the size and the old vectors no longer match the new ones; version so you can re-index cleanly.
+
+## The syntax you will use
+
+**Count tokens with tiktoken.** Token counts are the ones that matter for limits and cost. `cl100k_base` is one common tokenizer encoding.
+
+```python
+import tiktoken
+
+enc = tiktoken.get_encoding("cl100k_base")
+len(enc.encode("Hello world, this is a chunking test."))   # 10
+```
+
+**Fixed-size token chunks with overlap.** This is the baseline: move a window of `size` tokens by `size - overlap` each step.
+
+```python
+def token_chunks(text: str, size: int, overlap: int, enc) -> list[list[int]]:
+    ids = enc.encode(text)
+    step = size - overlap
+    return [ids[i:i + size] for i in range(0, len(ids), step)]
+```
+
+**Recursive character splitting with LangChain.** It tries `\n\n`, then `\n`, then `". "`, then a space. Note: `chunk_size` here is **characters**, not tokens, because the default length function is `len`.
+
+```python
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=200,          # characters, not tokens
+    chunk_overlap=40,
+    separators=["\n\n", "\n", ". ", " ", ""],
+)
+chunks = splitter.split_text(text)
+```
+
+**Token-based splitting with LangChain.** When you want the splitter to measure tokens, use `TokenTextSplitter`, which uses tiktoken.
+
+```python
+from langchain_text_splitters import TokenTextSplitter
+
+splitter = TokenTextSplitter(chunk_size=64, chunk_overlap=16, encoding_name="cl100k_base")
+chunks = splitter.split_text(text)
+```
+
+**Structure-aware splitting for Markdown.** Headings become metadata, so a retrieved chunk knows which section it came from.
+
+```python
+from langchain_text_splitters import MarkdownHeaderTextSplitter
+
+splitter = MarkdownHeaderTextSplitter(headers_to_split_on=[("#", "h1"), ("##", "h2")])
+docs = splitter.split_text(markdown_text)
+# each doc has .metadata like {"h1": "Handbook", "h2": "Leave"} and .page_content
+```
+
+**Semantic chunking.** Embed each sentence, then cut where adjacent similarity drops below a threshold.
+
+```python
+import numpy as np
+from model2vec import StaticModel
+
+model = StaticModel.from_pretrained("minishlab/potion-base-8M")
+embs = model.encode(sentences)
+embs = embs / np.linalg.norm(embs, axis=1, keepdims=True)   # normalise for cosine
+
+def semantic_groups(sentences, embs, threshold=0.15):
+    groups = [[sentences[0]]]
+    for i in range(1, len(sentences)):
+        if float(embs[i - 1] @ embs[i]) < threshold:
+            groups.append([])
+        groups[-1].append(sentences[i])
+    return groups
+```
+
+**Parent-child (small-to-big).** Store the small child's vector, but keep the parent's text on the same row so retrieval returns the bigger context.
+
+```python
+record = {
+    "child_id": "handbook#leave:c0",
+    "child_text": children[0],      # this is what gets embedded
+    "parent_id": "handbook#leave",
+    "parent_text": parent_text,     # this is what gets returned to the prompt
+}
+```
+
+**Metadata on every chunk.** The content hash makes re-indexing idempotent.
+
+```python
+import hashlib
+
+metadata = {
+    "source": "handbook.pdf",
+    "title": "Policy Handbook",
+    "section": "Leave",
+    "page": 4,
+    "chunk_index": 0,
+    "token_count": len(enc.encode(child_text)),
+    "char_span": [0, len(child_text)],
+    "content_hash": hashlib.sha256(child_text.encode()).hexdigest()[:16],
+}
+```
+
+## Examples: simple to real
+
+**Example 1 — fixed size versus overlap.** Take a 114-token passage. With size 64 and no overlap you get two chunks. Note where the first one ends: it stops mid-thought.
+
+```text
+size=64 overlap=0 -> 2 chunks, token counts [64, 50]
+  chunk 0 ends: "...find the nearest chunks"
+  chunk 1 starts: ", and put them in the prompt..."
+```
+
+With a 16-token overlap you get three chunks, and the repeated text is real:
+
+```text
+size=64 overlap=16 -> 3 chunks, token counts [64, 64, 18]
+  overlap between chunk 0 and 1:
+  " in an index. During serving you embed the user question, find the nearest chunks"
+```
+
+The overlap is identical in both chunks, so a sentence broken at the boundary exists whole in at least one of them.
+
+**Example 2 — recursive splitting respects sentences.** With `chunk_size=200` characters and `overlap=40`, the splitter cuts on `". "` instead of an arbitrary character. Token counts stay small and each chunk is a group of sentences:
+
+```text
+4 chunks, token counts [28, 23, 32, 31]
+
+[28] 'Retrieval-augmented generation gives a model knowledge it was never trained on.
+      The pipeline has two halves: offline indexing and online serving'
+[23] '. During indexing you parse documents, split them into chunks, embed each chunk,
+      and store the vectors in an index'
+[32] '. During serving you embed the user question, find the nearest chunks, and put them
+      in the prompt. Most RAG failures are retrieval failures, not model failures'
+[31] '. A chunk that is too large dilutes its own meaning and wastes context tokens.
+      A chunk that is too small loses the surrounding facts needed to answer.'
+```
+
+The chunks start with `". "` because the separator is kept with the following text. That is cosmetic; what matters is that no sentence is torn in half. Tightening the size to 40 characters makes the trade-off visible:
+
+```text
+['One sentence here. Two sentence here',
+ '. Three sentence here',
+ '. Four sentence here',
+ '. Five sentence here.']
+```
+
+**Example 3 — when no separator fits, fall back.** A wall of text with no sentence breaks degrades to a space split, and finally to a hard character cut. Recursive splitting cannot invent structure that is not there. This is the case that wants semantic or structure-aware chunking instead.
+
+**Example 4 — structure-aware splitting keeps the section path.** A Markdown handbook splits on its headings, and the heading path travels as metadata:
+
+```text
+{'h1': 'Handbook', 'h2': 'Leave'}
+  :: 'Employees get 20 days of annual leave. Up to 5 days may carry over to January.'
+{'h1': 'Handbook', 'h2': 'Expenses'}
+  :: 'Submit receipts within 30 days.'
+```
+
+Now a query about expenses can be filtered to `h2 == "Expenses"`. The heading is also a perfect citation: "Handbook → Expenses".
+
+**Example 5 — semantic chunking cuts where the topic changes.** Six sentences: two topics plus one unrelated sentence. Adjacent cosine similarity shows where the topic shifts:
+
+```text
+adjacent sims: 0.4976, 0.3824, 0.0675, 0.1892, -0.0595
+
+0->1: 0.4976 same        (both about leave)
+1->2: 0.3824 same        (still leave)
+2->3: 0.0675 SPLIT       (leave -> pricing)
+3->4: 0.1892 same        (both about pricing)
+4->5: -0.0595 SPLIT      (pricing -> the cat)
+```
+
+The groups come out as three coherent chunks:
+
+```text
+[leave    ] Employees receive 20 days ... / carry over ... / submit two weeks in advance.
+[pricing  ] The Pro plan costs 49 dollars ... / Pro includes single sign-on ...
+[unrelated] The cat sat on the warm mat.
+```
+
+This is powerful but has a real cost: it needs an embedding pass over every sentence, and the result is only as stable as the model and threshold you chose. For a fixed model and threshold the split is deterministic, but change either and the boundaries move in a way fixed windows do not.
+
+**Example 6 — parent-child, and what the corpus costs.** Children stay small for precise search; the parent carries the context. A 52-token section becomes five children of 3–14 tokens, each one linked to the full parent text.
+
+```text
+parent tokens: 52
+child 0: tokens=3   '## Leave policy'
+child 1: tokens=11  'Employees receive 20 days of paid annual leave each year'
+child 2: tokens=13  '. Full-time staff can carry over up to five unused leave days'
+child 3: tokens=10  '. Leave requests must be submitted two weeks in advance'
+child 4: tokens=14  '. Unused leave is forfeited at the end of the calendar year.'
+```
+
+And the same choices scale up. A 200-page handbook is about 130,000 tokens:
+
+```text
+256 tokens / 32 overlap   -> 581 chunks
+512 tokens / 64 overlap   -> 291 chunks
+1024 tokens / 128 overlap -> 146 chunks
+```
+
+Fewer, larger chunks mean fewer vectors to store and search, but more tokens in the prompt for each hit.
+
+## In production
+
+- **Chunk size is a retrieval parameter, not a formatting choice.** Measure recall and answer quality at two or three sizes before settling. The best size for your corpus is empirical.
+- **Overlap is insurance, not a strategy.** Use 10–20% to protect boundaries, but do not rely on overlap to fix chunks that contain three unrelated topics.
+- **Prefer structure over character counts.** Headings, sections, and list items are the natural unit of meaning in most business documents. Structure-aware chunks are also easier to cite.
+- **Respect the embedding model's max input.** Text beyond the limit is silently truncated, so an oversized chunk may be embedded from only its first part. Keep chunks safely under the limit.
+- **Watch the distribution, not the average.** One 8,000-token chunk from a document with no separators can poison retrieval while the average looks healthy. Track p95 (the 95th percentile) and the maximum.
+- **Small chunks need parent context.** A 20-token chunk often cannot answer anything alone. Parent-child gives you precise search plus readable context.
+- **Deduplicate chunks.** Repeated boilerplate, legal disclaimers, and templates produce hundreds of near-identical vectors that crowd out real results.
+- **Keep metadata with the vector.** Once chunks are in the index, the only way to filter by tenant, date, or section is the metadata you stored at chunk time. Adding it later means re-indexing.
+- **Do not embed tables row by row without headers.** A row of numbers with no column names is unretrievable. Repeat the header or serialise `{column: value}`.
+- **Re-chunking is a full re-index.** Changing the size, overlap, or splitter invalidates every vector. Version the config next to the index and rebuild as a batch job.
+- **Semantic chunking is not free and its boundaries are not fixed.** It adds an embedding pass and a threshold to tune, and small corpus changes can move boundaries. Use it when structure is missing and recall is measurably poor.
+- **Test with real questions.** Chunks that read well are not automatically retrievable. Use questions with known answer chunks and measure whether the chunk is in the top-k.
+
+## Interview questions
+
+### 1. Why chunk at all? Why not embed whole documents?
+
+**Answer.** One vector per document is an average over every topic in it, so it matches everything weakly and nothing precisely. Chunking gives retrieval a granular unit: small enough that the vector is about one idea, large enough to be understood alone. It also lets you fit only the relevant text into the context window instead of the whole document.
+
+**Follow-up: "What is the cost of chunking?"** More vectors to store and search, and the risk of splitting a fact from its context. Parent-child and overlap are the usual mitigations.
+
+**Trap.** Saying "smaller chunks are always better." Very small chunks lose the context needed to answer, and they multiply the number of vectors.
+
+### 2. How do you choose chunk size and overlap?
+
+**Answer.** Start from the model's and embedding model's limits, then pick a target that holds one idea: 256–512 tokens for prose is a reasonable baseline. Overlap 10–20% to protect boundary sentences. Then measure recall on labelled questions and adjust. There is no universal number; the right size depends on document type and question type.
+
+**Follow-up: "How do you detect a bad size?"** Look at retrieved chunks: if they contain the answer plus a lot of noise, they are too large; if they contain fragments that cannot answer alone, they are too small.
+
+**Trap.** Choosing a size to make the average chunk look tidy. Retrieval quality, not chunk aesthetics, is the objective.
+
+### 3. What is recursive character splitting?
+
+**Answer.** It tries a list of separators from largest to smallest: paragraph break, then line break, then sentence, then space, then character. It cuts on the first separator that keeps the piece under the size limit, and recurses into any piece that is still too big. That is why it usually lands on sentence boundaries instead of arbitrary characters.
+
+**Follow-up: "What is the gotcha with LangChain's default?"** `RecursiveCharacterTextSplitter` measures characters by default, because `length_function=len`. If you set 512 thinking tokens, you get 512 characters, which is far fewer tokens and much smaller chunks.
+
+**Trap.** Believing recursive splitting is semantic. It respects punctuation, not meaning; two unrelated sentences separated by a period can still share a chunk.
+
+### 4. What is semantic chunking, and when would you use it?
+
+**Answer.** You embed sentences, measure similarity between neighbours, and cut where similarity drops. That puts boundaries at topic changes. Use it on unstructured prose with weak punctuation or where fixed splitting measurably hurts recall.
+
+**Follow-up: "What are the downsides?"** It costs an embedding pass over the raw text, adds a threshold to tune, and its boundaries are sensitive to the model and threshold you pick: deterministic for a fixed pair, but they move when either changes.
+
+**Trap.** Applying semantic chunking by default. For documents with headings and paragraphs, structure-aware recursive splitting is cheaper and more predictable.
+
+### 5. What is parent-child or small-to-big chunking?
+
+**Answer.** You split a section into small children and embed each child for precise matching, but store the larger parent text on the same record. Retrieval matches a child, then returns the parent to the prompt, so the model sees full context without the index holding only tiny fragments.
+
+**Follow-up: "How does it affect storage?"** In the simple design above the parent text is repeated on each child row, so storage grows by the parent text times the number of children; only the vector count stays equal to the child count. A separate parent store keyed by `parent_id` avoids that duplication but adds a lookup. The main cost is complexity: two levels to keep in sync.
+
+**Trap.** Embedding the parent and returning the child. That reverses the point: you want precise matching from the small unit and rich context from the large one.
+
+### 6. How does chunking interact with metadata?
+
+**Answer.** Every chunk should carry the metadata needed later: source, title, section, page, chunk index, position, tenant, and permissions. Metadata enables filtering before search, citations in the answer, and debugging after a bad result. It is cheapest to attach at chunk time and impossible to recover reliably later.
+
+**Follow-up: "Why store a character span?"** It lets you highlight the exact source text and reconstruct surrounding context without re-parsing the document.
+
+**Trap.** Storing metadata only at the document level. After chunking, a document-level filter is gone; the row that holds the vector must carry its own fields.
+
+### 7. How do you handle tables, code, and lists when chunking?
+
+**Answer.** Treat each as a structural unit. Keep a table intact or serialise one row with its headers. Keep a code block whole, including its surrounding explanation. Keep a list with its intro sentence, because "the following are required" is the context that makes the list meaningful. Split only when the unit exceeds the size limit, and then repeat the header or intro.
+
+**Follow-up: "Why not split code on blank lines?"** A function split from its signature and imports is unusable. Code needs syntax-aware boundaries, or a size large enough to hold a whole function or class.
+
+**Trap.** Running a generic text splitter over structured content. It will cut a table in half or separate a code block from the sentence that introduces it.
+
+### 8. How would you debug chunking in a failing RAG system?
+
+**Answer.** Take a question with a known answer, find the chunk that contains the answer, and check where it sits in the retrieval ranking. If the answer is split across chunks, fix boundaries. If the chunk is topically mixed, the chunk is too large. If the chunk lacks context, add overlap or move to parent-child. Then re-measure recall.
+
+**Follow-up: "What metric tells you chunking is the problem?"** Recall@k on a labelled set. If the correct chunk exists in the corpus but rarely appears in the top-k, chunking or embedding is the likely cause.
+
+**Trap.** Re-chunking and re-embedding the whole corpus on a hunch. Change one variable, measure, and keep a re-indexable pipeline so you can iterate.
+
+## Remember this
+
+- Chunking sets **retrieval granularity**: one idea per chunk, small enough to be precise, large enough to stand alone.
+- **Structure first, size second.** Headings and sections beat character counts.
+- **Overlap is 10–20% insurance**, not a fix for vaguely themed chunks.
+- **Measure chunk distribution** (p95 and max), not just the average.
+- **Attach metadata at chunk time**, and version the chunker so re-indexing is safe.

@@ -1,0 +1,408 @@
+# Tool and Capability Discovery
+
+> **Interview answer (say this first).** Discovery has two stages. First, the handshake establishes the protocol version and exchanges capability flags, so each side knows what the other can do. On protocol 2026-07-28 the client sends a `server/discover` probe and adopts the result; the high-level `Client` defaults to mode `"auto"`, which probes `discover` and falls back to the legacy `initialize` + `notifications/initialized` handshake for older servers. Then the client calls the list methods — `tools/list`, `resources/list`, `resources/templates/list`, `prompts/list` — to learn the concrete items. Every tool ships a JSON Schema for its inputs, so the client can validate arguments before the call and validate results after. When a server's catalog changes it advertises `listChanged` and emits a change notification; the client re-lists. With many servers, the host namespaces tool names by server so they do not collide.
+
+## Why this exists
+
+An MCP client does not know what a server offers at compile time. The server author can add a tool next Tuesday, and every client should find it without a code change. That is the entire point of a protocol instead of a hard-coded integration.
+
+Without discovery, capability is frozen at build time. Picture the failure:
+
+```text
+Client ships with a hard-coded list: [search_docs, send_email].
+Server adds run_sql next week.
+Client never calls run_sql — it does not know the tool exists.
+```
+
+The mirror-image failure is worse, because it looks like it works:
+
+```text
+Server renames search_docs -> search_internal.
+Client keeps calling search_docs.
+Every call returns "unknown tool", and the agent loops or gives up.
+```
+
+Both bugs come from the same root cause: the client's idea of the server is a static list that drifts. A second root cause is argument shape. A client that guesses arguments from a prose description will send the wrong types, and the server rejects the call at runtime. Discovery fixes that too, because each tool publishes a **JSON Schema** — a machine-readable description of its arguments — that the client can validate against.
+
+There is a third problem at scale. A host connected to twenty servers may see twenty tools named `search`. Discovery alone does not tell them apart; the host must add a **namespace** so each tool has a unique, addressable name.
+
+> **Note:**
+>
+> **The one-sentence purpose.** Discovery turns an unknown server into a typed, validated, addressable catalog that the client can call safely — and keep fresh.
+
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **MCP** | Model Context Protocol — a standard way for an AI app to talk to external capabilities. |
+| **Host** | The application the user runs (an IDE, a chat app). It owns trust and permissions. |
+| **Client** | One MCP connection managed by the host. One host can run many clients. |
+| **Server** | The program that exposes tools, resources, and prompts. |
+| **Transport** | How bytes move: `stdio` for local processes, HTTP for remote servers. |
+| **JSON-RPC** | The message format: a request has a method and params; a response has a result or an error. |
+| **Discover / Initialize** | The first request of a connection. `server/discover` on 2026-07-28; `initialize` (plus `notifications/initialized`) on legacy servers. It negotiates protocol version and capabilities. |
+| **Capability** | A yes/no flag saying a side supports a feature, e.g. `tools`, `resources`, `prompts`. |
+| **Tool** | A callable function the model may invoke, such as `search_docs`. |
+| **Resource** | Read-only content addressed by URI, such as `docs://handbook`. |
+| **Resource template** | A URI pattern with variables, like `users://{user_id}/profile`. |
+| **Prompt** | A reusable message template the server exposes, usually user-triggered. |
+| **JSON Schema** | A standard document describing valid JSON: types, required fields, bounds. |
+| **Input schema** | The JSON Schema for a tool's arguments (`Tool.input_schema`). |
+| **Output schema** | The optional JSON Schema for a tool's result (`Tool.output_schema`). |
+| **Structured content** | A tool result returned as validated JSON, not just text. |
+| **Pagination** | Splitting a long list across several responses using a `next_cursor`. |
+| **list_changed** | A capability flag plus a notification saying "my catalog changed — re-list". |
+| **Namespacing** | Prefixing each tool name with its server, e.g. `files.read_file`. |
+
+Two distinctions to hold from the start:
+
+- **Capability is negotiated once; items are listed repeatedly.** The handshake says "I have tools." The list calls say *which* tools, and can change later.
+- **The JSON Schema is the contract; the description is the routing hint.** The schema rejects bad arguments. The description helps the model choose the tool in the first place.
+
+## The core idea
+
+Think of plugging a USB device into a laptop. The port does not know what the device is. So the laptop enumerates it: the device declares its class and capabilities, then describes each interface. Only after enumeration does the OS know whether it is a keyboard, a disk, or a camera.
+
+MCP does the same for capabilities. The handshake — `server/discover` on 2026-07-28, `initialize` on legacy servers — is enumeration at the capability level. The `*/list` calls are enumeration at the item level. The JSON Schema is the device descriptor — the precise shape the other side must speak.
+
+```mermaid
+sequenceDiagram
+    participant C as MCP Client
+    participant S as MCP Server
+    alt 2026-07-28 (default mode="auto")
+        C->>S: server/discover
+        S-->>C: DiscoverResult(supportedVersions, capabilities)
+    else legacy server
+        C->>S: initialize(protocolVersion, clientCapabilities)
+        S-->>C: InitializeResult(protocolVersion, serverCapabilities)
+        C->>S: notifications/initialized
+    end
+    C->>S: tools/list
+    S-->>C: tools[{name, description, inputSchema}]
+    C->>S: resources/list
+    S-->>C: resources[{uri, name}]
+    C->>S: resources/templates/list
+    S-->>C: resourceTemplates[{uriTemplate}]
+    C->>S: prompts/list
+    S-->>C: prompts[{name, arguments}]
+    Note over C,S: Later, the catalog changes...
+    S-->>C: notifications/tools/list_changed
+    C->>S: tools/list (refetch)
+```
+
+The negotiation is symmetric. The **client** advertises what *it* can do — for example `sampling` (let the server ask the client's model to generate), `roots` (tell the server which folders are in scope), and `elicitation` (let the server ask the user for input). The **server** advertises `tools`, `resources` (with `subscribe` and `listChanged`), `prompts`, and `logging`. Each side reads the other's flags and must not use a feature the other did not declare.
+
+| Server capability | Field to check | If missing |
+| --- | --- | --- |
+| Tools | `capabilities.tools` | Do not call `tools/list` or `tools/call`. |
+| Resources | `capabilities.resources` | Do not call `resources/list` or `resources/read`. |
+| Resource updates | `capabilities.resources.subscribe` | Do not try to subscribe to a resource URI. |
+| Prompts | `capabilities.prompts` | Do not offer prompts from this server. |
+| Change notices | `capabilities.tools.listChanged` | Do not expect a change notification; re-list on a timer. |
+
+## How it works
+
+1. **The client opens the transport.** For `stdio` it launches the server process and pipes stdin/stdout. For HTTP it connects to the server URL.
+2. **The client probes the protocol.** On protocol 2026-07-28 it sends `server/discover`; the server answers with `DiscoverResult` — `supported_versions`, `capabilities`, and optional `instructions`. The high-level `Client` runs this probe in its default mode `"auto"`.
+3. **The client falls back for a legacy server.** If the server does not support `server/discover`, the client sends `initialize` with `protocol_version`, `client_info`, and its `capabilities`; the server replies with `InitializeResult` (`protocol_version`, `server_info`, `capabilities`, `instructions`), and the client finishes with a one-way `notifications/initialized`.
+4. **The handshake completes.** With `discover` the connection is usable as soon as the result is adopted; with legacy `initialize` it is usable after `notifications/initialized`. Either way, the version and capabilities are now fixed.
+5. **The client lists tools.** `tools/list` returns an array of `Tool` objects: `name`, `description`, `input_schema`, and sometimes `output_schema` and `annotations` (e.g. read-only hints).
+6. **The client lists resources and templates.** `resources/list` returns concrete URIs. `resources/templates/list` returns URI patterns with variables.
+7. **The client lists prompts.** `prompts/list` returns prompt names and their declared arguments.
+8. **The client validates before calling.** It parses model-generated arguments against the tool's `input_schema` (often with Pydantic). Bad arguments are rejected locally, before any side effect.
+9. **The client validates the result.** If the tool published an `output_schema`, the client can check `structuredContent` against it instead of trusting text.
+10. **The client watches for change.** If `listChanged` is true, a notification tells the client to re-list and refresh its cache.
+
+Lists can be long. A server may return a `next_cursor`; the client passes it back to page through results. Always loop until the cursor is empty, or you will silently see only the first page.
+
+## The syntax you will use
+
+The examples below use the official Python SDK, `mcp` 2.2.0. In 2.x the high-level server class is `MCPServer` (it was `FastMCP` in 1.x).
+
+**Declare a tool on the server.** The docstring becomes the description; type hints become the input schema.
+
+```python
+from mcp.server.mcpserver import MCPServer
+
+mcp = MCPServer("demo", version="1.0.0")
+
+@mcp.tool()
+def add(a: int, b: int) -> int:
+    """Add two integers."""
+    return a + b
+```
+
+**Declare a resource.** A fixed URI returns read-only content.
+
+```python
+@mcp.resource("docs://handbook")
+def handbook() -> str:
+    """The employee handbook."""
+    return "Welcome to the handbook."
+```
+
+**Declare a resource template.** Braces mark variables, and they arrive as typed arguments.
+
+```python
+@mcp.resource("users://{user_id}/profile")
+def profile(user_id: str) -> str:
+    """Return a user profile by id."""
+    return f"Profile for {user_id}"
+```
+
+**Declare a prompt.** Prompts are user-triggered templates, not model tools.
+
+```python
+@mcp.prompt()
+def review(code: str, language: str = "python") -> str:
+    """Ask for a code review."""
+    return f"Review this {language} code:\n{code}"
+```
+
+**Discover with the high-level client.** `list_tools()` returns a `ListToolsResult`; the items are in `.tools`.
+
+```python
+from mcp import Client
+from mcp.client.stdio import StdioServerParameters
+
+server = StdioServerParameters(command="python", args=["server.py"])
+
+async with Client(server) as client:
+    result = await client.list_tools()
+    for tool in result.tools:
+        print(tool.name, tool.input_schema)
+```
+
+**Discover with the low-level session.** This is the same protocol, one layer down.
+
+```python
+from mcp import ClientSession
+from mcp.client.stdio import stdio_client
+
+async with stdio_client(server) as (read, write):
+    async with ClientSession(read, write) as session:
+        disc = await session.discover()          # 2026-07-28 probe; adopts the result
+        print(disc.supported_versions, disc.capabilities.tools)
+        # Legacy server? discover() raises MCPError, so fall back:
+        # init = await session.initialize()
+        # print(init.protocol_version, init.capabilities.tools)
+        tools = await session.list_tools()
+```
+
+**Read a resource and validate the URI.** `read_resource` takes the URI string.
+
+```python
+contents = await client.read_resource("docs://handbook")
+print(contents.contents[0].text)
+```
+
+**Validate arguments before calling.** Mirror the tool's declared arguments in a Pydantic model and parse the model's proposal.
+
+```python
+from pydantic import BaseModel, ValidationError
+
+class AddArgs(BaseModel):
+    a: int
+    b: int
+
+try:
+    args = AddArgs.model_validate({"a": 2, "b": 3})   # ok
+except ValidationError as exc:
+    print(exc.errors())                              # reject and retry
+```
+
+**Namespace many servers before exposing tools to the model.**
+
+```python
+from mcp.shared.tool_name_validation import validate_tool_name
+
+def qualify(server_id: str, tool_name: str) -> str:
+    name = f"{server_id}.{tool_name}"
+    assert validate_tool_name(name).is_valid, name
+    return name
+
+qualify("files", "read_file")   # "files.read_file" — dots are allowed
+```
+
+## Examples: simple to real
+
+**Example 1 — inspect what a server actually advertises.** This is the first thing to do when a new server misbehaves.
+
+```text
+$ python client.py
+protocol: 2026-07-28
+server: demo-server 1.0.0
+capabilities: tools=list_changed=True resources=None prompts=None
+tools: [('add', ['a', 'b'])]
+```
+
+Read it left to right: which protocol, which server version, which capability flags, and the required arguments of each tool. A tool with no `required` fields is often a trap — it may accept anything and validate nothing.
+
+**Example 2 — the generated input schema is real JSON Schema.** Typed parameters become properties; `required` lists the ones without defaults.
+
+```python
+@mcp.tool()
+def add(a: int, b: int) -> int:
+    """Add two integers."""
+    return a + b
+
+# tool.input_schema for `add`:
+{
+  "properties": {"a": {"title": "A", "type": "integer"},
+                  "b": {"title": "B", "type": "integer"}},
+  "required": ["a", "b"],
+  "title": "addArguments",
+  "type": "object"
+}
+```
+
+The client can now reject `{"a": "two", "b": 3}` before sending it. The server would also reject it, but failing fast at the client saves a round trip and a side effect.
+
+**Example 3 — one Pydantic parameter nests under its name.** This surprises people. In the Python SDK, each function parameter becomes one field. A single model parameter therefore becomes an object field, not a flattened set of fields.
+
+```python
+class SearchArgs(BaseModel):
+    query: str
+    top_k: int = 5
+
+@mcp.tool()
+def search_docs(args: SearchArgs) -> str:
+    return f"results for {args.query}"
+
+# The schema has one property called "args", and the call is:
+#   {"args": {"query": "billing"}}
+```
+
+For a flat tool schema, declare the fields as separate parameters. Use one model only when a single nested object is genuinely the shape you want.
+
+**Example 4 — templates turn one resource into many.** The variable is typed, and the client passes the value in the URI.
+
+```python
+@mcp.resource("users://{user_id}/profile")
+def profile(user_id: str) -> str:
+    return f"Profile for {user_id}"
+
+# Client side:
+await client.read_resource("users://42/profile")   # "Profile for 42"
+```
+
+`list_resource_templates()` returns `users://{user_id}/profile`; `read_resource` substitutes `42`. The client never needs a distinct tool per user.
+
+**Example 5 — handle a changing catalog correctly.** When the server advertises `listChanged`, it can tell clients to refetch. On the modern protocol (2026-07-28) this arrives on a `subscriptions/listen` stream.
+
+```python
+from mcp.shared.subscriptions import ToolsListChanged  # NOT mcp.types
+
+async with Client(server) as client:
+    async with client.listen(tools_list_changed=True) as sub:
+        print(sub.honored)          # tools_list_changed=True
+        await client.call_tool("refresh", {})
+        event = await anext(sub)    # ToolsListChanged()
+        tools = await client.list_tools()   # re-fetch on change
+```
+
+The rule is always the same: **on a change notification, re-list.** Never mutate a cached list from the notification payload — it carries no items.
+
+**Example 6 — namespace twenty servers into one catalog.** The host prefixes each tool so the model sees unique names, and keeps the mapping so it can route the call back.
+
+```python
+catalog = {}   # qualified name -> (client, original tool)
+
+for server_id, client in clients.items():
+    for tool in (await client.list_tools()).tools:
+        qualified = qualify(server_id, tool.name)
+        catalog[qualified] = (client, tool.name)
+        # describe `qualified` to the model, then route by lookup
+```
+
+Namespacing solves discovery collisions. It does not solve description collisions — two servers both offering `.search` still need clear descriptions.
+
+## In production
+
+- **Capability flags are a contract, not a suggestion.** If `capabilities.tools` is absent, calling `tools/list` is a protocol error. Check before you call.
+- **Loop pagination to completion.** A single `list_tools()` can return a `next_cursor`. Treating the first page as the whole catalog is a silent, partial failure.
+- **Cache the catalog, but version it.** Listing on every turn is wasteful; caching forever misses changes. Cache with a short TTL plus the `list_changed` signal.
+- **Validate arguments and results.** The model generates arguments, and the server generates results. Both are untrusted until they pass their schema.
+- **Never assume `input_schema` is flat.** The Python SDK nests a single Pydantic parameter under its name, and providers differ in `$ref` support. Test the real schema against the real client.
+- **Do not infer types from the description.** A good description routes the model; it does not replace the schema. If the type matters, it belongs in the schema.
+- **Namespace before you merge catalogs.** Twenty servers will contain name collisions. Prefix at the host, and validate the qualified name (dots are allowed, spaces are not).
+- **Keep the mapping, not just the name.** To route a namespaced call you need the original tool name and the client that owns it. Store the pair; do not parse the prefix back apart.
+- **`listChanged` means re-list, not patch.** The notification is a signal with no payload. Refetch and rebuild the cache atomically so you never serve a half-updated catalog.
+- **Handle unknown and renamed tools.** A tool can disappear between listing and calling. Treat "unknown tool" as a normal, recoverable error and refresh the catalog.
+- **Log what was offered and what was called.** When a tool is never chosen, you must know whether discovery even returned it.
+- **Watch protocol-version drift.** The 2.x SDK's high-level `Client` defaults to mode `"auto"`: it probes `server/discover` and negotiates 2026-07-28, where change events use `subscriptions/listen`. Against a legacy server it falls back to the `initialize` + `notifications/initialized` handshake, where change arrives as `notifications/tools/list_changed`. Support both if you ship widely.
+
+## Interview questions
+
+### 1. Walk me through what happens when an MCP client connects to a server.
+
+**Answer.** The client opens a transport and negotiates the protocol. On 2026-07-28 it sends `server/discover` and adopts the returned `DiscoverResult`; on a legacy server it sends `initialize` with its protocol version and capabilities, the server replies with its own version, `server_info`, and capabilities, and the client then sends `notifications/initialized`. From there it calls `tools/list`, `resources/list`, `resources/templates/list`, and `prompts/list` to learn the concrete catalog, and it validates each tool's input schema before calling.
+
+**Follow-up: "What breaks if you skip `notifications/initialized`?"** On the legacy handshake, many servers will not process requests before it completes. It is a one-way message, but it is part of that lifecycle, not optional. On 2026-07-28 there is no such notification — adopting the `discover` result is the handshake.
+
+**Trap.** Describing discovery as a single `list_tools` call. The capability negotiation is the part that tells you whether listing is even legal.
+
+### 2. What is the difference between a capability and a listed item?
+
+**Answer.** A capability is a boolean feature flag exchanged once during the handshake — "I support tools." A listed item is a concrete entry returned later by a list call — `add`, `search_docs`. Capabilities gate which list calls are legal; items are the content, and they can change during the session.
+
+**Follow-up: "Can capabilities change mid-session?"** No. Capabilities are fixed at handshake time. Items are what change, signalled by `list_changed`.
+
+**Trap.** Treating `capabilities.tools` as the tool list. It is only a flag; it says nothing about which tools exist.
+
+### 3. Why does every tool need a JSON Schema?
+
+**Answer.** Because the caller is often a model producing arguments as text. The schema constrains the model while it generates and lets the client reject malformed arguments before execution. It is the machine-readable half of the tool contract; the description is the human-readable half.
+
+**Follow-up: "What about the result side?"** A tool may publish an `output_schema` and return `structuredContent`. The client can validate that too, so downstream code is not parsing free text.
+
+**Trap.** Thinking the schema only helps the model. It also protects the server from bad writes and makes the catalog machine-consumable.
+
+### 4. How does the client know when the catalog changes?
+
+**Answer.** The server advertises `listChanged` in its capability flags. When its catalog changes it emits a change notification — historically `notifications/tools/list_changed`; on protocol 2026-07-28 a `subscriptions/listen` event. The client reacts by re-listing. The notification itself is only a signal and carries no items.
+
+**Follow-up: "What if the client does not support notifications?"** Then it cannot be told. It should re-list on a timer, or accept a stale catalog, and handle "unknown tool" as a recoverable error.
+
+**Trap.** Patching the cached list from the notification. There is nothing to patch with — always refetch.
+
+### 5. How do you handle many tools from many servers?
+
+**Answer.** Namespace at the host. Prefix each tool with its server id, for example `files.read_file` or `github.create_issue`. Keep a map from the qualified name back to the owning client and original name so the call can be routed. Tool names allow letters, digits, underscore, dash, and dot, up to 128 characters.
+
+**Follow-up: "Is namespacing enough?"** No. It prevents collisions but not confusion. You still need shortlisting and clear descriptions, because the model's selection degrades as the catalog grows.
+
+**Trap.** Parsing the qualified name to recover the server. Store the mapping explicitly; names can legally contain dots on both sides.
+
+### 6. What do the client capabilities mean for a server developer?
+
+**Answer.** They tell the server which optional features it may use. `sampling` lets the server ask the client's model to generate text. `roots` lets the server ask which filesystem roots are in scope. `elicitation` lets the server ask the user for structured input. If the flag is absent, the server must not send that request.
+
+**Follow-up: "What happens if a server uses a client feature anyway?"** The client should reject it, and the SDK raises a missing-capability error. Feature use is negotiated, not assumed.
+
+**Trap.** Assuming every client supports sampling. Many do not, so a server that depends on it is broken on half its hosts.
+
+### 7. Why is validating arguments both a client and a server job?
+
+**Answer.** The client validates to fail fast and to tell the model what was wrong before any side effect. The server validates because it cannot trust the caller — a different client, or a compromised one, may skip validation entirely. The schema is shared, but neither side gets to assume the other enforced it.
+
+**Follow-up: "Where does the model's argument generation fit?"** The schema is injected into the prompt, so the model is constrained, but it can still be wrong. Constraint is not enforcement.
+
+**Trap.** Reusing the tool's implementation signature as the only validation. The server should validate the incoming JSON against the published schema, independent of the function body.
+
+### 8. What does a resource template buy you over a tool?
+
+**Answer.** A template is a read-only, addressable URI with variables, like `users://{user_id}/profile`. The client can discover the pattern once and read many instances by substituting values. It signals "this is data to read", which keeps it out of the model's tool-selection burden and into the app's data layer.
+
+**Follow-up: "When would you use a tool instead?"** When the operation is not a read — when it has side effects, needs complex arguments, or computes rather than fetches. Tools are for actions; resources are for content.
+
+**Trap.** Exposing everything as a tool. Read-only reference data is often better as a resource, which reduces the tool catalog the model must reason over.
+
+## Remember this
+
+- **Two stages:** the handshake (`discover` on 2026-07-28, `initialize` on legacy) negotiates capabilities; `*/list` discovers items.
+- **Check the flag before the call.** No `capabilities.tools` means no `tools/list`.
+- **JSON Schema is the contract.** Validate arguments before calling and results after.
+- **`list_changed` means re-list.** The notification is a signal with no payload.
+- **Namespace at the host.** Prefix tool names, keep the routing map, and still shortlist.

@@ -1,0 +1,447 @@
+# Knowledge-Base Versioning
+
+> **Interview answer (say this first).** Knowledge-base versioning is treating your corpus and indexes as versioned artifacts. Each document and chunk gets a content hash; a manifest records what is indexed with which model and chunker. A change produces a diff, and only added or changed chunks are re-embedded and upserted while removed ones are deleted. Big changes, like an embedding-model upgrade, trigger a full reindex into a new snapshot that you validate and then swap in, so serving stays consistent and you can roll back.
+
+## Why this exists
+
+Your corpus is not static. Policies get edited, prices change, PDFs are replaced, people delete documents, and you eventually upgrade the embedding model. Every one of those events can corrupt a RAG system if you have no plan.
+
+Here is the failure that wakes people up. A customer deletes their account and asks you to remove their support tickets from the knowledge base. You delete the source files. But the chunks are still in the vector index, with no link back to the source. Search still returns them. That is a compliance incident, not a bug.
+
+Three more failures are equally common:
+
+- **Stale answers.** A policy changed from 5 days to 10. The old chunk is still indexed next to the new one, so retrieval returns both and the model picks one at random.
+- **Partial reindexes that never finish.** You kick off a full re-embed of 2 million chunks, it dies at 80%, and now the index is half old-model and half new-model. Comparing vectors from two different models is meaningless.
+- **Serving breaks during the rebuild.** You drop and rebuild the index in place. For twenty minutes, search returns nothing. Users see "I could not find this" for every question.
+
+Versioning solves all four by making the index a **derived, replaceable artifact** with a clear identity.
+
+```mermaid
+flowchart LR
+    A["Source documents"] --> B["Hash + manifest<br/>(doc, chunk, model)"]
+    B --> C["Diff old vs new"]
+    C --> D["Incremental:<br/>upsert changed chunks"]
+    C --> E["Full rebuild:<br/>new snapshot index"]
+    D --> F["Validate"]
+    E --> F
+    F --> G["Swap serving pointer<br/>(blue/green)"]
+    G --> H["Keep old snapshot<br/>for rollback"]
+```
+
+The serving pointer is the key idea. Users never see "the index." They see whatever the pointer currently names.
+
+> **Note:**
+>
+> **The one-sentence purpose.** Never mutate the live index in place; build a new version, validate it, and swap a pointer you can swap back.
+
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Corpus** | All the source documents your system can retrieve from. |
+| **Index** | The searchable store of chunks and their vectors. Built from the corpus. |
+| **Manifest** | A record of exactly what is indexed: chunk ids, hashes, model, and chunker versions. |
+| **Content hash** | A short fingerprint of a piece of text, such as SHA-256. Different text, different hash. |
+| **Checksum** | Another word for a hash used to detect change. |
+| **Version** | A label that identifies one consistent state of the index. |
+| **Reindex** | Rebuilding the index from the corpus. |
+| **Full reindex** | Re-embed and rebuild everything. |
+| **Incremental reindex** | Update only the chunks that changed. |
+| **Upsert** | Insert if new, update if it already exists. |
+| **Tombstone** | A marker that says "this id is deleted," kept so the deletion propagates. |
+| **Soft delete** | Mark as deleted but keep the record, often for audit or undo. |
+| **Hard delete** | Actually remove the record and its vectors. |
+| **Blue/green** | Keep two indexes; serve one while building the other; swap when ready. |
+| **Snapshot** | A frozen, read-only copy of an index at a point in time. |
+| **Alias / pointer** | A name, such as `kb-live`, that points at a specific index version. |
+| **Embedding model version** | Which model produced the vectors. Vectors from different models are not comparable. |
+| **Chunker version** | Which chunking rules produced the chunks. Changing them changes chunk ids. |
+| **Idempotent** | Running the same operation twice gives the same result as running it once. |
+| **Backfill** | Recomputing data after a change, for example re-embedding old chunks. |
+| **Compaction / vacuum** | Cleaning up deleted or tombstoned vectors to reclaim space. |
+| **Audit log** | An append-only record of who changed what, when, and from which version. |
+| **Rollback** | Pointing serving back at a previous, known-good version. |
+| **Eventual consistency** | A brief window where old and new data both exist after a change. |
+
+Two ideas carry the whole topic:
+
+- **Identity is content plus versions.** A chunk is identified by its document, its position, its chunker version, and the embedding model. Change any of them and it is a new chunk.
+- **The index is disposable.** You should be able to delete it and rebuild it from the corpus plus the manifest. If you cannot, you have hidden state.
+
+## The core idea
+
+Think of a library card catalog. The books are the corpus; the catalog is the index. When a book is updated, the librarian does not secretly rewrite the card while people are reading. They:
+
+1. note which books changed,
+2. write a new catalog (or new cards) in the back room,
+3. check that the new catalog matches the shelves,
+4. swap the old catalog for the new one in one motion,
+5. keep the old catalog for a while in case the new one is wrong.
+
+Versioning is that process. The two serving strategies are genuinely different deployments:
+
+| | In-place update | Blue/green snapshot |
+| --- | --- | --- |
+| Serving during rebuild | Degraded or down | Unaffected |
+| Rollback | Hard, state is mixed | Point back to green |
+| Cost | Lower storage | Double storage briefly |
+| Consistency | Mixed old and new vectors | One consistent version |
+| Use when | Tiny incremental change | Model upgrade, chunker change, large corpus |
+| Risk | Half-migrated index | Swap bugs and stale cache |
+
+Use incremental updates for small, additive changes. Use a new snapshot and a pointer swap for anything that changes the meaning of a vector or the shape of the chunks.
+
+## How it works
+
+1. **Give every chunk a stable id.** Include the document id and chunk position, for example `returns#0`. Add the chunker version (`returns#c2#0`) if chunking can change.
+2. **Hash the chunk text.** SHA-256 is fast and collision-resistant enough for change detection.
+3. **Store a manifest.** Map chunk id to `{doc_id, hash, model_version, chunker_version}`. This is the source of truth for what is indexed.
+4. **Compute a diff on every change.** Compare the new manifest with the old: new ids are inserts, changed hashes or versions are updates, missing ids are deletes, the rest are unchanged.
+5. **Re-embed only what changed.** Each embed call costs money and time. Skipping unchanged chunks is the whole point of incremental reindexing.
+6. **Upsert inserts and updates.** Upsert is idempotent, so a retry is safe.
+7. **Delete by tombstone first, then compact.** Vector indexes delete imperfectly, so mark the id deleted, stop returning it immediately, and let compaction remove the vector later.
+8. **Bump model and chunker versions deliberately.** A model upgrade changes every vector, so it is a full reindex. A chunker change changes chunk boundaries, so it is also a full reindex for affected documents.
+9. **Build into a new index or namespace.** Never rebuild over the live one.
+10. **Validate before serving.** Run a golden question set against the new version and compare retrieval metrics and answers with the current one.
+11. **Swap the alias.** Point `kb-live` at the new version. This is the atomic moment; it should take seconds, not hours.
+12. **Keep the previous version.** Retain it for rollback and delete it after a cooling-off period.
+13. **Log the change.** Record the version, the diff summary, who triggered it, and the validation result in an audit log.
+
+> **Warning:**
+>
+> **Never mix embedding models in one index.** A vector from `embed-v1` and a vector from `embed-v2` live in different spaces. Cosine similarity between them is noise. If you cannot finish a migration, roll back or serve the old index — do not serve a mixture.
+
+
+## The syntax you will use
+
+**Hash a chunk's content.**
+
+```python
+import hashlib
+
+def h(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+print(h("Refunds take five days.") == h("Refunds take five days."))   # True
+print(h("Refunds take five days.") == h("Refunds take ten days."))    # False
+```
+
+The hash changes when the content changes, and only then. That is the basis of every diff.
+
+**Build a manifest with model and chunker versions.**
+
+```python
+def chunk_doc(doc_id, text, size=20, chunker="c1"):
+    words = text.split()
+    return [{"chunk_id": f"{doc_id}#{chunker}#{i // size}",
+             "text": " ".join(words[i:i + size])}
+            for i in range(0, len(words), size)]
+
+def build_manifest(docs, model="embed-v1", chunk_size=20, chunker="c1"):
+    m = {}
+    for doc_id, text in docs.items():
+        for c in chunk_doc(doc_id, text, chunk_size, chunker):
+            m[c["chunk_id"]] = {"doc_id": doc_id, "hash": h(c["text"]), "model": model}
+    return m
+```
+
+The chunk id contains the chunker version, so a chunking change cannot silently reuse an old id. The manifest is the diffable state; store it in your database, not in process memory.
+
+**Compute the incremental plan.**
+
+```python
+def plan_incremental(old, new_docs, model=None):
+    new = build_manifest(new_docs, model=model or "embed-v1")
+    upserts, deletes, unchanged = [], [], []
+    for cid, meta in new.items():
+        old_meta = old.get(cid)
+        if old_meta is None or old_meta["hash"] != meta["hash"] or old_meta["model"] != meta["model"]:
+            upserts.append(cid)
+        else:
+            unchanged.append(cid)
+    for cid in old:
+        if cid not in new:
+            deletes.append(cid)
+    return upserts, deletes, unchanged
+```
+
+This is the heart of versioning: a pure function from two manifests to a list of actions you can log, test, and retry.
+
+**Apply tombstones.**
+
+```python
+class Index:
+    def __init__(self, name, manifest, model):
+        self.name, self.manifest, self.model = name, dict(manifest), model
+        self.tombstones = set()
+
+    def delete(self, chunk_id):
+        self.tombstones.add(chunk_id)
+
+    def search(self, query):
+        return [cid for cid in sorted(self.manifest) if cid not in self.tombstones]
+```
+
+Deletion is visible immediately, and the vector can be physically removed later.
+
+**Swap serving with a pointer.**
+
+```python
+active = {"name": "green", "index": green}     # serving green
+active = {"name": "blue", "index": blue}       # atomic swap
+active = {"name": "green", "index": green}     # rollback
+```
+
+In production the pointer is a database row or a vector-store alias such as `kb-live`. The swap must be one operation.
+
+**Make the apply step idempotent.**
+
+```python
+def apply(manifest, upserts, deletes):
+    m = dict(manifest)
+    for cid in upserts:
+        m[cid] = "embedded"
+    for cid in deletes:
+        m.pop(cid, None)
+    return m
+```
+
+Replaying the same plan yields the same manifest. That is what makes a crashed job safe to retry.
+
+**Record an audit entry.**
+
+```python
+audit = {
+    "version": "kb-2026-09-13-002",
+    "previous": "kb-2026-09-13-001",
+    "upserts": 2, "deletes": 1, "unchanged": 1,
+    "model": "embed-v1", "triggered_by": "policy-sync",
+}
+```
+
+The audit log answers "what changed, when, and by whom" long after the job has run.
+
+## Examples: simple to real
+
+**Example 1 — content hashes and a manifest.** Three documents become three chunks, each with a hash.
+
+```python
+DOCS_V1 = {
+    "returns": "Refunds are processed within five business days to the original payment method.",
+    "shipping": "Standard shipping is free for orders over fifty dollars and arrives in three to five days.",
+    "warranty": "Electronics carry a twelve month warranty covering manufacturing defects only.",
+}
+m1 = build_manifest(DOCS_V1)
+print("v1 chunks:", sorted(m1))
+```
+
+Measured output:
+
+```text
+v1 chunks: ['returns#c1#0', 'shipping#c1#0', 'warranty#c1#0']
+```
+
+This tiny manifest is enough to detect any future change.
+
+**Example 2 — an incremental plan does the minimum work.** The refund policy was edited, the shipping doc was deleted, and a tracking doc was added. The warranty doc is untouched.
+
+```python
+DOCS_V2 = {
+    "returns": "Refunds are processed within ten business days to the original payment method.",
+    "warranty": "Electronics carry a twelve month warranty covering manufacturing defects only.",
+    "tracking": "Track your order with the tracking number in your confirmation email.",
+}
+upserts, deletes, unchanged = plan_incremental(m1, DOCS_V2)
+print("incremental upserts:", upserts)
+print("incremental deletes:", deletes)
+print("incremental unchanged:", unchanged)
+```
+
+Measured output:
+
+```text
+incremental upserts: ['returns#c1#0', 'tracking#c1#0']
+incremental deletes: ['shipping#c1#0']
+incremental unchanged: ['warranty#c1#0']
+```
+
+Two chunks re-embedded, one deleted, one skipped. Re-embedding cost scales with the number of upserts, so on a large corpus the saving is enormous.
+
+**Example 3 — an embedding-model upgrade forces a full reindex.** The documents did not change, but the model version did, so every chunk must be re-embedded.
+
+```python
+u2, d2, same2 = plan_incremental(m1, DOCS_V1, model="embed-v2")
+print("model upgrade upserts:", u2, "deletes:", d2, "unchanged:", same2)
+```
+
+Measured output:
+
+```text
+model upgrade upserts: ['returns#c1#0', 'shipping#c1#0', 'warranty#c1#0'] deletes: [] unchanged: []
+```
+
+This is the case for blue/green: a long-running job that must not leave the live index half-migrated. Until the new index is fully built and validated, keep serving the old one.
+
+**Example 4 — tombstones stop deleted content from being served.** The shipping chunk was deleted, but the vector may still exist physically.
+
+```python
+green = Index("green", m1, "embed-v1")
+green.delete("shipping#c1#0")
+print("green serving:", green.search("q"))
+print("green tombstones:", sorted(green.tombstones))
+```
+
+Measured output:
+
+```text
+green serving: ['returns#c1#0', 'warranty#c1#0']
+green tombstones: ['shipping#c1#0']
+```
+
+Deleted content disappears from results immediately. Compaction removes the underlying vector later, which avoids a slow delete inside a hot index.
+
+**Example 5 — swap and roll back.** Build blue from the new corpus, then move the pointer, then move it back.
+
+```python
+blue = Index("blue", build_manifest(DOCS_V2), "embed-v1")
+active = {"name": "green", "index": green}
+print("active before swap:", active["name"], "->", active["index"].search("q"))
+active = {"name": "blue", "index": blue}
+print("active after swap :", active["name"], "->", active["index"].search("q"))
+active = {"name": "green", "index": green}
+print("after rollback    :", active["name"], "->", active["index"].search("q"))
+```
+
+Measured output:
+
+```text
+active before swap: green -> ['returns#c1#0', 'warranty#c1#0']
+active after swap : blue -> ['returns#c1#0', 'tracking#c1#0', 'warranty#c1#0']
+after rollback    : green -> ['returns#c1#0', 'warranty#c1#0']
+```
+
+The swap is instant and reversible. Rolling back is the same operation in reverse, with no data migration.
+
+**Example 6 — a chunker change alters chunk ids and makes old chunks stale.** Changing chunk size from 20 words to 6 produces different ids. Hashing alone would not catch this; the chunker version does.
+
+```python
+DOC = "Refunds are processed within five business days to the original payment method."
+old = {c["chunk_id"] for c in chunk_doc("returns", DOC, size=20, chunker="c1")}
+new = {c["chunk_id"] for c in chunk_doc("returns", DOC, size=6, chunker="c2")}
+print("upserts:", sorted(new))
+print("deletes:", sorted(old - new))
+print("overlap (stale reused):", sorted(old & new))
+```
+
+Measured output:
+
+```text
+upserts: ['returns#c2#0', 'returns#c2#1']
+deletes: ['returns#c1#0']
+overlap (stale reused): []
+```
+
+Because the chunker version is in the id, the old chunks cannot be silently reused. Without it, `returns#0` would mean one thing before the change and another after — a subtle, dangerous bug. Applying the same plan twice is idempotent:
+
+```python
+m0 = {"returns#c1#0": "embedded"}
+once = apply(m0, sorted(new), sorted(old - new))
+twice = apply(once, sorted(new), sorted(old - new))
+print("idempotent:", once == twice, "| keys:", sorted(twice))
+```
+
+Measured output:
+
+```text
+idempotent: True | keys: ['returns#c2#0', 'returns#c2#1']
+```
+
+## In production
+
+- **Treat the index as derived, disposable state.** If you cannot rebuild it from the corpus plus the manifest, you have hidden state and cannot recover from corruption.
+- **Hash chunks, not just documents.** One paragraph edit should not force re-embedding a whole 200-page PDF.
+- **Put model and chunker versions in the chunk id or manifest.** Without them, a config change silently reuses stale chunks and produces incomparable vectors.
+- **Never mix embedding models in one index.** Vectors from different models are not comparable. A half-finished migration is worse than a slow one.
+- **Tombstone deletes, then compact.** Index deletes can be slow or imperfect; a tombstone removes content from results immediately and lets cleanup happen off the hot path.
+- **Make every apply step idempotent.** Jobs crash. Replaying a plan must not double-insert or corrupt counts.
+- **Validate before you swap.** Run a golden question set against the new version and compare retrieval and answer metrics. A green build that answers worse is still a failure.
+- **Swap a pointer, not data.** The atomic part of blue/green is a single alias change. Everything expensive happens before it.
+- **Keep the last known-good version.** Rollback should be a pointer change, not a rebuild. Delete old versions only after a cooling-off period.
+- **Handle the deletion-and-readd race.** If a document is deleted and re-added while a job runs, the diff must be computed from a consistent snapshot, or use a version number per document to order operations.
+- **Expect a short eventual-consistency window.** Search replicas and caches may serve the old index for seconds after the swap. Decide whether that is acceptable and document it.
+- **Log every version change.** The audit log is what lets you answer "why did the answer change last Tuesday," and it is what compliance will ask for.
+
+## Interview questions
+
+### 1. Why does a RAG system need knowledge-base versioning?
+
+**Answer.** Because the corpus changes independently of the code. Documents are edited, deleted, added, and re-embedded when the model changes. Without versioning, the index drifts from the corpus: stale chunks stay searchable, deletions never propagate, and a failed migration leaves the index half-updated. Versioning makes the index a labeled, replaceable artifact with a known state and a rollback path.
+
+**Follow-up: "What is the simplest version of it?"** A manifest of chunk ids and content hashes, an incremental diff, and a version label on the index. That alone lets you detect drift and reindex precisely.
+
+**Trap.** Assuming that because the source file changed, the index changed. Nothing propagates unless a job does it.
+
+### 2. How does incremental reindexing work?
+
+**Answer.** Keep a manifest mapping each chunk id to its content hash and versions. On a change, recompute the manifest, diff it against the old one, and act: new or changed hashes are upserts, missing ids are deletes, and the rest are unchanged. Only upserts are embedded. The diff is a pure function, so it can be logged, tested, and retried.
+
+**Follow-up: "What limits incremental wins?"** Chunk ids must be stable. If the chunker or id scheme changes, almost everything looks new, and you are back to a full reindex.
+
+**Trap.** Hashing whole documents. One small edit then forces a full re-embed of a large document.
+
+### 3. What is a tombstone, and why not just delete?
+
+**Answer.** A tombstone is a marker that an id is deleted. You add it immediately so search never returns the content, then physically remove the vector later during compaction. Vector indexes can make hard deletes slow or leave gaps, and deletes inside a hot index hurt performance. Tombstones also preserve an audit trail.
+
+**Follow-up: "What is the risk of tombstones?"** They accumulate and can waste memory if compaction never runs. Monitor tombstone count and compact on a schedule.
+
+**Trap.** Marking the vector deleted but leaving the text searchable in a keyword index. Every index — dense and sparse — needs the same deletion applied.
+
+### 4. When is a full reindex required?
+
+**Answer.** When the meaning or identity of every chunk changes: an embedding-model upgrade, a chunker or chunk-size change, a change to text normalization or metadata schema, or a migration between vector databases. Incremental updates are for content and metadata changes that leave the vectors comparable.
+
+**Follow-up: "How do you avoid downtime during a full reindex?"** Build the new index as a second snapshot, validate it, and swap a serving alias. Keep the old snapshot for rollback.
+
+**Trap.** Converting the index in place. If the job fails halfway, you have mixed models and no clean state.
+
+### 5. Explain blue/green deployment for indexes.
+
+**Answer.** Keep two indexes. Green is live. Build blue from the new corpus in the background, validate it with a golden set, then point the serving alias at blue. If anything is wrong, point it back at green. The expensive work happens before the swap, so the swap is atomic and fast.
+
+**Follow-up: "What does it cost?"** Double storage during the build and the compute to embed everything again. For large corpora, that is a real budget line, so schedule upgrades deliberately.
+
+**Trap.** Serving traffic to both indexes at once and merging results. That reintroduces model mixing and makes ranking incomparable.
+
+### 6. How do you handle document deletion and compliance?
+
+**Answer.** Deletion must propagate to every derived store: dense vectors, sparse index, caches, and any summaries. Tombstone the ids first so they stop being served, record the deletion in the audit log, then hard-delete and compact. Verify by searching for a phrase from the deleted document and confirming zero hits.
+
+**Follow-up: "How do you prove it worked?"** Keep an audit record with timestamps, and run a deletion check as part of the job. Compliance wants evidence, not intent.
+
+**Trap.** Deleting the source file and assuming the index follows. It does not.
+
+### 7. How do you keep serving consistent during a large rebuild?
+
+**Answer.** Never rebuild over the live index. Build a separate snapshot, keep serving the current version, and swap an alias when validation passes. Warm the new index's caches, pre-load it, and swap in one operation. Accept and document a short eventual-consistency window for replicas.
+
+**Follow-up: "What if a document changes during the build?"** Snapshot the corpus at the start of the build, and queue changes that arrive during the build to replay after the swap, or run a small incremental catch-up before swapping.
+
+**Trap.** Forgetting caches. A response cache keyed by query can keep returning old answers after the swap.
+
+### 8. How does versioning give you rollback and auditability?
+
+**Answer.** Every index version is labeled and immutable, and the manifest plus audit log record exactly what went into it. Rollback points serving at the previous version, which still exists. Auditability means you can answer who changed what, when, and which model and chunker produced the current results.
+
+**Follow-up: "How long do you keep old versions?"** Long enough to cover a bad release and a business cycle, then delete to control storage. Keep the audit log longer than the index.
+
+**Trap.** Keeping only the latest version. Then rollback means rebuilding under pressure, exactly when you can least afford it.
+
+## Remember this
+
+- The index is **derived state**. Corpus plus manifest must be enough to rebuild it.
+- **Hash chunks and diff manifests** to re-embed only what changed. Idempotent apply steps make retries safe.
+- **Model and chunker versions are part of a chunk's identity.** Never mix embedding models in one index.
+- **Tombstone first, compact later**, and apply deletions to every index and cache.
+- **Blue/green plus a pointer swap** keeps serving consistent and makes rollback a single reversible operation.

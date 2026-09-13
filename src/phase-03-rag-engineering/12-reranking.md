@@ -1,0 +1,367 @@
+# Reranking
+
+> **Interview answer (say this first).** Reranking is a second retrieval stage that reorders a short candidate list. Stage one uses a fast bi-encoder or BM25 to pull, say, 100 candidates. Stage two uses a cross-encoder, which reads the query and each document *together*, so it is far more accurate but far too slow to run over the whole corpus. You keep the top few after reranking and send those to the model.
+
+## Why this exists
+
+Retrieval has a speed-versus-accuracy problem. The fast methods must produce a vector for every document ahead of time, so they compress each document into one vector without knowing the query. The accurate methods read the query and the document together — but doing that for a million documents is impossible at query time.
+
+The result is that the first-stage ranking is **noisy near the top**. It gets the right documents into the top 100, but the ordering within that top 100 is unreliable. Consider a real example measured with `all-MiniLM-L6-v2` (bi-encoder) and `cross-encoder/ms-marco-MiniLM-L-6-v2` for the query `reset my password`:
+
+```text
+Bi-encoder ranking (dot product of separate vectors):
+  +0.7841  How to reset your account password from the settings page
+  +0.7273  My password expired and I cannot log in
+  +0.6193  Change your password from the security menu
+  +0.4174  Reset the device to factory settings
+  +0.3648  Password rules: length and special characters
+
+Cross-encoder ranking (reads each pair together):
+  +4.7888  How to reset your account password from the settings page
+  +0.1904  Change your password from the security menu
+  -0.1642  My password expired and I cannot log in
+  -6.4460  Reset the device to factory settings
+  -8.4608  Password rules: length and special characters
+```
+
+Both put the best document first, but they disagree below it: the bi-encoder ranks `My password expired...` second, while the cross-encoder puts `Change your password...` second and pushes `My password expired...` to third. The bi-encoder was fooled by shared words (`password`, `login`); the cross-encoder understood that the user wants to *change* a password and judged accordingly.
+
+If you pass the top three to the LLM, the bi-encoder gives it a slightly wrong context. Reranking fixes exactly that ordering problem, and it is often the single highest-return change to a RAG pipeline.
+
+Agent systems feel this even more sharply than chatbots. An agent retrieves memory before each planning step, and its context window is shared with tools, conversation, and instructions. Reranking keeps the few retrieved memories that actually matter, instead of filling the window with the top of a noisy list.
+
+> **Note:**
+>
+> **The one-sentence purpose.** Reranking spends extra compute on a small candidate list to fix the ordering that fast retrieval cannot get right.
+
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Stage 1 / retriever** | The fast search that finds a broad candidate list. Dense embeddings or BM25. |
+| **Stage 2 / reranker** | The slower model that reorders the candidates. Usually a cross-encoder. |
+| **Candidate list** | The documents stage 1 returns, often 50–200. |
+| **Top-n** | How many candidates you send to the reranker. |
+| **Bi-encoder** | A model that encodes the query and the document *separately*, into two vectors. Fast; used for retrieval. |
+| **Cross-encoder** | A model that takes the query and one document *together* in a single input and outputs one relevance score. Accurate; used for reranking. |
+| **Interaction** | The cross-encoder's ability to compare query and document tokens directly, word against word. A bi-encoder loses this. |
+| **Logit** | A raw model score before any sigmoid. Cross-encoder scores are often logits (can be any real number). |
+| **Latency** | How long one request takes, in milliseconds. Reranking adds latency per candidate. |
+| **Throughput** | How many requests or pairs you can process per second. |
+| **Recall@K** | Of the truly relevant documents, how many stage 1 put in the top K. Reranking cannot fix recall; it only reorders what stage 1 found. |
+| **Precision@K** | Of the top K after reranking, how many are relevant. Reranking improves this. |
+| **MRR** | Mean Reciprocal Rank: the average of `1 / position of the first relevant result`. |
+| **NDCG** | A ranking score that rewards putting highly relevant documents near the top; graded relevance, not just yes/no. |
+| **Hosted reranker** | A reranking API you call over the network, e.g. Cohere Rerank. |
+| **Open reranker** | A model you run yourself, e.g. `bge-reranker` or `ms-marco-MiniLM`. |
+| **Batching** | Sending many query-document pairs in one model call to use the hardware efficiently. |
+
+Two facts to hold onto:
+
+- **Reranking cannot add recall.** If stage 1 never retrieved the right document, no reranker can summon it. Fix recall first, then rerank.
+- **A cross-encoder is more accurate because it sees the pair together.** That joint view is the whole advantage, and it is also the whole cost: one forward pass per candidate.
+
+## The core idea
+
+Think about hiring. A recruiter with ten thousand résumés does a fast keyword screen and keeps the best hundred. Then a panel reads each of those hundred carefully, alongside the job description, and ranks them properly. The panel is slower per candidate, but it can see the fit between *this* candidate and *this* role — something the keyword screen cannot.
+
+The bi-encoder is the keyword screen. It encodes the job description once and each résumé once, then compares vectors. The cross-encoder is the panel. It reads the job description and one résumé **together** in a single pass, so it can notice that this candidate's experience matches this requirement.
+
+```mermaid
+flowchart LR
+    C["Full corpus<br/>1,000,000 chunks"] --> S1["Stage 1<br/>bi-encoder / BM25<br/>fast, approximate"]
+    S1 --> CAND["Top 100 candidates"]
+    CAND --> S2["Stage 2<br/>cross-encoder<br/>slow, accurate"]
+    S2 --> TOP["Top 5"]
+    TOP --> P["Prompt to the LLM"]
+    style S2 fill:#ffe6cc
+```
+
+| Property | Bi-encoder (stage 1) | Cross-encoder (stage 2) |
+| --- | --- | --- |
+| Input | Query and document separately | Query and document together |
+| Output | Two vectors; similarity computed after | One relevance score per pair |
+| Precompute documents? | Yes, one vector each, offline | No, must run at query time |
+| Cost per query | One query encode + fast vector search | One model pass per candidate |
+| Complexity over corpus | Approximate constant (ANN index) | Linear in the number of candidates |
+| Accuracy | Good enough to find candidates | Better ordering |
+| Use | Retrieve top 50–200 | Reorder, keep top 5–10 |
+| Scale limit | Millions of documents | Tens to a few hundred per query |
+
+The two rows that matter in an interview: **cross-encoder reads the pair together, and it costs one forward pass per candidate.** Everything else follows from those.
+
+## How it works
+
+1. **Retrieve a wide candidate list with stage 1.** Dense, sparse, or hybrid. Take more than you need — 50–200. A reranker can only reorder what it receives, so recall at this step is the ceiling on final quality.
+2. **Build query-document pairs.** For each candidate, form the pair `(query, document_text)`. The document is usually the full chunk that will go in the prompt, not just its title.
+3. **Score every pair with the cross-encoder.** The model concatenates the two texts, runs attention across both, and outputs one number per pair. High means relevant.
+4. **Sort by the new score.** Discard the stage-1 order entirely; the cross-encoder's score replaces it.
+5. **Keep the top few.** Usually 3–10 chunks, sized to the model's context budget.
+6. **Pass them to the LLM** in the answer-generation step, with citations.
+7. **Tune top-n.** Small n is fast but may miss the best document; large n is slow. Measure quality against latency and pick the knee of the curve.
+8. **Optionally fuse or blend.** Some systems add the stage-1 score to the reranker score, but usually the cross-encoder score is better on its own.
+
+> **Tip:**
+>
+> **The mental shortcut.** Stage 1 optimises **recall** ("is the answer somewhere in this list?"). Stage 2 optimises **precision** ("is the answer at the top?"). They are different jobs, and you need both.
+
+
+### Why the split exists at all
+
+A cross-encoder cannot be precomputed. The model's input contains the query, so its output changes for every query. There is no per-document vector to store and no index to search. That single fact forces the two-stage design:
+
+| Quantity | Stage 1 (bi-encoder / BM25) | Stage 2 (cross-encoder) |
+| --- | --- | --- |
+| Work done before the query arrives | Encode every document, build the index | None |
+| Work done per query | Encode the query, walk the index | One forward pass per candidate |
+| Work over a 1M-document corpus | ~1M document encodes once | impossible per query |
+| Work over 100 candidates | trivial | 100 forward passes, feasible |
+
+Because stage 1 does the expensive corpus work **once, offline**, it can afford to be fast and approximate. Because stage 2 only sees a small list, it can afford to be slow and accurate. The two stages split the cost so that neither is doing the other's job.
+
+### How a cross-encoder is trained
+
+A cross-encoder is usually a transformer with a small classification head on top. It is trained on triples: a query, a relevant document, and one or more irrelevant documents. In the forward pass, the query and the document are concatenated with separator tokens, and attention runs across the whole sequence, so every query token can look at every document token. The head produces one number, often called the relevance logit.
+
+Two consequences follow for your pipeline:
+
+- **Domain matters.** A reranker trained on web search (like `ms-marco`) is good on general prose but weaker on dense technical text. Fine-tuning on a few hundred labelled pairs from your own domain often beats swapping to a bigger general model.
+- **Input length matters.** The longer the query-plus-document, the more compute per candidate, and truncation is silent. Chunks sized for a 512-token reranker can score poorly even when the text is right, because the relevant part was cut off.
+
+### A worked pipeline budget
+
+For a query that must answer in under one second:
+
+```text
+stage 1: query embedding              ~5-15 ms
+stage 1: ANN or BM25 search over 1M   ~5-20 ms
+stage 1: (optional) hybrid fusion     ~1-2 ms
+stage 2: rerank 50 candidates         ~100 ms (small model, CPU)
+stage 2: rerank 50 candidates         ~10-20 ms (small model, GPU)
+generation: LLM answer                the rest of the budget
+```
+
+The reranker is usually not the bottleneck once it runs on a GPU; the LLM is. That is why teams often retrieve *more* aggressively and rerank more candidates: it is a cheap quality win compared with a larger language model.
+
+## The syntax you will use
+
+**Open cross-encoder with `sentence-transformers`.** Load once, keep it warm, and call `predict` with a list of pairs. Batching is automatic.
+
+```python
+from sentence_transformers import CrossEncoder
+
+reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+pairs = [(query, doc) for doc in candidates]     # candidates from stage 1
+scores = reranker.predict(pairs)                 # one float per pair
+order = sorted(range(len(candidates)), key=lambda i: -scores[i])
+top = [candidates[i] for i in order[:5]]
+```
+
+`predict` returns a NumPy array of scores. The model is small enough to run on a CPU for a few dozen candidates, and much faster on a GPU.
+
+**Same thing with explicit batching and a batch size.** Useful when you control the hardware and want predictable memory use.
+
+```python
+scores = reranker.predict(pairs, batch_size=32)
+```
+
+**Hosted reranker: Cohere Rerank (v2 API; `rerank-v4.0-pro`).** One call sends the query and all documents; the API returns scores and an order. No model to host.
+
+```python
+import cohere
+co = cohere.ClientV2("YOUR_API_KEY")
+
+results = co.rerank(
+    model="rerank-v4.0-pro",
+    query=query,
+    documents=[doc.text for doc in candidates],
+    top_n=5,
+)
+for r in results.results:
+    print(r.index, r.relevance_score)   # index points back into `candidates`
+```
+
+Keep the mapping from `r.index` to your original chunk, because the API returns positions, not text.
+
+**Retrieve with pgvector, then rerank in Python.** This is the standard production shape: SQL does stage 1, Python does stage 2.
+
+```sql
+SELECT id, content, embedding <=> :query_vector AS distance
+FROM chunks
+ORDER BY distance
+LIMIT 100;                  -- wide candidate list for the reranker
+```
+
+```python
+rows = db.execute(sql, {"query_vector": qvec}).fetchall()   # 100 rows
+pairs = [(user_query, row["content"]) for row in rows]
+scores = reranker.predict(pairs)
+best = [rows[i] for i in np.argsort(-scores)[:5]]
+```
+
+**Fuse reranking into a hybrid pipeline.** Retrieve from both paths, fuse with RRF, rerank the fused candidate list. Each stage improves a different property.
+
+```python
+candidates = reciprocal_rank_fusion([dense_list, sparse_list])[:100]
+pairs = [(query, chunk_text[doc_id]) for doc_id, _ in candidates]
+scores = reranker.predict(pairs)
+final = [candidates[i] for i in np.argsort(-scores)[:5]]
+```
+
+**A served reranker endpoint.** When the model lives behind an HTTP service, you send JSON pairs and read scores back.
+
+```python
+import httpx
+res = httpx.post("http://reranker:8080/rerank",
+                 json={"query": query, "documents": [d["content"] for d in candidates]})
+scores = res.json()["scores"]
+```
+
+**Evaluate before and after.** The point of reranking is a metric improvement, not a nicer-looking list.
+
+```python
+ndcg_before = ndcg_at_k(stage1_ranking, labels, k=5)
+ndcg_after  = ndcg_at_k(reranked_ranking, labels, k=5)
+print(ndcg_before, ndcg_after)
+```
+
+## Examples: simple to real
+
+**Example 1 — a toy cross-encoder models interaction.** A bag-of-words "independent" scorer sees the same words in both documents, so it ties:
+
+```text
+independent   pair   document
+          3    3.0   'safe for children to use'
+          3    1.0   'not safe for children to use'
+```
+
+The pair-aware scorer reads `not safe` adjacent and penalises it. A model that scores the query and document separately can represent "safe" but not "not safe as a phrase". Real cross-encoders learn thousands of such interactions rather than one hand-written rule.
+
+**Example 2 — real bi-encoder versus cross-encoder ordering.** The measurement at the top of this page shows the disagreement directly: the bi-encoder ranks `My password expired...` at position 2, and the cross-encoder demotes it to position 3, promoting `Change your password...`. The cross-encoder's score spread is also enormous (`+4.79` down to `-8.46`), which makes a relevance threshold easy; the bi-encoder's similarities are compressed into `0.36–0.78`, where thresholds are hard.
+
+**Example 3 — reranking improves the ranking metric.** Take the five documents at the top of the page in the bi-encoder's order, with graded relevance labels `[3, 2, 3, 0, 1]`: "How to reset your account password..." = 3, "My password expired..." = 2, "Change your password..." = 3, "Reset the device to factory settings" = 0, "Password rules..." = 1. NDCG uses the original exponential gain, `2^rel - 1` (so a label of 3 is worth 7 and a label of 2 is worth 3), which differs from sklearn's default linear gains. The two rankings score as follows:
+
+```text
+bi-encoder     NDCG@3=0.9595  NDCG@5=0.9575  MRR=1.0000  P@3=1.0000
+cross-encoder  NDCG@3=1.0000  NDCG@5=0.9967  MRR=1.0000  P@3=1.0000
+```
+
+NDCG@3 improves from 0.9595 to 1.0000 because the cross-encoder puts the two most relevant documents in the top two positions. MRR and P@3 were already perfect, so they cannot show the gain — a reminder to pick a metric that is sensitive to ordering. If your metric does not change, either the reranker is not helping or the metric is too coarse.
+
+**Example 4 — the latency budget.** Measured on a warm model (`ms-marco-MiniLM-L-6-v2`, Apple Silicon, CPU):
+
+```text
+bi-encoder (query encode + 5 dot products):  7.70 ms
+cross-encoder (5 pairs):                    10.45 ms  -> ~2.09 ms per pair
+
+top-10  ~=  21 ms
+top-50  ~= 105 ms     (linear extrapolation from the per-pair cost)
+top-200 ~= 418 ms
+```
+
+Reranking 200 candidates triples the retrieval time on a small model, and larger rerankers cost several times more per pair. This is why top-n is a budget decision, and why batching on GPU matters.
+
+**Example 5 — choose hosted or open.** Hosted rerankers are one API call, require no GPU, and are easy to start with, but add network latency and a per-call price tied to document length. Open rerankers run locally, are cheaper at high volume, and keep data in-house, but need a GPU for low latency and someone to operate them. The API shape is nearly identical, so you can switch later.
+
+```text
+Hosted:  co.rerank(model="rerank-v4.0-pro", query=..., documents=..., top_n=5)
+Open:    CrossEncoder("BAAI/bge-reranker-base").predict(pairs)
+```
+
+**Example 6 — when NOT to rerank.** If stage 1 already returns fewer than ten candidates, or recall@100 is poor, reranking only shuffles a bad list. If the product already meets its answer-quality target, reranking adds latency for nothing. And if the same handful of chunks is always correct, a cache or metadata filter is a better use of the budget than a cross-encoder.
+
+## In production
+
+- **Fix recall before adding a reranker.** Reranking reorders the candidate list; it cannot rescue a document stage 1 never returned. Measure recall@100 first.
+- **Retrieve wide, rerank, cut narrow.** Pull 50–200, rerank all of them, keep 3–10. Cutting before reranking throws away the candidates the reranker exists to find.
+- **Keep the model warm.** Loading a cross-encoder takes seconds. Load it at process start, not per request, or latency will spike unpredictably.
+- **Batch the pairs.** A cross-encoder called once per candidate wastes hardware. `predict(pairs, batch_size=32)` is an order of magnitude faster on a GPU.
+- **Top-n is a latency dial.** Reranking cost grows linearly with the number of candidates. Tune top-n against your latency budget and measure quality at each value.
+- **Reranking changes the metrics you must watch.** Watch NDCG or MRR at the final K, not just recall. A reranker can improve ordering while recall stays constant.
+- **The reranker scores are not calibrated across queries.** A logit of `+2` for one query and `+2` for another do not mean the same confidence. Do not set one global threshold without checking.
+- **Long documents get truncated.** Most cross-encoders have a token limit (often 512 for MiniLM-sized models). A long chunk may be scored on its first part only. Chunk for the reranker, not just for the embedding model.
+- **Reranking adds a second failure point.** A hosted reranker can time out or rate-limit. Always fall back to the stage-1 order rather than failing the request.
+- **Do not rerank the whole corpus.** Cost is linear in candidates. The scale ceiling is why the pipeline has two stages at all.
+- **Distil or quantise for large traffic.** A smaller cross-encoder with most of the quality can be the right trade when the per-query budget is tight.
+- **Log the before-and-after order.** You cannot tune top-n or prove value without seeing what the reranker changed. Store both orders for sampled queries.
+
+> **Warning:**
+>
+> **The classic mistake.** Adding a reranker to a pipeline whose retrieval recall is already poor. Measure stage-1 recall first; if the right chunk is not in the top 100, reranking is polishing a list that does not contain the answer.
+
+
+## Interview questions
+
+### 1. What is reranking, and why is it a second stage?
+
+**Answer.** Reranking reorders a short candidate list produced by fast retrieval, using a slower and more accurate model. It is a second stage because cross-encoders are too expensive to run over a whole corpus: one forward pass per candidate. So stage 1 reduces millions of documents to a hundred, and stage 2 reorders those hundred.
+
+**Follow-up: "Why not use the cross-encoder for everything?"** Cost. A cross-encoder needs the query present for every document, so it cannot precompute an index. Scoring a million documents per query is infeasible.
+
+**Trap.** Saying reranking improves recall. It cannot retrieve anything new; it only reorders what stage 1 already found.
+
+### 2. What is the difference between a bi-encoder and a cross-encoder?
+
+**Answer.** A bi-encoder encodes the query and each document separately into vectors, then compares them with cosine or dot product. Because documents are encoded once, offline, it scales. A cross-encoder concatenates the query and one document into a single input and outputs one score, so it captures token-level interaction between them. That makes it more accurate but O(n) per query.
+
+**Follow-up: "Give an example of the interaction."** Negation and word order: "safe for children" versus "not safe for children" share the same words, and a bag-of-words comparison struggles, while a cross-encoder reads "not" next to "safe".
+
+**Trap.** Thinking a cross-encoder produces embeddings you can store. It produces a score, not a reusable vector per document.
+
+### 3. How do you choose the number of candidates to rerank?
+
+**Answer.** Retrieve enough that recall@n is high — often n between 50 and 200 — then measure quality and latency as you vary it. Reranking cost is linear in n, so the choice is the knee of the curve where adding candidates stops improving the metric.
+
+**Follow-up: "What if you need to cut latency?"** Reduce n, use a smaller reranker, batch on a GPU, or cache reranks for repeated queries. Do not cut n below the point where recall drops.
+
+**Trap.** Reranking only the top 5. If the correct document is ranked 12th by stage 1, reranking top 5 cannot recover it.
+
+### 4. What metrics show whether reranking helped?
+
+**Answer.** Order-sensitive metrics at the final K: NDCG@K or MRR. Recall at the candidate-list size (Recall@N, where N is the number of candidates) cannot change, because reranking only reorders what stage 1 returned. But Recall@K for K < N *can* change: a relevant document sitting below position K can be pulled into the top K. Precision@K and NDCG should improve because the best documents move up. Compare before and after on the same labelled queries.
+
+**Follow-up: "Why might NDCG not change?"** Stage 1 was already good, the labels are coarse, or K is larger than the useful range. Check by looking at concrete before-and-after lists.
+
+**Trap.** Reporting only recall. Reranking rarely changes recall, so a recall-only report makes a working reranker look useless.
+
+### 5. What are the latency and cost trade-offs of reranking?
+
+**Answer.** Reranking adds one model pass per candidate. A small open cross-encoder costs roughly a couple of milliseconds per pair on CPU, so 50 candidates cost on the order of a hundred milliseconds; bigger models or hosted APIs cost more. Hosted rerankers avoid GPU operations but add network round trips and per-call pricing.
+
+**Follow-up: "How do you keep it affordable at scale?"** Batch pairs, run a distilled model, cap top-n, cache repeated queries, and only rerank in flows that need the quality.
+
+**Trap.** Quoting one universal latency number. It depends on the model, hardware, batch size, document length, and whether it is hosted.
+
+### 6. When would you not rerank?
+
+**Answer.** When stage-1 recall is poor (fix that first), when there are only a handful of candidates, when the product already meets its quality target, or when the same few chunks always win and a cache or filter is cheaper. Reranking is a quality-versus-latency trade, not a default.
+
+**Follow-up: "How do you decide?"** A/B test it against your metric and your latency budget. If NDCG barely moves and latency doubles, drop it.
+
+**Trap.** Adding it because "more stages is more advanced". Unmeasured stages are cost and risk.
+
+### 7. How does reranking fit with hybrid search?
+
+**Answer.** They compose naturally. Hybrid search fixes recall by combining dense and sparse candidates; reranking fixes precision by reordering the merged list. A common pipeline is dense plus sparse retrieval, RRF fusion to get a wide list, cross-encoder rerank, then keep the top few. Each stage addresses a different weakness.
+
+**Follow-up: "In what order should you add them?"** Fix the biggest measured problem first. If recall is low, add hybrid or query transformation. If recall is fine but ordering is poor, add reranking.
+
+**Trap.** Assuming reranking can cover for a weak retriever. If the right chunk is missing from the candidate list, no reranker finds it.
+
+### 8. Hosted versus self-hosted reranker — how do you choose?
+
+**Answer.** Hosted is fastest to adopt: no GPU, no model operations, one API call, and strong out-of-the-box quality. Self-hosted is cheaper at high volume, keeps data inside your network, and lets you fine-tune, but needs a GPU and operational work. The interface is similar, so start hosted to prove value, then move in-house when volume justifies it.
+
+**Follow-up: "What are the risks of hosted?"** Network latency, rate limits, per-call cost that grows with traffic, and sending your documents to a third party. Always have a fallback to the stage-1 order.
+
+**Trap.** Forgetting the data-governance angle. Reranking sends your content to the provider, which may be unacceptable for regulated data.
+
+## Remember this
+
+- **Two stages: fast recall, then accurate reorder.** Retrieval finds candidates; the reranker orders them.
+- **A cross-encoder reads query and document together.** That interaction is why it is more accurate, and one pass per candidate is why it is slow.
+- **Retrieve wide (50–200), rerank, keep narrow (3–10).** Reranking cannot add recall.
+- **Measure with an order-sensitive metric** such as NDCG@K or MRR; recall will not move.
+- **Reranking is the highest-return fix for noisy top-of-list rankings**, but only after stage-1 recall is good.

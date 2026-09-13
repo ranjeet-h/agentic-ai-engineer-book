@@ -3,14 +3,14 @@
 > A production-first study book for engineers who want to understand, build, and operate reliable agentic AI systems.
 
 [![Read the live book](https://img.shields.io/badge/read-live%20book-1f6feb?style=for-the-badge)](https://ranjeet-h.github.io/agentic-ai-engineer-book/)
-[![Built with Quarto](https://img.shields.io/badge/built%20with-Quarto-39729e?style=flat-square)](https://quarto.org/)
+[![Built with mdBook](https://img.shields.io/badge/built%20with-mdBook-4d76ae?style=flat-square)](https://rust-lang.github.io/mdBook/)
 [![Status](https://img.shields.io/badge/status-growing%20roadmap-f2cc60?style=flat-square)](https://github.com/ranjeet-h/agentic-ai-engineer-book)
 
 ## Read the book
 
 **[Open the live book →](https://ranjeet-h.github.io/agentic-ai-engineer-book/)**
 
-The live edition is the best way to read the current material. It is published as a searchable Quarto book with responsive navigation, syntax highlighting, table of contents support, and light/dark theme support.
+The live edition is the best way to read the current material. It is published as a searchable mdBook with responsive navigation, syntax highlighting, Mermaid diagrams, and light/dark theme support.
 
 ## Why this book exists
 
@@ -95,53 +95,39 @@ The book favors simple explanations, concrete examples, Mermaid diagrams, compar
 
 ```text
 .
-├── _quarto.yml                         # Book configuration and chapter order
-├── index.qmd                           # Introduction and complete roadmap
-├── phase-NN-<slug>/                    # One directory per learning phase
-│   ├── index.qmd                       # Phase overview and topic map
-│   └── *.qmd                           # Individual concept pages
-├── styles/
+├── book.toml                            # mdBook configuration and output settings
+├── src/
+│   ├── SUMMARY.md                      # Chapter order and navigation
+│   ├── index.md                        # Introduction and complete roadmap
+│   └── phase-NN-<slug>/                # One directory per learning phase
+│       ├── index.md                    # Phase overview and topic map
+│       └── *.md                        # Individual concept pages
+├── theme/
 │   ├── custom.css                      # Shared reading and component theme
-│   └── theme.scss                      # Quarto/Bootstrap theme defaults
+│   ├── custom.js                       # Device-aware dark-mode toggle
+│   └── mermaid*.js                     # Mermaid runtime used by mdBook
 ├── assets/fonts/                       # Self-hosted reading and code fonts
+├── book/                                # Generated mdBook site (ignored)
 └── docs/superpowers/specs/             # Authoring and review specification
 ```
 
-The chapter list in `_quarto.yml` is the source of truth for what appears in the rendered book. A draft page is not considered published until it is linked there and passes review.
+The chapter list in `src/SUMMARY.md` is the source of truth for what appears in the rendered book. A draft page is not considered published until it is linked there and passes review.
 
-## Run locally
+## Publishing
 
-### Prerequisites
+The repository publishes to GitHub Pages from the `gh-pages` branch through [`.github/workflows/publish.yml`](.github/workflows/publish.yml).
 
-Install [Quarto](https://quarto.org/docs/get-started/) and make sure it is available on your `PATH`:
+Every push to `master` (or a manual workflow dispatch) runs the same release path:
 
-```bash
-quarto --version
-```
+1. Install pinned Rust `mdbook` and `mdbook-mermaid` binaries.
+2. Build the Markdown source into the ignored `book/` directory.
+3. Publish `book/` to `gh-pages` with Jekyll disabled.
 
-### Start the live preview
+GitHub Pages then serves the static `gh-pages` branch at:
 
-```bash
-git clone https://github.com/ranjeet-h/agentic-ai-engineer-book.git
-cd agentic-ai-engineer-book
-quarto preview
-```
+**[Open the live book →](https://ranjeet-h.github.io/agentic-ai-engineer-book/)**
 
-Open the local URL printed by Quarto, usually `http://localhost:4200`. The preview reloads when you edit `.qmd`, `.scss`, `.css`, or font configuration files.
-
-### Build the static site
-
-```bash
-quarto render
-```
-
-The generated site is written to `_site/`. It is a disposable build directory and is excluded from Git.
-
-### Open the rendered site
-
-```bash
-open _site/index.html       # macOS
-```
+No local build is required; GitHub Actions is the build and publishing environment.
 
 ## Writing and review principles
 
@@ -150,7 +136,7 @@ The repository uses a deliberate, incremental workflow:
 1. Choose the next topic from the phase roadmap.
 2. Write one or two concepts using the standard page structure.
 3. Verify code, API behavior, version claims, diagrams, and links.
-4. Render the book with `quarto render`.
+4. Let the GitHub Actions mdBook build verify the complete book.
 5. Read the page as a learner and fix gaps before moving on.
 
 See the [authoring specification](docs/superpowers/specs/2026-09-13-agentic-ai-study-book-design.md) for the complete page template and review checklist.
@@ -163,7 +149,7 @@ Before opening a pull request:
 
 1. Keep changes focused on one topic or one clearly related improvement.
 2. Preserve the learning sequence and page structure.
-3. Run `quarto render` successfully.
+3. Confirm the GitHub Actions mdBook build succeeds.
 4. Explain what was verified in the pull request description.
 5. Do not present planned or unverified material as production-ready guidance.
 

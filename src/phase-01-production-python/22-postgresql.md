@@ -1,0 +1,450 @@
+# PostgreSQL
+
+> **Interview answer (say this first).** PostgreSQL is an open-source relational database that stores data in tables of typed columns and rows, queried with SQL, with ACID transactions and strong constraints. It is the durable source of truth in a backend: you keep latency down with indexes and connection pooling, and you diagnose slow queries with `EXPLAIN ANALYZE`.
+
+## Why this exists
+
+An agent service has to remember things. Conversation turns, tool calls, user accounts, billing records, and embeddings all have to survive a restart, a crash, and two requests arriving at the same time. Before reaching for a database, teams often try simpler storage, and each attempt fails in a specific way.
+
+**Attempt 1 — a Python dict or a JSON file.** This works until the process restarts and everything is gone. If two workers write the same file, the last write wins and silently erases the other.
+
+**Attempt 2 — a list of dictionaries with home-grown lookups.** Now you are hand-writing what a database gives you, and doing it badly:
+
+```python
+users = [{"id": 1, "email": "ada@example.com"}, {"id": 2, "email": "bob@example.com"}]
+def find_by_email(users, email):
+    return next((u for u in users if u["email"] == email), None)   # scans every row
+```
+
+There is no index, so this scans every row. There is no uniqueness rule, so two rows can share an email. There is no transaction, so a crash halfway through a two-step update leaves the data half-changed.
+
+**Attempt 3 — the classic concurrent-update bug.** Two processes each read a balance, subtract, and write it back:
+
+```text
+time  process A                    process B
+----  ---------------------------  ---------------------------
+t1    read balance = 1000
+t2                                 read balance = 1000
+t3    write balance = 900
+t4                                 write balance = 900
+```
+
+One withdrawal of 100 vanishes. The real balance should be 800, but the database says 900. This is a **lost update**, and no amount of careful Python fixes it unless the database provides atomic transactions.
+
+PostgreSQL exists to be the **durable, concurrent, queryable, constraint-enforcing** place where data lives. Application code is then a client that proposes changes in transactions, instead of being the thing that stores truth.
+
+> **Note:**
+>
+> **The one-sentence purpose.** PostgreSQL is the strongest guarantee you can buy cheaply: your data obeys rules, survives crashes, and can be queried by many clients at once.
+
+
+## Start from zero
+
+Every word here is used later, so define them now.
+
+| Word | Plain meaning |
+| --- | --- |
+| **Relational model** | Data is organised as tables with rows and columns, and tables refer to each other by keys. |
+| **Table** (relation) | One kind of thing: `users`, `orders`, `events`. A grid with named columns. |
+| **Row** (record) | One item in a table, such as one user. Also called a tuple. |
+| **Column** (field) | One attribute of a thing, with a fixed type: `email text`, `created_at timestamptz`. |
+| **Schema** | The declared structure: which tables exist, their columns, types, and constraints. |
+| **SQL** | Structured Query Language, the text language for reading and writing tables. |
+| **Primary key (PK)** | A column (or columns) that uniquely identifies each row. No duplicates, no nulls. |
+| **Foreign key (FK)** | A column that points at a primary key in another table, enforcing that the reference exists. |
+| **Index** | An extra data structure that lets the database find rows without scanning the whole table. |
+| **Constraint** | A rule the database enforces: `NOT NULL`, `UNIQUE`, `CHECK`, foreign keys. |
+| **Query** | A request for data, usually a `SELECT`. |
+| **Transaction** | A group of statements that either all succeed or all fail, as one unit. |
+| **ACID** | Atomicity, Consistency, Isolation, Durability — the four guarantees of a transaction. |
+| **MVCC** | Multi-Version Concurrency Control: readers see a consistent snapshot while writers keep writing. |
+| **WAL** | Write-Ahead Log: changes are written to a log before the main files, so a crash can be recovered. |
+| **Connection** | One client session with the server. Expensive; limited; pooled. |
+| **Pool** | A reusable set of connections shared by many requests. |
+| **JSONB** | A binary JSON column type that can be indexed and queried. |
+| **pgvector** | A PostgreSQL extension that stores vectors and searches them by similarity. |
+| **`EXPLAIN ANALYZE`** | A command that runs a query and shows the plan the planner chose and the real timings. |
+| **VACUUM** | The command that reclaims space from row versions that are no longer visible; **autovacuum** runs it automatically in the background. |
+
+- **PK vs FK.** A primary key *identifies* a row in its own table. A foreign key *references* a row in another table. The FK is what makes `orders.user_id` meaningful and prevents orphan orders.
+- **Index vs constraint.** A `UNIQUE` constraint is a rule; an index is a lookup structure. PostgreSQL often implements `UNIQUE` with an index, but the two ideas are separate.
+
+## The core idea
+
+Think of PostgreSQL as a **set of ledgers plus a clerk**. The tables are the ledgers. The clerk enforces the rules: no duplicate account numbers, no order without a customer, no half-finished transfer. Anyone can read the ledgers at any time. People writing must go through the clerk, who processes each transaction and records it in a journal before confirming.
+
+The journal is the **Write-Ahead Log**. If the building loses power, the clerk replays the journal and the ledgers are consistent again.
+
+Now the mental model for concurrency, which is the part interviews probe:
+
+> Each transaction sees a **snapshot** of the database taken when it started. Writers create new row versions instead of overwriting old ones. Readers never block writers, and writers never block readers.
+
+That is **MVCC**. A row has a version history, and a query only sees versions that are committed and visible to its snapshot.
+
+```mermaid
+flowchart LR
+    A["App process 1"] --> P["Connection pool<br/>(PgBouncer or client pool)"]
+    B["App process 2"] --> P
+    C["Agent worker"] --> P
+    P --> S["PostgreSQL server"]
+    S --> T["Tables + constraints<br/>(source of truth)"]
+    S --> I["Indexes<br/>(fast lookup)"]
+    S --> W["WAL<br/>(crash recovery)"]
+    W --> R["Replica / backups<br/>(read scaling, disaster recovery)"]
+```
+
+Everything else on this page is a detail of one of those boxes: how indexes make lookups fast, how transactions stay correct, and how connections are managed.
+
+## How it works
+
+1. **A client connects.** PostgreSQL uses one server **process** per connection. That process holds session state (temporary tables, prepared statements, `SET` values) and consumes several megabytes of memory before doing any work. This is why connections are expensive and why pooling exists.
+2. **The client sends SQL text.** The parser checks syntax, and the planner chooses an execution strategy using **statistics** about the data (how many rows, how distinct the values are).
+3. **The executor runs the plan.** For a lookup, it may use an index to jump straight to matching rows. For a broad filter, a **sequential scan** reading the whole table may actually be cheaper. The planner picks based on estimated cost.
+4. **Reads use MVCC snapshots.** A query sees committed rows as of its snapshot plus its own uncommitted changes. Long-running transactions hold an old snapshot, which prevents cleanup of old row versions.
+5. **Writes create new row versions.** An `UPDATE` marks the old version dead and inserts a new one. The old version stays on disk until `VACUUM` removes it, because other transactions may still need it.
+6. **`COMMIT` writes and flushes the WAL.** With the default `synchronous_commit = on`, the transaction is not reported as committed until the WAL is safely on disk. That is durability.
+7. **Indexes are updated as part of the write.** A B-tree index stays sorted, which is why it supports both equality and range queries and can satisfy `ORDER BY`.
+8. **`VACUUM` and autovacuum reclaim dead row space.** If vacuum falls behind — often because of long transactions — tables bloat and queries slow down.
+9. **Replicas replay the WAL.** A streaming replica receives the WAL and applies it, usually asynchronously. Asynchronous replication means a failover can lose the last few committed transactions (a non-zero RPO).
+
+> **Tip:**
+>
+> **The mental shortcut.** PostgreSQL is correct by default and fast when you help it. You help it three ways: add the right index, keep transactions short, and do not open thousands of connections.
+
+
+## The syntax you will use
+
+**Tables, keys, and constraints.** This is the contract the database enforces for you.
+
+```sql
+CREATE TABLE users (
+    id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    email      text        NOT NULL UNIQUE,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE orders (
+    id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id     bigint  NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    total_cents integer NOT NULL CHECK (total_cents >= 0),
+    status      text    NOT NULL DEFAULT 'pending',
+    created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX orders_user_id_idx ON orders (user_id);
+```
+
+`GENERATED ALWAYS AS IDENTITY` is the standard, modern way to auto-number a primary key. `REFERENCES users(id)` is the foreign key: the database rejects an order whose `user_id` does not exist.
+
+**Reading with a join.** A join combines rows from two tables by a matching condition.
+
+```sql
+SELECT u.email,
+       count(o.id)      AS order_count,
+       sum(o.total_cents) AS cents
+FROM users u
+LEFT JOIN orders o ON o.user_id = u.id
+GROUP BY u.email
+ORDER BY cents DESC NULLS LAST;
+```
+
+`LEFT JOIN` keeps users with zero orders: `count(o.id)` returns `0`, while `sum(o.total_cents)` is `NULL`. `INNER JOIN` would drop them.
+
+**`EXPLAIN ANALYZE`.** This runs the query and shows the real plan and timings. It is the single most useful debugging tool.
+
+```sql
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT * FROM orders WHERE user_id = 42;
+```
+
+Look at two things: the node names (`Seq Scan` means full table read; `Index Scan` means the index was used), and `rows=estimated` vs `actual rows=`. A large gap usually means stale statistics; run `ANALYZE orders;`.
+
+**A transaction.** Wrap related writes so they succeed or fail together.
+
+```sql
+BEGIN;
+UPDATE accounts SET balance_cents = balance_cents - 1000 WHERE id = 1;
+UPDATE accounts SET balance_cents = balance_cents + 1000 WHERE id = 2;
+COMMIT;
+```
+
+`BEGIN ISOLATION LEVEL REPEATABLE READ;` chooses a stronger isolation level for that transaction.
+
+**Atomic update instead of read-modify-write.** This avoids the lost update entirely, because the subtraction happens inside the database.
+
+```sql
+UPDATE accounts
+SET balance_cents = balance_cents - 1000
+WHERE id = 1 AND balance_cents >= 1000
+RETURNING balance_cents;
+```
+
+The `WHERE ... >= 1000` guard plus `RETURNING` makes the operation atomic and lets the application know whether it succeeded.
+
+**Upsert: insert or update.**
+
+```sql
+INSERT INTO counters (key, value) VALUES (%s, 1)
+ON CONFLICT (key) DO UPDATE SET value = counters.value + 1
+RETURNING value;
+```
+
+`ON CONFLICT` needs a unique or primary-key constraint to detect the conflict. Without one, it cannot work.
+
+**JSONB: flexible attributes when the schema is genuinely open.**
+
+```sql
+CREATE TABLE events (
+    id      bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    payload jsonb NOT NULL
+);
+
+CREATE INDEX events_payload_idx ON events USING gin (payload jsonb_path_ops);
+
+SELECT payload->>'tool' AS tool
+FROM events
+WHERE payload @> '{"status": "ok"}';
+```
+
+`->>` reads a JSON field as text, and `@>` means "contains this JSON". The GIN index accelerates containment lookups.
+
+**pgvector: storing and searching embeddings.**
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE documents (
+    id        bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    content   text NOT NULL,
+    embedding vector(1536)
+);
+
+CREATE INDEX documents_embedding_idx
+    ON documents USING hnsw (embedding vector_cosine_ops);
+
+SELECT id, content
+FROM documents
+ORDER BY embedding <=> %s::vector
+LIMIT 5;
+```
+
+The vector column has a fixed dimension (1536 matches one common embedding size). `<=>` is cosine distance, `<->` is Euclidean, and `<#>` is negative inner product. `HNSW` is an approximate index: it is fast and usually accurate, not exact.
+
+**Connection pooling from Python.**
+
+```python
+from psycopg_pool import ConnectionPool
+
+pool = ConnectionPool(
+    conninfo="postgresql://app:secret@db:5432/app",
+    min_size=2,
+    max_size=10,
+)
+
+with pool.connection() as conn:          # borrow a connection
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        row = cur.fetchone()
+# the connection returns to the pool here, even on error
+```
+
+Always pass parameters with `%s` placeholders, never by string formatting. Parameterised queries prevent SQL injection and let the server reuse plans.
+
+## Examples: simple to real
+
+**Example 1 — schema with a real relationship.**
+
+```sql
+INSERT INTO users (email) VALUES ('ada@example.com') RETURNING id;
+-- suppose it returns 7
+
+INSERT INTO orders (user_id, total_cents) VALUES (7, 2500);
+INSERT INTO orders (user_id, total_cents) VALUES (999, 100);
+-- ERROR: insert or update on table "orders" violates foreign key constraint
+```
+
+The second insert fails at the database, immediately and loudly. Without the foreign key, that orphan row would sit there until some later query crashed or returned wrong data.
+
+**Example 2 — an index changes a scan into a lookup.**
+
+```sql
+-- without an index on user_id, the plan is a full scan
+EXPLAIN ANALYZE SELECT * FROM orders WHERE user_id = 7;
+-- Seq Scan on orders  (cost=0.00..18000.00 rows=1 width=...) (actual time=40ms)
+```
+
+```sql
+CREATE INDEX orders_user_id_idx ON orders (user_id);
+
+EXPLAIN ANALYZE SELECT * FROM orders WHERE user_id = 7;
+-- Index Scan using orders_user_id_idx on orders (actual time=0.05ms)
+```
+
+The query text did not change. The plan did. That is the whole point of `EXPLAIN ANALYZE`: measure before and after.
+
+**Example 3 — the lost update, and two fixes.**
+
+```sql
+-- BUG: two concurrent transactions each read then write
+BEGIN;
+SELECT balance_cents FROM accounts WHERE id = 1;   -- both read 1000
+UPDATE accounts SET balance_cents = 900 WHERE id = 1;
+COMMIT;
+```
+
+Fix A: atomic in-place update (preferred when possible).
+
+```sql
+UPDATE accounts SET balance_cents = balance_cents - 100 WHERE id = 1;
+```
+
+Fix B: lock the row while you think.
+
+```sql
+BEGIN;
+SELECT balance_cents FROM accounts WHERE id = 1 FOR UPDATE;
+-- other transactions block here until COMMIT
+UPDATE accounts SET balance_cents = 900 WHERE id = 1;
+COMMIT;
+```
+
+`FOR UPDATE` is a pessimistic lock: correct, but it serialises access and risks deadlocks if two transactions lock rows in different orders.
+
+**Example 4 — isolating a report from concurrent writes.**
+
+```sql
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+SELECT count(*) FROM orders;          -- snapshot fixed here
+-- ... other transactions insert orders ...
+SELECT count(*) FROM orders;          -- same number: consistent view
+COMMIT;
+```
+
+At `REPEATABLE READ`, both reads see the same snapshot, so a report does not produce a count that disagrees with its own detail rows. The cost is that old row versions must be retained longer, which delays vacuum.
+
+**Example 5 — query a flexible JSONB field.**
+
+```sql
+INSERT INTO events (payload)
+VALUES ('{"tool": "search", "status": "ok", "latency_ms": 42}');
+
+SELECT id, payload->>'tool' AS tool, (payload->>'latency_ms')::int AS ms
+FROM events
+WHERE payload @> '{"status": "ok"}'
+  AND (payload->>'latency_ms')::int > 100;
+```
+
+JSONB is the right tool for genuinely open metadata. If you filter and sort on `latency_ms` constantly, promote it to a real integer column and index that instead.
+
+**Example 6 — nearest-neighbour retrieval for agent memory.**
+
+```sql
+-- store one embedding
+INSERT INTO documents (content, embedding)
+VALUES ('Redis is an in-memory key-value store.', %s::vector);
+
+-- find the five most similar chunks to a query embedding
+SELECT id, content,
+       1 - (embedding <=> %s::vector) AS cosine_similarity
+FROM documents
+ORDER BY embedding <=> %s::vector
+LIMIT 5;
+```
+
+This is the retrieval half of RAG: store chunks and embeddings in PostgreSQL, retrieve the closest ones by vector distance. `pgvector` keeps vectors next to the relational data, so a query can filter by tenant or document type and still use the vector index.
+
+## In production
+
+- **Connection count is a hard limit.** PostgreSQL forks a process per connection and defaults to `max_connections = 100`. If ten app pods each open a 20-connection pool, you have 200 and the 101st fails. Use a pool with a small `max_size`, or put **PgBouncer** in front.
+- **PgBouncer in transaction mode breaks session state.** It hands a connection back after each transaction, so session-level `SET`, `LISTEN/NOTIFY`, advisory locks, and some prepared-statement patterns behave differently. Use session pooling if you need those, or keep transaction mode and avoid session state.
+- **An index is not free.** Every `INSERT`, `UPDATE`, and `DELETE` must also update every index on the table. Ten indexes can make writes several times slower. Add indexes for the queries you actually run.
+- **The planner ignores your index for good reasons.** A leading-wildcard `LIKE '%x'`, a function on the column (`WHERE lower(email) = ...`), a type mismatch, low selectivity, a tiny table, or stale statistics can all lead to a sequential scan. Fix the query or add a matching expression/partial index; do not assume the index is broken.
+- **Composite indexes are ordered.** An index on `(user_id, created_at)` helps queries filtering by `user_id`, or by `user_id` and `created_at`, but not a query filtering only by `created_at`. The leftmost columns must be used.
+- **Long transactions block vacuum and cause bloat.** One transaction left open for an hour keeps every row version it can see alive. Autovacuum cannot clean them, the table grows, and every scan gets slower. Set `statement_timeout` and `idle_in_transaction_session_timeout`.
+- **`SELECT *` couples your code to the schema and moves more bytes.** Name the columns you need. It also breaks `INSERT ... SELECT` patterns and makes covering indexes impossible.
+- **`OFFSET` pagination degrades.** `LIMIT 20 OFFSET 100000` still produces and discards 100,000 rows. Use **keyset pagination**: `WHERE (created_at, id) < (%s, %s) ORDER BY created_at DESC, id DESC LIMIT 20`.
+- **`jsonb` is not a schema substitute.** Fields you filter, join, or sort on should be real typed columns. JSONB is for attributes that truly vary per row; overuse gives you a slow database with a hidden schema.
+- **Asynchronous replication means failover can lose data.** A replica that lags by one second loses the last second of commits on promotion. Know your replication mode and your recovery point objective (RPO) before an incident.
+- **Backups are only real if you have restored them.** `pg_dump` gives logical backups; `pg_basebackup` plus WAL archiving gives point-in-time recovery. Restore into a scratch database on a schedule and time it; an untested backup is a guess.
+- **The N+1 query is the most common application performance bug.** Fetching 100 orders and then running one query per order for its user is 101 round trips. Use a join, `IN`, or a batched loader instead.
+
+## Interview questions
+
+### 1. What does ACID actually guarantee?
+
+**Answer.** **Atomicity** means a transaction's statements all apply or none do. **Consistency** means constraints hold before and after. **Isolation** means concurrent transactions do not corrupt each other's view. **Durability** means once `COMMIT` returns, the change survives a crash, because the WAL was flushed to disk.
+
+**Follow-up: "How does PostgreSQL provide durability?"** It writes changes to the Write-Ahead Log and flushes that log before acknowledging the commit. On restart, it replays the WAL and recovers to a consistent state.
+
+**Trap.** Saying "consistency" means your application logic is correct. ACID consistency means declared constraints are preserved; business rules are your job.
+
+### 2. Explain MVCC in PostgreSQL.
+
+**Answer.** Multi-Version Concurrency Control means each row can have multiple versions. A transaction reads the version visible to its snapshot. An `UPDATE` creates a new version and marks the old one dead rather than overwriting in place. Readers do not block writers and writers do not block readers, which is why PostgreSQL handles mixed read/write load well.
+
+**Follow-up: "What is the cost?"** Dead row versions accumulate and must be removed by `VACUUM`. Long-running transactions hold old snapshots, so vacuum cannot reclaim those versions; the table bloats.
+
+**Trap.** Claiming MVCC means you never need locks. Row-level locks are still taken for writes, and `SELECT ... FOR UPDATE` takes them explicitly. MVCC removes read/write blocking, not all conflicts.
+
+### 3. Compare the isolation levels and the anomalies they prevent.
+
+**Answer.** The SQL standard levels are Read Uncommitted, Read Committed, Repeatable Read, and Serializable. Read Committed prevents dirty reads but allows non-repeatable and phantom reads. Repeatable Read prevents non-repeatable reads. Serializable prevents all of them. PostgreSQL's default is Read Committed.
+
+| Level | Dirty read | Non-repeatable read | Phantom read | Write skew |
+| --- | --- | --- | --- | --- |
+| Read uncommitted | possible | possible | possible | possible |
+| Read committed | prevented | possible | possible | possible |
+| Repeatable read | prevented | prevented | possible | possible |
+| Serializable | prevented | prevented | prevented | prevented |
+
+**Follow-up: "What is different in PostgreSQL?"** PostgreSQL treats Read Uncommitted as Read Committed, and its Repeatable Read is snapshot isolation, which also prevents phantom reads. Serializable adds Serializable Snapshot Isolation (SSI) and can abort transactions with a serialization failure, which the application must retry.
+
+**Trap.** Forgetting that `SERIALIZABLE` transactions can fail and must be retried. Treating it as free correctness is wrong.
+
+### 4. When will PostgreSQL not use your index?
+
+**Answer.** When the planner estimates a sequential scan is cheaper, or when the query shape cannot use the index. Common cases: a leading-wildcard `LIKE '%term'`, a function applied to the indexed column, a type mismatch that forces a cast, low selectivity where most rows match, a very small table, or stale statistics. Also, a composite index is only usable from its leftmost column.
+
+**Follow-up: "How do you fix it?"** Confirm with `EXPLAIN ANALYZE`. Add a matching expression index (`lower(email)`), a partial index, or a trigram/GIN index for text search. Run `ANALYZE` to refresh statistics. Rewrite the predicate to be sargable.
+
+**Trap.** Adding more indexes blindly. Each index slows writes and costs disk; the planner may still not use it.
+
+### 5. Why are database connections expensive, and what does PgBouncer do?
+
+**Answer.** PostgreSQL uses a process per connection. Each one costs memory and setup time (authentication, TLS, forked process). There is also a hard `max_connections` limit, defaulting to 100. PgBouncer is a lightweight proxy that keeps a small pool of real connections and multiplexes many client connections onto them, usually in transaction mode where a connection is returned after each transaction.
+
+**Follow-up: "What breaks in transaction mode?"** Session state does not persist across statements: `SET` values, `LISTEN/NOTIFY`, advisory locks, and server-side prepared statements can behave unexpectedly. Use session mode or avoid session state.
+
+**Trap.** Confusing a client-side pool (like `psycopg_pool`) with a server-side pooler (PgBouncer). A client pool limits each process; PgBouncer limits the total reaching the server. You often want both.
+
+### 6. When should you use JSONB, and when not?
+
+**Answer.** Use JSONB for attributes that genuinely vary per row and do not need relational constraints, such as provider-specific metadata or an event payload. Do not use it for fields you filter, join, sort, or enforce uniqueness on; make those real typed columns. JSONB can be indexed with GIN for containment queries, but those indexes are larger and less selective than a B-tree on a scalar column.
+
+**Follow-up: "What is the difference between `json` and `jsonb`?"** `json` stores the exact input text and reparses it on every use. `jsonb` stores a parsed binary form, so it is faster to query, supports more operators and indexes, and normalises key order and duplicate keys.
+
+**Trap.** Saying JSONB is "schemaless." It is schema-on-read: the database does not enforce the shape, so your application must validate it.
+
+### 7. How does pgvector fit into an agent system?
+
+**Answer.** `pgvector` adds a `vector` column type and distance operators, plus approximate indexes (HNSW and IVFFlat). You store chunk embeddings alongside normal relational columns, then retrieve nearest neighbours with `ORDER BY embedding <=> query LIMIT k`. This keeps vector search in the same database as your users, tenants, and permissions.
+
+**Follow-up: "Exact or approximate?"** A sequential scan over vectors is exact but slow. HNSW and IVFFlat are approximate, trading a small recall loss for large speed gains. Tune index parameters and measure recall on your own data.
+
+**Trap.** Assuming similarity search is a drop-in relevance solution. Embedding quality, chunking, and filtering usually matter more than the index type.
+
+### 8. How do you take and trust a PostgreSQL backup?
+
+**Answer.** There are two families. Logical backups (`pg_dump` / `pg_restore`) export SQL or a custom archive and are good for migrations and single databases. Physical backups (`pg_basebackup` plus continuous WAL archiving) restore a whole cluster and enable point-in-time recovery to a chosen moment, which defines your recovery point objective.
+
+**Follow-up: "How do you know it works?"** You restore it on a schedule into a scratch environment, record how long it takes (your recovery time objective), and run checks against the restored data. An untested backup is not a backup.
+
+**Trap.** Confusing a read replica with a backup. A replica mirrors a bad `DELETE` almost instantly; it protects against hardware failure, not mistakes.
+
+## Remember this
+
+- PostgreSQL is the **durable source of truth**: tables, constraints, transactions, and WAL.
+- **MVCC** gives readers a snapshot so readers and writers do not block each other; vacuum cleans up dead versions.
+- **Indexes make reads fast and writes slower.** Verify with `EXPLAIN ANALYZE`; never assume.
+- **Keep transactions short and connection counts low** (pool, or PgBouncer).
+- **pgvector** keeps embeddings next to relational data; **JSONB** is for genuinely flexible attributes, not as a schema replacement.

@@ -1,0 +1,384 @@
+# MCP Authentication and Authorization
+
+> **Interview answer (say this first).** Authentication proves *who* is calling — a user, a client, or a service. Authorization decides *what that identity may do*. Remote MCP uses an OAuth 2.1 style flow: the client discovers the authorization server, the user logs in, and the client gets an access token whose audience is the MCP server and whose scopes describe allowed capabilities. The server validates the token and checks scopes before running a tool. Passwords and long-lived API keys must never be passed to the model or placed in tool arguments, because prompts, logs, and context are all observable; credentials belong to the client or gateway, apart from the model.
+
+## Why this exists
+
+Local MCP is easy to trust. A server started over `stdio` runs as the same user, on the same machine, with the same file permissions. There is no network and no second party. Remote MCP is a different world: the server is someone else's process, reached over the internet, and it may expose actions on real data.
+
+Once a server is remote, three failures appear:
+
+**1. Anonymous callers.** Without identity, any request that reaches the endpoint can call any tool. A filesystem server would let a stranger delete files.
+
+**2. Over-broad tokens.** A single token for "everything" means one leaked credential can read, write, and delete. The fix is scopes: the token carries only the permissions it needs.
+
+**3. Tokens issued for the wrong server.** This is the subtle one. If MCP server A accepts a token that was actually issued for server B, then B can replay the user's A-token. The defense is the token **audience** — the token names the server it is for, and the server rejects a mismatch. This is called *token passthrough* when it goes wrong, and the MCP spec forbids it.
+
+A fourth problem lives inside the agent. People want to give the model their credentials so it can "just call the API". That is a category error:
+
+```text
+Bad:  tool arguments = {"api_key": "sk-live-...", "query": "..."}
+       -> the key is in the prompt, the logs, the transcript, and every future context window.
+Good: the client holds the key; the model only sends {"query": "..."}
+```
+
+The model never needs the secret. It needs the *action*. The credential stays in the process that makes the call.
+
+> **Note:**
+>
+> **The one-sentence purpose.** Authentication establishes identity, authorization bounds that identity to specific capabilities, and the credential never touches the model — because anything the model sees can leak.
+
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Authentication** | Proving who you are. "This request comes from user 42." |
+| **Authorization** | Deciding what you may do. "User 42 may read, not delete." |
+| **Principal** | The authenticated identity a request acts as — a user, a client, or a service. |
+| **Credential** | The secret that proves identity: a password, key, or token. |
+| **OAuth 2.1** | An authorization framework where a user grants a client limited access without sharing a password. |
+| **Authorization server (AS)** | The service that logs the user in and issues tokens. |
+| **Resource server (RS)** | The service that holds the protected data. For MCP, the MCP server. |
+| **Client** | The application requesting access (the MCP client inside the host). |
+| **Scope** | A named permission such as `tools:read` or `files:write`. |
+| **Access token** | A short-lived credential the client presents to the resource server. |
+| **Refresh token** | A longer-lived credential used to get a new access token without re-login. |
+| **Bearer token** | An access token presented in the `Authorization: Bearer ...` header. |
+| **Audience (`aud`)** | The intended recipient of the token. It must be *this* MCP server. |
+| **Resource indicator** | An OAuth parameter that names the resource server the token is for. |
+| **PKCE** | Proof Key for Code Exchange — a challenge/verifier pair that stops code interception. |
+| **Dynamic Client Registration** | A standard way for a client to register itself with an AS at runtime. |
+| **Protected Resource Metadata** | A document at a well-known URL describing the resource and its AS. |
+| **Introspection** | Asking the AS whether a token is valid and what it allows. |
+| **Principal binding** | Tying a session or request to an authenticated identity so it cannot be reused by another. |
+| **Least privilege** | Granting the smallest permission set that makes the task work. |
+| **Confused deputy** | A privileged service tricked into acting for the wrong user. |
+| **Token passthrough** | Forwarding a token to a service it was not issued for. Forbidden. |
+
+Two distinctions matter most:
+
+- **Authentication vs authorization.** Authentication answers "who"; authorization answers "may they". A valid token that lacks the right scope is authenticated but not authorized.
+- **Per-user vs per-service credentials.** A per-user token acts as the person and enables audit. A per-service token acts as the application and shares one identity across users. Choose deliberately.
+
+## The core idea
+
+Think of a hotel. At check-in you show your passport — that is **authentication**. You receive a keycard. The card opens your floor and your room, not the penthouse, and it works at this hotel only — that is **authorization**. The card's limits are the **scopes**, and the hotel name embossed on it is the **audience**.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as MCP Client
+    participant AS as Authorization Server
+    participant RS as MCP Server (Resource Server)
+    C->>RS: request with no token
+    RS-->>C: 401 + WWW-Authenticate: resource_metadata
+    C->>RS: GET /.well-known/oauth-protected-resource
+    RS-->>C: resource, authorization_servers, scopes_supported
+    C->>AS: /authorize (PKCE challenge, resource = MCP server)
+    AS-->>U: login + consent
+    U-->>AS: approve scopes
+    AS-->>C: redirect with authorization code
+    C->>AS: /token (code + code_verifier + resource)
+    AS-->>C: access_token (aud = MCP server, scope = ...)
+    C->>RS: tools/call + Authorization: Bearer ...
+    RS->>RS: verify signature, audience, expiry, scopes
+    RS-->>C: result
+```
+
+Notice the pattern: the MCP server never sees the user's password. It only ever sees a token minted for it, with a narrow scope and a short lifetime. The **client** handles login; the **server** handles validation.
+
+| Question | Answered by | Artifact |
+| --- | --- | --- |
+| Who is calling? | Authentication | Access token, with a subject |
+| Is this token for me? | Audience check | `aud` / resource indicator |
+| What may they do? | Authorization | Scopes |
+| Which user is this? | Token subject | `subject` claim, for audit |
+| How long is it valid? | Expiry | `expires_at` / `exp` |
+
+## How it works
+
+1. **The client calls the MCP server without a token.** The server answers `401 Unauthorized` and points at its Protected Resource Metadata.
+2. **The client fetches protected-resource metadata.** From `/.well-known/oauth-protected-resource`, it learns the resource identifier, the authorization server URL, and the supported scopes.
+3. **The client fetches authorization-server metadata.** It reads `/authorize`, `/token`, and registration endpoints from the AS well-known document.
+4. **The client registers if needed.** Dynamic Client Registration gives it a `client_id` without a human provisioning step.
+5. **The client starts the authorization code flow with PKCE.** It sends a `code_challenge`, and specifies the target `resource` (the MCP server) so the token is minted for the right audience.
+6. **The user authenticates and consents.** The AS shows a login and a scope consent screen. The user approves.
+7. **The client exchanges the code for tokens.** It sends the `code` plus the `code_verifier`; PKCE proves it is the same client that started the flow.
+8. **The server validates the access token on every call.** It checks the signature or introspects, checks `expires_at`, checks the audience equals its own resource URL, and reads the scopes.
+9. **The server authorizes the specific tool.** Scopes map to capabilities. A `files:delete` tool requires `files:delete`; a read tool requires `files:read`.
+10. **The server acts as the principal, or rejects.** The principal is used for audit and for any downstream calls, which get their own credentials — never the user's token.
+
+Two implementation notes. Validation happens in middleware so every request is checked once, not per tool. And when the server calls a downstream system, it should exchange or use its own service credential, not forward the user's token — that is the token-passthrough rule.
+
+## The syntax you will use
+
+Examples use `mcp` 2.2.0. Auth classes live under `mcp.server.auth` and `mcp.client.auth`.
+
+**Describe the resource and its authorization server.** This metadata is what a 401 points the client at.
+
+```python
+from mcp.shared.auth import ProtectedResourceMetadata
+
+metadata = ProtectedResourceMetadata(
+    resource="https://mcp.example.com",
+    authorization_servers=["https://auth.example.com"],
+    scopes_supported=["tools:read", "tools:call"],
+)
+```
+
+**Configure the server's auth settings.** `required_scopes` is the baseline every request must carry.
+
+```python
+from mcp.server.auth.settings import AuthSettings
+
+settings = AuthSettings(
+    issuer_url="https://auth.example.com",
+    resource_server_url="https://mcp.example.com",
+    required_scopes=["tools:call"],
+    validate_token_resource=True,   # reject tokens issued for another resource
+)
+```
+
+**Implement a token verifier.** This is the server's hook for checking tokens.
+
+```python
+from mcp.server.auth.provider import AccessToken, TokenVerifier
+
+class IntrospectionVerifier(TokenVerifier):
+    async def verify_token(self, token: str) -> AccessToken | None:
+        claims = await introspect(token)          # against the AS
+        if claims is None:
+            return None
+        return AccessToken(
+            token=token,
+            client_id=claims["client_id"],
+            scopes=claims["scope"].split(),
+            expires_at=claims["exp"],
+            resource=claims["aud"],               # the audience we must check
+            subject=claims["sub"],                # the user, for audit
+        )
+```
+
+**Know the access token fields.** These drive audience and scope checks.
+
+```python
+# AccessToken fields:
+#   token      -> the raw bearer string
+#   client_id  -> which client was authorized
+#   scopes     -> list[str], the granted permissions
+#   expires_at -> epoch seconds, or None
+#   resource   -> the intended audience
+#   subject    -> the user identity, for per-user authorization
+#   claims     -> extra claims, provider-specific
+```
+
+**Authorize a tool by scope.** Read the current token and refuse if the scope is missing.
+
+```python
+from mcp.server.auth.middleware.auth_context import get_access_token
+from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
+
+mcp = MCPServer("secure-demo")
+
+@mcp.tool()
+def delete_file(path: str) -> str:
+    """Delete one file. Requires the files:write scope."""
+    token = get_access_token()
+    if token is None or "files:write" not in token.scopes:
+        raise ToolError("not authorized: files:write required")
+    return remove(path)
+```
+
+**Configure an OAuth client.** The provider is an HTTP auth object; you attach it to the client.
+
+```python
+from mcp.client.auth import OAuthClientProvider
+from mcp.shared.auth import OAuthClientMetadata
+
+provider = OAuthClientProvider(
+    server_url="https://mcp.example.com",
+    client_metadata=OAuthClientMetadata(
+        client_name="demo-host",
+        redirect_uris=["http://localhost:8080/callback"],
+        grant_types=["authorization_code", "refresh_token"],
+        response_types=["code"],
+    ),
+    storage=token_storage,           # persists tokens across runs
+)
+```
+
+**Per-service credentials for machine-to-machine use.** When there is no user, use the client-credentials extension instead of a shared password.
+
+```python
+from mcp.client.auth.extensions.client_credentials import ClientCredentialsOAuthProvider
+
+# The service authenticates as itself and receives a token with service scopes.
+# Use it for background jobs; use the per-user flow when audit must name a person.
+```
+
+## Examples: simple to real
+
+**Example 1 — authentication is not authorization.** A perfectly valid token can still be refused.
+
+```text
+Token: valid signature, correct audience, not expired
+Scopes: ["tools:read"]
+Call: delete_file(path="report.csv")
+-> 403 / ToolError("not authorized: files:write required")
+```
+
+The caller is authenticated. They are simply not authorized for this action. Keep the two answers separate in code and in your logging.
+
+**Example 2 — audience binding stops a real attack.** Two MCP servers, one AS, but tokens are scoped to one audience.
+
+```text
+Attacker holds a token with aud="https://evil.example.com".
+Attacker replays it to https://mcp.example.com.
+Server checks: token.resource != resource_server_url
+-> reject, 401
+```
+
+Without this check, any token from the same AS would work on every server. This is why MCP requires the `resource` parameter and the audience check.
+
+**Example 3 — per-user vs per-service tokens.** The choice changes audit and blast radius.
+
+```text
+Per-user token:
+  subject="user:42", scopes=["repo:read"]
+  Audit: "user 42 read repo X."  Revoke one user without affecting others.
+  Cost: one login per user; token lifecycle per user.
+
+Per-service token:
+  subject="service:ci-bot", scopes=["repo:read"]
+  Audit: "the CI bot read repo X."  Cannot name the human.
+  Cost: one credential; leak = everyone. Rotate on a schedule.
+```
+
+Use per-user tokens when a human is accountable. Use per-service credentials for unattended automations, and scope them as tightly as a user.
+
+**Example 4 — the wrong way to pass credentials to a model.** Secrets in tool arguments leak through every channel.
+
+```python
+# BAD: the key is now in the prompt, the transcript, the logs, and the trace.
+@mcp.tool()
+def search(api_key: str, query: str) -> str:
+    return call_api(api_key, query)
+
+# GOOD: the server holds its own credential; the model sends only intent.
+@mcp.tool()
+def search(query: str) -> str:
+    token = get_access_token()              # identity of the caller
+    return call_api(service_credential(), query, on_behalf_of=token.subject)
+```
+
+If the model truly needs per-user access, the client obtains the token and the transport carries it in a header — not in the JSON arguments the model writes.
+
+**Example 5 — scope names should map one-to-one to capabilities.** Vague scopes cannot be enforced.
+
+```text
+Bad:   ["read", "write"]
+Good:  ["files:read", "files:write", "files:delete", "tools:call"]
+```
+
+The tool checks the exact scope it needs. A read tool must not accept `files:write` as a substitute, or the scope system collapses into "any write token can read".
+
+**Example 6 — a 401 must teach the client what to do.** The challenge response is the entry point to the whole flow.
+
+```http
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource",
+                         scope="tools:call"
+```
+
+The client reads `resource_metadata`, fetches it, and starts the flow with the advertised scopes. A bare 401 with no metadata leaves the client guessing.
+
+## In production
+
+- **Never put secrets in prompts, tool arguments, or tool results.** They are copied into transcripts, logs, traces, and future context. Treat the model as a logged, public channel.
+- **Check the audience on every request.** A valid signature is not enough; a token issued for another service is an attack. Set `validate_token_resource=True`.
+- **Never forward a user's token downstream.** Exchange it or use a service credential. Token passthrough makes the downstream service trust the wrong issuer.
+- **A session id is not an identity.** Do not authorize from the `mcp-session-id` header. Authenticate every request.
+- **Use PKCE.** Authorization code without PKCE is interceptable. PKCE is required in OAuth 2.1 for public clients.
+- **Keep access tokens short-lived and refresh tokens rotated.** A long-lived bearer token is a long-lived liability.
+- **Scope per capability, not per service.** `files:delete` is enforceable; `files` is vague. Deny by default; grant narrowly.
+- **Prefer per-user tokens when a human is accountable.** Audit that cannot name a person cannot answer "who did this?".
+- **Bind sessions to principals.** If one user's session can be resumed by another, authentication is defeated. The SDK's principal binding exists for this.
+- **Do not log tokens or `Authorization` headers.** Redact them at the logging boundary, including error paths and HTTP traces.
+- **Validate issuer and expiry, not just scopes.** A token from the wrong issuer or one that expired is invalid, whatever scopes it claims.
+- **Plan for revocation and rotation.** Users leave, credentials leak. Short expiry plus revocation support limits the damage.
+
+## Interview questions
+
+### 1. What is the difference between authentication and authorization in MCP?
+
+**Answer.** Authentication identifies the caller — which user, client, or service. Authorization decides what that identity may do. In MCP, authentication produces a token with a subject; authorization checks that token's audience and scopes against the specific tool being called. A request can be authenticated but still denied.
+
+**Follow-up: "Which one does a scope check perform?"** Authorization. The token is already validated; the scope check maps the identity to allowed capabilities.
+
+**Trap.** Treating a valid token as sufficient. Validation proves identity, not permission for this action.
+
+### 2. Why does remote MCP use OAuth 2.1 instead of an API key?
+
+**Answer.** Because the user should grant limited access without sharing a password, and tokens should be scoped, short-lived, and bound to a specific server. OAuth 2.1 with PKCE gives that, plus refresh and revocation. A static API key is long-lived, often over-broad, hard to attribute to a person, and painful to rotate.
+
+**Follow-up: "When is an API key acceptable?"** Local `stdio` servers or a tightly scoped service credential you control end to end. Even then, keep it out of the model's context.
+
+**Trap.** Saying OAuth is only about "getting a token". The value is delegated, scoped, auditable, revocable access.
+
+### 3. What is token audience binding and why does it matter?
+
+**Answer.** The token names the resource server it was issued for, and that server rejects tokens with a different audience. It matters because one authorization server may serve many resource servers; without the check, a token for server A could be replayed against server B. MCP requires the client to send a resource indicator and the server to validate it.
+
+**Follow-up: "What is token passthrough?"** Forwarding a token to a service it was not issued for. It breaks the trust chain and is forbidden by the MCP spec.
+
+**Trap.** Validating the signature and expiry but skipping the audience. The token is genuine — for someone else.
+
+### 4. How do scopes map to tools?
+
+**Answer.** Each tool declares the capability it needs, and the server checks that scope before executing. Read tools require read scopes; write or delete tools require stronger ones. Deny by default: if the token lacks the exact scope, refuse. Use specific names like `files:delete`, not vague ones like `write`.
+
+**Follow-up: "Where should the check live?"** In middleware for token validation, and in the tool (or a policy layer) for the specific scope, so a new tool cannot accidentally skip it.
+
+**Trap.** Enforcing scopes only at the transport and then running any tool. Scope must be checked per action, because different tools need different permissions.
+
+### 5. Per-user vs per-service credentials — how do you choose?
+
+**Answer.** Use per-user credentials when a human is accountable and you need audit to name them, and when you want revocation to affect one person. Use per-service credentials for unattended jobs where no user is present, scoped as tightly as a user and rotated on a schedule. The trade-off is audit and blast radius versus login overhead.
+
+**Follow-up: "How do you still enforce per-user limits with a service credential?"** Pass the user identity explicitly as a claim or parameter and enforce authorization server-side; do not let the service credential become an unbounded master key.
+
+**Trap.** Using one shared service credential everywhere because it is convenient. A leak then exposes every user at once and audit cannot name anyone.
+
+### 6. Why must you never pass passwords or API keys to the model?
+
+**Answer.** Anything the model sees enters the prompt, the transcript, logs, traces, and every subsequent context window. It can be reproduced in output, exfiltrated through a tool, or read by anyone with access to the logs. The model never needs the secret — it needs the action, and the client or server performs that action with a credential the model cannot see.
+
+**Follow-up: "What if a tool genuinely needs a per-user credential?"** The client obtains it through the auth flow and the transport carries it in a header. It never appears in the JSON arguments the model writes.
+
+**Trap.** Passing the secret as a tool argument "just this once" for convenience. The leak persists in the transcript long after the call.
+
+### 7. What happens on the first request to a protected MCP server?
+
+**Answer.** The server returns `401 Unauthorized` with a `WWW-Authenticate` header pointing at its protected-resource metadata. The client fetches that metadata to find the authorization server and scopes, then runs the authorization code flow with PKCE, obtains a token with the MCP server as audience, and retries with `Authorization: Bearer`.
+
+**Follow-up: "What if the client is not registered?"** It uses dynamic client registration to get a `client_id`, or it ships a pre-registered one. The metadata advertises whether registration is available.
+
+**Trap.** Thinking the server authenticates the user directly. The authorization server does; the resource server only validates tokens.
+
+### 8. How do you stop a confused-deputy attack in an MCP gateway?
+
+**Answer.** Bind the request to the authenticated principal everywhere: never let the client choose the identity, never use a session id as proof, and never let a user-supplied parameter select whose credentials are used. Validate the token audience, check scopes per tool, and if the gateway calls downstream systems, exchange the token rather than forwarding a broad one.
+
+**Follow-up: "How does session resumption interact with this?"** A resumed session must still be tied to its original principal. If another user can attach to it, they inherit its authority.
+
+**Trap.** Trusting a `user_id` parameter in the tool arguments. Parameters are model output — untrusted — so identity must come from the authenticated token only.
+
+## Remember this
+
+- **Authentication = who; authorization = what.** Keep the two checks separate and log both.
+- **OAuth 2.1 + PKCE, scoped tokens, audience-bound.** The server validates; the AS authenticates.
+- **Secrets never go to the model.** No password or key in arguments, prompts, or results.
+- **Per-user for accountability, per-service for automation.** Both narrow, both rotatable.
+- **Never passthrough a token or trust a session id as identity.**

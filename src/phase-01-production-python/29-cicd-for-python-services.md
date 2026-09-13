@@ -1,0 +1,463 @@
+# CI/CD for Python Services
+
+> **Interview answer (say this first).** CI (continuous integration) runs linting, type checks, and tests automatically on every change, so broken code never reaches `main`. CD (continuous delivery) turns a passing commit into a deployable artifact — usually a container image tagged with the commit SHA — and deploys it through environments with gates. The key rules are: build one immutable artifact and promote it, cache dependencies for speed, run migrations before the new code, and deploy by digest so a rollback is just the previous version.
+
+## Why this exists
+
+A release should not depend on someone remembering ten steps at 6 p.m. on a Friday. The manual version looks like this:
+
+```text
+ssh prod
+git pull
+pip install -r requirements.txt
+pytest                 # sometimes skipped
+systemctl restart app
+```
+
+Every line is a place to make a mistake. Skip `pytest` and a broken build ships. Forget `pip install` and the service restarts into an import error. Forget to restart and the old code keeps running. Nobody knows which commit is deployed.
+
+CI/CD replaces this with a pipeline that runs the same steps, in the same order, in a clean environment, on every change. The benefits are concrete:
+
+- **Fast feedback.** A typo is caught in 90 seconds instead of after a deploy.
+- **A protected `main`.** Broken code cannot merge if the required checks fail.
+- **Traceability.** Every running version maps to a commit SHA and an image digest.
+- **Repeatability.** The pipeline is code, reviewed like code, and stored in git.
+- **Reversibility.** Rolling back means deploying the previous immutable image, not undoing steps.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **CI** | Continuous integration: automatically verify every change by building and testing it. |
+| **Continuous delivery** | Every passing change is always in a deployable state; deployment is a deliberate action. |
+| **Continuous deployment** | Every passing change is deployed to production automatically, with no human step. |
+| **Pipeline** | The ordered set of stages a change goes through from commit to production. |
+| **Workflow** | One automation file (in GitHub Actions, a `.github/workflows/*.yml`). |
+| **Job** | A group of steps that run on one runner. Jobs run in parallel unless ordered. |
+| **Step** | One command or one reusable action inside a job. |
+| **Action** | A reusable, versioned unit of automation, referenced with `uses:`. |
+| **Runner** | The machine (or container) that executes a job. |
+| **Trigger** | The event that starts a workflow: push, pull request, schedule, manual. |
+| **Artifact** | A file a job produces and stores: an image, a wheel, a test report. |
+| **Cache** | Saved files (such as downloaded dependencies) reused by later runs to save time. |
+| **Secret** | An encrypted value injected at run time, never printed in logs. |
+| **Environment** | A named target (staging, production) with its own secrets and protection rules. |
+| **Gate** | A required approval or check before a deployment proceeds. |
+| **Matrix** | Running the same job over a set of combinations, such as several Python versions. |
+| **Immutable artifact** | An artifact addressed by content hash (digest), so it cannot change. |
+| **Build once, deploy many** | Build the image once, then promote the same digest through environments. |
+| **Migration** | A versioned database schema change, run before the new code starts. |
+| **Rollback** | Returning to the previous working version. |
+| **Rolling deployment** | Replacing instances gradually, a few at a time. |
+| **Blue-green** | Two identical environments; traffic switches from one to the other at once. |
+| **Canary** | Sending a small share of traffic to the new version, then ramping up. |
+| **Feature flag** | A runtime switch that turns a feature on or off without a deploy. |
+| **OIDC** | Short-lived cloud credentials obtained by proving the workflow's identity, instead of long-lived keys. |
+
+The three terms in the name are easy to mix up:
+
+- **CI** is about *verifying* changes.
+- **Continuous delivery** is about *always being ready* to deploy.
+- **Continuous deployment** is about *actually deploying* automatically.
+
+## The core idea
+
+Think of an assembly line with quality gates. Every commit enters at one end. It is inspected (lint, types, tests), assembled into a sealed package (the image), stamped with a serial number (the commit SHA), and only then moved to the shipping dock. The same sealed package goes to staging and production — nothing is rebuilt at the destination, because rebuilding would produce a slightly different package.
+
+That last rule has a name: **build once, promote everywhere.** The image digest that passed tests is the image that runs in production. If you rebuild per environment, you are shipping an untested artifact.
+
+```mermaid
+flowchart LR
+  P["git push"] --> L["Lint"]
+  P --> Y["Type check"]
+  P --> U["Tests (matrix)"]
+  L --> B["Build image<br/>tag = commit SHA"]
+  Y --> B
+  U --> B
+  B --> R["Push to registry<br/>immutable digest"]
+  R --> S["Deploy staging"]
+  S --> G{"Approval gate"}
+  G -->|approved| PR["Deploy production"]
+  G -->|rejected| X["Stop"]
+  PR --> SM["Smoke test"]
+  SM -->|fail| RB["Roll back to<br/>previous digest"]
+```
+
+Three rollout strategies cover almost every service:
+
+| Strategy | How it works | Infrastructure cost | Rollback | Main risk |
+| --- | --- | --- | --- | --- |
+| **Rolling** | Replace instances a few at a time | Low | Roll forward or re-roll | Two versions serve traffic during the rollout |
+| **Blue-green** | Run two full environments; switch traffic | High (2×) | Switch back instantly | Database and session compatibility |
+| **Canary** | Send a small percentage of traffic to the new version, then ramp | Low | Shift traffic back | Needs good metrics and traffic splitting |
+
+## How it works
+
+1. **A trigger fires.** A push to `main`, a pull request, a schedule, or a manual `workflow_dispatch`.
+2. **The runner checks out the code** at the exact commit. `actions/checkout` uses a shallow clone by default.
+3. **The runtime is installed and dependencies are restored.** `actions/setup-python` installs Python and can cache pip downloads keyed by your requirements files.
+4. **Checks run — ideally in parallel jobs.** Linting, type checking, and tests are separate jobs so a lint failure is reported in seconds without waiting for tests.
+5. **A matrix repeats jobs over combinations** such as Python 3.11, 3.12, and 3.13. `fail-fast: false` lets all combinations finish so you see every failure at once.
+6. **The image is built once** and tagged with the commit SHA. BuildKit cache (`cache-from`/`cache-to`) makes rebuilds fast.
+7. **The image is pushed to a registry** and identified by its digest. From here on, the artifact is immutable.
+8. **Migrations run before the new code**, as a separate job, once. They must be backwards compatible so the old and new code can both run during the rollout.
+9. **Environments and gates control promotion.** A GitHub Environment can require a reviewer before the production job starts, and holds production-specific secrets.
+10. **Deploy, then smoke test.** A quick check after deploy catches a bad rollout before users report it.
+11. **Roll back by redeploying the previous digest.** Because the artifact is immutable, rollback is a pointer change, not a rebuild.
+12. **The pipeline reports status back** to the commit or pull request, and branch protection can require those checks before merging.
+
+> **Tip:**
+>
+> **The mental shortcut.** CI is a gate, CD is a conveyor. Order the pipeline so the cheapest checks fail first, and never rebuild the artifact you already tested.
+
+
+## The syntax you will use
+
+**A minimal workflow.** Triggers on pushes to `main` and on pull requests, then runs the checks.
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: mypy app
+      - run: pytest -q
+```
+
+`permissions: contents: read` is least privilege: the token cannot write anything. Set it explicitly at the top and widen it only in jobs that need more.
+
+**A matrix with parallel lint and test jobs.** Cheap checks finish first; the matrix covers several Python versions.
+
+```yaml
+name: Checks
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.12" }
+      - run: pip install ruff mypy
+      - run: ruff check .
+      - run: mypy app
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+```
+
+`fail-fast: false` lets every matrix combination finish so you see all failures at once instead of the first.
+
+**Build once and push an immutable image.** The tag is the commit SHA; the digest is the real identity.
+
+```yaml
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        id: build
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/acme/app:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+```
+
+`provenance` and `sbom` attach build metadata and a software bill of materials to the image — useful for supply-chain auditing. `id: build` is what lets later jobs read the immutable `steps.build.outputs.digest`.
+
+**Environments, gates, and secrets.** The `environment:` key ties the job to a GitHub Environment, which can require reviewers and hold production secrets.
+
+```yaml
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://app.example.com
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/deploy.sh "ghcr.io/acme/app@${{ needs.build.outputs.digest }}"
+        env:
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+```
+
+**Passwordless cloud access with OIDC.** No long-lived cloud keys stored in GitHub.
+
+```yaml
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/gha-deploy
+          aws-region: us-east-1
+```
+
+`id-token: write` lets the job request a short-lived OIDC token, which the cloud provider exchanges for temporary credentials.
+
+**Cancel superseded runs; never cancel a deploy.** `concurrency` groups runs so a newer push stops an outdated one.
+
+```yaml
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true          # use false for deploy workflows
+```
+
+## Examples: simple to real
+
+**Example 1 — the smallest useful CI.** One job, three commands. This alone catches most mistakes.
+
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+```
+
+**Example 2 — migrate, then deploy behind a gate.** The production environment can require a reviewer, so the pipeline pauses for approval.
+
+```yaml
+  migrate:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+      - run: alembic upgrade head
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  deploy:
+    needs: [build, migrate]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://app.example.com
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/deploy.sh "ghcr.io/acme/app@${{ needs.build.outputs.digest }}"
+```
+
+Migrations run once, before the new pods start. The deploy step does not reinstall or rebuild; it only changes which digest is running.
+
+**Example 3 — rollback is a redeploy.** Because images are immutable, reverting means pointing at an older digest.
+
+```bash
+# Find the last good release, then deploy it again by digest.
+./scripts/deploy.sh "ghcr.io/acme/app@${PREVIOUS_DIGEST}"
+```
+
+Blue-green and canary sit on top of this. Blue-green points the load balancer at the idle environment; canary points a small traffic share at the new digest, watches error rate and latency, then ramps 5% → 25% → 100%, shifting back if a metric regresses.
+
+**Example 4 — the full pipeline.** Tests, one build, gated migration and deploy, artifacts on failure.
+
+```yaml
+name: Release
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements-dev.txt
+      - run: pytest --cov=app --cov-report=xml
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with: { name: coverage, path: coverage.xml, retention-days: 7 }
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        id: build
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/acme/app:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+  migrate:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/migrate.sh
+        env: { DATABASE_URL: "${{ secrets.DATABASE_URL }}" }
+  deploy:
+    needs: [build, migrate]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://app.example.com
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/deploy.sh "ghcr.io/acme/app@${{ needs.build.outputs.digest }}"
+      - run: ./scripts/smoke-test.sh https://app.example.com
+```
+
+The `needs` edges encode the dependency order: nothing ships unless tests pass, and the smoke test is the final gate.
+
+## In production
+
+- **Build once and promote the same digest.** Rebuilding per environment ships an artifact that tests never saw. Tag by commit SHA and deploy by digest.
+- **Pin your tools.** Unpinned `pip install` and floating action versions make builds non-deterministic. Use a lockfile (`uv.lock`, `requirements.txt` with hashes) and pin actions to a major version or SHA.
+- **Cache dependencies, keyed on the lockfile.** `cache: pip` or `setup-uv` with `cache-dependency-glob` turns a multi-minute install into seconds. A wrong cache key silently serves stale packages, so include every requirements file.
+- **Run the cheapest check first.** Lint in seconds, types in tens of seconds, tests after. Feedback speed is the main determinant of whether developers trust CI.
+- **Separate CI from CD in the pipeline graph.** Every pull request runs CI; only merges to `main` build and deploy. Do not deploy from a feature branch.
+- **Never run migrations automatically on application start.** With multiple replicas they race. Run one migration job before the rollout, and make migrations backwards compatible so old and new code coexist.
+- **Migrations are forward-only in practice.** A rollback redeploys old code but the schema stays new. Write additive migrations (add nullable columns, backfill, then switch) so the previous version still runs.
+- **Use `cancel-in-progress: false` for deploys.** Cancelling a rollout mid-flight can leave half the fleet on the old version. Cancel superseded CI runs, not releases.
+- **Guard `main` with required checks.** A pipeline nobody must pass is a suggestion. Require lint, type, and test jobs in branch protection.
+- **Use OIDC, not long-lived cloud keys.** Short-lived credentials cannot leak from a repository secret. Grant the role the minimum permissions it needs.
+- **Watch for GHCR name casing.** Container registry paths must be lowercase, but `${{ github.repository }}` preserves case. Lowercase it before using it as an image name, or the push fails.
+- **Roll back by digest, and monitor after deploy.** A rollback is only useful if you notice the problem. Deploy, run a smoke test, and watch error rate and latency for the first minutes.
+
+## Interview questions
+
+### 1. What is the difference between continuous delivery and continuous deployment?
+
+**Answer.** Both require every passing change to be deployable. In continuous delivery the final promotion to production is a deliberate action, often behind an approval gate. In continuous deployment even that step is automatic, so a merge to `main` can reach users within minutes. Continuous deployment needs strong automated tests and fast rollback because no human reviews each release.
+
+**Follow-up: "Why choose delivery over deployment?"** Regulated products, expensive migrations, or low release frequency make a human gate worth the delay. The pipeline is the same; only the last step differs.
+
+**Trap.** Saying continuous delivery means "deploy to production on every commit." That is continuous deployment. Delivery stops one step short.
+
+### 2. What does "build once, deploy many" mean and why does it matter?
+
+**Answer.** Build the container image a single time in CI, tag it with the commit SHA, and promote that same immutable digest through staging and production. If you rebuild for each environment, the artifact that reaches production differs from the one that passed tests — different base image pull, different dependency resolution, different timestamps — so the tests no longer prove anything about what is running.
+
+**Follow-up: "How do you pass environment-specific configuration?"** Inject it at run time as environment variables or mounted config. The image stays identical; only the injected values change.
+
+**Trap.** Using a mutable tag such as `latest` for promotion. Two hosts can pull different images from the same tag, and rollback has no fixed target.
+
+### 3. How do you make a pipeline fast?
+
+**Answer.** Cache dependencies keyed by the lockfile, split checks into parallel jobs, fail the cheapest check first, use a faster installer such as uv, and use BuildKit's registry or GHA cache for image layers. Also cancel superseded runs so obsolete commits stop consuming runners. Measure job duration and fix the slowest job rather than adding more runners.
+
+**Follow-up: "What is the risk of caching?"** A stale or incorrectly keyed cache can serve old dependencies and hide a problem. Key on the lockfile hash, and add a way to bust the cache manually.
+
+**Trap.** Optimizing tests before caching. Restoring dependencies often dominates the runtime, so the cache is usually the biggest single win.
+
+### 4. How should database migrations fit into the pipeline?
+
+**Answer.** Run them as a dedicated job before the new application version rolls out, exactly once. Make them backwards compatible so the old and new code can run at the same time: add a nullable column, backfill, deploy code that uses it, then remove the old column in a later release. Do not run migrations from every application replica at startup.
+
+**Follow-up: "Can you roll back a migration?"** Usually not safely. Prefer forward-fix: ship a new migration that corrects the problem. Some tools support `downgrade`, but destructive changes (dropped columns, dropped tables) lose data.
+
+**Trap.** Assuming rollback reverts the database too. Redeploying old code does not undo a schema change, so the old code must still tolerate the new schema.
+
+### 5. Compare blue-green and canary deployments.
+
+**Answer.** Blue-green runs two full environments and switches all traffic at once, so rollback is instant but infrastructure cost is doubled. Canary sends a small share of traffic to the new version and ramps up while watching metrics, so cost is low and risk is limited, but it needs traffic splitting and good observability. Rolling deployment replaces instances gradually and is the default in Kubernetes.
+
+**Follow-up: "Which do you choose for a stateful service?"** Canary or rolling, because a schema or session change makes a binary switch risky. Whichever you choose, keep migrations backwards compatible.
+
+**Trap.** Calling a canary "just 5% of pods." Canary is about *traffic share*, not pod count; without traffic splitting you cannot control the blast radius.
+
+### 6. How do you handle secrets in a pipeline?
+
+**Answer.** Store them as encrypted CI secrets and inject them at run time, scoped to the job or environment that needs them. Prefer short-lived credentials from OIDC over static cloud keys. Mask them in logs, never echo them, and restrict who can trigger workflows that expose them. For pull requests from forks, secrets are withheld by default — keep it that way.
+
+**Follow-up: "Why is OIDC better than a stored cloud key?"** The credential is short-lived and bound to the specific workflow and repository, so there is no long-lived key to leak or rotate. Access is federated to a cloud role with narrow permissions.
+
+**Trap.** Printing secrets while debugging. Most platforms mask known secrets, but a transformed value (base64, URL-encoded) can slip through into logs.
+
+### 7. What is the difference between a rolling, blue-green, and canary rollback?
+
+**Answer.** Rolling rolls forward or reverses the rollout, so the fleet may briefly run both versions. Blue-green switches traffic back to the old environment instantly, which is the fastest. Canary shifts the small traffic share back to the stable version. All three assume the artifact is immutable and still in the registry.
+
+**Follow-up: "What breaks rollback?"** A destructive migration, a cached response keyed on the new format, or a message produced in a new schema that old consumers cannot parse. Compatibility is what makes rollback possible.
+
+**Trap.** Believing rollback is always safe. If the new version wrote data the old version cannot read, rollback causes errors; that is a forward-fix.
+
+### 8. What belongs in CI versus CD?
+
+**Answer.** CI runs on every commit and pull request: lint, type check, unit and integration tests, security scanning. It must be fast and must not touch production. CD runs on merges to the main branch: build the image once, push it, run migrations, deploy to staging, gate, deploy to production, smoke test. The artifact is created in CI but promoted in CD.
+
+**Follow-up: "Where do end-to-end tests go?"** Against the staging deployment, after the image is built, because they need real dependencies. Run a fast subset on pull requests and the full suite before production.
+
+**Trap.** Deploying to production from a pull request workflow. Fork pull requests can run untrusted code; giving them deploy credentials is a serious security hole.
+
+## Remember this
+
+- **CI verifies, CD ships.** Every change is checked automatically; every passing change is deployable.
+- **Build one immutable artifact** (tagged by SHA, addressed by digest) and promote it — never rebuild per environment.
+- **Cache dependencies** keyed on the lockfile, run **lint → types → tests**, and cancel superseded runs.
+- **Migrations run once, before the rollout**, and must be backwards compatible so old and new code coexist.
+- **Rollback is redeploying the previous digest**; blue-green switches instantly, canary shifts a traffic share, and neither undoes a database change.

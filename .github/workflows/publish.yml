@@ -19,12 +19,26 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Quarto
-        uses: quarto-dev/quarto-actions/setup@v2
-
-      - name: Render and publish to the gh-pages branch
-        uses: quarto-dev/quarto-actions/publish@v2
+      - name: Install mdBook
+        uses: taiki-e/install-action@v2
         with:
-          target: gh-pages
+          tool: mdbook@0.4.52
+
+      - name: Install mdBook Mermaid preprocessor
+        uses: taiki-e/install-action@v2
+        with:
+          # 0.17 targets the mdBook 0.5 preprocessor API; this book uses mdBook 0.4.
+          tool: mdbook-mermaid@0.16.2
+
+      - name: Build the book
+        run: mdbook build
+
+      - name: Publish to the gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          publish_branch: gh-pages
+          publish_dir: ./book
+          enable_jekyll: false
+          commit_message: "Deploy mdBook site"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

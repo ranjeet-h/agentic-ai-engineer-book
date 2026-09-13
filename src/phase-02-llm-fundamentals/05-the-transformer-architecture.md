@@ -1,0 +1,360 @@
+# The Transformer Architecture
+
+> **Interview answer (say this first).** A transformer is a stack of identical blocks, and each block combines **multi-head self-attention** with a position-wise **feed-forward network**, wrapped in **residual connections** and **layer normalisation**. Attention is order-blind, so **positional information** is injected separately, either as fixed sinusoidal patterns, learned vectors, or rotary embeddings (RoPE). The original model had an encoder and a decoder; modern LLMs are **decoder-only**, meaning they keep just the causal self-attention stack and are trained to predict the next token. That simplicity is why the architecture scales to hundreds of billions of parameters.
+
+## Why this exists
+
+The previous chapter established attention: a way for tokens to exchange information. Attention alone is not a language model. Three things are missing.
+
+1. **Depth and nonlinearity.** A single attention operation is a weighted average, which is linear in the values. Stacking only linear operations still gives a linear function. The model needs a nonlinear transformation after attention to build complex features.
+2. **Stability at depth.** Deep networks are hard to train. Signals shrink or explode as they pass through many layers, and the distribution of activations drifts during training.
+3. **Order.** Raw self-attention is permutation-equivariant: shuffle the tokens and the outputs shuffle identically. The model cannot tell "dog bites man" from "man bites dog".
+
+The transformer block answers all three. A **feed-forward network** adds nonlinearity. **Residual connections** and **layer normalisation** make deep stacks trainable. **Positional encodings** restore order. Put that block in a stack, and you get the architecture behind GPT, Llama, Gemini, Claude, and essentially every current LLM.
+
+This matters for agentic AI because the architecture sets the hard limits you must design around: the context window, the quadratic attention cost, the KV cache, and why models are trained to predict one token at a time. Understanding the block explains those constraints instead of treating them as magic.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Block** | One repeated unit of the model: attention plus feed-forward, each with a residual path and normalisation. |
+| **Residual connection** | Adding the input of a sublayer to its output: `x + sublayer(x)`. Lets gradients flow and preserves information. |
+| **Layer normalisation (LayerNorm)** | Rescales each token's vector to zero mean and unit variance, then applies a learned scale and shift. Stabilises training. |
+| **RMSNorm** | A cheaper variant of LayerNorm that divides by the root mean square and skips the mean subtraction. Common in modern LLMs. |
+| **Feed-forward network (FFN / MLP)** | Two linear layers with a nonlinearity between them, applied independently to each position; usually expands to 4× the hidden size and back. |
+| **Position-wise** | Applied to each token vector separately, with the same weights for every position. |
+| **Multi-head attention** | Several attention operations in parallel on different projections, concatenated and mixed. |
+| **Positional encoding** | Information about token order, added to or injected into the embeddings/attention. |
+| **Sinusoidal encoding** | A fixed pattern of sines and cosines at different frequencies, one per position. No parameters. |
+| **Learned positional embedding** | A trainable vector per position, sized to the maximum sequence length; used by GPT-2. |
+| **RoPE (rotary position embedding)** | Rotates query and key vectors by an angle proportional to position, so attention depends on relative distance; used by most modern LLMs. |
+| **Encoder** | A stack of blocks with bidirectional attention; every token sees every other token. |
+| **Decoder** | A stack of blocks with causal attention; each token sees only the past. |
+| **Decoder-only** | A model with only causal decoder blocks (GPT, Llama). No encoder, no cross-attention. |
+| **Pre-LN vs post-LN** | Whether normalisation happens before or after each sublayer. Pre-LN is more stable and is standard today. |
+| **Logits** | The raw, unnormalised scores over the vocabulary that the model produces at each position. |
+| **Weight tying** | Reusing the embedding matrix as the output projection, which saves parameters and often helps. |
+| **d_model** | The hidden width of the model, for example 768 or 4096. |
+| **d_ff** | The width of the feed-forward hidden layer, typically 4 × d_model. |
+| **n_layers** | How many identical blocks are stacked. |
+
+The two ideas to keep separate are **attention** (tokens exchange information) and the **feed-forward network** (each token is processed independently). Most of the model's parameters live in the feed-forward layers, while most of the sequence-mixing happens in attention.
+
+## The core idea
+
+A transformer is a **factory assembly line**. Raw token embeddings enter one end. Each station (block) does the same two jobs: tokens talk to each other (attention), then each token is thought about individually (feed-forward). A bypass lane (the residual connection) carries the original package alongside every station, so nothing is lost. A quality check (normalisation) keeps the signal at a consistent scale.
+
+```mermaid
+flowchart TD
+    X["input embeddings<br/>+ positional info"] --> LN1["LayerNorm"]
+    LN1 --> ATT["multi-head<br/>self-attention"]
+    ATT --> ADD1["+ residual"]
+    X --> ADD1
+    ADD1 --> LN2["LayerNorm"]
+    LN2 --> FF["feed-forward<br/>expand · nonlinearity · contract"]
+    FF --> ADD2["+ residual"]
+    ADD1 --> ADD2
+    ADD2 --> NEXT["next block ..."]
+```
+
+Each block preserves the shape `(batch, sequence, d_model)`. That is deliberate: because every block consumes and produces the same shape, you can stack any number of them, and the only thing that changes with depth is representational power.
+
+The three families differ only in which masks and sublayers they keep.
+
+| Family | Attention | Extra sublayer | Example models | Typical use |
+| --- | --- | --- | --- | --- |
+| Encoder-only | bidirectional | feed-forward | BERT | classification, embeddings |
+| Encoder-decoder | bidirectional encoder + causal decoder with cross-attention | cross-attention | T5, original Transformer | translation, summarisation |
+| Decoder-only | causal | feed-forward | GPT, Llama, Mistral, Claude | generation, chat, agents |
+
+Decoder-only won for LLMs because it is simpler (one stack, one mask), scales cleanly, and next-token prediction on raw text is a self-supervised objective that needs no labels. A single decoder-only model can also be repurposed for tasks that used to need an encoder, simply by writing the task into the prompt.
+
+## How it works
+
+1. **Tokenise and embed.** The text becomes integer token ids. An embedding table maps each id to a vector of size `d_model`, giving shape `(batch, sequence, d_model)`.
+2. **Add positional information.** Because attention has no order, add a positional signal. Sinusoidal encodings add fixed sine/cosine patterns; learned embeddings add a trained vector per position; RoPE instead rotates queries and keys by a position-dependent angle so attention depends on relative distance.
+3. **Enter the first block.** The tensor passes through `n_layers` identical blocks, each preserving the shape.
+4. **Normalise (pre-LN).** Apply LayerNorm (or RMSNorm) to the input of each sublayer. Modern models normalise *before* the sublayer, which keeps the residual path clean and trains more stably.
+5. **Multi-head self-attention.** Split the normalised tensor into `h` heads, compute `softmax(QKᵀ / √d_k) V` per head (with a causal mask for a decoder), concatenate, and mix with an output projection.
+6. **Add the residual.** `x = x + attention_output`. The addition lets information and gradients bypass the sublayer entirely.
+7. **Normalise again, then feed-forward.** Apply LayerNorm, then a two-layer MLP per position: expand to `d_ff` (usually 4 × `d_model`), apply a nonlinearity such as GELU, and contract back to `d_model`. Modern models often replace the plain MLP with a **gated** variant such as **SwiGLU**, which is a whole FFN block (a linear projection gated by a sigmoid-like branch), not an activation function on its own.
+8. **Add the second residual.** `x = x + ffn_output`. The block is complete and its output has the same shape as its input.
+9. **Stack and finish.** After the last block, a final normalisation is applied. A linear layer (often weight-tied to the embedding table) produces **logits** over the vocabulary for every position.
+10. **Train with next-token prediction.** Each position's logits are scored against the actual next token with cross-entropy. Causal masking guarantees that the prediction at position *i* never saw the correct answer at position *i + 1*.
+
+> **Note:**
+>
+> **Why the residual connection is so important.** Without it, gradients must pass through every sublayer in a long chain, and vanishing gradients make deep stacks untrainable. The residual path gives the gradient a direct route from the loss to the early layers. It also means a block can start as an identity function, so adding depth does not hurt at the beginning of training.
+
+
+## The syntax you will use
+
+**A block, built from parts.** This is the smallest honest transformer block: pre-LN, attention, feed-forward, two residuals.
+
+```python
+class Block(torch.nn.Module):
+    def __init__(self, d_model, n_heads, d_ff):
+        super().__init__()
+        self.ln1 = torch.nn.LayerNorm(d_model)
+        self.attn = torch.nn.MultiheadAttention(d_model, n_heads, batch_first=True)
+        self.ln2 = torch.nn.LayerNorm(d_model)
+        self.ff = torch.nn.Sequential(
+            torch.nn.Linear(d_model, d_ff), torch.nn.GELU(),
+            torch.nn.Linear(d_ff, d_model),
+        )
+
+    def forward(self, x, mask):
+        h = self.ln1(x)
+        a, _ = self.attn(h, h, h, attn_mask=mask, need_weights=False)
+        x = x + a                       # residual 1
+        x = x + self.ff(self.ln2(x))    # residual 2
+        return x
+```
+
+**The shape never changes.** That is what makes stacking possible.
+
+```python
+d_model, n_heads, d_ff = 16, 4, 64
+block = Block(d_model, n_heads, d_ff)
+x = torch.randn(2, 5, d_model)
+mask = torch.triu(torch.ones(5, 5, dtype=torch.bool), diagonal=1)  # True = masked out
+print(block(x, mask).shape)      # torch.Size([2, 5, 16])
+```
+
+For `nn.MultiheadAttention`, a boolean `attn_mask` uses the convention `True` = **masked out** (that position is not allowed to attend), so a causal mask puts `True` in the strict upper triangle.
+
+**Multi-head attention, directly.** `nn.MultiheadAttention` splits, scores, merges, and projects in one call.
+
+```python
+mha = torch.nn.MultiheadAttention(64, 4, batch_first=True)
+out, weights = mha(q, k, v)      # self-attention when q=k=v
+```
+
+**Layer normalisation.** Normalises the last dimension, per token, and applies learned scale and shift.
+
+```python
+ln = torch.nn.LayerNorm(16)
+y = ln(torch.randn(4, 16) * 5 + 3)   # measured mean ≈ 0, std ≈ 1.0
+```
+
+**A ready-made encoder layer.** Useful for reference and for non-LLM tasks.
+
+```python
+layer = torch.nn.TransformerEncoderLayer(
+    d_model=16, nhead=4, dim_feedforward=64, batch_first=True, norm_first=True
+)
+encoder = torch.nn.TransformerEncoder(layer, num_layers=3)
+out = encoder(x)                 # no mask -> bidirectional, as an encoder should be
+# torch.Size([2, 5, 16])
+```
+
+Passing the causal `mask` from above would make the encoder behave causally, which is usually not what an encoder is for.
+
+**Sinusoidal positional encoding.** Fixed, no parameters; the pattern differs per pair of dimensions.
+
+```python
+import math
+
+def sinusoidal(seq_len, d_model):
+    pe = torch.zeros(seq_len, d_model)
+    pos = torch.arange(seq_len, dtype=torch.float).unsqueeze(1)
+    div = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+    pe[:, 0::2] = torch.sin(pos * div)
+    pe[:, 1::2] = torch.cos(pos * div)
+    return pe
+
+# sinusoidal(10, 8)[0] -> [0., 1., 0., 1., 0., 1., 0., 1.]   (position 0)
+```
+
+**Learned positional embedding.** One trainable row per position, added to the token embedding.
+
+```python
+token_emb = torch.nn.Embedding(vocab_size, d_model)
+pos_emb = torch.nn.Embedding(max_seq_len, d_model)
+ids = torch.randint(0, vocab_size, (1, 5))
+positions = torch.arange(5)
+x = token_emb(ids) + pos_emb(positions)     # (1, 5, d_model)
+```
+
+**RoPE in concept.** Rotate query and key vectors by an angle proportional to position; attention then depends on relative distance.
+
+```python
+def rope(t, positions):
+    d = t.shape[-1]
+    half = d // 2
+    freqs = torch.exp(torch.arange(half, dtype=torch.float) * (-math.log(10000.0) / half))
+    ang = positions.float().unsqueeze(-1) * freqs
+    cos, sin = ang.cos(), ang.sin()
+    t1, t2 = t[..., :half], t[..., half:]
+    return torch.cat([t1 * cos - t2 * sin, t1 * sin + t2 * cos], dim=-1)
+
+# rope preserves vector norm: True
+# dot(rope(q, 5), rope(k, 2)) == dot(rope(q, 13), rope(k, 10)): True  (same distance)
+```
+
+## Examples: simple to real
+
+**Example 1 — sinusoidal encoding is deterministic and structured.** Position 0 is always the same pattern; each later position shifts through the frequencies.
+
+```python
+pe = sinusoidal(10, 8)
+# pe.shape -> torch.Size([10, 8])
+# pe[0]    -> [0., 1., 0., 1., 0., 1., 0., 1.]
+# each row has norm 2.0 for d_model=8 (one unit per sin/cos pair)
+```
+
+No parameters, and the model can extrapolate the pattern to positions it never saw, though such extrapolation is imperfect in practice.
+
+**Example 2 — splitting into heads.** The head dimension is a reshape and a transpose, nothing more.
+
+```python
+B, S, D, H = 2, 5, 16, 4
+Dh = D // H
+q = torch.randn(B, S, D).view(B, S, H, Dh).transpose(1, 2)
+# q.shape -> torch.Size([2, 4, 5, 4])   (batch, heads, seq, head_dim)
+# merging back:
+merged = q.transpose(1, 2).contiguous().view(B, S, D)   # (2, 5, 16)
+```
+
+Get this reshape wrong and you silently mix information across heads without any shape error.
+
+**Example 3 — layer norm does exactly what it says.** After normalisation, every token vector has mean near 0 and standard deviation near 1, then the learned scale and shift are applied.
+
+```python
+ln = torch.nn.LayerNorm(16)
+y = ln(torch.randn(4, 16) * 5 + 3)
+# y.mean() -> -0.0 , y.std() -> 1.0079
+```
+
+That consistency is what lets a deep stack train without activations drifting to extreme values.
+
+**Example 4 — the residual path is real.** Zero the sublayers and the block becomes an identity function.
+
+```python
+block = Block(16, 4, 64)
+x = torch.randn(2, 5, 16)
+causal = torch.triu(torch.ones(5, 5, dtype=torch.bool), diagonal=1)
+
+with torch.no_grad():
+    for p in block.attn.parameters():
+        p.zero_()
+    for p in block.ff.parameters():
+        p.zero_()
+    out = block(x, causal)
+
+# torch.allclose(out, x, atol=1e-5): True
+```
+
+This is the identity *limit* of the residual path: because the block computes `x + sublayer(x)`, it can represent the identity function whenever the sublayers output zero. At random initialisation the sublayers are not exactly zero, so the block only approximates the identity — the example zeroes them to make the limit exact. The real point is that each block only has to learn a small *change* on top of its input, which is why adding depth does not damage a model.
+
+**Example 5 — stack blocks and the shape survives.** The same tensor flows through every block.
+
+```python
+stack = torch.nn.ModuleList([Block(16, 4, 64) for _ in range(3)])
+h = x
+for blk in stack:
+    h = blk(h, causal)
+# h.shape -> torch.Size([2, 5, 16])
+```
+
+Depth is free in shape terms, and that is what makes "a transformer" a family rather than a single model.
+
+**Example 6 — RoPE makes attention relative.** The dot product of a rotated query and key depends on the distance between positions, not the absolute positions.
+
+```python
+# rope preserves the vector norm: True
+# dot(rope(q, 5), rope(k, 2)) == dot(rope(q, 13), rope(k, 10)): True   (distance 3)
+# dot(rope(q, 5), rope(k, 2)) != dot(rope(q, 5), rope(k, 1)): True     (different distance)
+```
+
+That relative property is why RoPE extrapolates better to longer contexts than a fixed table of absolute positions, and why most modern LLMs use it.
+
+## In production
+
+- **Pre-LN beats post-LN for deep stacks.** Normalising before each sublayer keeps the residual path unnormalised, so gradients flow directly to early layers. Post-LN often needs learning-rate warmup to avoid divergence.
+- **RMSNorm is the modern default in many LLMs.** It drops the mean subtraction and is cheaper, with comparable quality. Do not assume every `LayerNorm` in a diagram is literally `torch.nn.LayerNorm`.
+- **Most parameters live in the feed-forward layers.** With `d_ff = 4 × d_model`, each FFN has about `8 × d_model²` weights, twice the four attention projections (`4 × d_model²`). Mixture-of-experts scales that part, not attention.
+- **Causal masking is the difference between a language model and a broken one.** A wrong mask lets training peek at the answer: the loss looks great and generation is useless. Always test by editing a future token.
+- **Positional encoding choice affects long-context behaviour.** Learned absolute tables cannot exceed their trained length at all. Sinusoidal patterns extrapolate poorly. RoPE degrades with distance unless the frequency base is adjusted (the "RoPE scaling" used by long-context models).
+- **Attention cost is quadratic; transformer cost is not all quadratic.** The FFN is linear in sequence length and often dominates parameter count, while attention dominates memory at long context. Optimise the right one for your workload.
+- **The KV cache grows with layers, heads, head dimension, batch, and context.** For multi-head attention the cache size is roughly `2 × n_layers × batch × n_heads × d_head × sequence` values. It is frequently the binding GPU memory constraint during serving.
+- **Decoder-only cannot see the future, by design.** Anything the model must know at position *i* has to appear at or before *i*. This is why prompt ordering and retrieval placement matter, and why "just put it at the end" is often the wrong instinct.
+- **Weight tying is common but not universal.** Sharing the embedding matrix with the output projection saves `vocab_size × d_model` parameters and often improves small models; large models sometimes untie them for more capacity.
+- **Exact architecture matters less than scale and data, but it is not irrelevant.** Comparing models by layer count or head count alone is misleading; training data, tokenizer, context length, and alignment all change behaviour.
+- **Dropout placement differs between training and inference.** Residual dropout is used during pretraining, and `model.eval()` disables it. Changing dropout at inference changes outputs and makes results irreproducible.
+- **The block shape contract is a debugging tool.** If a shape error appears inside a transformer, print the shape at each boundary; every block should return exactly `(batch, sequence, d_model)`.
+
+## Interview questions
+
+### 1. Describe a transformer block.
+
+**Answer.** A block has two sublayers: multi-head self-attention, which lets positions exchange information, and a position-wise feed-forward network, which processes each position independently. Each sublayer is wrapped in a residual connection `x + sublayer(x)`, and modern models normalise before each sublayer (pre-LN). The block preserves the input shape, so blocks stack.
+
+**Follow-up: "Why the feed-forward network if attention already mixes information?"** Attention is a weighted average and therefore linear in the values. The feed-forward network adds nonlinearity, letting the model compute richer functions of each token's representation. It also holds most of the parameters.
+
+**Trap.** Saying the feed-forward network mixes tokens. It is applied position by position; only attention moves information between positions.
+
+### 2. Encoder, decoder, and decoder-only: what is the difference?
+
+**Answer.** An encoder uses bidirectional attention: every token sees every other token. A decoder uses causal attention: each token sees only the past. The original transformer used both, with the decoder also doing cross-attention over the encoder output. Decoder-only models keep just the causal stack and are trained on next-token prediction. GPT, Llama, and Claude are decoder-only.
+
+**Follow-up: "Why did decoder-only win for LLMs?"** It is simpler (one stack, one mask), scales cleanly, and next-token prediction is self-supervised, so it can train on any text without labels. Prompting lets one model handle tasks that once needed a separate encoder.
+
+**Trap.** Saying decoder-only models cannot understand context. They can read the entire prompt; they simply cannot attend to tokens that come after the current position, which is what makes generation honest.
+
+### 3. Why do transformers need positional encoding?
+
+**Answer.** Self-attention is permutation-equivariant: it compares every query with every key and has no notion of order. Without positional information, "dog bites man" and "man bites dog" produce the same set of outputs. Positional encodings add order, either by adding a position-dependent vector to the input or by rotating queries and keys.
+
+**Follow-up: "Compare sinusoidal, learned, and RoPE."** Sinusoidal is fixed and parameter-free but extrapolates poorly. Learned embeddings are trainable but capped at the maximum trained length. RoPE encodes relative position by rotation, generalises better, and is the modern default.
+
+**Trap.** Thinking positional encoding is added inside attention. Sinusoidal and learned forms are added to the embeddings; RoPE is applied to queries and keys at each layer.
+
+### 4. What does the residual connection do, and why is it necessary?
+
+**Answer.** It adds the sublayer's input to its output, so the sublayer only has to learn a *change* rather than a full transformation. During backpropagation the addition passes the gradient straight through, so early layers receive a strong signal and deep stacks stay trainable. It also means a block can begin as an identity, so adding depth does not hurt at initialisation. Verified: zero the sublayers and the block returns its input unchanged.
+
+**Follow-up: "Residual plus layer norm — what is pre-LN?"** Pre-LN normalises the input to each sublayer while leaving the residual path clean, which is more stable at depth. Post-LN normalises after the addition and often needs warmup.
+
+**Trap.** Saying residuals prevent overfitting. They enable optimisation and information flow; regularisation is a different tool.
+
+### 5. Why is the feed-forward network usually 4× wider?
+
+**Answer.** The expansion gives each token room to compute in a higher-dimensional space before projecting back. Empirically a factor of about 4 works well, and it is the standard ratio from the original transformer. Because there are two matrices, the FFN holds roughly `2 × 4 × d_model² = 8 × d_model²` parameters, more than the attention projections.
+
+**Follow-up: "What is SwiGLU?"** A gated variant of the feed-forward block that multiplies a linear projection by a gated (sigmoid-like) projection. It improves quality, and modern models reduce `d_ff` slightly to keep the parameter count comparable.
+
+**Trap.** Saying the FFN compresses information. It expands, applies a nonlinearity, then contracts; the bottleneck is the output width, not the intermediate width.
+
+### 6. What is multi-head attention doing that a single head cannot?
+
+**Answer.** Splitting into heads gives several independent similarity spaces. Each head computes its own attention weights, so the model can attend to different relationships at once (for example, previous-token links, syntax, and coreference). The outputs are concatenated and mixed by an output projection. Total cost stays close to one full-width attention because each head is narrower.
+
+**Follow-up: "How are the projections computed in `nn.MultiheadAttention`?"** Queries, keys, and values come from one `in_proj_weight` of shape `(3 × d_model, d_model)`, then each is split across heads; the merged result goes through `out_proj`. For `d_model = 64`, that is `4 × 64² + 4 × 64 = 16,640` parameters.
+
+**Trap.** Saying more heads always means better. Heads can be redundant, and research shows many can be pruned with little loss. Head count interacts with head dimension because `d_head = d_model / n_heads`.
+
+### 7. How does the model produce text at inference time?
+
+**Answer.** After the final block and a final normalisation, a linear layer produces logits over the vocabulary for the last position. Softmax plus a sampling rule (temperature, top-k, top-p) chooses the next token. That token is appended to the sequence, and the model runs again, reusing cached keys and values for past tokens. This loop is called autoregressive generation.
+
+**Follow-up: "Why is the KV cache needed?"** Without it, every new token would recompute attention over the entire prefix, making generation quadratic. The cache stores past keys and values, so each step only computes the new token's query and attends over the cache.
+
+**Trap.** Thinking the model emits a whole sentence at once. It generates one token per forward pass, and the loop is why output latency scales with response length.
+
+### 8. Why do modern LLMs use decoder-only architectures?
+
+**Answer.** Decoder-only models are simpler (one stack, one causal mask), scale predictably with parameters and data, and train on a fully self-supervised objective, next-token prediction, that needs no labels. The same model can be prompted for tasks that encoder-decoder systems once handled separately, and generation is native rather than bolted on. That combination made them the base for the current generation of LLMs.
+
+**Follow-up: "What is the cost of that choice?"** Bidirectional understanding can be stronger for some tasks, such as classification or span extraction. Decoder-only models must encode the task in a prompt, and they cannot revise an earlier token once generated, which is why reasoning and planning techniques exist at the prompt and agent level.
+
+**Trap.** Saying a decoder-only model "only predicts the next word", as if that were trivial. Next-token prediction over a large corpus forces the model to build rich internal representations; it is the training objective, not the full capability.
+
+## Remember this
+
+- A transformer is a **stack of blocks**: attention + feed-forward, each with a **residual** and **normalisation**.
+- **Pre-LN** and residuals are what make deep stacks trainable; the feed-forward network holds most of the parameters.
+- **Attention needs positional information**; sinusoidal is fixed, learned is trainable, **RoPE** encodes relative position.
+- **Decoder-only** (causal attention, next-token prediction) is the architecture behind modern LLMs.
+- Cost splits: attention is **quadratic** in sequence length, the feed-forward network is linear, and the KV cache dominates long-context memory; the block shape `(batch, sequence, d_model)` never changes, which is why depth is just repetition.

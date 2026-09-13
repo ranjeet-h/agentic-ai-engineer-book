@@ -1,0 +1,375 @@
+# Hybrid Search
+
+> **Interview answer (say this first).** Hybrid search runs dense retrieval and sparse retrieval side by side, then fuses their two ranked lists into one. The standard fusion is Reciprocal Rank Fusion (RRF), which adds `1/(k + rank)` for each list a document appears in; the alternative is to normalise both score scales and take a weighted sum. It materially helps when queries mix paraphrases and exact terms, and it costs one extra retrieval call.
+
+## Why this exists
+
+Chapter 9 ended with a split decision. Dense retrieval wins on meaning; sparse retrieval wins on exact terms. Real query traffic contains both kinds, often in the same sentence.
+
+Consider a query against a support corpus:
+
+```text
+factory reset password on the router
+```
+
+A dense retriever embeds that sentence and finds it is mostly about accounts and passwords. It returns:
+
+```text
+1. How to reset your account password
+2. Change your password from the security menu
+3. Password policy and complexity requirements
+4. Factory reset the router hardware          <- actually the right one
+```
+
+The word `factory` is rare and specific, but the embedding smooths it into the general "reset" theme. Sparse retrieval has the opposite view: `factory` has a high IDF, so it jumps straight to the router document.
+
+If you had to pick one retriever, you would pick wrong for half your queries. The fix is not a better single retriever. The fix is to **run both and merge the results**, so a document that one method ranks highly gets promoted even when the other method ranks it low.
+
+Agentic systems lean on this constantly. One memory store must answer `what did we decide about the ACME-9 migration?` (an exact code, sparse) and `what does the user prefer for scheduling meetings?` (a paraphrase, dense) from the same index.
+
+> **Note:**
+>
+> **The one-sentence purpose.** Hybrid search exists because dense and sparse fail on different queries, so you keep both and combine their rankings instead of betting on one.
+
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Hybrid search** | Running two or more retrievers and combining their results into one list. |
+| **Retriever** | Anything that takes a query and returns a ranked list of documents. Dense and sparse are two retrievers. |
+| **Candidate list** | The top-N documents one retriever returns. |
+| **Rank** | A document's position in a list: 1 is first. Ranks are comparable between retrievers. |
+| **Score** | The number a retriever uses to sort: a BM25 score or a cosine similarity. Scores are *not* comparable between retrievers. |
+| **Fusion** | The step that merges multiple ranked lists into one. |
+| **RRF** | Reciprocal Rank Fusion. A fusion method that uses only ranks, not raw scores. |
+| **`k` (RRF)** | A smoothing constant in RRF, usually 60. It controls how much the top ranks dominate. |
+| **Score normalisation** | Rescaling two different score ranges onto a shared scale so they can be added. |
+| **Min-max normalisation** | Rescale scores to `[0, 1]` using the minimum and maximum in the list. |
+| **Z-score normalisation** | Rescale scores so the list has mean 0 and standard deviation 1. |
+| **Convex combination** | A weighted average: `alpha * dense + (1 - alpha) * sparse`, where `alpha` is in `[0, 1]`. |
+| **Deduplication** | Keeping one copy of a document that several retrievers returned. |
+| **`pgvector`** | A PostgreSQL extension that adds a vector type and distance operators. |
+| **`tsvector`** | A PostgreSQL value holding a document's normalised terms. |
+| **HNSW** | A graph-based approximate nearest-neighbour index used by pgvector. It trades a little recall for large speed gains. |
+| **Recall@K** | Of the truly relevant documents, how many appear in the top K. |
+| **NDCG** | A ranking metric that rewards putting highly relevant documents near the top. |
+| **Alpha (`α`)** | The weight given to the dense list in a weighted fusion. |
+
+Two distinctions drive every design decision here:
+
+- **Ranks are comparable; scores are not.** A BM25 score of 12.4 and a cosine similarity of 0.91 live on different scales with different meanings. You cannot add them. You either throw the scores away and use ranks (RRF), or you put both on a common scale first (normalisation).
+- **Fusion happens after retrieval, not instead of it.** Both retrievers still run. Hybrid search is an extra step, not a third retriever.
+
+## The core idea
+
+Imagine two reviewers hiring for one job. The first reviewer gives every candidate a written score out of 100. The second reviewer only gives a ranking: "this one is my first choice, this one second." You cannot add "87 out of 100" to "rank 2" directly. You have two honest options:
+
+- **Convert ranks to comparable numbers.** RRF turns "rank 2" into `1/(60+2)` and "rank 5" into `1/(60+5)`, then adds those small numbers across reviewers. Lower rank means a bigger number. Simple, robust, needs no tuning.
+- **Convert scores to a shared scale.** Normalise each reviewer's scores, then take a weighted average. This keeps more information — a confident 0.99 and a reluctant 0.51 are both "rank 1" under RRF, but different under normalisation — at the cost of being sensitive to the score distribution.
+
+```mermaid
+flowchart LR
+    Q["Query"] --> D["Dense retriever<br/>embeddings + ANN"]
+    Q --> S["Sparse retriever<br/>BM25 / tsvector"]
+    D --> DL["Ranked list<br/>docA, docC, ..."]
+    S --> SL["Ranked list<br/>docB, docC, ..."]
+    DL --> F["Fusion<br/>RRF or weighted<br/>normalisation"]
+    SL --> F
+    F --> DD["Deduplicate"]
+    DD --> T["Top-K<br/>to the LLM"]
+```
+
+| Fusion method | Uses | Tuning | Strength | Weakness |
+| --- | --- | --- | --- | --- |
+| RRF | Ranks only | One constant, `k=60` | Robust, no score calibration | Throws away score confidence |
+| Min-max + weighted sum | Scores | Weight `alpha` | Keeps confidence | Sensitive to outliers |
+| Z-score + weighted sum | Scores | Weight `alpha` | Handles different spreads | Assumes roughly normal scores |
+| Learned ranker | Features | Trained model | Best quality | Needs labels and infrastructure |
+
+For most teams, **start with RRF**. It is hard to get badly wrong, and it usually captures most of the gain.
+
+## How it works
+
+1. **Run both retrievers.** Dense returns its top-N by similarity; sparse returns its top-N by BM25. A common choice is N = 50–100 per retriever, more than the final K you will pass to the model.
+2. **Keep the ranked lists separate.** Do not compare raw scores yet. RRF only needs positions.
+3. **Fuse with RRF.** For each document `d`, sum over every list `r`:
+
+$$ \text{RRF}(d) = \sum_{r \in \text{retrievers}} \frac{1}{k + \text{rank}_r(d)} $$
+
+A document absent from a list contributes nothing. `k` (usually 60) softens the curve so rank 1 and rank 2 are not wildly far apart; with a small `k` the top rank dominates.
+
+4. **Deduplicate.** A document found by both retrievers has two terms in the sum and a higher total. That is the whole point: agreement is rewarded.
+5. **Sort and cut.** Sort by fused score and keep the top K for the next stage (usually reranking, then the prompt).
+6. **Alternatively, normalise and weight.** If you trust the scores, rescale each list, then combine: `alpha * dense_norm + (1 - alpha) * sparse_norm`. Tune `alpha` on labelled queries; `alpha=0.5` is a common start.
+7. **Tune on data.** Change `k` or `alpha`, re-measure Recall@K and NDCG, and keep the change only if it helps the metric your product cares about.
+
+> **Tip:**
+>
+> **The intuition for RRF.** A document at rank 1 in both lists gets roughly twice the score of a document at rank 1 in one list. Agreement between independent methods is evidence, and RRF is the simplest way to reward it.
+
+
+## The syntax you will use
+
+**Fusion in Python with RRF.** This is the whole method: a dict of running totals.
+
+```python
+def reciprocal_rank_fusion(rankings: list[list[str]], k: int = 60) -> list[tuple[str, float]]:
+    scores: dict[str, float] = {}
+    for ranking in rankings:
+        for rank, doc_id in enumerate(ranking, start=1):
+            scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)
+    return sorted(scores.items(), key=lambda pair: -pair[1])
+```
+
+Pass one list per retriever. Documents missing from a list simply never appear in that loop.
+
+**Weighted fusion after min-max normalisation.** Use this when scores carry information you want to keep.
+
+```python
+def min_max(scores: dict[str, float]) -> dict[str, float]:
+    lo, hi = min(scores.values()), max(scores.values())
+    if hi == lo:
+        return {doc: 1.0 for doc in scores}
+    return {doc: (s - lo) / (hi - lo) for doc, s in scores.items()}
+
+def weighted_fusion(dense: dict[str, float], sparse: dict[str, float],
+                    alpha: float = 0.5) -> list[tuple[str, float]]:
+    d, s = min_max(dense), min_max(sparse)
+    docs = set(d) | set(s)
+    return sorted(((doc, alpha * d.get(doc, 0.0) + (1 - alpha) * s.get(doc, 0.0))
+                   for doc in docs), key=lambda pair: -pair[1])
+```
+
+**Store both indexes in PostgreSQL.** One table can hold a `vector` column and a generated `tsvector` column. You get both retrievers without a second system.
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE chunks (
+  id serial PRIMARY KEY,
+  content text,
+  embedding vector(1536),
+  tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED
+);
+
+CREATE INDEX chunks_tsv_gin  ON chunks USING GIN (tsv);
+CREATE INDEX chunks_vec_hnsw ON chunks USING hnsw (embedding vector_cosine_ops);
+```
+
+**Dense retrieval against that table.** `<=>` is cosine distance, so lower is better; `ORDER BY` ascending returns the nearest.
+
+```sql
+SELECT id, content, embedding <=> :query_vector AS distance
+FROM chunks
+ORDER BY embedding <=> :query_vector
+LIMIT 50;
+```
+
+**Sparse retrieval against the same table.** Add `WHERE tsv @@ q` so the GIN index does the work.
+
+```sql
+SELECT id, content, ts_rank(tsv, websearch_to_tsquery('english', :query)) AS score
+FROM chunks
+WHERE tsv @@ websearch_to_tsquery('english', :query)
+ORDER BY score DESC
+LIMIT 50;
+```
+
+`websearch_to_tsquery`'s default operator is **AND**: it turns `'factory reset password'` into `'factory' & 'reset' & 'password'`, so a natural-language query only matches rows containing *every* word. That under-retrieves — a query like `factory reset password` can match zero rows even when the right document is present. Spell out `OR` between the terms (or use a BM25 engine with OR semantics) when any word may match.
+
+**RRF entirely in SQL.** Two CTEs rank each retriever, and a `FULL OUTER JOIN` fuses them.
+
+```sql
+WITH dense AS (
+  SELECT id, row_number() OVER (ORDER BY embedding <=> :query_vector) AS r
+  FROM chunks ORDER BY embedding <=> :query_vector LIMIT 50
+),
+sparse AS (
+  SELECT id, row_number() OVER (ORDER BY ts_rank(tsv, q) DESC) AS r
+  FROM chunks, websearch_to_tsquery('english', :query) q
+  WHERE tsv @@ q LIMIT 50
+)
+SELECT coalesce(d.id, s.id) AS id,
+       coalesce(1.0 / (60 + d.r), 0)   -- dense rank term (0 if not in dense)
+     + coalesce(1.0 / (60 + s.r), 0)   -- sparse rank term (0 if not in sparse)
+       AS rrf
+FROM dense d
+FULL OUTER JOIN sparse s ON d.id = s.id
+ORDER BY rrf DESC
+LIMIT 10;
+```
+
+A `FULL OUTER JOIN` keeps a document found by either retriever, so one side's rank is `NULL`. In SQL, `1.0 / NULL` is `NULL` and `x + NULL` is `NULL`, so wrap each term in `coalesce(..., 0)` or that document silently gets a `NULL` score.
+
+**Tune the approximate index.** HNSW has a search-time knob; larger means better recall and more latency.
+
+```sql
+SET hnsw.ef_search = 100;   -- default 40
+```
+
+**Tune `alpha` offline.** Sweep it and measure.
+
+```python
+for alpha in [0.0, 0.3, 0.5, 0.7, 1.0]:
+    ranking = weighted_fusion(dense_scores, sparse_scores, alpha)
+    print(alpha, ndcg_at_10(ranking, labels))
+```
+
+`alpha=0.0` is pure sparse, `alpha=1.0` is pure dense. The best value tells you which retriever your users actually need.
+
+## Examples: simple to real
+
+**Example 1 — RRF by hand on two short lists.**
+
+```text
+dense  = [docC, docA, docD]
+sparse = [docB, docC, docA]
+
+docC: 1/(60+1) + 1/(60+2) = 0.016393 + 0.016129 = 0.032522   # top of both
+docA: 1/(60+2) + 1/(60+3) = 0.016129 + 0.015873 = 0.032002
+docB: 1/(60+1)                        = 0.016393
+docD: 1/(60+3)                        = 0.015873
+```
+
+`docC` ranks first in dense and second in sparse, so agreement lifts it to the top. `docD` is first in nothing and lands last. That is RRF in full.
+
+**Example 2 — `k` controls how much the top rank matters.** Same lists, different `k`:
+
+```text
+k=  1 -> docC 0.8333  docA 0.5833  docB 0.5000  docD 0.2500
+k= 10 -> docC 0.1742  docA 0.1603  docB 0.0909  docD 0.0769
+k= 60 -> docC 0.0325  docA 0.0320  docB 0.0164  docD 0.0159
+```
+
+With `k=1`, rank 1 is worth more than everything else combined, so lists with a strong first pick dominate. With `k=60`, ranks matter more gradually and agreement across several positions counts for more.
+
+**Example 3 — weighted fusion can disagree with RRF.** Give dense and sparse scores and fuse with `alpha=0.5` after min-max:
+
+```text
+normalised dense : d3=1.000  d1=0.885  d7=0.192  d2=0.000
+normalised sparse: d1=1.000  d3=0.835  d2=0.035  d9=0.000
+
+fused alpha=0.5:
+  d1: 0.9423     # strong in both
+  d3: 0.9176     # dense #1, sparse #2
+  d7: 0.0962
+  d2: 0.0176
+  d9: 0.0000
+```
+
+Under RRF the same lists put `d3` and `d1` in a near tie at the top. Weighted fusion prefers `d1`, because dense's confidence in `d3` (0.91 vs 0.88) is a small gap, while sparse is confident about `d1`. This is the extra information normalisation keeps.
+
+**Example 4 — a real hybrid query in PostgreSQL.** Retrieval for `factory reset password` against a five-chunk table. Dense returns the password cluster. The sparse side must join the words with `OR`: `websearch_to_tsquery` ANDs them by default, so the natural-language query as written would match zero rows. With `OR`, documents 1 and 3 each match two terms and `ts_rank` scores them identically, because it has no IDF.
+
+```text
+dense order (cosine distance) : 1, 4, 2, 3, 5
+sparse order (OR + ts_rank)   : 3, 1, 4, 2     # 1 and 3 tie; their relative order is arbitrary
+
+RRF fusion (sparse tie broken 3 before 1):
+  1  How to reset your account password       0.032522   # dense #1 + sparse #2
+  3  Factory reset the router hardware        0.032018   # sparse #1 (tied) + dense #4
+  4  Change your password from the security   0.032002   # dense #2 + sparse #3
+  2  Password policy and complexity           0.031498   # dense #3 + sparse #4
+  5  Troubleshooting network issues           0.015385   # dense #5 only
+```
+
+RRF still lifts the router document out of dense rank 4, because a second retriever found it. But built-in `ts_rank` cannot break the sparse tie or reward the rare word `factory`, so it cannot separate the router document from the password document. That is the job of a real BM25 engine such as ParadeDB's `pg_search`, whose IDF weights `factory` up.
+
+**Example 5 — normalisation is sensitive to the score distribution.** Min-max always stretches the list to fill `[0, 1]`. If the dense list is `{0.91, 0.90}`, the second becomes `0.0`, which is far too harsh: both are excellent. If the sparse list ranges from `12.4` to `3.9`, the same transform makes `3.9` a hard zero. Min-max is cheap and popular, but it exaggerates small gaps. Z-score or rank-based fusion is safer when score spreads vary per query.
+
+**Example 6 — when hybrid does *not* help.** If every query is a short keyword and the corpus is all exact jargon, dense adds noise and latency for no gain. If every query is a long paraphrase and the corpus has no rare tokens, sparse adds nothing. Hybrid is not a free default; it is a fix for a **mixed** workload. Measure a pure retriever first, and add the second only when its failures show up.
+
+## In production
+
+- **Start with RRF, not weights.** It needs one constant and no calibration, and it is usually within a few points of a tuned weighted fusion. Add weights only when you have labels to tune them.
+- **Take a wide candidate list from each retriever.** If each returns only 5, a document ranked 8th by one retriever can never be rescued by the other. Retrieve 50–100 each.
+- **Do not add raw scores across retrievers.** BM25 scores are unbounded and query-dependent; cosine similarities sit in a narrow band. Adding them silently favours whichever retriever produces bigger numbers.
+- **Normalise per query, not per corpus.** BM25's scale depends on the query's rarity, so a global normalisation drifts. Min-max or rank fusion within the query's candidate list is the safe choice.
+- **RRF ignores confidence.** A document that both retrievers barely included can outrank one that a single retriever loved. Cross-encoder reranking (next chapters) fixes exactly this.
+- **Deduplicate before the prompt.** The same chunk from both paths must appear once, or you waste context and bias the model with duplicate text.
+- **Keep the two indexes in sync.** A document added to the vector index but not the `tsvector` index (or vice versa) is invisible to half the search. Write both in one transaction.
+- **Chunking must be identical for both paths.** If dense and sparse index different chunk boundaries, fusion compares apples to oranges and duplicate detection fails.
+- **Watch the latency budget.** Hybrid roughly doubles retrieval work, and the dense side may add an embedding call plus an ANN query. Measure the added milliseconds; reranking often costs more than fusion itself.
+- **`alpha` is workload-specific.** A support bot full of error codes should lean sparse; a consumer assistant should lean dense. One global `alpha` is a compromise, not an optimum.
+- **Fusion is not a substitute for good chunking.** If the right text is split across chunks, neither retriever retrieves it and fusion has nothing to merge.
+- **Log both lists for every query.** When a bad answer appears, you need to know whether the correct document was retrieved at all, and by which path. Without this, hybrid bugs are unfixable.
+
+> **Warning:**
+>
+> **A quiet failure mode.** Normalising a list where every score is identical (for example, one sparse match with the same rank) makes `hi - lo = 0` and dividing by zero. Guard it, as the `min_max` function above does.
+
+
+## Interview questions
+
+### 1. What is hybrid search, and why use it?
+
+**Answer.** Hybrid search runs dense and sparse retrieval and fuses their ranked lists into one. It exists because the two retrievers fail on different queries: dense misses exact codes and rare terms, sparse misses paraphrases. Fusing them means the strengths cover each other's weaknesses.
+
+**Follow-up: "Does it always beat both?"** On average yes, on a mixed workload. On a workload that is purely one type of query, it can add latency for little gain. Measure before assuming.
+
+**Trap.** Saying "hybrid is just adding vectors to keyword search". The hard part is *fusion*: the scores are not comparable, so the merge rule matters more than the retrievers.
+
+### 2. What is Reciprocal Rank Fusion, and why is it popular?
+
+**Answer.** RRF scores each document by summing `1/(k + rank)` across the retrievers that returned it, where `k` is usually 60. It uses only ranks, so it never has to calibrate two different score scales. That makes it robust, parameter-light, and hard to get badly wrong.
+
+**Follow-up: "What does `k` do?"** It softens the curve. A small `k` makes rank 1 dominate; a large `k` spreads credit more evenly down the list. `k=60` is the widely used default from the original paper.
+
+**Trap.** Thinking RRF needs a large candidate list to work. It only scores documents that appear in some list, so a document no retriever returned can never be recovered.
+
+### 3. How do you fuse when you want to keep the scores?
+
+**Answer.** Normalise each list onto a common scale — min-max or z-score — then take a weighted sum, `alpha * dense + (1 - alpha) * sparse`. This keeps the confidence information RRF discards, but it is sensitive to outliers and needs `alpha` tuned on labelled data.
+
+**Follow-up: "Why is min-max risky?"** It always stretches the best score to 1 and the worst to 0. If the top two scores are `0.91` and `0.90`, the second becomes 0, which is a huge distortion.
+
+**Trap.** Normalising globally instead of per query. Score ranges change with the query, so a stored global min and max go stale and skew the fusion.
+
+### 4. Why can't you just add BM25 scores and cosine similarities?
+
+**Answer.** They are different quantities on different scales. BM25 is an unbounded sum of term weights that depends on corpus statistics and query rarity, so it can be 3 or 30 for the same query. Cosine similarity is bounded in `[-1, 1]` and clusters in a narrow range. Adding them lets BM25 dominate by magnitude alone, not by evidence.
+
+**Follow-up: "So what do you do?"** Either drop the scores and fuse ranks (RRF), or normalise both to a shared scale first. Both are standard.
+
+**Trap.** Assuming you can compare scores because both are "relevance". They are not commensurable without a transformation.
+
+### 5. How would you tune the balance between dense and sparse?
+
+**Answer.** Build a labelled query set, then sweep `alpha` (for weighted fusion) or `k` (for RRF) and measure Recall@K and NDCG. The best value tells you whether your users need meaning or exact terms more, and you can even pick per query type.
+
+**Follow-up: "How do you pick per query?"** Classify the query: if it contains an identifier or a rare token, boost sparse; if it is a long natural-language question, boost dense. A simple heuristic gets most of the benefit.
+
+**Trap.** Tuning on a public benchmark instead of your own queries. The right `alpha` is a property of your workload.
+
+### 6. Implement RRF on the whiteboard for two lists.
+
+**Answer.** Keep a dictionary of totals. For each list, walk it with a 1-based counter and add `1/(k + rank)` to that document's total. Continue for every retriever, then sort descending. Documents in more than one list accumulate more terms, so agreement is rewarded.
+
+**Follow-up: "What is the cost?"** Linear in the total number of candidates across all lists, plus a sort. It is cheap compared to the retrievers themselves.
+
+**Trap.** Using 0-based ranks. RRF's `1/(k + rank)` expects rank 1 for the first document; a 0-based loop gives the top document `1/k` instead of `1/(k+1)`, which is wrong though close.
+
+### 7. How do you run hybrid search with only PostgreSQL?
+
+**Answer.** Store each chunk once with a `vector` column and a generated `tsvector` column. Index the vector with HNSW (`vector_cosine_ops`) and the text with GIN. Run the dense query with `<=>` and the sparse query with `@@` plus `ts_rank`, then fuse in SQL or in application code. One database serves both indexes, so there is nothing to sync.
+
+**Follow-up: "What are the limits?"** PostgreSQL's `ts_rank` is not BM25 — it has no IDF — so the sparse side is weaker than a real search engine. `pg_search` and dedicated engines fix that. HNSW is approximate, so recall is tunable but not perfect.
+
+**Trap.** Building only one index and forgetting the other. Half the queries silently lose their candidate source.
+
+### 8. When would you *not* use hybrid search?
+
+**Answer.** When the workload is homogeneous. Pure exact-match lookup on identifiers works best with sparse alone, and a corpus of natural-language paraphrase with no rare tokens works fine with dense alone. Also skip hybrid while the corpus is small enough that a single retriever already returns everything relevant.
+
+**Follow-up: "How do you know it is not helping?"** Compare Recall@K and NDCG for dense-only, sparse-only, and hybrid on your labels. If hybrid is within noise, remove it and save the latency.
+
+**Trap.** Defaulting to hybrid because it sounds more sophisticated. Extra components add failure modes, and an unmeasured component is a liability.
+
+## Remember this
+
+- **Hybrid = dense + sparse + fusion.** Both retrievers still run; fusion is the new step.
+- **Ranks are comparable, scores are not.** Use RRF, or normalise before adding.
+- **RRF is `sum(1/(k + rank))`**, usually `k=60`; agreement across retrievers is rewarded.
+- **Start with RRF, then consider weights** only when you have labelled data to tune on.
+- **Hybrid helps mixed query traffic; it is not a free default.** Measure each path before adding the next.

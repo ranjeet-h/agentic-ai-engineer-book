@@ -1,0 +1,441 @@
+# Background Jobs
+
+> **Interview answer (say this first).** A background job moves slow work out of the request path: the API returns immediately, and a separate worker process picks the work up from a queue. In-process `BackgroundTasks` are fine for tiny, best-effort work, but anything that must survive a restart, retries, or scale needs a real queue such as Celery, RQ, or ARQ — and every task must be **idempotent**, because queue delivery is at-least-once.
+
+## Why this exists
+
+A web request has a **time budget**. The client, the reverse proxy, and the load balancer all give up after some number of seconds. Meanwhile a slow operation — sending email, transcoding a video, or running a multi-step agent — can take minutes.
+
+Put the slow work inside the request and the numbers stop adding up:
+
+```text
+Client timeout           30 s
+Agent run (LLM + tools)  45 s
+Result: client sees a timeout, then retries
+```
+
+The client gets a 504. The work may still finish on the server, but the client never sees it. Worse, the retry starts the **same expensive work again**: the model is called twice and the customer is billed twice.
+
+There is a second problem. A synchronous request **occupies a web worker slot** for its whole duration. With four web workers, the service runs at most four agent runs at once: the fifth user waits in line, and a few slow requests can make the whole site feel down.
+
+Background jobs fix both problems. The request does only the fast part — validate, store, enqueue — and returns a **receipt**:
+
+```text
+POST /runs  ->  202 Accepted  {"run_id": "42", "status": "queued"}
+GET  /runs/42  ->  200 OK  {"status": "running"}
+```
+
+The slow work happens somewhere else, on machines sized for it, and the client polls or receives a webhook.
+
+> **Note:**
+>
+> **The one-sentence purpose.** A background queue turns "do this now, while the user waits" into "do this soon, and let the user check back."
+
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Background job / task** | A unit of work that runs outside the request that triggered it. |
+| **Producer** | The code that puts a job on the queue — usually the API process. |
+| **Broker** | The message queue that stores jobs until a worker takes them. Redis, RabbitMQ, and SQS are common. |
+| **Consumer / worker** | A separate process that takes jobs off the queue and runs them. |
+| **Worker pool** | Several worker processes running the same code, so jobs run in parallel. |
+| **Payload** | The small piece of data describing the job, such as `{"run_id": "42"}`. |
+| **Enqueue / publish** | To put a job on the broker. |
+| **Ack (acknowledge)** | The worker telling the broker "job done, you can forget it." |
+| **At-least-once** | Every job runs one or more times; duplicates are possible. The normal guarantee. |
+| **Idempotent** | Running it twice has the same effect as running it once. |
+| **Retry** | Running a failed job again, usually with a limit. |
+| **Backoff** | Waiting longer between each retry. |
+| **Exponential backoff** | Doubling the delay each time: 1 s, 2 s, 4 s, 8 s. |
+| **Jitter** | A small random amount added to the delay so many clients do not retry at the same instant. |
+| **Dead-letter queue (DLQ)** | A holding queue for jobs that failed too many times, so a human can inspect them. |
+| **Visibility timeout** | How long a broker hides a job after handing it out, before assuming the worker died. |
+| **Result backend** | A store (Redis, a database) where a worker writes the job's result and status. |
+| **Scheduler / beat** | A process that enqueues jobs on a timetable. |
+| **Cron** | The classic timetable syntax (`minute hour day month weekday`). |
+| **Prefetch** | How many jobs a worker reserves ahead of time. |
+| **Graceful shutdown** | Finishing or safely returning in-flight jobs before the process exits. |
+
+Two terms decide most of the design:
+
+- **At-least-once vs at-most-once** is about *whether you prefer duplicates or loss*. Almost every system chooses duplicates, because losing work is worse.
+- **Idempotency** is the price of at-least-once. If a job can run twice, it must be safe to run twice.
+
+## The core idea
+
+Think of a restaurant. The **waiter** takes your order and immediately moves on to the next table. The **kitchen** cooks at its own pace. The order is written on a ticket and placed on a rail; if a cook drops a ticket, someone notices and cooks it again.
+
+- Waiter = the API request. Ticket rail = the broker. Cooks = workers.
+- Order number = the job id. "Did we already cook order 12?" = idempotency.
+- The bin for unreadable tickets = the dead-letter queue.
+
+The waiter never stands in the kitchen. That is the whole idea.
+
+```mermaid
+flowchart LR
+  C["Client<br/>POST /runs"] --> A["API process<br/>validate + enqueue<br/>returns 202"]
+  A --> B["Broker<br/>durable queue<br/>Redis / RabbitMQ"]
+  B --> W1["Worker 1"]
+  B --> W2["Worker 2"]
+  W1 --> R["Result backend<br/>status + output"]
+  W2 --> R
+  W1 --> D["Dead-letter queue<br/>after max retries"]
+  C2["Client<br/>GET /runs/42"] --> R
+```
+
+The result backend matters because the API process and the worker are different processes on different machines. They cannot share memory, so the worker must write the status somewhere the API can read.
+
+## How it works
+
+1. **The API validates the request and writes the job's payload to durable storage.** Usually this is the database row that will hold the result. The row is the source of truth; the queue message is only a notification.
+2. **The API enqueues a small message** — typically `{"run_id": "42"}` — and returns `202 Accepted` with a status URL.
+3. **The broker stores the message.** Redis (with persistence) or RabbitMQ keeps it until a worker acknowledges it.
+4. **A worker reserves the message.** The broker hides it for the **visibility timeout** so no other worker grabs the same job. The job is now "in flight," not yet done.
+5. **The worker runs the task.** It updates the status to `running`, does the slow work, and writes the result.
+6. **The worker acknowledges the message.** The broker now deletes it. If the worker does not ack — it crashed, or the visibility timeout expired — the broker makes the message visible again and another worker runs it. This is the source of duplicates.
+7. **On failure the worker retries** according to policy: how many times, with what delay, and whether the error is retryable at all.
+8. **Permanent failures go to the dead-letter queue** after the retry limit, with the error attached for debugging.
+9. **A scheduler enqueues recurring jobs** (nightly reports, cache warmups) on a timetable. It usually runs as a single separate process so jobs are not enqueued multiple times.
+10. **Deploys shut workers down gracefully.** The worker stops taking new jobs, finishes what it has (within a deadline), and exits. Jobs it could not finish are redelivered.
+
+> **Tip:**
+>
+> **The mental shortcut.** The queue is a *notification*, not a *database*. If the message is lost but the database row says "queued," a repair job can find it. If the message is duplicated, idempotency makes the second run harmless.
+
+
+## The syntax you will use
+
+**In-process, tiny, best-effort: FastAPI `BackgroundTasks`.** Good for a log line or a fire-and-forget email. It runs in the same process, so a restart loses it, and it cannot scale or retry.
+
+```python
+from fastapi import BackgroundTasks, FastAPI
+
+app = FastAPI()
+
+def send_welcome(to: str) -> None:
+    smtp.send(to, "Welcome!")          # slow, but small
+
+@app.post("/signup")
+async def signup(email: str, background: BackgroundTasks) -> dict[str, str]:
+    background.add_task(send_welcome, email)
+    return {"status": "accepted"}
+```
+
+`background.add_task(fn, *args)` schedules `fn` to run after the response is sent. There is no queue, no retry, and no status.
+
+**A real task with Celery.** `Celery` is the process factory; `@app.task` registers a function as a job that workers can run.
+
+```python
+from celery import Celery
+
+app = Celery(
+    "worker",
+    broker="redis://localhost:6379/0",     # where jobs wait
+    backend="redis://localhost:6379/1",    # where results go
+)
+
+@app.task
+def add(a: int, b: int) -> int:
+    return a + b
+```
+
+Run the worker with `celery -A tasks worker --loglevel=info`. The API process imports the same module and calls the task by name.
+
+**Enqueueing.** `.delay()` is the short form; `.apply_async()` adds options.
+
+```python
+add.delay(2, 3)                                       # fire and forget
+add.apply_async((2, 3), countdown=10, queue="math")   # run in 10 s
+add.delay(2, 3).get(timeout=5)                        # block until stored
+```
+
+`result.get()` blocks, so use it only in scripts or a status endpoint with a short timeout — never in the handler that should return immediately.
+
+**Automatic retries with backoff and jitter.** This is the production default: retry known transient errors, wait longer each time, and randomise the wait.
+
+```python
+@app.task(
+    bind=True,
+    autoretry_for=(TimeoutError, ConnectionError),
+    retry_backoff=True,       # 1 s, 2 s, 4 s, 8 s, ... (Celery doubles each time)
+    retry_backoff_max=600,    # never wait more than 10 minutes
+    retry_jitter=True,        # spread retries out to avoid a retry storm
+    max_retries=5,
+    acks_late=True,           # ack only after the task succeeds
+)
+def call_model(self, prompt: str) -> str:
+    return client.generate(prompt)
+```
+
+`bind=True` passes `self`, the task instance. `acks_late=True` means a crash mid-task causes a redelivery rather than silent loss.
+
+**Manual retry with a computed delay.** When the delay depends on the error, call `self.retry(countdown=...)`; `self.request.retries` counts previous attempts.
+
+```python
+@app.task(bind=True, max_retries=5)
+def call_model(self, prompt: str) -> str:
+    try:
+        return client.generate(prompt)
+    except TimeoutError as err:
+        raise self.retry(exc=err, countdown=min(60, 2 ** self.request.retries))
+```
+
+**Idempotency with a lock.** `SET NX` succeeds only for the first caller, so the side effect runs once. Example 4 shows the full pattern; the key line is `r.set(key, "1", nx=True, ex=86400)`.
+
+**Scheduling with Celery Beat.** Beat is a separate process that enqueues tasks on a timetable.
+
+```python
+from celery import Celery
+from celery.schedules import crontab
+
+app = Celery("worker")
+
+app.conf.beat_schedule = {
+    "refresh-prices": {
+        "task": "tasks.refresh_prices",
+        "schedule": 60.0,                        # every 60 seconds
+    },
+    "nightly-report": {
+        "task": "tasks.nightly_report",
+        "schedule": crontab(minute=0, hour=2),   # 02:00 every day
+    },
+}
+```
+
+**RQ: a smaller, synchronous alternative.** RQ speaks plain Python and is easy to reason about, but it does not do async or Windows.
+
+```python
+from redis import Redis
+from rq import Queue, Retry
+
+queue = Queue(connection=Redis())
+
+job = queue.enqueue(
+    "tasks.process_image",
+    "s3://bucket/photo.jpg",
+    job_timeout="10m",
+    retry=Retry(max=3, interval=[10, 30, 60]),
+    result_ttl=86400,
+)
+```
+
+`Retry(max=3, interval=[10, 30, 60])` retries three times at 10 s, 30 s, and 60 s. `result_ttl` is how long the result stays.
+
+**ARQ: asyncio-native, good for agent workloads.** ARQ runs `async def` jobs, which fits LLM and HTTP-heavy agent work.
+
+```python
+from arq import create_pool, cron
+from arq.connections import RedisSettings
+
+async def run_agent(ctx, run_id: str) -> str:
+    return await agent.execute(run_id)
+
+async def send_digest(ctx) -> None:
+    await mailer.send_daily_summary()
+
+class WorkerSettings:
+    functions = [run_agent]
+    cron_jobs = [cron(send_digest, hour={8}, minute={0})]
+    redis_settings = RedisSettings()
+    max_tries = 3
+    job_timeout = 900
+    keep_result = 3600
+```
+
+Enqueue from async code with a dedicated job id, which doubles as an idempotency key:
+
+```python
+pool = await create_pool(RedisSettings())
+await pool.enqueue_job("run_agent", "run_42", _job_id="run_42")
+```
+
+**Worker settings that keep long jobs safe.** These are the knobs that decide what happens when a worker dies.
+
+```python
+app.conf.update(
+    task_acks_late=True,               # ack after success, not on receipt
+    worker_prefetch_multiplier=1,      # one job per worker at a time
+    task_reject_on_worker_lost=True,   # requeue if the worker is killed
+    task_time_limit=900,               # hard kill at 15 min
+    task_soft_time_limit=840,          # raise SoftTimeLimitExceeded first
+    result_expires=3600,               # result backend TTL in seconds
+    broker_transport_options={"visibility_timeout": 1800},
+)
+```
+
+`visibility_timeout` (here 30 min) must be **longer** than the longest task, or the broker will hand a still-running task to a second worker.
+
+**Graceful shutdown in a web process.** On shutdown, stop accepting work and close connections; in FastAPI, put that cleanup after the `yield` in the `lifespan` generator. Workers do the same when they receive `SIGTERM`.
+
+## Examples: simple to real
+
+**Example 1 — in-process background task.** The `BackgroundTasks` call from the syntax section returns in milliseconds and is enough for a welcome email. If the process restarts before it runs, the email is lost: fine for a note, unacceptable for a payment.
+
+**Example 2 — move the same work to Celery.** The task becomes durable and retryable.
+
+```python
+# tasks.py
+@app.task(bind=True, autoretry_for=(SMTPError,), retry_backoff=True,
+          retry_jitter=True, max_retries=5)
+def send_welcome(self, email: str) -> None:
+    smtp.send(email, "Welcome!")
+
+# api.py
+@app.post("/signup")
+async def signup(email: str):
+    send_welcome.delay(email)
+    return {"status": "accepted"}
+```
+
+Now a restart does not lose the job. Note the API imports the task but does not run it; the call just writes a message to Redis.
+
+**Example 3 — a long agent run with polling.** The request returns a run id; the worker updates a row the client can poll.
+
+```python
+@app.task(bind=True, acks_late=True, max_retries=3)
+def run_agent_task(self, run_id: str) -> None:
+    db.set_status(run_id, "running")
+    try:
+        db.set_status(run_id, "succeeded", output=agent.execute(run_id))
+    except Exception as err:
+        db.set_status(run_id, "failed", error=str(err))
+        raise
+```
+
+Set the status *inside* the task, not in the request. If the worker dies, the row stays `running` until the visibility timeout redelivers it, and the client's poll shows "running" rather than a false failure.
+
+**Example 4 — idempotent tool call.** A duplicate delivery must not send two emails or charge twice.
+
+```python
+@app.task(bind=True, acks_late=True)
+def send_invoice(self, invoice_id: int) -> None:
+    key = f"invoice-sent:{invoice_id}"
+    if not redis.set(key, "1", nx=True, ex=7 * 86400):
+        return                                  # already sent; safe to stop
+    invoice = db.get_invoice(invoice_id)
+    billing.charge(invoice)
+```
+
+The Redis key is the idempotency guard. Even if the broker delivers the job three times, `billing.charge` runs once.
+
+**Example 5 — route poison messages to a dead-letter queue.** After the final retry, hand the job to humans instead of retrying forever.
+
+```python
+@app.task(bind=True, max_retries=3, retry_backoff=True)
+def process_webhook(self, event: dict) -> None:
+    try:
+        handle(event)
+    except Exception as err:
+        if self.request.retries >= self.max_retries:
+            dead_letter.send({"event": event, "error": str(err)})
+            return                              # stop retrying
+        raise self.retry(exc=err)
+```
+
+Without this, one malformed message retries forever, burns worker time, and fills logs.
+
+**Example 6 — a scheduled job that cannot overlap.** A slow nightly job must not start again while the previous run is still going.
+
+```python
+@app.task(bind=True)
+def nightly_report(self) -> None:
+    # SET NX with a TTL acts as a distributed lock for the duration.
+    if not redis.set("lock:nightly-report", "1", nx=True, ex=3 * 3600):
+        return                                  # previous run still holds the lock
+    try:
+        build_report()
+    finally:
+        redis.delete("lock:nightly-report")
+```
+
+The TTL is the safety net: if the process dies, the lock expires instead of blocking forever.
+
+## In production
+
+- **Delivery is at-least-once, so duplicates are normal.** Every task with a side effect (charge, email, write) needs an idempotency key or an idempotent operation such as an `UPSERT`.
+- **`acks_late=True` trades loss for duplicates.** Acking on receipt loses the job if the worker dies; acking after success redelivers it. Prefer redelivery and idempotency.
+- **Set the visibility timeout longer than the longest task.** Celery's Redis broker defaults to 3600 seconds; if a task can run for 90 minutes, raise it, or the broker will redeliver a running task.
+- **Use `worker_prefetch_multiplier=1` for long tasks.** The default prefetch reserves several messages per worker; a crash then loses or redelivers them all, and one busy worker hoards the queue.
+- **Retry only transient errors, with a cap, backoff, and jitter.** Retrying a `ValueError` will never help; retrying without jitter makes every client retry in lockstep and produces a thundering herd.
+- **Cap retries and route the leftovers to a DLQ.** A poison message that always fails will otherwise retry until the end of time and occupy a worker.
+- **Result backends grow forever unless you set a TTL.** Use `result_expires` (Celery) or `result_ttl` (RQ); store large outputs in object storage and keep only ids in the backend.
+- **Pass ids, not payloads.** Large objects bloat the broker, break JSON serialization, and create a second copy of the truth. Pass `run_id` and let the worker load the row.
+- **Run beat as a single replica.** Multiple schedulers enqueue each job multiple times. For cron work, add a lock so a slow run cannot overlap itself.
+- **Workers are a separate deployment with their own scaling.** Scale on queue depth and job latency, not just CPU; a growing backlog is invisible in a CPU graph. Handle `SIGTERM` so a redeploy finishes or requeues in-flight jobs instead of creating a wave of duplicates.
+- **Match the concurrency model to the work.** CPU-bound tasks want prefork processes; I/O-bound and LLM tasks want threads or asyncio so one worker is not blocked waiting on the network.
+
+## Interview questions
+
+### 1. Why not just run slow work in a thread or with `asyncio.create_task`?
+
+**Answer.** In-process work shares the fate of the request process. A restart, a crash, or an autoscale event loses it; it cannot retry, cannot be observed by another process, and cannot scale independently. It also competes for the same memory and CPU as request handling. A queue gives durability, retries, a status, and separate scaling.
+
+**Follow-up: "When is `BackgroundTasks` actually the right choice?"** For tiny, best-effort work where loss is harmless and no status is needed — an audit log line, a metrics ping, a non-critical email. The moment the user expects a result, or the work costs money, use a real queue.
+
+**Trap.** Saying `asyncio.create_task` is "basically a background job." It is not durable, is never retried, and disappears silently if the task raises an unobserved exception.
+
+### 2. What does at-least-once delivery mean, and what does it force you to do?
+
+**Answer.** The broker guarantees every job is delivered at least once, but a crash, a timeout, or a lost ack can cause the same job to run again. That forces tasks to be **idempotent**: running twice must have the same effect as running once. Common tools are an idempotency key with `SET NX`, an `UPSERT`, or a status check before the side effect.
+
+**Follow-up: "Can you get exactly-once?"** Not across a network. You can get effectively-once by combining at-least-once delivery with idempotent side effects and a deduplication key.
+
+**Trap.** Claiming the broker "only delivers once if you configure it right." Reconfiguration reduces duplicates; it cannot eliminate them, because the failure can happen between doing the work and acknowledging it.
+
+### 3. Explain exponential backoff and jitter, and why both are needed.
+
+**Answer.** Backoff waits longer after each failure — 1 s, 2 s, 4 s, doubling up to a cap — so a struggling downstream service gets room to recover. Jitter adds randomness to the delay so many clients do not retry at the same instant. Backoff alone still synchronises everyone, which is exactly the thundering herd you were trying to avoid.
+
+**Follow-up: "What is 'full jitter'?"** Instead of a fixed delay, pick a random time between zero and the exponential ceiling. It spreads retries the most, at the cost of some retrying almost immediately.
+
+**Trap.** Retrying every error. A validation error or a 404 will fail forever; retrying it wastes capacity and delays the DLQ.
+
+### 4. What is a visibility timeout, and what goes wrong at each extreme?
+
+**Answer.** When a broker hands a job to a worker, it hides the job for the visibility timeout. If the worker acks in time, the job is deleted. If not, the broker assumes the worker died and makes the job visible again. Too short: a still-running job is redelivered and runs twice concurrently. Too long: a genuinely dead worker's job waits a long time before being retried.
+
+**Follow-up: "How do you choose it?"** Set it comfortably above the p99 task duration, and use heartbeats or a task lease if a job can run for an unbounded time. In Celery's Redis broker the default is 3600 seconds.
+
+**Trap.** Setting the visibility timeout shorter than the task's own timeout. Then the broker redelivers before the task is even allowed to finish, guaranteeing duplicates.
+
+### 5. What is a dead-letter queue, and why not just retry forever?
+
+**Answer.** A DLQ is where a job goes after it exceeds its retry limit, with the error attached. Retrying forever ties up a worker, floods the logs, and hides the real problem. A DLQ stops the bleeding, preserves the message for inspection, and lets you replay it after fixing the bug.
+
+**Follow-up: "What do you monitor on a DLQ?"** Its depth and its rate of growth. A DLQ that only grows means a permanent bug; a small, stable one is normal.
+
+**Trap.** Treating a DLQ as a place to forget about messages. Without alerting and a replay path, it is a silent data-loss bin.
+
+### 6. How do you run a recurring job reliably, and stop it overlapping?
+
+**Answer.** Run a single scheduler process (`celery beat`, `rq-scheduler`, or ARQ `cron`), never several replicas, because each one enqueues its own copy. Guard the job itself with a distributed lock (`SET NX` with a TTL) so a slow run cannot start again while the previous one is still going.
+
+**Follow-up: "What if the scheduler is down when the time arrives?"** Beat only enqueues while it runs; a missed window is simply missed. For critical schedules, keep the schedule durable and check for missed runs, or use a managed scheduler.
+
+**Trap.** Scaling the scheduler to two replicas for "high availability." That doubles every scheduled job. Run one and monitor it instead.
+
+### 7. Celery vs RQ vs ARQ — how do you choose?
+
+**Answer.** Celery is the most capable and the most complex: many brokers, prefork/thread/gevent pools, beat, routing, and a large ecosystem. RQ is small and synchronous — plain Python functions over Redis, easy to operate, no async and no Windows. ARQ is asyncio-native, which fits I/O-heavy agent workloads that await HTTP and LLM calls.
+
+**Follow-up: "When would you avoid a queue altogether?"** When the work is tiny, best-effort, and needs no retry or status — then `BackgroundTasks` or a cron job is simpler and has fewer moving parts.
+
+**Trap.** Picking Celery by default for a small service, then spending more time operating the broker and beat than building the product.
+
+### 8. What happens to in-flight jobs when you redeploy a worker?
+
+**Answer.** The platform sends `SIGTERM` and waits a grace period (often 30 s, sometimes longer) before `SIGKILL`. A well-behaved worker catches the signal, stops reserving new jobs, finishes what it has or requeues it, and exits. If it ignores the signal, it is killed; with `acks_late`, its unacked jobs become visible again after the visibility timeout and run on another worker.
+
+**Follow-up: "How do you make deploys safe for long jobs?"** Set a soft time limit that raises an exception so the task can checkpoint, keep the grace period longer than typical task duration, and make every task idempotent so a mid-flight kill is recoverable.
+
+**Trap.** Assuming a killed worker loses the job. With late acks it is redelivered — but only if the job was acked late and the visibility timeout is long enough for the new worker to be healthy.
+
+## Remember this
+
+- A queue moves slow work **out of the request path**; the API returns a receipt, not the result.
+- `BackgroundTasks` is in-process and lossy; **Celery/RQ/ARQ are separate, durable, and retryable**.
+- Delivery is **at-least-once**, so every task with a side effect must be **idempotent**.
+- **Retry with backoff and jitter**, cap the attempts, and send permanent failures to a **dead-letter queue**.
+- The **visibility timeout must exceed the longest task**, and workers must handle **SIGTERM** so deploys do not create duplicate waves.

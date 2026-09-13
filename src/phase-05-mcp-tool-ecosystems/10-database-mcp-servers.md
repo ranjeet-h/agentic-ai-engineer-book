@@ -1,0 +1,409 @@
+# Database MCP Servers
+
+> **Interview answer (say this first).** A database MCP server exposes a database as MCP tools so an agent can ask questions in steps instead of holding raw credentials. The safe design separates read-only tools from read-write tools, uses parameterised queries so model input is never concatenated into SQL, prefers schema and table tools over arbitrary SQL, caps rows and query time, runs under a least-privilege database account, and audits every query. The risk is not MCP; it is handing a probabilistic model a live database connection.
+
+## Why this exists
+
+A model cannot open a database connection. It produces text. To answer "how many users signed up last week?", someone has to translate that into SQL, run it, and return rows. A database MCP server is the standard way to offer that translation as tools.
+
+The naive version is one tool called `run_sql` that takes a SQL string and executes it. That is also the dangerous version. Here is the failure in miniature:
+
+```text
+Tool: run_sql(sql: str)
+Model builds: SELECT * FROM orders WHERE email = '{user_email}'
+Attacker sets email to:  ' OR '1'='1
+Final SQL:     SELECT * FROM orders WHERE email = '' OR '1'='1'
+Result:        every order in the table
+```
+
+The model did not attack anything. It followed the pattern in its prompt: build a SQL string by pasting values. The bug is the tool design, not the model. Verified against SQLite, the interpolated query above returned every row, while the same input passed as a bound parameter returned none.
+
+A second failure is a write tool with no separation. If `run_sql` accepts any statement, a confused agent can run `DROP TABLE`, `UPDATE ... SET role='admin'`, or `DELETE FROM customers`. There is no prompt that makes that safe. The database, not the prompt, must enforce the boundary.
+
+A third failure is scale. A model asks for "all logs" and the server returns ten million rows. The response blows past the context window, costs a fortune, and the agent still cannot use it.
+
+Database MCP servers exist to expose the capability **narrowly**: specific, safe operations with bounded inputs and bounded outputs.
+
+> **Note:**
+>
+> **The one-sentence purpose.** A database MCP server turns a database into a small set of typed, permissioned, bounded tools — never a raw SQL prompt attached to a privileged connection.
+
+
+## Start from zero
+
+Before going further, here are the words this topic keeps using.
+
+| Word | Plain meaning |
+| --- | --- |
+| **Database** | An organised store of data that you query with a language. |
+| **DBMS** | The engine that runs the database: PostgreSQL, MySQL, SQLite, and others. |
+| **SQL** | Structured Query Language. The text language used to read and write rows. |
+| **Query** | A SQL statement, usually a `SELECT` that reads rows. |
+| **Connection** | An open channel from your code to the DBMS, usually with credentials. |
+| **Connection string / DSN** | The text that says where the database is and how to log in. |
+| **Credential** | The username and password (or token) that prove identity. |
+| **Least privilege** | Giving an account only the permissions it needs, nothing more. |
+| **Read-only** | An account or connection that can read but not change data. |
+| **Tool** | An MCP callable. Here, one database operation such as `list_tables`. |
+| **Parameterised query** | A query with placeholders (`?`, `%s`) whose values are sent separately from the SQL text. |
+| **Prepared statement** | A query the database compiles once and runs with supplied values. |
+| **SQL injection** | Attacker input changing the meaning of a SQL statement. |
+| **Identifier** | The name of a table or column. It cannot be a bound parameter. |
+| **Allowlist** | A fixed set of values you accept, rejecting everything else. |
+| **Schema** | The structure of a database: tables, columns, types, keys. |
+| **Row limit** | A hard cap on how many rows a tool returns. |
+| **Timeout** | A deadline after which a query is cancelled. |
+| **Transaction** | A group of writes that succeed or fail together. |
+| **Audit log** | A durable record of who ran what, when, and what happened. |
+| **Tool annotation** | Optional MCP metadata such as "read-only" or "destructive". Advisory, not enforced. |
+
+Three distinctions matter:
+
+- **SQL text vs SQL values.** The statement structure must be fixed by your code. Only values may come from the model, and only as bound parameters.
+- **Read tools vs write tools.** They should be different tools, ideally different database accounts, and definitely different approval rules.
+- **A hint vs a guarantee.** MCP's `readOnlyHint` tells the model what to expect. It does not stop a bad server from writing. The guarantee comes from the database account.
+
+## The core idea
+
+Think of a public library. The **reading room** lets anyone read any book, but nothing can leave changed. The **back office** can add, edit, and remove books, and only staff with separate keys go in.
+
+A good database MCP server is mostly reading room. It offers:
+
+- `list_tables` — what tables exist,
+- `describe_table` — columns, types, and keys,
+- `run_query` — a read-only `SELECT` with bound parameters and a row cap,
+
+and a small, separately gated set of back-office tools such as `insert_record` or `update_record`.
+
+```mermaid
+flowchart TD
+    M["Model"] -->|"tool call with values"| T["MCP server tools"]
+    T --> P{"Policy layer"}
+    P -->|"reject"| E["Error back to model"]
+    P -->|"read tool"| R["Read-only DB account"]
+    P -->|"write tool + approval"| W["Read-write DB account"]
+    R --> DB[("Database")]
+    W --> DB
+    T --> A["Audit log<br/>user · tool · SQL · params · rows · ms"]
+```
+
+The policy layer is the product. It decides which SQL shapes are allowed, binds values, caps rows, arms a timeout, and writes the audit record. Everything else is plumbing.
+
+| Design | Safety | Capability | When to use |
+| --- | --- | --- | --- |
+| Arbitrary `run_sql` on a write account | Very low | Very high | Almost never |
+| Arbitrary `run_sql` on a read-only account | Medium | High | Analyst-style agents, with a parser and caps |
+| Schema + typed read tools | High | Medium | Most production agents |
+| Typed write tools with approval | High | Targeted | Known mutations such as "close ticket" |
+
+The pattern to remember: **move capability from "any SQL" toward "named, typed operations" as risk rises.**
+
+## How it works
+
+1. **Choose the connection model.** A short-lived connection per call is simplest and safest. A pool is faster but adds shared state. For SQLite in a worker thread, remember the thread rules below.
+2. **Open a read-only connection for read tools.** For SQLite use a read-only URI plus `PRAGMA query_only=ON`, which covers attached databases too. For server databases, create a database role that only has `SELECT`.
+3. **Register schema tools first.** `list_tables` and `describe_table` let the model learn structure without guessing table names.
+4. **Register one bounded read tool.** It takes a `sql` string plus a `params` list, rejects anything that is not a read statement, and binds the params.
+5. **Validate identifiers against an allowlist.** Table and column names cannot be bound; if a tool accepts a column name, check it against a known set.
+6. **Cap rows before fetching.** Pass the cap to `fetchmany`, or add a `LIMIT` clause you control. Never `fetchall` an unbounded query.
+7. **Arm a timeout.** Set a statement timeout in the driver, or use a progress handler that interrupts the query after a deadline.
+8. **Register write tools separately.** Each write tool performs one named operation with typed arguments, not free-form SQL. Put them behind approval and a separate account.
+9. **Wrap writes in transactions.** Group related changes so a partial failure does not leave half-written data.
+10. **Audit every call.** Record the tool name, the caller identity, the SQL text, the bound parameters (or a redacted form), row count, duration, and outcome.
+11. **Sanitize errors.** Return "permission denied" or "invalid column," not a raw driver traceback that leaks schema and connection details.
+12. **Close connections.** Return pooled connections or close short-lived ones in a `finally` block so they are not leaked across sessions.
+
+For MCP specifically, the server advertises these as ordinary tools. The client lists them and maps their schemas to the model, exactly as in the client chapter.
+
+## The syntax you will use
+
+**Open a read-only SQLite connection.** The `mode=ro` flag makes writes fail at the database, and `PRAGMA query_only=ON` extends that to every database attached to the connection. `mode=ro` only governs the database named in the URI, so without the pragma a later `ATTACH` can open a writable file and slip around it.
+
+```python
+import sqlite3
+
+con = sqlite3.connect("file:app.db?mode=ro", uri=True)
+con.execute("PRAGMA query_only=ON")   # also blocks writes to ATTACHed databases
+# con.execute("INSERT ...") -> sqlite3.OperationalError: attempt to write a readonly database
+```
+
+**Bind values instead of pasting them.** `?` is the placeholder; the tuple is the data.
+
+```python
+con.execute("SELECT name FROM users WHERE name = ?", (user_input,)).fetchall()
+```
+
+**The dangerous form, for contrast.** Never build SQL with an f-string or `%`.
+
+```python
+sql = f"SELECT name FROM users WHERE name = '{user_input}'"   # injection risk
+```
+
+**Validate an identifier against an allowlist.** Names cannot be parameters.
+
+```python
+ALLOWED_COLUMNS = {"id", "name", "email", "created_at"}
+
+def safe_column(name: str) -> str:
+    if name not in ALLOWED_COLUMNS:
+        raise ValueError(f"unknown column: {name!r}")
+    return name
+```
+
+**Cap rows with `fetchmany`.** The database may produce more; you take only what you will return.
+
+```python
+cursor = con.execute("SELECT id, name FROM users ORDER BY id")
+rows = cursor.fetchmany(100)     # at most 100 rows
+```
+
+**Interrupt a query that runs too long.** The handler runs periodically; returning non-zero aborts.
+
+```python
+import time
+
+deadline = time.monotonic() + 2.0
+con.set_progress_handler(
+    lambda: 1 if time.monotonic() > deadline else 0, 10_000
+)
+# a query past the deadline raises sqlite3.OperationalError: interrupted
+```
+
+**Describe the tool and mark it read-only.** Annotations are advisory metadata for clients.
+
+```python
+from mcp.server import MCPServer
+from mcp.types import ToolAnnotations
+
+mcp = MCPServer("database")
+
+@mcp.tool(annotations=ToolAnnotations(read_only_hint=True))
+def list_tables() -> list[str]:
+    ...
+```
+
+**Hold shared resources in a lifespan.** The context manager opens once and closes at shutdown.
+
+```python
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(server: MCPServer):
+    conn = sqlite3.connect("file:app.db?mode=ro", uri=True, check_same_thread=False)
+    conn.execute("PRAGMA query_only=ON")   # covers ATTACHed databases as well
+    try:
+        yield {"conn": conn}
+    finally:
+        conn.close()
+
+mcp = MCPServer("database", lifespan=lifespan)
+```
+
+**Read the connection back inside a tool.** The lifespan value is on the request context.
+
+```python
+from mcp.server.mcpserver.context import Context
+
+@mcp.tool()
+def list_tables(ctx: Context) -> list[str]:
+    conn = ctx.request_context.lifespan_context["conn"]
+    ...
+```
+
+**Write an audit record around every call.** One line per invocation, before and after.
+
+```python
+import hashlib
+import logging
+
+logger = logging.getLogger("mcp_db")
+SECRET_KEYS = {"password", "token", "secret", "api_key", "authorization",
+               "card", "card_number"}
+
+def redact(params: object) -> object:
+    """Redact by KEY for mappings. A positional list has no key to compare
+    against, so log a hash of each value instead: matching a value to a set of
+    key names is not secret redaction."""
+    if isinstance(params, dict):
+        return {
+            k: ("***" if str(k).lower() in SECRET_KEYS else v)
+            for k, v in params.items()
+        }
+    if isinstance(params, (list, tuple)):
+        return [hashlib.sha256(repr(p).encode()).hexdigest()[:12] for p in params]
+    return hashlib.sha256(repr(params).encode()).hexdigest()[:12]
+
+def audit(tool: str, sql: str, params: object, rows: int, ms: float, ok: bool) -> None:
+    logger.info(
+        "mcp_db tool=%s sql=%s params=%s rows=%d ms=%.1f ok=%s",
+        tool, sql, redact(params), rows, ms, ok,
+    )
+```
+
+Because redaction is keyed on a mapping's field names, a secret passed as a bare value is hashed, not trusted to match a key name. Verified: a `card_number` and a `token` field are starred, and the same strings in a positional list appear only as hashes, so neither the card nor the token reaches the log.
+
+## Examples: simple to real
+
+**Example 1 — the injection, demonstrated.** This is what happens when a value is pasted into SQL.
+
+```python
+con.execute("SELECT name FROM users WHERE name = ?", ("x' OR '1'='1",)).fetchall()
+# -> []   (treated as a literal name; no such user)
+
+con.execute("SELECT name FROM users WHERE name = '' OR '1'='1'").fetchall()
+# -> [('Ada',), ('Bob',)]   (the OR makes the condition always true)
+```
+
+Verified against SQLite. The parameterised query is safe because the value never becomes SQL text.
+
+**Example 2 — a read-only connection stops writes.** Even a perfect prompt cannot talk the database into it.
+
+```python
+ro = sqlite3.connect("file:app.db?mode=ro", uri=True)
+ro.execute("PRAGMA query_only=ON")
+ro.execute("INSERT INTO t (x) VALUES (1)")
+# sqlite3.OperationalError: attempt to write a readonly database
+```
+
+Verified. This is the guarantee that tool annotations cannot provide. Note the scope: `mode=ro` applies to the database in the URI, so add `PRAGMA query_only=ON` to make writes fail on every attached database too; otherwise a later `ATTACH` can open a writable file.
+
+**Example 3 — a bound query inside a real tool.** The tool rejects non-reads, binds values, and caps rows.
+
+```python
+HARD_ROW_CAP = 200   # server-side bound; the model cannot raise it
+
+@mcp.tool()
+def run_query(sql: str, params: list[object] | None = None, max_rows: int = 100):
+    if not sql.lstrip().lower().startswith("select"):
+        raise ValueError("only SELECT is allowed")
+    max_rows = min(max_rows, HARD_ROW_CAP)   # clamp the model-supplied cap
+    con = sqlite3.connect("file:app.db?mode=ro", uri=True)
+    con.row_factory = sqlite3.Row            # so dict(row) works
+    con.execute("PRAGMA query_only=ON")      # also covers ATTACHed databases
+    try:
+        cur = con.execute(sql, params or [])
+        return [dict(r) for r in cur.fetchmany(max_rows)]
+    finally:
+        con.close()
+```
+
+Verified end-to-end over the MCP protocol: `SELECT name FROM users WHERE id > ?` with `[1]` returned the expected rows, an injection string returned `[]`, and `DROP TABLE users` produced an error result. Two caveats stay honest. First, `max_rows` is part of the advertised schema, so it is a request, not a bound; the server clamps it to `HARD_ROW_CAP`. Second, the `startswith("select")` check is only a first filter: it can be fooled by leading comments, and any query that does begin with `SELECT` can still read every table the account can read. (SQLite's `execute` rejects multiple statements, so a smuggled second statement is not the concern here.) The real guarantee is the read-only account plus `PRAGMA query_only`, and a production policy layer should add a proper SQL parser or a statement allowlist on top.
+
+**Example 4 — rows are capped, not streamed.** The model gets a bounded, usable answer.
+
+```python
+con.execute("SELECT name FROM users").fetchmany(5)
+# -> 5 rows, even though the table has 100
+```
+
+Verified: `fetchmany(5)` returned exactly 5 rows. The remainder stays in the database, where it belongs.
+
+**Example 5 — the timeout fires.** A runaway join is interrupted instead of blocking the turn.
+
+```python
+con.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0, 1000)
+con.execute("SELECT count(*) FROM a, b, c, d").fetchall()
+# sqlite3.OperationalError: interrupted
+```
+
+Verified on a deliberately heavy query. Without this, the tool call hangs until the client's read timeout, and the database keeps working on a query nobody wants.
+
+**Example 6 — the lifespan thread gotcha.** A shared SQLite connection is created in one thread and used in another.
+
+```python
+# Server starts, lifespan opens conn in the event-loop thread.
+# The SDK runs the sync tool in a worker thread.
+# -> sqlite3.ProgrammingError: SQLite objects created in a thread can only be
+#    used in that same thread.
+```
+
+Verified failure, and the fix: pass `check_same_thread=False`. On this Python, `sqlite3.threadsafety` is `3` (serialized), so concurrent access is internally serialized and the shared read-only connection is safe. If you cannot verify that setting on your platform, open a connection per call instead.
+
+## In production
+
+- **Never build SQL by string concatenation.** Parameterise values. This single rule removes the largest class of database MCP vulnerabilities.
+- **Identifiers need an allowlist.** `ORDER BY {column}` cannot be parameterised. Accept only names you recognise.
+- **Prefer named tools over `run_sql`.** "Close ticket" as a typed tool is auditable and easy to gate. "Run any SQL" is neither.
+- **Use one account per risk level.** The read tools get a `SELECT`-only role; write tools get a narrow role. Do not share one powerful login across both.
+- **Cap rows and response size.** A row count limit and a byte limit are different limits. Large text or blob columns can blow the context window with few rows, so avoid `SELECT *` on wide tables.
+- **Set both client and server timeouts.** A client read timeout protects the turn; a database statement timeout protects the database from orphaned work.
+- **Do not return raw driver errors.** They leak table names, columns, and sometimes connection details. Map them to short, safe messages.
+- **Audit parameters, not just SQL.** `DELETE FROM users WHERE id = ?` is meaningless without the id. Redact by key for mappings; for positional values that have no key, log a hash or a length rather than trusting the value to match a secret name.
+- **Write tools need approval and transactions.** A retried write can duplicate data. Use a transaction plus an idempotency key or a natural key check.
+- **Page with keysets, not large offsets.** `OFFSET 100000` gets slower as it goes. Cursor on an indexed column instead.
+- **Test the server with hostile input.** Feed quotes, semicolons, comments, and Unicode into every argument, and confirm the database does not change shape.
+- **Keep the tool count small.** Too many near-identical query tools make selection unreliable, exactly as with any tool catalog.
+
+## Interview questions
+
+### 1. Why is a single `run_sql` tool a bad design?
+
+**Answer.** It gives the model arbitrary SQL against a live connection. A confused or manipulated model can read data it should not, or write and delete data, and there is no schema to validate against. It is also impossible to gate precisely, because one tool covers every operation.
+
+**Follow-up: "Is it safe on a read-only account?"** Safer, but still broad. A read-only account can exfiltrate any readable table and run expensive queries. Prefer named read tools, and if you must allow SQL, add parsing, allowlisting, row caps, and timeouts.
+
+**Trap.** Believing a strong system prompt makes free-form SQL safe. The model is probabilistic; the boundary must be in code and in database permissions.
+
+### 2. How do parameterised queries stop SQL injection?
+
+**Answer.** The SQL text and the values travel separately. The database parses and compiles the statement with placeholders, then binds values as data. Because the statement structure is already fixed, a value like `' OR '1'='1` cannot change the meaning of the query; it is just a string that matches no row.
+
+**Follow-up: "What cannot be parameterised?"** Table and column names, `ORDER BY` direction, and other identifiers. Those need a strict allowlist.
+
+**Trap.** Thinking escaping quotes by hand is equivalent. Manual escaping is easy to get wrong across encodings; binding is handled by the driver.
+
+### 3. How do you bound the cost of a query?
+
+**Answer.** Two limits: rows and time. Cap rows with `fetchmany` or a controlled `LIMIT`. Cap time with a database statement timeout or a progress handler that aborts past a deadline. Add a response byte cap as well, because a few large values can exceed the context window.
+
+**Follow-up: "Why is a client timeout not enough?"** Cancelling the client leaves the database running the query. The server-side timeout is what actually frees the resource.
+
+**Trap.** Assuming `LIMIT` is always respected. Without an `ORDER BY`, `LIMIT` returns an arbitrary subset, which is non-deterministic and confusing to the model.
+
+### 4. How do you expose schema information safely?
+
+**Answer.** Provide explicit tools such as `list_tables` and `describe_table` that read catalog metadata through fixed queries. They return names, types, and keys, and they take no free-form SQL. This lets the model learn the structure without guessing and without a broad query capability.
+
+**Follow-up: "Should the schema include every table?"** Only the ones the agent is allowed to use. Filter out internal, secrets, or unrelated tables so the model does not learn their existence.
+
+**Trap.** Returning full DDL dumps that include credentials, comments with internal URLs, or column data from sample rows.
+
+### 5. Read-only tools and write tools — how should they differ?
+
+**Answer.** Different tools, different database accounts, and different approvals. Reads run automatically under a `SELECT`-only role. Writes are named typed operations, run under a narrow role, wrapped in transactions, and gated by human approval for anything irreversible.
+
+**Follow-up: "What about idempotency?"** A retried write must not apply twice. Use an idempotency key or check a natural key before inserting.
+
+**Trap.** Relying on MCP's `readOnlyHint`. It is metadata from the server, not an enforcement mechanism. The database role is the enforcement.
+
+### 6. What exactly should an audit log capture?
+
+**Answer.** The caller identity, the server and tool name, the SQL or operation, the bound parameters (redacted), the row count, the duration, and success or failure. Enough to answer "who changed this and when" without storing secrets.
+
+**Follow-up: "Why log parameters?"** Because `UPDATE ... WHERE id = ?` tells you nothing without the id. The parameter is the evidence.
+
+**Trap.** Logging full result sets. That duplicates sensitive data into a second system, and the log becomes the leak.
+
+### 7. Why did a shared SQLite connection fail across threads?
+
+**Answer.** Python's `sqlite3` refuses by default to use a connection from a different thread than the one that created it. The SDK runs synchronous tools in a worker thread, so a connection opened in a lifespan in the main thread fails with `ProgrammingError`. The fix is `check_same_thread=False`, safe when `sqlite3.threadsafety` is `3` (serialized), or a connection per call.
+
+**Follow-up: "What is the general lesson?"** Database drivers have threading and pooling rules. Know them before caching a connection in a long-lived server object.
+
+**Trap.** Setting `check_same_thread=False` on a build where access is not serialized, and getting subtle corruption under concurrency.
+
+### 8. A model keeps asking for columns that do not exist. What do you do?
+
+**Answer.** Improve discovery and errors. Make `describe_table` easy to call, return the available column names in the error message, and give each tool a precise description. This is a tool-schema problem as much as a database problem.
+
+**Follow-up: "Should you auto-correct the query?"** Only within an allowlist, and never by silently dropping a filter. A silently wrong query is worse than a clear error.
+
+**Trap.** Making the tool "helpful" by ignoring unknown columns. That changes the meaning of the request, and the model will trust a wrong answer.
+
+## Remember this
+
+- **The database, not the prompt, is the boundary.** Use least-privilege accounts and read-only connections.
+- **Bind values; allowlist identifiers.** Parameterised queries stop injection; names need a list.
+- **Bound rows and time.** A cap protects cost and context; a timeout protects the database.
+- **Separate read and write tools.** Different tools, accounts, approvals, and audit paths.
+- **Audit the parameters.** Without them, the log cannot reconstruct what changed.

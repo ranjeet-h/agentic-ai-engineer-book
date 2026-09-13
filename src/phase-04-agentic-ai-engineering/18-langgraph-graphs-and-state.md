@@ -1,0 +1,449 @@
+# LangGraph: Graphs and State
+
+> **Interview answer (say this first).** LangGraph models an agent as a state machine. You declare a typed **state**, write **nodes** that each return a partial update to that state, connect them with **edges**, and use **conditional edges** to branch. A **reducer** such as `Annotated[list, operator.add]` tells LangGraph how to merge an update instead of overwriting it, which is what makes parallel branches safe. `START` and `END` are the entry and exit markers, and `compile()` turns the builder into a runnable graph you call with `invoke` or `stream`. The verified version for this page is **langgraph 1.2.11**.
+
+## Why this exists
+
+An agent is a loop: think, call a tool, look at the result, decide again. The naive way to write it is a `while` loop with local variables.
+
+```python
+def agent(goal: str) -> str:
+    history = []
+    for _ in range(20):
+        action = call_model(goal, history)
+        if action.is_final:
+            return action.text
+        result = run_tool(action.tool, action.args)
+        history.append((action, result))
+    return "gave up"
+```
+
+That works until you need anything real:
+
+1. **Branching.** "If the request is billing, go to the billing path; otherwise research." A loop has no clean place to put that.
+2. **Parallelism.** "Search the docs and the web at the same time, then merge." Adding threads to the loop mixes concerns.
+3. **State.** Everything lives in local variables, so you cannot inspect it, save it, or pause it.
+4. **Recovery.** A crash loses `history`, so the run restarts from zero.
+5. **Visibility.** You cannot draw the loop, and you cannot attach a checkpoint or an approval gate.
+
+LangGraph turns the loop into an explicit graph: nodes are the steps, edges are the transitions, and the state is a first-class value that every step reads and writes. Because the structure is data, the framework can add checkpointing, interrupts, streaming, and retries without you rewriting the agent.
+
+This matters for agentic AI because the same agent must be debuggable in development, resumable in production, and pausable for human approval. A graph gives all three for free.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Graph** | A set of nodes connected by edges. Here it is the agent's control flow. |
+| **Node** | One step. A Python function (sync or async) that takes state and returns a partial update. |
+| **Edge** | A fixed transition: "after node A, always run node B." |
+| **Conditional edge** | A transition chosen at runtime by a router function that returns the next node name. |
+| **State** | The shared data structure every node reads and writes. In code it is usually a `TypedDict`. |
+| **Channel** | LangGraph's internal slot for one state key. Each key is a separate channel. |
+| **Reducer** | A function that says how a new value merges into a channel. Without one, the new value replaces the old. |
+| **`Annotated[X, f]`** | Python syntax that attaches metadata `f` to a type. LangGraph reads it as "merge with reducer `f`." |
+| **Superstep** | One round of execution. All nodes that are ready run, then the state updates once. |
+| **`START`** | The virtual entry point. Edges from `START` decide which nodes run first. |
+| **`END`** | The virtual exit point. Reaching it means the run is finished. |
+| **`compile()`** | Validates the graph and returns a `CompiledStateGraph` you can run. |
+| **`invoke()`** | Run the graph to completion and return the final state. |
+| **`stream()`** | Run the graph and yield state after each step, so you can show progress. |
+| **`Send`** | A message that maps one input to many parallel node calls, for fan-out. |
+| **`Command`** | A return value that both updates state and chooses the next node dynamically. |
+
+Two words cause most confusion:
+
+- **Node vs edge** is about *what vs where*. A node is the work; an edge is the routing.
+- **State vs message** is about *storage vs signal*. State is the shared clipboard; a message in a chat agent is one item inside it.
+
+## The core idea
+
+Think of a flowchart on a whiteboard. Each box is a Python function. Each arrow says what runs next. In the middle of the table sits a **shared clipboard** (the state). Every box reads the clipboard, writes down what it learned, and the arrow chooses the next box.
+
+```mermaid
+flowchart TD
+    START(["START"]) --> P["plan"]
+    P --> R{"needs a tool?"}
+    R -->|"yes"| T["call tool"]
+    T --> R
+    R -->|"no"| F["final answer"]
+    F --> END(["END"])
+    S[("State<br/>messages · plan · results")] -.-> P
+    P -.-> S
+    T -.-> S
+    F -.-> S
+```
+
+The clipboard is the part that surprises people. A node does **not** replace the whole state. It returns only the keys it changed. LangGraph then merges those keys using each channel's reducer:
+
+- A key with **no reducer** is last-write-wins. Return `{"n": 5}` and the old `n` is gone.
+- A key with a **reducer** is merged. `Annotated[list, operator.add]` appends, so two parallel nodes can each add to the same list without losing data.
+
+| State key | Reducer | What a node returning a new value does |
+| --- | --- | --- |
+| `n: int` | none | Replaces the old `n`. |
+| `log: Annotated[list[str], operator.add]` | `operator.add` | Concatenates: old list + new list. |
+| `messages: Annotated[list, add_messages]` | `add_messages` | Appends and deduplicates by message id. |
+| `total: Annotated[int, operator.add]` | `operator.add` | Adds the new number to the old one. |
+
+Reducers are what make fan-out correct. Without one, a parallel branch silently clobbers its sibling.
+
+## How it works
+
+1. **Define the state schema.** A `TypedDict` names each key and its type. This is the shape of the clipboard.
+2. **Attach reducers.** Wrap a type in `Annotated[..., reducer]` to change the merge rule. Keys without a reducer are last-write-wins.
+3. **Create the builder.** `StateGraph(State)` records the schema and starts an empty graph.
+4. **Add nodes.** `add_node("name", fn)` registers a function. The first argument the function receives is the current state.
+5. **Add edges.** `add_edge(a, b)` means "after `a`, run `b`". `START` and `END` are virtual nodes that mark the boundaries.
+6. **Add conditional edges.** `add_conditional_edges(source, router, mapping)` runs `router(state)` and sends execution to the node its return value names. A router may also return `Send(...)` messages for fan-out.
+7. **Compile.** `compile()` validates that every edge points at a real node and returns a `CompiledStateGraph`.
+8. **Invoke or stream.** `invoke(input)` runs to an end state and returns it. `stream(input, stream_mode=...)` yields updates as they happen.
+9. **Execute in supersteps.** All nodes whose inputs are ready run together; when they finish, LangGraph applies every update through the reducers and decides the next set of nodes.
+10. **Stop at an end path.** When no nodes remain to run and `END` is reached, the run is complete.
+
+> **Note:**
+>
+> **Reducers run at the superstep boundary, not per node.** Two parallel nodes each return `{"log": ["x"]}`. LangGraph collects both, then applies `operator.add` twice. That is why the merged list contains both entries and why the order between parallel branches is not guaranteed.
+
+
+## The syntax you will use
+
+**A minimal graph.** State, one node, straight edges through `START` and `END`.
+
+```python
+from typing import TypedDict
+from langgraph.graph import StateGraph, START, END
+
+class State(TypedDict):
+    topic: str
+    outline: str
+
+def make_outline(state: State) -> dict:
+    return {"outline": f"1. intro to {state['topic']}"}
+
+builder = StateGraph(State)
+builder.add_node("outline", make_outline)
+builder.add_edge(START, "outline")
+builder.add_edge("outline", END)
+graph = builder.compile()
+
+# graph.invoke({"topic": "agents", "outline": ""})
+# {'topic': 'agents', 'outline': '1. intro to agents'}
+```
+
+**A reducer for parallel-safe state.** `operator.add` concatenates lists.
+
+```python
+import operator
+from typing import Annotated, TypedDict
+
+class State(TypedDict):
+    findings: Annotated[list[str], operator.add]   # append, never overwrite
+```
+
+**Conditional edges.** A router returns the name of the next node; the mapping documents the allowed targets.
+
+```python
+def should_continue(state: dict) -> str:
+    return "tools" if state["calls"] < 2 else "done"
+
+builder.add_conditional_edges("agent", should_continue, {"tools": "tools", "done": "done"})
+```
+
+**`add_messages`: the reducer built for chat.** It appends messages, and updates an existing message if the id matches.
+
+```python
+from typing import Annotated, TypedDict
+from langchain_core.messages import AnyMessage
+from langgraph.graph.message import add_messages
+
+class ChatState(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
+```
+
+**`Send`: map one input to many parallel node calls.** A router returns a list of `Send` messages.
+
+```python
+from langgraph.types import Send
+
+def fan_out(state: dict):
+    return [Send("work", {"n": i}) for i in range(3)]
+
+builder.add_conditional_edges(START, fan_out)
+```
+
+**Streaming.** `stream_mode` chooses what each yielded chunk contains.
+
+```python
+for chunk in graph.stream({"topic": "agents", "outline": ""}, stream_mode="updates"):
+    print(chunk)       # {'outline': {'outline': '1. intro to agents'}}
+```
+
+| `stream_mode` | Each chunk is | Use it for |
+| --- | --- | --- |
+| `"values"` | The full state after the step | Showing the whole picture |
+| `"updates"` | Only the keys each node changed | Progress and diffs |
+| `"custom"` | Anything a node sends with `get_stream_writer()` | Token streams, tool logs |
+| `"messages"` | Token and message chunks from chat models | Chat UIs |
+
+**Custom events from inside a node.** `get_stream_writer()` gives a node a channel of its own.
+
+```python
+from langgraph.config import get_stream_writer
+
+def double(state: dict) -> dict:
+    get_stream_writer()({"progress": "doubling", "n": state["n"]})
+    return {"n": state["n"] * 2}
+```
+
+## Examples: simple to real
+
+**Example 1 — two nodes in a line.** The smallest useful graph: transform input, then transform again.
+
+```python
+from typing import TypedDict
+from langgraph.graph import StateGraph, START, END
+
+class State(TypedDict):
+    n: int
+
+def double(state: State) -> dict:
+    return {"n": state["n"] * 2}
+
+def add_one(state: State) -> dict:
+    return {"n": state["n"] + 1}
+
+builder = StateGraph(State)
+builder.add_node("double", double)
+builder.add_node("add_one", add_one)
+builder.add_edge(START, "double")
+builder.add_edge("double", "add_one")
+builder.add_edge("add_one", END)
+
+# builder.compile().invoke({"n": 3}) -> {'n': 7}
+```
+
+**Example 2 — a reducer lets two branches write the same key.** Both `web` and `docs` run in the same superstep and append.
+
+```python
+import operator
+from typing import Annotated, TypedDict
+from langgraph.graph import StateGraph, START, END
+
+class State(TypedDict):
+    findings: Annotated[list[str], operator.add]
+
+def search_web(state: State) -> dict:
+    return {"findings": ["web: LangGraph 1.x"]}
+
+def search_docs(state: State) -> dict:
+    return {"findings": ["docs: StateGraph"]}
+
+def collect(state: State) -> dict:
+    return {"findings": [f"count={len(state['findings'])}"]}
+
+builder = StateGraph(State)
+builder.add_node("web", search_web)
+builder.add_node("docs", search_docs)
+builder.add_node("collect", collect)
+builder.add_edge(START, "web")
+builder.add_edge(START, "docs")
+builder.add_edge("web", "collect")
+builder.add_edge("docs", "collect")
+builder.add_edge("collect", END)
+
+# invoke({"findings": []})
+# {'findings': ['docs: StateGraph', 'web: LangGraph 1.x', 'count=2']}
+```
+
+The order of `docs` and `web` in the list is not a contract; only the presence of both is.
+
+**Example 3 — conditional edges build the agent loop.** The router decides whether to call a tool or finish.
+
+```python
+class LoopState(TypedDict):
+    calls: int
+    log: Annotated[list[str], operator.add]
+
+def agent(state: LoopState) -> dict:
+    return {"calls": state["calls"] + 1, "log": [f"agent {state['calls'] + 1}"]}
+
+def tool(state: LoopState) -> dict:
+    return {"log": ["tool result"]}
+
+def done(state: LoopState) -> dict:
+    return {"log": ["done"]}
+
+def should_continue(state: LoopState) -> str:
+    return "tools" if state["calls"] < 2 else "done"
+
+builder = StateGraph(LoopState)
+builder.add_node("agent", agent)
+builder.add_node("tools", tool)
+builder.add_node("done", done)
+builder.add_edge(START, "agent")
+builder.add_conditional_edges("agent", should_continue, {"tools": "tools", "done": "done"})
+builder.add_edge("tools", "agent")   # loop back
+builder.add_edge("done", END)
+
+# invoke({"calls": 0, "log": []})
+# {'calls': 2, 'log': ['agent 1', 'tool result', 'agent 2', 'done']}
+```
+
+This is the ReAct shape in about twenty lines: `agent` proposes, `tool` acts, and the router decides whether to go again. The `calls` counter is what stops the loop.
+
+**Example 4 — `Send` maps one input to parallel work.** Three `work` invocations run, each with its own input, then `merge` sums them.
+
+```python
+from langgraph.types import Send
+
+class MapState(TypedDict):
+    results: Annotated[list[int], operator.add]
+
+def fan_out(state: MapState):
+    return [Send("work", {"n": i}) for i in range(3)]
+
+def work(state: dict) -> dict:
+    return {"results": [state["n"] * 10]}
+
+def merge(state: MapState) -> dict:
+    return {"results": [sum(state["results"])]}
+
+builder = StateGraph(MapState)
+builder.add_node("work", work)
+builder.add_node("merge", merge)
+builder.add_conditional_edges(START, fan_out)
+builder.add_edge("work", "merge")
+builder.add_edge("merge", END)
+# invoke({"results": []}) -> {'results': [0, 10, 20, 30]}
+```
+
+`Send` is how you fan out to a *dynamic* number of branches (one per document, one per sub-task), which a fixed set of edges cannot express.
+
+**Example 5 — streaming shows the run step by step.** Using Example 2's graph, observed two ways.
+
+```python
+# stream_mode="updates": only what changed
+# {'docs': {'findings': ['docs: StateGraph']}}
+# {'web': {'findings': ['web: LangGraph 1.x']}}
+# {'collect': {'findings': ['count=2']}}
+
+# stream_mode="values": the full state each time
+# {'findings': []}
+# {'findings': ['docs: StateGraph', 'web: LangGraph 1.x']}
+# {'findings': ['docs: StateGraph', 'web: LangGraph 1.x', 'count=2']}
+```
+
+`values` mode is what you send to a UI that renders the whole state; `updates` mode is what you send to a progress bar.
+
+**Example 6 — a chat state with `add_messages`.** Messages accumulate and are deduplicated by id, which is why chat agents use this reducer.
+
+```python
+from langchain_core.messages import HumanMessage, AIMessage, AnyMessage
+from langgraph.graph.message import add_messages
+
+class ChatState(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
+
+def reply(state: ChatState) -> dict:
+    count = len(state["messages"])
+    return {"messages": [AIMessage(content=f"reply to message {count}")]}
+
+builder = StateGraph(ChatState)
+builder.add_node("reply", reply)
+builder.add_edge(START, "reply")
+builder.add_edge("reply", END)
+
+# invoke({"messages": [HumanMessage(content="hello")]})
+# [('HumanMessage', 'hello'), ('AIMessage', 'reply to message 1')]
+```
+
+`add_messages` also accepts a special "remove" form, so a node can delete a message: return `{"messages": [RemoveMessage(id=...)]}`.
+
+## In production
+
+- **Every key needs the right reducer, or parallel writes are lost.** Adding a second branch to a graph whose key has no reducer silently drops one branch's update. Choose the reducer before you fan out.
+- **State updates must be partial dicts, not full state objects.** A node returns `{"n": 5}`, not the whole state. Returning the full state is a common bug and is unnecessary.
+- **Reducer order across parallel branches is not guaranteed.** `operator.add` concatenates in completion order. If order matters, sort explicitly in a downstream node or use a keyed structure.
+- **Loops need an explicit stop condition.** A conditional edge that always returns the same node is an infinite loop. Track a step counter or a budget and route to `END` when it is hit.
+- **`invoke` merges new input into existing state.** On a checkpointed thread (one persisted by a checkpointer and a `thread_id`; the checkpoints chapter defines this), calling `invoke({"n": 100})` seeds the new run with `n=100`, while `invoke(None)` continues from the last state. Know which one you want.
+- **A wrong router return value is a hard error.** When a mapping is passed to `add_conditional_edges`, the string a router returns must be a key of that mapping (and the mapped target must be a real node); with no mapping, it must name a real node. Validate with tests rather than discovering it in production.
+- **Keep nodes small and side-effect-light.** Nodes may run more than once on retry or replay, so put durable side effects behind an idempotency key. A node that sends an email on every attempt is a bug.
+- **Do not mutate the state object in place.** Return a new value. In-place mutation can bypass the reducer and produce state that depends on node execution order.
+- **Use `stream_mode` on purpose.** Streaming `values` on a large state sends the whole state on every step and can flood a UI. Use `updates` unless you truly need the snapshot.
+- **Compile is cheap; build once per process.** Do not call `compile()` inside a request. Build the graph at import time and share the compiled object.
+- **`Send` fan-out can explode.** Fanning out over a thousand documents launches a thousand node executions. Bound the fan-out with a batch size or a worker limit.
+
+## Interview questions
+
+### 1. What is a node and what is an edge in LangGraph?
+
+**Answer.** A node is one step: a Python function, sync or async, that reads the current state and returns a partial update (a dict of the keys it changed). An edge is a transition: a fixed edge says "always run B after A"; a conditional edge asks a router function which node runs next. Nodes are the work; edges are the routing.
+
+**Follow-up: "Why return a partial dict instead of the whole state?"** LangGraph merges the partial update into the state using each key's reducer. Returning the whole state would overwrite parallel work and bypass the reducer model.
+
+**Trap.** Thinking a node can only return state. A node may also return a `Command` to update state *and* choose the next node in one step.
+
+### 2. What is a reducer and why do you need one?
+
+**Answer.** A reducer is a function that says how a new value merges into a state key. Without one, the new value replaces the old (last-write-wins). With `Annotated[list, operator.add]`, values append instead. Reducers make parallel branches safe: two nodes can each append to the same list, and both writes survive the superstep boundary.
+
+**Follow-up: "What does `add_messages` do that `operator.add` does not?"** It deduplicates and updates by message id, and handles remove operations. Plain `operator.add` would keep duplicate messages.
+
+**Trap.** Forgetting a reducer on a key that two branches write. The graph does not always error; it can silently drop one branch's update.
+
+### 3. How does a conditional edge differ from a normal edge?
+
+**Answer.** A normal edge is static: execution always goes to the same target. A conditional edge runs a router function against the current state and sends execution to whatever node the return value names. The mapping argument lists the allowed targets, which makes the graph validatable and drawable.
+
+**Follow-up: "Can a router return more than one node?"** Yes. It can return a list of node names to fan out to several nodes, or a list of `Send` messages to fan out to many instances of one node with different inputs.
+
+**Trap.** Thinking the router can return a value not in the mapping. The router's return value must be a key of the mapping (the mapped target must be a real node); an unknown key fails at runtime.
+
+### 4. What are `START` and `END`?
+
+**Answer.** They are virtual nodes that mark the boundaries of the graph. An edge from `START` decides the first real node to run; an edge into `END` marks a completion path. They are not Python functions and cannot be given implementations. They exist so the graph has a single, explicit entry and exit.
+
+**Follow-up: "Can a graph have several paths to `END`?"** Yes, and that is normal for branching workflows. Reaching `END` on any allowed path finishes the run.
+
+**Trap.** Confusing `END` with "the last node". Any node can connect to `END`; a graph can finish from several places.
+
+### 5. How does LangGraph execute nodes? What is a superstep?
+
+**Answer.** Execution proceeds in supersteps. At each step, every node whose inputs are ready runs — often in parallel. When they all finish, LangGraph applies every returned update through the reducers, producing the next state, and then decides which nodes run next. So state updates are applied at step boundaries, not while nodes are running.
+
+**Follow-up: "What does that imply for correctness?"** A node sees the state as of its superstep, so two parallel nodes cannot observe each other's writes. Order between parallel writes is not guaranteed.
+
+**Trap.** Assuming parallel branches see each other's updates. They do not; they merge only after the step.
+
+### 6. When would you use `Send` instead of an edge?
+
+**Answer.** Use `Send` when the number of parallel branches is dynamic — one branch per retrieved document, per sub-task, or per item in a list. A router returns `[Send("work", item) for item in items]`. Fixed edges only express a known number of branches.
+
+**Follow-up: "What is the risk?"** Fan-out explodes: a thousand items means a thousand node executions, each potentially making a model call. Bound the fan-out and aggregate the results with a reducer.
+
+**Trap.** Returning a list of `Send` from a *node* rather than from a conditional edge. A node's return value is treated as a state update and will raise `InvalidUpdateError`.
+
+### 7. How do you stream progress from a graph?
+
+**Answer.** Use `stream()` with a `stream_mode`. `"updates"` yields only the keys each node changed, which suits a progress bar. `"values"` yields the whole state after each step, which suits a UI that renders the state. `"custom"` yields whatever a node emits through `get_stream_writer()`, which suits token streams and tool logs. `"messages"` yields chat model token chunks.
+
+**Follow-up: "When is `values` a bad choice?"** When the state is large. Sending the full state on every step multiplies bandwidth and can flood a client.
+
+**Trap.** Thinking streaming changes execution. It only changes how you observe it; the graph runs the same way.
+
+### 8. How do you stop an agent loop from running forever?
+
+**Answer.** Give the loop an explicit stop condition and route to `END`. The common patterns are a step counter compared against a maximum, a cost or token budget checked in the router, and a "no progress" detector. LangGraph also has a `recursion_limit` config (default 10007 supersteps in langgraph 1.2.11) that raises `GraphRecursionError` if the graph exceeds it, which is a backstop rather than a design.
+
+**Follow-up: "Counter or recursion limit?"** A counter is explicit and reviewable; the recursion limit is a safety net that turns a bug into a loud error. Use both, and set the limit well below the default for a known workflow.
+
+**Trap.** Relying only on the recursion limit. The default is very high, so the run can do enormous work — and spend real money — before it finally raises.
+
+## Remember this
+
+- **LangGraph is a state machine:** nodes are steps, edges are routing, state is the shared clipboard.
+- **Nodes return partial updates; reducers merge them.** No reducer means last-write-wins.
+- **`Annotated[list, operator.add]` appends, and `add_messages` appends and deduplicates chat messages.**
+- **Conditional edges choose the path; `Send` fans out to a dynamic number of branches.**
+- **`START` and `END` bracket the graph, and execution advances in supersteps with updates applied at the boundary.**

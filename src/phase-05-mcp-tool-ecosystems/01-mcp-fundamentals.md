@@ -1,0 +1,451 @@
+# MCP Fundamentals
+
+> **Interview answer (say this first).** The Model Context Protocol (MCP) is an open standard that lets an AI host discover and call external capabilities — tools, resources, and prompts — through one uniform contract. It fixes the old M × N problem, where every AI app needed custom glue for every data source, by turning it into M + N: each app speaks MCP once, and each capability is exposed once. MCP is a protocol, not a model, not a library, and not an agent framework.
+
+## Why this exists
+
+Start with the integration problem that MCP was invented to solve.
+
+Imagine three AI applications: a chat assistant, an IDE copilot, and a support bot. Each one should be able to read GitHub issues, query a Postgres database, and search company docs. Without a standard, you write glue for every pairing:
+
+```text
+Chat assistant  -> GitHub client, Postgres client, Docs client
+IDE copilot     -> GitHub client, Postgres client, Docs client
+Support bot     -> GitHub client, Postgres client, Docs client
+```
+
+That is 3 apps × 3 capabilities = **9 connectors**. Every connector has its own auth, retries, error handling, and shape.
+
+Now add a fourth capability — Slack. You write three more connectors. Add a fourth app — you write four more. The work grows as a **product**:
+
+```text
+connectors = M apps x N capabilities
+```
+
+The connectors are also **not shared**. The IDE copilot's GitHub connector cannot be reused by the chat assistant, because each app framework expects a different tool format: one wants an OpenAI function schema, another an Anthropic `input_schema`, another a home-made JSON blob. So the same capability is described many times, drifts apart, and gets fixed in only one place.
+
+There is a second, quieter problem: **discovery**. Even when the connectors exist, the app must be rebuilt to learn about a new capability. There is no standard way to ask "what can you do?" A capabilities list lives in code, in docs, or in someone's head.
+
+MCP fixes both. One protocol means one connector per capability, and every app can *ask* a server what it offers at runtime.
+
+> **Note:**
+>
+> **The one-sentence purpose.** MCP standardises how AI applications discover and call external capabilities, so a capability is written once and reused by every host that speaks the protocol.
+
+
+## Start from zero
+
+MCP has its own vocabulary. Learn these words and the rest of the phase is easy.
+
+| Word | Plain meaning |
+| --- | --- |
+| **MCP** | Model Context Protocol. An open specification for connecting AI applications to external systems. |
+| **Protocol** | An agreed contract for messages: what is sent, in what format, and what it means. Not code. |
+| **Host** | The application the user actually runs — a chat app, an IDE, an agent runtime. It manages connections and enforces trust. |
+| **Client** | One connection object inside the host, dedicated to one server. The host may hold many clients. |
+| **Server** | A program that exposes capabilities (tools, resources, prompts) over MCP. It can be local or remote. |
+| **Transport** | How bytes move between client and server: standard streams (stdio) or HTTP. |
+| **Primitive** | One of the three things a server can expose: **tools**, **resources**, **prompts**. |
+| **Tool** | An action a model can ask to run, such as `search_docs` or `create_issue`. Model-invoked. |
+| **Resource** | Readable context identified by a URI, such as `file:///notes.md` or `db://customers/42`. App-invoked. |
+| **Prompt** | A reusable message template with arguments. User-invoked, usually from a menu. |
+| **Capability** | A feature a peer supports, declared during connection setup, such as "I have tools." |
+| **JSON-RPC 2.0** | The message envelope MCP uses: requests, responses, and notifications encoded as JSON. |
+| **JSON Schema** | The standard way a tool describes its arguments: names, types, required fields. |
+| **Function calling** | A model-provider feature that lets a model emit a structured request to call a function. |
+| **Server SDK** | A library that implements the MCP wire protocol for you, such as the official Python SDK. |
+| **Specification revision** | A dated version of the MCP spec, for example `2026-07-28`. Peers negotiate which one they use. |
+
+Two distinctions cause most of the confusion, so pin them down now:
+
+- **Host, client, server are roles, not products.** One program can be a host in one direction and a server in another. The roles describe who initiates, who connects, and who exposes.
+- **A protocol is not an implementation.** MCP defines the messages. The Python SDK, the TypeScript SDK, and any gateway are *implementations* of that protocol.
+
+## The core idea
+
+Use the USB-C analogy, which the MCP project itself uses. Before USB-C, every device had its own plug, so you needed a drawer full of adapters. USB-C defines one physical contract, so a laptop, a phone, and a monitor can connect without knowing each other's internals.
+
+MCP is "USB-C for AI applications." The app is the laptop. The capability is the device. The protocol is the port shape.
+
+The important part is what the standard *removes*: the number of unique connections you must build.
+
+```mermaid
+flowchart TB
+    subgraph BEFORE["Before MCP: M x N unique connectors"]
+        direction LR
+        A["App A"] --> C1["connector"]
+        A --> C2["connector"]
+        B["App B"] --> C3["connector"]
+        B --> C4["connector"]
+        C1 --> S1["GitHub"]
+        C2 --> S2["Postgres"]
+        C3 --> S3["GitHub again"]
+        C4 --> S4["Postgres again"]
+    end
+    subgraph AFTER["With MCP: M + N implementations"]
+        direction LR
+        H1["Host A"] --> P["MCP protocol"]
+        H2["Host B"] --> P
+        P --> M1["Server: GitHub"]
+        P --> M2["Server: Postgres"]
+    end
+```
+
+The Mermaid diagram is the whole pitch. On the left, each app pairs with each capability. On the right, apps speak one protocol and capabilities are exposed once.
+
+Now the distinction people get wrong in interviews: **protocol vs library vs framework**.
+
+| Thing | What it is | Example | Who changes it |
+| --- | --- | --- | --- |
+| **Protocol** | The wire contract: messages, methods, semantics | The MCP specification | The MCP maintainers via dated revisions |
+| **Library / SDK** | Code that implements the contract for you | Official Python SDK (`mcp`) | SDK maintainers |
+| **Framework** | Opinionated scaffolding on top of a library | A gateway, an agent runtime, a server generator | Your team |
+
+The interview-safe sentence is: *MCP is a protocol; the Python `mcp` package is a library that speaks it; a "server framework" is just a convenient layer over that library.* When someone says "we adopted MCP," ask which of the three they actually mean.
+
+### What MCP standardises
+
+- The **message envelope**: JSON-RPC 2.0 requests, responses, and notifications.
+- The **method names** for discovery and use: `tools/list`, `tools/call`, `resources/read`, `prompts/get`, and friends.
+- The **three primitives** and their control model: tools, resources, prompts.
+- **Capability negotiation**: peers declare what they support before use.
+- **Transports**: stdio for local processes, Streamable HTTP for remote servers.
+- **Error semantics** and, for remote servers, an OAuth-based authorization model.
+- The **schema format** for tool arguments: JSON Schema.
+
+### What MCP does NOT standardise
+
+- **How the model chooses a tool.** That is the host's prompt and policy. MCP delivers the catalog; selection is the model's job.
+- **What your tool does.** MCP says how to describe and call it, not how to implement it.
+- **Your prompts to the model.** MCP prompts are reusable templates a server offers; the host still decides the final prompt.
+- **Retrieval and ranking** across many servers.
+- **UI.** Some extensions add app UIs, but the core protocol is not a UI standard.
+- **Security by itself.** Authentication exists in the spec, but authorization and approval are host and server responsibilities.
+
+### Relationship to function calling
+
+This is the question interviewers use to separate people who have actually built agents from people who have only read a blog post.
+
+**Function calling is a model-provider feature.** It teaches a *model* to emit a structured request: "call `get_weather` with `city = Paris`." The model does not execute anything. It produces a proposal, and the host runs it.
+
+**MCP is a host-to-server protocol.** It standardises where those tool definitions come from and how the call travels to the capability provider.
+
+```text
+Model <-> Host        : function calling (provider-specific)
+Host  <-> Server      : MCP (provider-independent)
+```
+
+They compose rather than compete:
+
+1. The host connects to one or more MCP servers and lists their tools.
+2. The host converts each MCP tool into the provider's function-calling format.
+3. The model emits a function call.
+4. The host maps it back to `tools/call` and sends it to the right MCP server.
+
+So MCP does **not** replace function calling, and function calling does **not** replace MCP. One is the model interface; the other is the supply chain behind it. A useful interview line: *function calling is how the model talks; MCP is how the tools arrive.*
+
+## How it works
+
+Walk through one full interaction, at the level of what actually happens.
+
+1. **The host starts a server.** For local servers it launches a subprocess (stdio). For remote servers it opens an HTTP connection. This is a connection the client owns.
+2. **The client discovers the server.** In the current stateless revision (`2026-07-28`) the client sends `server/discover`; older revisions send `initialize`. Either way, each side declares its protocol version and its capabilities.
+3. **The server answers with its capabilities.** For example: "I support tools and resources, and my tool list can change."
+4. **The client lists what is available.** `tools/list` returns tool names, descriptions, and JSON Schema for arguments. `resources/list` and `prompts/list` return the other primitives.
+5. **The host shows the model a catalog.** The host converts MCP tool schemas into the provider's function-calling format and puts them in the prompt.
+6. **The model picks a tool and emits arguments.** This is plain function calling. The model still never sees your code.
+7. **The host routes the call.** It sends `tools/call` with the tool name and arguments to the server that advertised it.
+8. **The server validates, runs, and returns a result.** Results come back as content blocks, plus an error flag. A thrown exception becomes an error result, not a crash.
+9. **The host feeds the result back to the model.** The loop continues until the model answers or the host stops it.
+10. **The connection closes.** The host shuts the subprocess down or closes the HTTP client.
+
+Nothing in that list is provider-specific, which is the point. The same server works under any host that speaks the protocol.
+
+## The syntax you will use
+
+These are real, verified forms from the official Python SDK (version 2.x). Read them once now; later pages explain each line.
+
+**A complete server with one tool.** `MCPServer` is the high-level helper. In SDK 1.x this class was called `FastMCP`.
+
+```python
+from mcp.server.mcpserver import MCPServer
+
+server = MCPServer(name="demo", version="1.0.0")
+
+@server.tool(description="Add two integers. Use for exact arithmetic.")
+def add(a: int, b: int) -> int:
+    return a + b
+
+if __name__ == "__main__":
+    server.run(transport="stdio")     # speak MCP over stdin/stdout
+```
+
+The decorator reads the function's type hints and builds the JSON Schema automatically. The description is what the model reads, so write it well.
+
+**A complete client that discovers and calls.** `Client` accepts a local server object, stdio parameters, or a URL.
+
+```python
+import asyncio
+from mcp import Client
+
+async def main() -> None:
+    async with Client(server) as client:           # in-process for local testing
+        tools = await client.list_tools()
+        print([t.name for t in tools.tools])       # discovery
+        result = await client.call_tool("add", {"a": 2, "b": 3})
+        print(result.content[0].text)              # "5"
+
+asyncio.run(main())
+```
+
+Discovery and call are two separate round trips. That separation is the heart of MCP.
+
+**What a tool definition looks like on the wire.** This is the contract the model ultimately sees.
+
+```json
+{
+  "name": "add",
+  "description": "Add two integers. Use for exact arithmetic.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "a": {"title": "A", "type": "integer"},
+      "b": {"title": "B", "type": "integer"}
+    },
+    "required": ["a", "b"],
+    "title": "addArguments"
+  }
+}
+```
+
+**The message envelope is JSON-RPC 2.0.** A request has an id, a method, and params.
+
+```json
+{"jsonrpc": "2.0", "id": 2, "method": "tools/call",
+ "params": {"name": "add", "arguments": {"a": 2, "b": 3}}}
+```
+
+**Register an existing function without a decorator.** Useful when the function already exists elsewhere.
+
+```python
+def lookup_docs(query: str) -> list[str]:
+    "Search the internal documentation."
+    return [f"doc:{query}"]
+
+server.add_tool(lookup_docs, name="lookup_docs", description="Search internal docs.")
+```
+
+**Remote servers use HTTP.** In the current stateless revision, every request is self-contained and carries its metadata.
+
+```python
+server.run(transport="streamable-http", host="127.0.0.1", port=8000)
+# the MCP endpoint is POST /mcp by default
+```
+
+**A client connects to a remote server by URL.**
+
+```python
+import asyncio
+from mcp import Client
+
+async def main() -> None:
+    async with Client("https://mcp.example.com/mcp") as client:
+        tools = await client.list_tools()
+        print([t.name for t in tools.tools])
+
+asyncio.run(main())
+```
+
+That is the whole surface you need on day one: a server, a tool, a client, discovery, and a call.
+
+## Examples: simple to real
+
+**Example 1 — the M × N bug in miniature.** Two "hosts" and two capabilities, written the naive way. Everything is duplicated, and the two copies can diverge.
+
+```python
+# chat.py
+def chat_search_docs(q): ...
+def chat_create_issue(title): ...
+
+# ide.py
+def ide_search_docs(q): ...      # separate code, separate bug fixes
+def ide_create_issue(title): ...
+
+# cost: 2 hosts x 2 capabilities = 4 implementations
+```
+
+Add one capability and two files change. Add one host and both capabilities are written again.
+
+**Example 2 — the same two capabilities behind MCP.** Each capability exists once, as a server. Each host speaks the protocol once.
+
+```python
+# docs_server.py
+@server.tool(description="Search internal documentation.")
+def search_docs(q: str) -> list[str]: ...
+
+# issues_server.py
+@server.tool(description="Create a GitHub issue. Has side effects.")
+def create_issue(title: str) -> str: ...
+
+# cost: 2 servers + 2 clients = 4 pieces, but no duplicated capability logic
+```
+
+Now a new host costs one client, not one connector per capability.
+
+**Example 3 — discovery at runtime.** The host does not hard-code the catalog.
+
+```python
+import asyncio
+from mcp import Client
+
+async def main() -> None:
+    async with Client(server) as client:
+        for tool in (await client.list_tools()).tools:
+            print(tool.name, "->", tool.description)
+
+asyncio.run(main())
+# add -> Add two integers. Use for exact arithmetic.
+# lookup_docs -> Search internal docs.
+```
+
+A new tool appears in the list without recompiling the host. This is what "dynamic discovery" means in practice.
+
+**Example 4 — the call round trip.** Discovery returns a schema; the model proposes arguments; the host sends the call.
+
+```python
+import asyncio
+
+async def main() -> None:
+    async with Client(server) as client:
+        result = await client.call_tool("add", {"a": 2, "b": 3})
+        print(result.structured_content)     # {'result': 5}
+        print(result.is_error)               # False
+
+asyncio.run(main())
+```
+
+The result is structured, not just text. The host can inspect it and decide what the model sees next.
+
+**Example 5 — a failure is data, not a crash.** If the tool raises, the protocol returns an error result so the model can react.
+
+```python
+import asyncio
+
+@server.tool(description="Divide a by b.")
+def divide(a: float, b: float) -> float:
+    if b == 0:
+        raise ValueError("b must not be zero")
+    return a / b
+
+async def main() -> None:
+    async with Client(server) as client:
+        result = await client.call_tool("divide", {"a": 1, "b": 0})
+        print(result.is_error)               # True
+        print(result.content[0].text)        # "Error executing tool divide"
+
+asyncio.run(main())
+```
+
+The model sees the failure and can retry with a better argument. This is why MCP agents can self-correct instead of dying.
+
+**Example 6 — MCP plus function calling, end to end.** The host converts MCP tools into the provider's format, lets the model choose, then routes the call back over MCP.
+
+```text
+1. tools = await mcp_client.list_tools()
+2. provider_tools = [to_provider_schema(t) for t in tools.tools]
+3. response = model.create(messages=..., tools=provider_tools)
+4. if response.tool_call:
+       mcp_client.call_tool(response.tool_call.name, response.tool_call.arguments)
+5. append the observation and loop
+```
+
+Step 2 is the only place provider-specific code lives. That is the integration win: the server never knows which model called it.
+
+## In production
+
+- **MCP standardises the boundary, not the model.** Selection quality, prompt design, and evaluation stay in the host. Do not promise "MCP makes the agent smart."
+- **The win is reuse, and it is real only at scale.** One server plus one host is not obviously better than a direct function. The payoff starts when several hosts share several capabilities.
+- **A server is a trust boundary.** You are running code you may not control, or letting a remote party describe actions. Treat tool descriptions as untrusted input.
+- **Discovery is dynamic; your assumptions are not.** A server can add, remove, or rename tools between connections. Cache the catalog and handle `listChanged`, but never assume it is fixed.
+- **Tool results are structured but not typed across the wire.** Validate what comes back before you index into it, exactly as you validate model output.
+- **Version skew is normal.** The spec has dated revisions, for example `2025-11-25` and `2026-07-28`, and SDK support lags. Declare versions and negotiate; do not hard-code one revision in a client.
+- **The 2026-07-28 revision made the core stateless.** The old `initialize` handshake and `Mcp-Session-Id` session are gone from the current revision; clients send `server/discover` and put protocol metadata in each request. Plan for both eras during a migration.
+- **MCP does not replace your API.** It is an adapter in front of it. The server still calls your database, your service, and your auth system.
+- **Do not expose everything you can.** A server with fifty tools floods the model's context and hurts selection. Curate.
+- **Local servers are easy and dangerous.** A stdio server runs with your user's privileges. Scope filesystem and shell access deliberately.
+- **The ecosystem is the product.** Most value arrives from third-party servers, which means vetting them like any dependency.
+- **Log requests and results at the host.** When an agent does something surprising, you need to know which server, which tool, and which arguments were involved.
+
+## Interview questions
+
+### 1. What problem does MCP solve, in one sentence?
+
+**Answer.** It removes duplicated integration work. Before MCP, every AI application needed custom glue for every tool or data source — M × N connectors. MCP defines one protocol, so each app speaks it once and each capability is exposed once, giving M + N implementations.
+
+**Follow-up: "Why does M + N matter in practice?"** Because M and N both grow. With M × N, adding either an app or a capability multiplies work. With M + N, each addition is additive and, more importantly, the capability logic exists in exactly one place.
+
+**Trap.** Saying MCP "makes models smarter" or "adds memory." It does neither. It standardises transport, discovery, and schema for external capabilities.
+
+### 2. Is MCP a protocol, a library, or a framework?
+
+**Answer.** MCP is a **protocol** — a dated specification of messages and semantics. The official SDK (the Python `mcp` package) is a **library** that implements it. A server framework or gateway is an opinionated **layer** on top. The three are often confused because the same project ships all three.
+
+**Follow-up: "Which one do you actually install?"** The library. You install `mcp`, then write a server and a client against its API. The protocol is the contract the two sides agree on, not an artifact you deploy.
+
+**Trap.** Treating a popular framework as the standard. A framework that speaks MCP is still just one implementation; the interoperability guarantee comes from the protocol.
+
+### 3. How does MCP relate to function calling?
+
+**Answer.** They work at different layers and compose. Function calling is the model-provider feature that lets a model emit a structured tool call; it is model-to-host. MCP is host-to-server: it standardises how tool definitions are discovered and how calls reach the capability. The host converts MCP tool schemas into the provider's function-calling format.
+
+**Follow-up: "So does MCP replace function calling?"** No, and it cannot. A model only understands its own provider's tool format. MCP feeds that format; the provider still executes the model's call.
+
+**Trap.** Claiming MCP is "function calling with extra steps." Function calling has no discovery, no transports, no cross-vendor catalog, and no server process. MCP has all four.
+
+### 4. What exactly does MCP standardise?
+
+**Answer.** The message envelope (JSON-RPC 2.0), the method names for discovery and use, the three primitives (tools, resources, prompts), capability negotiation, transports (stdio and Streamable HTTP), error semantics, tool schemas via JSON Schema, and an OAuth-based authorization model for remote servers.
+
+**Follow-up: "What does it deliberately leave open?"** Tool selection, prompt construction, retrieval across servers, your business logic, and the UI. MCP defines the boundary, not the intelligence.
+
+**Trap.** Assuming MCP standardises the prompt. A server can offer prompt *templates*, but the host still assembles the final prompt for the model.
+
+### 5. Why would a host application adopt MCP instead of its own plugin format?
+
+**Answer.** Ecosystem access and leverage. A host that speaks MCP instantly supports every existing MCP server, and it can add capabilities without shipping a new build because the catalog is discovered at runtime. A private plugin format gets only plugins you or your partners write.
+
+**Follow-up: "What does the host give up?"** Some control and performance. A generic protocol adds a process or a network hop, and the host inherits the security surface of untrusted servers. That is why hosts add allowlists, approvals, and sandboxing.
+
+**Trap.** Thinking adoption is purely technical. It is also strategic: the host bets on an ecosystem rather than on its own SDK.
+
+### 6. What is MCP not?
+
+**Answer.** It is not a model, not an agent framework, not a prompt language, not a RAG pipeline, not a database driver, and not a security guarantee. It is the connection standard between a host and capability providers.
+
+**Follow-up: "Can I build an agent without MCP?"** Yes. A single app with a fixed set of functions does not need it. MCP earns its keep when capabilities are shared across hosts or supplied by third parties.
+
+**Trap.** Calling MCP a "plugin system." Plugins are loaded in-process by one app; MCP servers are separate, discoverable processes or services, and the catalog is negotiated.
+
+### 7. What are the three primitives, and who controls each?
+
+**Answer.** **Tools** are model-invoked actions. **Resources** are read-only context identified by URIs, loaded by the application. **Prompts** are reusable message templates, usually chosen by the user. Control is the key distinction: tools are the model's, resources are the app's, prompts are the user's.
+
+**Follow-up: "Why does the control model matter?"** It tells you who can trigger something. Model-controlled actions need approval and least privilege; app-controlled reads need scoping; user-controlled templates need argument validation.
+
+**Trap.** Using a resource when you need a tool, or vice versa. If the model must decide and act, it is a tool. If the app loads context, it is a resource.
+
+### 8. What changed in the latest MCP specification revision, and why does it matter?
+
+**Answer.** The `2026-07-28` revision makes the protocol core stateless. It removes protocol-level sessions and the `Mcp-Session-Id` header, replaces the `initialize` handshake with a `server/discover` call, moves protocol metadata into each request, and adds `ttlMs`/`cacheScope` cache hints. It also deprecates Roots, Sampling, and Logging in favour of direct integrations, and builds server-to-client interactions on Multi Round-Trip Requests.
+
+**Follow-up: "Why remove sessions?"** To scale on ordinary HTTP infrastructure. A stateless request can hit any server instance behind a plain load balancer, with no sticky sessions and no shared session store.
+
+**Trap.** Assuming every deployed server is on that revision. Many are still on `2025-11-25` or earlier, and clients must handle both eras during migration.
+
+## Remember this
+
+- **MCP turns M × N into M + N.** One protocol, one implementation per capability, shared across hosts.
+- **It is a protocol; the `mcp` package is a library; frameworks sit on top.**
+- **Function calling is model-to-host; MCP is host-to-server.** They compose, they do not compete.
+- **Tools are model-invoked, resources are app-invoked, prompts are user-invoked.**
+- **The current revision (`2026-07-28`) is stateless** — per-request metadata and `server/discover`, not a long-lived session.

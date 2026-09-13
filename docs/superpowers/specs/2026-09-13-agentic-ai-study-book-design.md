@@ -5,7 +5,7 @@ Status: approved
 
 ## Purpose
 
-A Quarto **book** that takes a working software engineer to interview-ready on agentic AI engineering, from Python fundamentals through multi-agent systems. The goal is interview readiness, so every topic must be explainable out loud, not just recognizable.
+An mdBook **book** that takes a working software engineer to interview-ready on agentic AI engineering, from Python fundamentals through multi-agent systems. The goal is interview readiness, so every topic must be explainable out loud, not just recognizable.
 
 ## Audience and tone
 
@@ -16,17 +16,17 @@ A Quarto **book** that takes a working software engineer to interview-ready on a
 
 ## Structure
 
-- `_quarto.yml` is `type: book`. The `chapters` list is the single source of study order.
-- One **part per phase**, using the phase's `index.qmd` as the part title page.
-- One **folder per phase**: `phase-NN-<slug>/`.
-- One **`.qmd` per concept**, numbered in study order: `01-<slug>.qmd`.
-- `index.qmd` at the root is the book introduction and holds the full roadmap.
+- `book.toml` configures the Rust mdBook output. `src/SUMMARY.md` is the single source of study order.
+- One **part per phase**, using `src/phase-NN-<slug>/index.md` as the part title page.
+- One **folder per phase** under `src/`: `phase-NN-<slug>/`.
+- One **`.md` per concept**, numbered in study order: `src/phase-NN-<slug>/01-<slug>.md`.
+- `src/index.md` is the book introduction and holds the full roadmap.
 - The `projects/` folder holds the final project chapters.
-- New pages are added to `_quarto.yml` as they are written (only existing files are listed, so the book always renders).
+- New pages are added to `src/SUMMARY.md` as they are written (only existing files are listed, so the book always renders).
 
 ## One page per concept, not per bullet
 
-The roadmap in `index.qmd` lists many bullets. A page is one **concept a person can be interviewed on end to end**. Facets of a single idea are merged into one page (for example `FP32`/`FP16`/`BF16`/`INT8`/`INT4` become one page on numeric precision). No roadmap bullet is dropped: merged bullets become sections inside the page, and the phase index records the mapping.
+The roadmap in `src/index.md` lists many bullets. A page is one **concept a person can be interviewed on end to end**. Facets of a single idea are merged into one page (for example `FP32`/`FP16`/`BF16`/`INT8`/`INT4` become one page on numeric precision). No roadmap bullet is dropped: merged bullets become sections inside the page, and the phase index records the mapping.
 
 ## Per-topic page template
 
@@ -34,7 +34,7 @@ Assume the reader knows **nothing** about the topic. Every term is defined on fi
 
 Every topic page uses the same sections, in this order:
 
-1. **Front matter** — `title` only.
+1. **Page title** — one level-one Markdown heading matching the topic.
 2. **Interview answer** — a blockquote at the top with the one or two sentence answer to say first.
 3. **Why this exists** — the problem it solves, in plain language, with a concrete failing example if possible.
 4. **Start from zero** — the vocabulary and first principles someone needs before the idea makes sense. Define each word simply.
@@ -52,7 +52,7 @@ Code stays illustrative, but pages should include enough snippets to make the co
 
 - Python 3.12+ in examples; `X | None` rather than `Optional[X]` where version allows.
 - Diagrams use Mermaid, no external images.
-- Use Quarto callouts (`note`, `tip`, `warning`) sparingly for the one thing on the page worth interrupting for.
+- Use labelled Markdown blockquotes sparingly for the one thing on the page worth interrupting for.
 - File and folder names are lowercase kebab-case.
 
 ## Pace
@@ -65,7 +65,7 @@ After writing every topic page, review it against this checklist **before** movi
 
 | # | Check | Pass condition |
 | --- | --- | --- |
-| 1 | Front matter | `title` present and matches the topic. |
+| 1 | Page title | Level-one heading is present and matches the topic. |
 | 2 | Interview answer | Blockquote at the very top with the one-or-two-sentence answer. |
 | 3 | Section order | Why this exists → Start from zero → The core idea → How it works → The syntax you will use → Examples: simple to real → In production → Interview questions → Remember this. |
 | 4 | Zero-knowledge test | Every term is defined on first use; the page is readable by someone who has never heard of the topic. |
@@ -78,14 +78,14 @@ After writing every topic page, review it against this checklist **before** movi
 | 11 | Recall | 3–5 "Remember this" bullets. |
 | 12 | Technical accuracy | Every version claim, API behavior, and code snippet is true and was verified. |
 | 13 | Language | Simple English, short sentences, no unexplained jargon. |
-| 14 | Wiring | Page is linked from the phase index and listed in `_quarto.yml`. |
-| 15 | Build | `quarto render` passes with no errors. |
+| 14 | Wiring | Page is linked from the phase index and listed in `src/SUMMARY.md`. |
+| 15 | Build | The GitHub Actions `mdbook build` passes with no errors. |
 
 The review result for each topic is reported alongside the topic, naming any item that needed a fix.
 
 ## Status
 
-- [x] Book restructured from website to `type: book`.
+- [x] Book restructured from website to Rust `mdBook`.
 - [x] Phase 1 overview written.
 - [x] Phase 1, Topic 1 (Type Hints) written.
 - [x] Phase 1, Topic 2 (Dataclasses) written.
@@ -105,7 +105,7 @@ The review result for each topic is reported alongside the topic, naming any ite
 
 ## Batch review note
 
-Topics 8–29 were drafted in parallel by several agents from this spec, then reviewed centrally against the review gate before being wired into `_quarto.yml`. The central review checked: section order, exactly 8 interview questions each with Answer/Follow-up/Trap, 8–12 production bullets, 3–5 recall bullets, at least one Mermaid diagram or comparison table, no placeholders, no cross-file duplication, and that all Python snippets compile. Every behavioral claim in a runnable topic was executed during review (Python 3.14, and `uv` for third-party packages); infrastructure claims were checked against standard behavior. The phase index and `_quarto.yml` are updated only after a topic passes.
+Topics 8–29 were drafted in parallel by several agents from this spec, then reviewed centrally against the review gate before being wired into `src/SUMMARY.md`. The central review checked: section order, exactly 8 interview questions each with Answer/Follow-up/Trap, 8–12 production bullets, 3–5 recall bullets, at least one Mermaid diagram or comparison table, no placeholders, no cross-file duplication, and that all Python snippets compile. Every behavioral claim in a runnable topic was executed during review (Python 3.14, and `uv` for third-party packages); infrastructure claims were checked against standard behavior. The phase index and `src/SUMMARY.md` are updated only after a topic passes.
 
 ### Independent content review (Phase 1)
 
