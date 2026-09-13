@@ -54,6 +54,22 @@ The roadmap progresses through these phases:
 
 The final project track will connect the phases through production-style systems such as an enterprise RAG engine, workflow agent, AI control plane, LLM gateway, evaluation platform, and enterprise MCP gateway.
 
+## Career outcomes
+
+The completed book is designed to help engineers prepare for roles across applied AI, backend systems, platform engineering, and architecture:
+
+- Senior AI Engineer
+- AI Engineer
+- Agentic AI Engineer
+- GenAI Engineer
+- AI Platform Engineer
+- LLM Engineer
+- Forward Deployed AI Engineer
+- AI Backend Engineer
+- GenAI Solutions Engineer
+- AI Solutions Architect
+- AI Systems Architect
+
 ## Project direction
 
 This repository is being developed as a complete, end-to-end study book. The full roadmap is defined up front so the material can grow in a coherent order from production Python to AI systems architecture.
