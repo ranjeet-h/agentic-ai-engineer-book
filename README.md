@@ -10,7 +10,7 @@
 
 **[Open the live book →](https://ranjeet-h.github.io/agentic-ai-engineer-book/)**
 
-The live edition is the best way to read the current material. It is published as a searchable mdBook with responsive navigation, syntax highlighting, Mermaid diagrams, and light/dark theme support.
+The live edition is the best way to read the current material. It is published as a searchable mdBook with responsive navigation, collapsible phase sections, syntax highlighting, Mermaid diagrams, and mdBook's default theme picker.
 
 ## Why this book exists
 
@@ -102,9 +102,9 @@ The book favors simple explanations, concrete examples, Mermaid diagrams, compar
 │   └── phase-NN-<slug>/                # One directory per learning phase
 │       ├── index.md                    # Phase overview and topic map
 │       └── *.md                        # Individual concept pages
+├── styles/
+│   └── navigation.css                  # Bottom previous/next chapter links
 ├── theme/
-│   ├── custom.css                      # Shared reading and component theme
-│   ├── custom.js                       # Device-aware dark-mode toggle
 │   └── mermaid*.js                     # Mermaid runtime used by mdBook
 ├── assets/fonts/                       # Self-hosted reading and code fonts
 ├── book/                                # Generated mdBook site (ignored)
@@ -127,7 +127,18 @@ GitHub Pages then serves the static `gh-pages` branch at:
 
 **[Open the live book →](https://ranjeet-h.github.io/agentic-ai-engineer-book/)**
 
-No local build is required; GitHub Actions is the build and publishing environment.
+## Local preview
+
+The repository uses mdBook `0.4.52` with mdBook Mermaid `0.16.2`. These versions must match: Mermaid `0.17.x` uses the newer mdBook preprocessor protocol and makes `mdbook serve` fail with `Unable to parse the input`.
+
+Install the pinned Mermaid preprocessor once, then serve from the repository root:
+
+```bash
+cargo install mdbook-mermaid --version 0.16.2 --locked --force
+mdbook serve
+```
+
+No local build is required for publishing; GitHub Actions is the build and publishing environment.
 
 ## Writing and review principles
 
