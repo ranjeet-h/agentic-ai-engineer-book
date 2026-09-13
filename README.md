@@ -16,7 +16,8 @@ quarto preview
 quarto render
 ```
 
-The generated static site is written to `_site/` and is configured for deployment on Vercel.
+The generated static site is written to `_site/`. Pushing to `master` publishes it to
+GitHub Pages using the workflow in `.github/workflows/publish.yml`.
 
 ## Structure
 
@@ -25,6 +26,6 @@ The book is a Quarto `book`. Each phase is a part, and each topic is one concept
 ## Current scope
 
 - Book structure and the study roadmap (`index.qmd`).
-- Phase 1 — Production Python: overview and the first topic (Type Hints).
+- Phase 1 — Production Python: overview and the first topics (Type Hints, Dataclasses).
 - Remaining phase topics and projects are written incrementally, 1–2 concepts per session.
 # agentic-ai-engineer-book
