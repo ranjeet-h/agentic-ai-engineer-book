@@ -1,0 +1,466 @@
+---
+title: "Provider APIs: OpenAI, Anthropic, Gemini"
+---
+
+> **Interview answer (say this first).** All three major providers expose the same basic loop — send a list of role-tagged messages plus optional tool definitions, and get back text, tool calls, and token usage. The differences are surface-level: OpenAI keeps the system prompt inside `messages`, Anthropic takes `system` as a top-level field and requires `max_tokens`, and Gemini uses `contents` with roles `user`/`model` plus a separate `systemInstruction`. Authenticate from environment variables, handle errors by class and status code, retry only 408/409/429 and 5xx with exponential backoff and jitter, and account tokens and cost from the response's usage fields.
+
+## Why this exists
+
+Your agent works perfectly with one provider. Then the bill doubles, an outage hits, or a customer requires their data to stay in one region. You add a second provider, and the integration breaks in small, annoying ways:
+
+```python
+# Code written for OpenAI, moved to Anthropic:
+body = {
+    "model": "claude-example",
+    "messages": [{"role": "system", "content": "Be terse."}, ...],  # rejected
+    # max_tokens is missing — Anthropic requires it
+}
+```
+
+Anthropic does not accept a `system` role inside `messages`; the system prompt is a top-level field. It also *requires* `max_tokens`. Gemini does not use `assistant` at all — its role is `model` — and it returns content inside `candidates[0].content.parts` rather than `choices[0].message.content`. Streaming is different again: each provider uses its own event names and JSON shapes.
+
+None of these differences is deep. They are naming and placement. The mistake is letting them leak into your application logic. The fix is a **provider-agnostic interface**: one internal message shape your app uses, with a small adapter per provider that translates to and from the vendor format. Then swapping providers, adding a fallback, or routing by cost is a configuration change, not a rewrite.
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **API** | A service you call over HTTP with structured requests and responses. |
+| **Chat completion** | The common endpoint shape: you send messages, the model returns a reply. |
+| **Message** | One turn of conversation with a `role` and `content`. |
+| **Role** | Who produced a message: typically system, user, assistant, or tool. |
+| **System prompt** | Developer instructions, meant to outrank normal conversation. |
+| **Max tokens** | The ceiling on how many tokens the model may generate. |
+| **Temperature** | Randomness control. 0 is nearly deterministic; higher is more varied. |
+| **Tool / function** | A function the model may ask you to run, described by a JSON Schema. |
+| **JSON Schema** | A standard way to describe the allowed shape of a JSON object. |
+| **Tool call** | A structured request from the model: a tool name plus arguments. |
+| **Tool result** | What your code returns after running the tool, sent back to the model. |
+| **Streaming** | Receiving the answer in pieces as it is generated, instead of one blob. |
+| **SSE** | Server-Sent Events: the text protocol most providers use to stream. |
+| **Delta** | An incremental chunk of a streamed response. |
+| **Usage** | Token counts reported by the provider for a request. |
+| **Input / prompt tokens** | Tokens in everything you sent. |
+| **Output / completion tokens** | Tokens the model generated. |
+| **Rate limit** | A cap on requests or tokens per minute; exceeding it returns HTTP 429. |
+| **RPM / TPM** | Requests per minute / tokens per minute. |
+| **Backoff** | Waiting longer after each failed attempt before retrying. |
+| **Jitter** | Randomness added to a wait so many clients do not retry in lockstep. |
+| **Idempotency key** | A unique ID that lets a retry be safely de-duplicated. |
+| **SDK** | A vendor library that wraps the HTTP API in language-native calls. |
+| **Env var** | An operating-system variable holding configuration, such as a secret key. |
+| **Provider-agnostic** | Your code does not depend on one vendor's request or response shape. |
+
+The most important idea here is **the boundary**. Your application talks to your own `ChatRequest` and `ChatResponse` types. Adapters translate at the edge. The model's text is untrusted input (see the injection page), and the usage fields are the source of truth for cost.
+
+## The core idea
+
+Every provider does the same four things, just with different field names:
+
+```text
+messages + tools  ──►  model  ──►  text and/or tool calls + usage
+```
+
+Think of it like three power sockets in different countries. The electricity is the same; the plug shape differs. You do not rewire your house for each country — you use an adapter.
+
+```{mermaid}
+flowchart LR
+    App["Your application"] --> Req["Your ChatRequest<br/>messages + tools + limits"]
+    Req --> A1["OpenAI adapter"]
+    Req --> A2["Anthropic adapter"]
+    Req --> A3["Gemini adapter"]
+    A1 --> P1["/v1/chat/completions"]
+    A2 --> P2["/v1/messages"]
+    A3 --> P3[":generateContent"]
+    P1 --> N["One normalized response<br/>text, tool calls, usage"]
+    P2 --> N
+    P3 --> N
+    N --> App
+```
+
+Where the providers differ, and why your adapter exists:
+
+| Concern | OpenAI | Anthropic | Gemini |
+| --- | --- | --- | --- |
+| Auth header | `Authorization: Bearer $OPENAI_API_KEY` | `x-api-key: $ANTHROPIC_API_KEY` (+ `anthropic-version`) | `x-goog-api-key: $GEMINI_API_KEY` |
+| System prompt | A message with role `system` | Top-level `system` field | Top-level `systemInstruction` |
+| Assistant role name | `assistant` | `assistant` | `model` |
+| Token cap field | `max_tokens` or `max_completion_tokens` by model | `max_tokens` (required) | `generationConfig.maxOutputTokens` |
+| Tools field | `tools` with `function` nesting | `tools` with `input_schema` | `tools` with `functionDeclarations` |
+| Tool result | role `tool` + `tool_call_id` | user message with a `tool_result` block | `functionResponse` part |
+| Streaming | SSE `data:` chunks, `delta.content` | Named SSE events (`content_block_delta`) | SSE from `:streamGenerateContent` |
+| Usage names | `prompt_tokens` / `completion_tokens` | `input_tokens` / `output_tokens` | `promptTokenCount` / `candidatesTokenCount` |
+| Stop reason | `finish_reason` | `stop_reason` | `finishReason` |
+
+Notice that the *concepts* line up one-to-one. That is why an adapter is small and worth writing.
+
+## How it works
+
+1. **Read configuration from environment variables.** SDK clients pick up `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) automatically. Never hard-code or commit keys.
+2. **Build your internal request.** A list of messages with roles, an optional tool list, a token cap, and sampling settings.
+3. **Translate to the provider shape.** The adapter moves the system prompt, renames roles, converts tools, and sets the provider's token field.
+4. **Send the HTTP request.** The SDK handles auth headers, base URL, JSON encoding, and usually retries it deems safe.
+5. **Read the normalized response.** Extract text, any tool calls, the stop reason, and the usage counts. Map provider-specific names to your own.
+6. **If the model asked for a tool, run it.** Execute your function, then append the result to the message list in the provider's expected format and call again. This loop is how tool use works.
+7. **Stream when the UI needs it.** Parse the provider's SSE events and emit a uniform token event to your app. Lower time to first token improves perceived speed.
+8. **Handle errors by type and status.** Retry 408/409/429 and 5xx with exponential backoff plus jitter. Do not retry 400, 401, 403, 404, or 422 — those are your bug or a bad request.
+9. **Account tokens and cost.** Use the usage fields from the response. Estimate only when a call fails before returning usage, and mark estimates in your logs.
+10. **Cap concurrency and respect rate limits.** Track 429s and the `Retry-After` header when present. Reduce concurrency rather than retrying harder.
+
+::: {.callout-warning}
+**Never retry an unbounded number of times.** A retry storm turns a brief throttle into a full outage. Use a small attempt cap (for example 3–5), exponential backoff with jitter, and a circuit breaker. If a write or a charge is involved, use an idempotency key so a duplicate retry cannot double-apply the action.
+:::
+
+## The syntax you will use
+
+::: {.callout-note}
+**How to read the snippets below.** They show request and response *shapes* so you can write and debug adapters. They are illustrative: no network calls were made for this page, and no live response is claimed. Endpoint paths, field names, and roles are the standard documented shapes, but provider APIs change — check the current docs before shipping.
+:::
+
+**1. Authentication through environment variables.** Each SDK reads its own variable; setting it in the shell keeps secrets out of code.
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+export GEMINI_API_KEY="..."
+```
+
+**2. OpenAI — SDK call (illustrative shape).**
+
+```python
+from openai import OpenAI
+
+client = OpenAI()   # reads OPENAI_API_KEY
+
+response = client.chat.completions.create(
+    model="gpt-example",
+    messages=[
+        {"role": "system", "content": "You are terse."},
+        {"role": "user", "content": "Weather in Paris?"},
+    ],
+    max_completion_tokens=200,
+)
+text = response.choices[0].message.content
+print(response.usage.prompt_tokens, response.usage.completion_tokens)
+```
+
+**3. Anthropic — SDK call (illustrative shape).** Note the top-level `system` and required `max_tokens`.
+
+```python
+from anthropic import Anthropic
+
+client = Anthropic()   # reads ANTHROPIC_API_KEY
+
+response = client.messages.create(
+    model="claude-example",
+    system="You are terse.",           # top-level, not a message
+    messages=[{"role": "user", "content": "Weather in Paris?"}],
+    max_tokens=200,                    # required
+)
+text = response.content[0].text
+print(response.usage.input_tokens, response.usage.output_tokens)
+```
+
+**4. Gemini — SDK call (illustrative shape).**
+
+```python
+from google import genai
+
+client = genai.Client()   # reads GEMINI_API_KEY (or GOOGLE_API_KEY)
+
+response = client.models.generate_content(
+    model="gemini-example",
+    contents="Weather in Paris?",
+)
+print(response.text)
+print(response.usage_metadata.prompt_token_count)
+```
+
+**5. The same tool in all three schemas.** One JSON Schema, three wrappers.
+
+```python
+schema = {
+    "type": "object",
+    "properties": {"city": {"type": "string"}},
+    "required": ["city"],
+}
+
+openai_tool = {"type": "function", "function": {
+    "name": "get_weather", "description": "Look up weather", "parameters": schema}}
+
+anthropic_tool = {"name": "get_weather", "description": "Look up weather",
+                  "input_schema": schema}
+
+gemini_tool = {"functionDeclarations": [
+    {"name": "get_weather", "description": "Look up weather", "parameters": schema}]}
+```
+
+**6. A provider-agnostic adapter.** This is the pattern that keeps vendor differences out of your app.
+
+```python
+import json
+from dataclasses import dataclass, field
+
+@dataclass
+class Message:
+    role: str                 # "system" | "user" | "assistant" | "tool"
+    content: str
+    tool_call_id: str | None = None
+    tool_calls: list = field(default_factory=list)
+
+def to_openai(messages: list[Message]) -> list[dict]:
+    out = []
+    for m in messages:
+        if m.role == "system":
+            out.append({"role": "system", "content": m.content})
+        elif m.role == "tool":
+            out.append({"role": "tool", "tool_call_id": m.tool_call_id,
+                        "content": m.content})
+        elif m.role == "assistant" and m.tool_calls:
+            out.append({"role": "assistant", "content": m.content or None,
+                        "tool_calls": [
+                            {"id": tc["id"], "type": "function",
+                             "function": {"name": tc["name"],
+                                          "arguments": json.dumps(tc["arguments"])}}
+                            for tc in m.tool_calls]})
+        else:
+            out.append({"role": m.role, "content": m.content})
+    return out
+
+def to_anthropic(messages: list[Message]) -> tuple[str, list[dict]]:
+    system = "\n".join(m.content for m in messages if m.role == "system")
+    convo = []
+    for m in messages:
+        if m.role == "system":
+            continue
+        if m.role == "tool":
+            # Your result becomes a tool_result block inside a user message.
+            convo.append({"role": "user", "content": [
+                {"type": "tool_result", "tool_use_id": m.tool_call_id,
+                 "content": m.content}]})
+        elif m.role == "assistant" and m.tool_calls:
+            # The model's request becomes a tool_use block inside its reply.
+            blocks = ([{"type": "text", "text": m.content}] if m.content else [])
+            blocks += [{"type": "tool_use", "id": tc["id"], "name": tc["name"],
+                        "input": tc["arguments"]}
+                       for tc in m.tool_calls]
+            convo.append({"role": "assistant", "content": blocks})
+        else:
+            convo.append({"role": m.role, "content": m.content})
+    return system, convo   # system goes top-level in the request
+```
+
+**7. Retry with exponential backoff and jitter.** Retry only what is safe to retry.
+
+```python
+import time
+
+RETRYABLE_STATUS = {408, 409, 429, 500, 502, 503, 504}
+
+def is_retryable(status: int) -> bool:
+    return status in RETRYABLE_STATUS
+
+def backoff_delay(attempt: int, base: float = 0.5, cap: float = 20.0,
+                  rand=lambda: 0.5) -> float:
+    ceiling = min(cap, base * (2 ** attempt))
+    return rand() * ceiling          # full jitter
+
+def call_with_retries(call, max_attempts: int = 4, sleep=time.sleep):
+    for attempt in range(max_attempts):
+        try:
+            return call()
+        except RuntimeError as exc:
+            status = getattr(exc, "status", 500)
+            if not is_retryable(status) or attempt == max_attempts - 1:
+                raise
+            sleep(backoff_delay(attempt))
+```
+
+## Examples: simple to real
+
+**Example 1 — the differences are only naming and placement.** The same conversation, three target shapes.
+
+```python
+messages = [Message("system", "You are terse."),
+            Message("user", "Weather in Paris?")]
+
+to_openai(messages)
+# [{'role': 'system', 'content': 'You are terse.'},
+#  {'role': 'user', 'content': 'Weather in Paris?'}]
+
+to_anthropic(messages)
+# ('You are terse.', [{'role': 'user', 'content': 'Weather in Paris?'}])
+```
+
+OpenAI carries the system prompt as the first message. Anthropic returns it separately because the API expects a top-level `system` field. Same meaning, different placement.
+
+**Example 2 — map OpenAI's tool-call message shape.** Providers encode tool calls and results differently; the adapter normalizes both directions.
+
+```python
+# Verified output of an OpenAI-shaped conversion:
+# {'role': 'assistant', 'content': None,
+#  'tool_calls': [{'id': 'c1', 'type': 'function',
+#                  'function': {'name': 'get_weather',
+#                               'arguments': '{"city": "Paris"}'}}]}
+```
+
+Note that OpenAI sends tool arguments as a **JSON string**, while Anthropic sends an object in `input`. That single difference breaks naive code that assumes one type; the adapter absorbs it.
+
+**Example 3 — the Anthropic request puts system at the top level and requires `max_tokens`.**
+
+```python
+# Illustrative Anthropic request-shape sketch (not produced by the snippet above):
+# keys: ['model', 'system', 'messages', 'max_tokens', 'tools']
+# system is top-level: True
+```
+
+If you forget `max_tokens`, the request is rejected. If you send a `system` role inside `messages`, it is rejected too. These are the two classic migration bugs.
+
+**Example 4 — cost from usage counts.** Token accounting is provider-independent once normalized.
+
+```python
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class Price:
+    input_per_mtok: float
+    output_per_mtok: float
+
+def cost(price: Price, input_tokens: int, output_tokens: int) -> float:
+    return (input_tokens / 1e6) * price.input_per_mtok \
+         + (output_tokens / 1e6) * price.output_per_mtok
+
+# Illustrative round prices used only to show the arithmetic:
+price = Price(3.00, 15.00)
+cost(price, 1200, 300)   # 0.0081
+```
+
+Always compute cost from the returned `usage`, not from an estimate, unless the call failed before returning.
+
+**Example 5 — retry only what is safe.** A deterministic simulation, no network, with fixed jitter so the numbers are reproducible.
+
+```python
+attempts = {"n": 0}
+
+def flaky() -> str:
+    attempts["n"] += 1
+    if attempts["n"] < 3:
+        exc = RuntimeError("rate limited")
+        exc.status = 429
+        raise exc
+    return "ok on attempt 3"
+
+sleeps = []
+call_with_retries(flaky, sleep=sleeps.append)
+# 'ok on attempt 3'
+# sleeps: [0.25, 0.5]
+
+is_retryable(429)   # True
+is_retryable(400)   # False
+```
+
+The delay doubles each attempt before jitter: `[0.25, 0.5, 1.0, 2.0, 4.0]` for attempts 0 through 4 with `rand() = 0.5`. A 400 is a bad request; retrying it just wastes time and money.
+
+**Example 6 — a provider-agnostic call site.** Your business logic never mentions a vendor.
+
+```python
+def answer(question: str, provider: str) -> str:
+    request = build_request(question)          # your own ChatRequest
+    adapter = ADAPTERS[provider]               # openai | anthropic | gemini
+    raw = adapter.send(request)                # one HTTP call
+    return adapter.text(raw)                   # normalized text
+
+answer("Weather in Paris?", "anthropic")
+# Swapping provider is a string change, and fallback is a loop over names.
+```
+
+This is what makes routing and fallback cheap: the rest of the system cannot tell which provider answered.
+
+## In production
+
+- **Wrap every SDK in your own interface.** Vendor object types spread quickly and make fallbacks, routing, and testing painful. Normalize to your own `Message` and response types at the edge.
+- **Never hard-code keys.** Read them from environment variables or a secrets manager, and keep them out of logs, errors, and the model context.
+- **Log model, version, tokens, latency, and cost per call.** Without these fields you cannot explain a bill spike, a latency regression, or a quality change.
+- **Retry 408/409/429 and 5xx, with jitter and a cap.** Retrying a 400 or 401 will never succeed. Retrying without jitter synchronizes clients and deepens the throttle.
+- **Honor `Retry-After` and track rate limits.** Reduce concurrency when you see 429s; do not just retry faster. Respect per-minute token and request quotas, and queue non-urgent work.
+- **Use idempotency keys for side effects.** A retry that charges a card or sends an email twice is worse than a failure. De-duplicate on a key you generate before the first attempt.
+- **Set timeouts on every call.** An agent loop can hang indefinitely without them. Combine a connect timeout, a read timeout, a total budget, and a fallback.
+- **Treat streamed events as a contract that differs by vendor.** Anthropic emits named events such as `content_block_delta`; OpenAI emits `data:` chunks with a `delta`. Normalize both into one token event for your UI.
+- **Watch context limits on both sides.** The context window covers input plus output, and the output cap counts toward it. Oversized retrieval silently truncates or errors; validate token counts before sending.
+- **Do not trust model output.** Text and tool calls are untrusted input. Validate tool names and arguments against policy before executing (see the injection page).
+- **Cache carefully.** Prompt caching can cut cost and latency a lot, but a cached prefix containing user data needs strict key separation to avoid leaking one user's context into another's request.
+- **Expect API drift.** Model names, token fields, and limits change. Pin versions, read changelogs, and keep a contract test that runs against a sandbox before you ship.
+
+## Interview questions
+
+### 1. How do the OpenAI, Anthropic, and Gemini APIs differ at the request level?
+
+**Answer.** They share the same concept set but differ in naming and placement. OpenAI puts the system prompt as a message with role `system`, Anthropic takes a top-level `system` and requires `max_tokens`, and Gemini uses `contents` with roles `user`/`model` and a separate `systemInstruction`. Tool schemas and streaming event shapes differ too, but each maps one-to-one onto a common internal shape.
+
+**Follow-up: "How do you handle that in code?"** One internal request and response type, with a thin adapter per provider. Business logic never sees vendor field names, so routing and fallback become configuration.
+
+**Trap.** Saying the APIs are "basically the same" and then hard-coding one vendor's payload. The concepts match; the wire formats do not, and the mismatches cause real bugs.
+
+### 2. How do you manage API keys?
+
+**Answer.** Read them from environment variables or a secrets manager, never from source code, and never send them to the model. The official SDKs read `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY` automatically. Scope keys per environment and per service, rotate them, and make sure they cannot appear in logs, stack traces, or error messages.
+
+**Follow-up: "What about keys in CI?"** Inject them as secret environment variables at runtime, not as build artifacts, and restrict their scope so a compromised job cannot touch production data.
+
+**Trap.** Putting a key in the system prompt or a config file committed to git. Both leak, and git history keeps the secret even after deletion.
+
+### 3. Which HTTP errors should you retry, and why?
+
+**Answer.** Retry transient failures: 408, 409, 429, and 5xx, with exponential backoff and jitter. Do not retry 400, 401, 403, 404, or 422 — those are malformed requests, bad credentials, or missing resources, and retrying them wastes time and money. Cap attempts and add a circuit breaker.
+
+**Follow-up: "Why jitter?"** Without randomness, every client retries at the same moment, creating a thundering herd that keeps the service throttled. Full jitter spreads retries across the backoff window.
+
+**Trap.** Using a fixed retry delay or unlimited retries. Both make an overload worse, and unlimited retries can hang a request forever.
+
+### 4. How do you count tokens and cost?
+
+**Answer.** Read the provider's usage fields from the response — OpenAI's `prompt_tokens`/`completion_tokens`, Anthropic's `input_tokens`/`output_tokens`, Gemini's `promptTokenCount`/`candidatesTokenCount` — normalize them, and multiply by the model's per-million-token prices for input and output. Log them per request, and only estimate when a failed call returned no usage, marking the estimate.
+
+**Follow-up: "Why can input tokens dominate?"** Because the entire context — system prompt, history, retrieved documents, and tool results — is resent on every turn. A large retrieval payload can cost far more than the answer itself.
+
+**Trap.** Estimating tokens with a naive character count for billing. It is fine for planning, but it drifts with language and code, so never use it as the billing source of truth.
+
+### 5. What is a provider-agnostic interface, and why build one?
+
+**Answer.** It is your own set of request and response types plus an adapter per provider that translates to and from each vendor's wire format. It keeps vendor field names out of business logic, makes fallback and routing simple, and lets you test with a fake adapter instead of a network.
+
+**Follow-up: "What is the cost?"** A small amount of translation code and the risk of a lowest-common-denominator design that hides a provider-specific feature. Expose escape hatches for features only one provider has.
+
+**Trap.** Letting SDK object types spread through the codebase "for now". Refactoring them out later is much more expensive than normalizing at the boundary from day one.
+
+### 6. How does tool calling differ across providers?
+
+**Answer.** The concept is identical: define tools with a JSON Schema, the model returns a tool call, you execute it, and you send the result back. The differences are packaging. OpenAI nests the definition under `function`, sends arguments as a JSON string, and expects a `tool` role message with `tool_call_id`. Anthropic uses `input_schema`, sends an `input` object in a `tool_use` block, and expects a `tool_result` block in a user message. Gemini uses `functionDeclarations` and `functionResponse` parts.
+
+**Follow-up: "What breaks when you switch providers?"** Argument encoding (string vs object), role names, and where the result goes. The adapter should normalize all three so your tool code is identical.
+
+**Trap.** Parsing tool arguments without validating them. The arguments are model output influenced by untrusted content, so validate tool name and arguments before executing.
+
+### 7. How does streaming work, and what changes for your app?
+
+**Answer.** The provider sends the answer incrementally over Server-Sent Events. You parse each event and forward a token to the client, which lowers time to first token and perceived latency. Total time may be the same, but users see progress instead of a long wait. Event shapes differ: OpenAI sends `data:` chunks containing `choices[0].delta.content`, Anthropic sends named events like `content_block_delta`, and Gemini streams from its streaming endpoint.
+
+**Follow-up: "What are the pitfalls?"** Partial JSON in tool-call deltas, usage arriving only at the end, clients disconnecting mid-stream, and proxies buffering events. Normalize into one event type and handle cancellation.
+
+**Trap.** Assuming a stream ends cleanly. Handle disconnects, retries, and a stream that stops before the stop reason arrives.
+
+### 8. A provider has an outage. What happens to your service?
+
+**Answer.** With a provider-agnostic interface and a fallback chain, requests move to another provider or region. Timeouts and bounded retries keep threads from piling up, a circuit breaker stops hammering the dead provider, and non-urgent work moves to a queue. Users get a degraded but working experience, and the fallback path is one you have tested.
+
+**Follow-up: "What if the fallback is in the same cloud region?"** It is not a real fallback. Put the backup in a different failure domain — another region, account, or provider — or one incident takes both down.
+
+**Trap.** Having a fallback that has never been exercised. Untested failover is a hope, not a capability; run it in staging and canary it in production.
+
+## Remember this
+
+- **Same loop, different labels.** Messages plus tools in; text, tool calls, and usage out.
+- **Put an adapter at the boundary.** System prompt placement, role names, and token fields are the recurring differences.
+- **Secrets live in environment variables**, never in code, logs, or the prompt.
+- **Retry 408/409/429 and 5xx**, with exponential backoff, jitter, a cap, and idempotency keys for side effects.
+- **Bill from the usage fields.** Input tokens dominate when you resend a large context every turn.

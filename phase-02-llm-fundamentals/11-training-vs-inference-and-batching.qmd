@@ -1,0 +1,384 @@
+---
+title: "Training vs Inference and Batching"
+---
+
+> **Interview answer (say this first).** Training updates the model's weights using labelled examples and backpropagation, so it needs gradients and is expensive. Inference uses the frozen weights to produce outputs, and it has two phases: prefill, which processes the whole prompt in parallel, and decode, which generates one token at a time. Batching groups requests so the GPU is not idle: static batching pads every request to the longest in its group and wastes compute, while continuous batching admits new requests as soon as a slot frees up and gives much higher throughput and lower average latency.
+
+## Why this exists
+
+A modern GPU is a matrix-multiplication machine with thousands of cores. Running inference for a **single** request barely uses them.
+
+During decode, generating one token requires multiplying the model's weights against one token's hidden state. The arithmetic is tiny; the bottleneck is moving billions of weight values from GPU memory to the compute units. That is a **memory-bandwidth-bound** operation. The compute units sit mostly idle waiting for data, even though the GPU is "busy".
+
+Here is the failing case in plain terms:
+
+```text
+One request at a time:   GPU utilisation ~5-15%   tokens/sec low   cost per token high
+Many requests batched:   GPU utilisation  ~60-90%  tokens/sec high  cost per token low
+```
+
+The fix is to process many requests in one forward pass. Instead of multiplying the weights by one row of hidden states, you multiply by many rows — and the expensive part, loading the weights, is shared across all of them. Batching turns a memory-bound operation into a much more efficient one.
+
+But naive batching creates its own problem. Requests have different prompt lengths and generate different numbers of tokens. If you group a request that needs two output tokens with one that needs two hundred, the short request occupies a GPU slot for the whole batch and the long request delays everyone. Real serving systems exist to solve exactly this scheduling problem. Understanding it is what separates "I call an API" from "I can run a model."
+
+## Start from zero
+
+Here is every word this page uses, defined plainly.
+
+| Word | Plain meaning |
+| --- | --- |
+| **Training** | Adjusting the model's weights to reduce error on examples. Needs labels and gradients. |
+| **Inference** | Running the trained model to get an output. No weights change. |
+| **Forward pass** | Computing the output from the input, layer by layer. Used by both training and inference. |
+| **Backward pass** | Computing gradients of the loss with respect to every weight. Training only. |
+| **Prefill** | The inference phase that reads the prompt. All prompt tokens are processed in parallel. |
+| **Decode** | The inference phase that generates output tokens one step at a time. |
+| **Token** | A chunk of text; the unit a model reads and writes. |
+| **Batch** | A group of requests processed together in one forward pass. |
+| **Batch size** | How many requests (or sequences) are in the batch. |
+| **Static batching** | Fixed groups. The batch runs until its longest request finishes. Short requests wait and pad. |
+| **Dynamic batching** | The server waits a few milliseconds to collect requests, then forms a batch. Still waits for the longest. |
+| **Continuous batching** | The scheduler makes a decision at every decode step: finished requests leave, waiting requests join. Also called in-flight batching. |
+| **Padding** | Filler tokens added so all sequences in a batch have the same length. Wasted compute. |
+| **Sequence length** | Number of tokens in a request, prompt plus output. |
+| **Latency** | Time for one request, from send to complete. What a user feels. |
+| **Throughput** | Requests or tokens completed per second across all users. What your bill depends on. |
+| **TTFT** | Time To First Token. Dominated by prefill and queueing. |
+| **TPOT / ITL** | Time Per Output Token, or Inter-Token Latency. The gap between streamed tokens. |
+| **Tokens per second (TPS)** | A throughput measure: total generated tokens divided by elapsed time. |
+| **GPU utilisation** | Fraction of the GPU's capacity actually doing useful work. |
+| **KV cache** | Saved attention keys and values for tokens already processed, so decode does not recompute them. Grows with sequence length. |
+| **Head-of-line blocking** | A slow request at the front of a batch delaying faster requests behind it. |
+| **Memory-bandwidth-bound** | Limited by how fast data moves, not by arithmetic. Decode is this. |
+| **Compute-bound** | Limited by arithmetic throughput. Large-matrix training and long prefill are this. |
+
+Two contrasts to hold onto:
+
+- **Training changes weights; inference does not.** Different cost, different hardware strategy, different budget.
+- **Latency and throughput trade off.** Bigger batches raise throughput but can raise per-request latency, because more sequences share the same forward pass.
+
+A side-by-side summary of the two modes:
+
+| Dimension | Training | Inference |
+| --- | --- | --- |
+| Goal | Learn the weights | Produce outputs |
+| Weights | Change on every step | Frozen |
+| Gradients | Required (backpropagation) | None |
+| Main memory use | Weights + gradients + optimizer state + activations | Weights + KV cache |
+| Bottleneck | Compute (large matrix maths) | Memory bandwidth during decode |
+| Workload | Long, offline, throughput-oriented | Online, latency-sensitive |
+| Cost shape | One-off compute hours | Per token, on every request |
+
+The memory difference is bigger than people expect. Adam, the common optimizer, keeps a first and second moment estimate for every weight — roughly two extra copies of the model — and gradients are a third. Inference keeps the weights plus the KV cache, so a model that needs multiple high-memory GPUs to train can often serve on one. That is why training and inference are planned as separate systems, not one pipeline.
+
+## The core idea
+
+Think of a checkout at a supermarket. Each customer is a request, and each item is a token.
+
+- **Static batching** is a checkout that only opens when four customers are waiting, and does not let anyone else in until all four have finished. If one customer has a full trolley, the three with one item each stand there waiting. The till is "busy" the whole time, but most of that work is idle waiting.
+- **Dynamic batching** is a checkout that waits two seconds to gather whoever is nearby, then serves that group together. Better, but still tied to the slowest customer in the group.
+- **Continuous batching** is a checkout lane where, the moment a customer pays, the next one steps up — even while others are still being served. The till never waits for a slow customer to finish before admitting the next.
+
+Continuous batching is the key idea behind modern LLM servers such as vLLM, TensorRT-LLM, and Text Generation Inference. It schedules at the granularity of a single decode step, not a whole request.
+
+```{mermaid}
+flowchart TD
+    A["Requests arrive<br/>different prompt and output lengths"] --> B{"Scheduler"}
+    B --> C["Static batch<br/>pad to longest, run to completion"]
+    B --> D["Dynamic batch<br/>collect briefly, run to longest"]
+    B --> E["Continuous batch<br/>decide every decode step"]
+    C --> F["Padding waste<br/>head-of-line blocking"]
+    D --> G["Less idle<br/>still waits for slowest"]
+    E --> H["No padding<br/>slots refilled immediately"]
+    H --> I["Higher tokens/sec<br/>lower average latency"]
+```
+
+Three batching policies, side by side:
+
+| Policy | When new requests join | Padding | Waits for slowest? | Used by |
+| --- | --- | --- | --- | --- |
+| Static | Only when a fixed group finishes | Yes, to the longest in the group | Yes | Teaching, simple scripts |
+| Dynamic | Every collection window (milliseconds) | Yes, to the longest in the batch | Yes | Classic model servers |
+| Continuous | At every decode step | No — sequences are packed | No | vLLM, TGI, TensorRT-LLM |
+
+One number makes the economic argument concrete. To generate one token, the GPU must read the model's weights from memory. Generating that token for 32 independent sequences still reads roughly the same weights once — the same memory traffic now does 32 times the useful arithmetic. Batching does not make the GPU faster; it stops the GPU from waiting on memory it has already paid to load.
+
+The subtlety is that this only works while the operation stays the same shape. Different output lengths, different prompt lengths, and different stop conditions are what turn a clean batch into a scheduling problem.
+
+## How it works
+
+1. **Requests arrive.** Each has a prompt (prefill work) and an unknown output length. Lengths vary; that variance is the whole scheduling problem.
+2. **Prefill the prompt.** All prompt tokens are processed in parallel in one forward pass to build the KV cache. This is compute-heavy and sets the time to first token.
+3. **The server groups requests into a batch.** Static batching fixes the group up front. Dynamic batching waits a short window. Continuous batching keeps a running set of active sequences.
+4. **Decode one token per sequence.** At each step, every active sequence produces exactly one next token. The weights are read once and used for the whole batch.
+5. **Append the token and check for completion.** If a sequence hits its stop token or length limit, it is finished.
+6. **A slot frees up.** In continuous batching, the scheduler immediately admits a waiting request into that slot at the next step. In static batching, the slot stays idle (or padded) until the whole batch ends.
+7. **Track real sequence lengths (no padding).** Padding is avoided by tracking each sequence's real length inside the batch. This is what makes continuous batching efficient.
+8. **Repeat until all requests finish.** Throughput is total useful tokens divided by time; latency per request is measured separately.
+
+::: {.callout-note}
+**Why prefill and decode are different problems.** Prefill processes many tokens at once, so it is compute-bound and efficient on a GPU. Decode processes one token per sequence per step, so it is memory-bandwidth-bound and inefficient unless the batch is large. Modern servers often mix them — "chunked prefill" — so a long prompt does not stall ongoing generation.
+:::
+
+**Admission control matters as much as scheduling.** If a server admits every arrival immediately, the KV cache fills and requests start to queue or fail. Production servers cap active sequences and total tokens in flight. A full batch maximises throughput; a smaller batch minimises latency. Neither is "correct" without an explicit target.
+
+## The syntax you will use
+
+You configure batching at three levels: a hosted batch API, a local server, or a local `generate` call.
+
+**OpenAI Batch API.** For offline work, send one JSONL file of requests and get results later. It trades latency for cost and is not for interactive users.
+
+```jsonl
+{"custom_id": "req-1", "method": "POST", "url": "/v1/chat/completions",
+ "body": {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "Summarise this."}]}}
+```
+
+```python
+batch = client.batches.create(
+    input_file_id=uploaded.id,       # a JSONL file uploaded with purpose="batch"
+    endpoint="/v1/chat/completions",
+    completion_window="24h",         # processing can take up to a day
+)
+```
+
+**Serving with continuous batching (vLLM).** The server does the scheduling; you size the limits.
+
+```bash
+vllm serve meta-llama/Llama-3.1-8B-Instruct \
+  --max-num-seqs 256 \
+  --max-num-batched-tokens 8192 \
+  --gpu-memory-utilization 0.90
+```
+
+`--max-num-seqs` caps sequences in flight, `--max-num-batched-tokens` caps tokens processed in one step, and `--gpu-memory-utilization` sets how much GPU memory the server may use for weights and KV cache.
+
+**Batching a local generation with Hugging Face.** Padding is required so all prompts are the same length; left padding is recommended for decoder-only models.
+
+```python
+tok.padding_side = "left"           # align prompts so the real tokens are on the right
+batch = tok(prompts, return_tensors="pt", padding=True, truncation=True)
+out = model.generate(**batch, max_new_tokens=64)
+```
+
+::: {.callout-warning}
+**Left-pad decoder-only models.** With right padding, a shorter prompt's real tokens end before the padding begins, and the model generates from the padding position. The batch runs without error and returns subtly wrong text. Always set `padding_side = "left"` for generation, and pass an attention mask so padding tokens are ignored.
+:::
+
+**Text Generation Inference.** TGI exposes continuous batching and lets you cap the tokens in a batch.
+
+```bash
+text-generation-launcher --model-id meta-llama/Llama-3.1-8B-Instruct \
+  --max-concurrent-requests 256 \
+  --max-batch-total-tokens 8192
+```
+
+**Dynamic batching in a classic model server (NVIDIA Triton).** The server holds requests for a short window so it can assemble a batch, balancing wait time against batch efficiency.
+
+```text
+dynamic_batching {
+  preferred_batch_size: [ 4, 8 ]
+  max_queue_delay_microseconds: 2000   # wait at most 2 ms to fill a batch
+}
+```
+
+**The latency formula you will quote.** For a streamed request:
+
+```text
+end_to_end_latency ≈ TTFT + TPOT × (number_of_output_tokens − 1)
+```
+
+TTFT is prefill plus queue wait; TPOT is the per-token decode cost. Improving one does not always improve the other: bigger batches usually raise TPOT while lowering cost per token.
+
+## Examples: simple to real
+
+The following discrete-time simulation counts one step per decode token. The cost model is simplified — each active sequence costs one slot per step — but it shows the scheduling effects exactly. Output lengths are `[8, 4, 3, 10, 2, 5, 7, 1]` for eight requests, with a maximum batch of 4.
+
+```python
+def static_batching(requests, batch_size):
+    slot_steps, total_steps, finished = 0, 0, {}
+    for i in range(0, len(requests), batch_size):
+        group = requests[i:i + batch_size]
+        group_len = max(length for _, length in group)
+        total_steps += group_len
+        slot_steps += group_len * len(group)
+        for rid, _ in group:
+            finished[rid] = total_steps
+    return total_steps, slot_steps, finished
+
+def continuous_batching(requests, max_batch):
+    queue, active, finished = list(requests), {}, {}
+    step, slot_steps = 0, 0
+    while queue or active:
+        while queue and len(active) < max_batch:
+            rid, length = queue.pop(0)
+            active[rid] = length
+        slot_steps += len(active)
+        step += 1
+        for rid in list(active):
+            active[rid] -= 1
+            if active[rid] == 0:
+                finished[rid] = step
+                del active[rid]
+    return step, slot_steps, finished
+
+requests = [("r0", 8), ("r1", 4), ("r2", 3), ("r3", 10),
+            ("r4", 2), ("r5", 5), ("r6", 7), ("r7", 1)]
+```
+
+**Example 1 — the measured simulation, static batching.**
+
+```python
+# Static batching: fixed groups of 4, each runs for the group's longest length.
+# measured:
+#   makespan (decode steps):        17
+#   slot-steps used:                68
+#   actual output tokens:           40
+#   wasted slot-steps (padding):    28  (41.2% of all slot-steps)
+#   useful tokens per step:         2.353
+#   finish times: r0,r1,r2,r3 all at step 10; r4..r7 all at step 17
+```
+
+Two facts stand out. First, `41.2%` of the compute went to padding or idle slots, not to real tokens. Second, every request in the second group, including the one that needed a single token, waited 10 steps for the first group to finish. That is head-of-line blocking.
+
+**Example 2 — continuous batching on the same requests.**
+
+```python
+# Continuous batching: admit a new request into any free slot at each step.
+# measured:
+#   makespan (decode steps):        12
+#   slot-steps used:                40
+#   actual output tokens:           40
+#   wasted slot-steps:              0  (0.0%)
+#   useful tokens per step:         3.333
+#   finish times: r2 at 3, r1 at 4, r4 at 5, r0 at 8,
+#                 r5 at 9, r7 at 9, r3 at 10, r6 at 12
+```
+
+The same eight requests, the same model, `12` steps instead of `17`, and zero wasted slots. Short requests also finish early instead of waiting: `r2` is done at step 3 instead of step 10.
+
+**Example 3 — two ways to measure "utilisation", and why the distinction matters.**
+
+```python
+# raw slot occupancy (includes padding as "busy"):
+#   static 100.0%   continuous 83.3%
+# useful tokens per slot-step (slot efficiency):
+#   static 40/68 = 58.8%   continuous 40/40 = 100%
+```
+
+This is the trap that makes batching subtle. Static batching shows **higher** raw occupancy because padding keeps slots full, but far lower *useful* work. Never report GPU utilisation without asking what fraction of that work produced output.
+
+**Example 4 — latency versus throughput.** The same batch size cannot optimise both.
+
+| Batch size | Tokens/sec (throughput) | Per-request latency | GPU use | Best for |
+| --- | --- | --- | --- | --- |
+| 1 | Low | Lowest | Very low | Debugging |
+| 8 | Medium | Low-medium | Medium | Low-traffic interactive |
+| 64 | High | Medium | High | Balanced chat service |
+| 512 | Highest | Higher, and variable | Very high | Offline / batch jobs |
+
+Bigger batches are almost always better for cost per token. They are not always better for a user waiting on a screen.
+
+**Example 5 — a latency budget, computed.** Suppose TTFT is 300 ms and TPOT is 20 ms. A 200-token answer takes roughly `300 + 20 × 199 = 4,280 ms`, about 4.3 seconds. If a schema change adds 150 prompt tokens and TTFT rises to 450 ms, the same answer takes `450 + 3,980 = 4,430 ms` — slower, even though generation did not change. This is why prompt length is a latency feature, not just a cost feature.
+
+**Example 6 — prompt padding wastes prefill too.** The earlier examples varied output lengths. Prompts vary as well, and prefill pads every prompt in a batch to the longest one. Four prompts of 12, 200, 30, and 45 tokens become four prompts of 200 tokens.
+
+```python
+# measured (arithmetic):
+#   slots processed: 4 x 200 = 800 prompt tokens
+#   actual prompt tokens: 12 + 200 + 30 + 45 = 287
+#   wasted on padding: 513  (64.1% of all prefill work)
+#   useful prefill: 35.9%
+```
+
+In production this is the difference between paying for 800 tokens of prefill work and paying for 287. Continuous batching packs real tokens from different sequences into the same step, and chunked prefill spreads a long prompt across steps so it does not block everyone else.
+
+**From simulation to production.** A real server runs this same logic, but with KV-cache paging, GPU kernels that process variable-length batches, and a policy for deciding when to slip a prefill into an ongoing decode batch. The scheduling code is complex, but the goal is the one from Example 2: keep every slot producing useful tokens, and never make a short request wait for a long one.
+
+## In production
+
+- **Batching is the main lever on cost per token.** One request at a time wastes most of the GPU. Batching shares the weight-loading cost across many sequences, which is where the savings come from.
+- **Continuous batching is the default for serious serving.** vLLM, TensorRT-LLM, and TGI all implement it. A naive `model.generate()` loop over requests is fine for a demo and expensive in production.
+- **KV cache size caps your batch.** Each active sequence needs memory for its attention keys and values, growing with sequence length. Long contexts mean fewer concurrent sequences, so memory is often the real batch limit, not compute.
+- **Padding is silent waste.** It shows up as high GPU utilisation with low useful throughput. Log actual sequence lengths and slot efficiency, not just "GPU busy".
+- **Prefill stalls decode.** A long prompt arriving mid-generation can pause everyone's streaming unless the server chunks prefill. Watch inter-token latency spikes when large prompts arrive.
+- **Bigger batches raise tail latency.** Average latency can look fine while the 95th percentile suffers. Track TTFT and TPOT percentiles, not just means.
+- **The OpenAI Batch API is not for users.** It runs asynchronously, can take up to its completion window, and is priced for offline bulk work. Keep interactive traffic on the normal endpoint.
+- **Batching changes bug visibility.** A prompt that works alone can behave differently in a batch if padding, attention masks, or position ids are wrong. Always test batched and unbatched paths together.
+- **Batching complicates observability.** Aggregate metrics hide per-request behaviour. Tag latency by queue wait and batch size so you can tell a slow model apart from a request that sat in a queue.
+- **Sequence length is a first-class cost driver.** It affects KV cache, prefill time, and memory pressure. Shorter prompts and earlier stopping save money in three ways at once.
+- **Separate your latency SLOs.** Define targets for TTFT and TPOT separately. They respond to different fixes: TTFT to prompt length and queueing, TPOT to batch and memory bandwidth.
+- **Training and inference do not share a plan.** Training is a batch job that maximises accelerator use over hours; inference is a latency-sensitive service. Never run training inside a request path.
+
+## Interview questions
+
+### 1. What is the difference between training and inference?
+
+**Answer.** Training adjusts the model's weights: it needs labelled data, a loss, and backpropagation to compute gradients, so it is expensive and runs as an offline batch job. Inference uses the frozen weights for a forward pass only, with no gradients or updates. Inference is what serves user requests, and it is billed per token.
+
+**Follow-up: "Why can't you fine-tune per request?"** Training is far too slow and changes the shared weights for everyone. Per-user adaptation belongs in the prompt, retrieved context, or a small adapter trained offline.
+
+**Trap.** Saying inference is just "training without labels". Inference also skips the backward pass and the optimizer, which changes the cost profile completely and makes it memory-bandwidth-bound rather than compute-bound.
+
+### 2. Why is batching so important for LLM inference?
+
+**Answer.** Decode is memory-bandwidth-bound: each token generation step must read the model's weights from memory, and the arithmetic per token is small. Batching amortises that weight read across many sequences, so the GPU does much more useful work for roughly the same memory traffic. That raises throughput and lowers cost per token.
+
+**Follow-up: "What is the downside?"** Each batch step is slower than a single-sequence step, so per-request latency can rise. Bigger batches also need more KV-cache memory.
+
+**Trap.** Equating high GPU utilisation with efficiency. Padding can keep utilisation at 100% while producing very few useful tokens.
+
+### 3. Compare static, dynamic, and continuous batching.
+
+**Answer.** Static batching forms fixed groups and runs each group until its longest request finishes, so short requests wait and padding wastes compute. Dynamic batching collects requests over a short window to reduce idle time but still waits for the longest in the batch. Continuous batching schedules at every decode step, removing finished sequences and admitting new ones immediately, which avoids padding and head-of-line blocking.
+
+**Follow-up: "Why can continuous batching be harder to operate?"** It is more complex, latency under load is less predictable, and fairness and admission policies matter. It also requires efficient KV-cache management such as paging.
+
+**Trap.** Thinking dynamic batching solves head-of-line blocking. It reduces idle time; it still waits for the slowest member of each batch.
+
+### 4. Explain prefill versus decode.
+
+**Answer.** Prefill processes the whole prompt in one parallel forward pass and builds the KV cache. It is compute-heavy and dominates time to first token. Decode generates one token per sequence per step, reusing the KV cache, and is memory-bandwidth-bound. Decode dominates the total time for long outputs.
+
+**Follow-up: "Why do long prompts hurt latency so much?"** Prefill work grows with prompt length, and the resulting KV cache occupies memory, which reduces how many sequences can be batched.
+
+**Trap.** Treating the two phases as one. They have different bottlenecks and different optimisations — chunked prefill, for example, exists specifically to stop prefill from stalling decode.
+
+### 5. What are TTFT and TPOT, and why track both?
+
+**Answer.** TTFT, time to first token, measures how long a user waits before anything appears; it is dominated by queueing and prefill. TPOT, time per output token, measures the gap between streamed tokens; it is dominated by decode speed and batch contention. End-to-end latency is roughly `TTFT + TPOT × output_tokens`. Users notice both, and they need different fixes.
+
+**Follow-up: "Which matters more for a streaming chat app?"** TTFT drives perceived responsiveness, because the user starts reading immediately. But a high TPOT makes the text crawl, so both need budgets.
+
+**Trap.** Reporting only average end-to-end latency. Averages hide the slow requests that make users give up.
+
+### 6. What is padding, and how does continuous batching avoid it?
+
+**Answer.** Padding adds filler tokens so every sequence in a batch has the same length, because tensors are rectangular. The compute spent on filler produces nothing, and short requests also wait for long ones. Continuous batching tracks each sequence's real length and schedules at the token level, so sequences leave and join individually and no sequence is padded to match another.
+
+**Follow-up: "Why not just use one request per batch to avoid padding?"** Then the weights are read for a single sequence, and the GPU is mostly idle, so cost per token explodes.
+
+**Trap.** Assuming padding is cheap because filler tokens are "just zeros". The GPU still runs the full forward pass for them.
+
+### 7. How does batch size affect latency and throughput?
+
+**Answer.** Larger batches increase throughput because the expensive weight read is shared, and they improve GPU utilisation. But each step now serves more sequences, so per-request latency tends to rise, and tail latency gets worse. The right batch size depends on whether the workload is offline and cost-sensitive or interactive and latency-sensitive.
+
+**Follow-up: "How would you choose a batch size?"** Start from the latency SLO, then find the largest batch that keeps TTFT and TPOT percentiles within budget. Let the server's continuous scheduler do the rest.
+
+**Trap.** Maximising throughput on an interactive product and shipping a service that is cheap but feels slow.
+
+### 8. What limits how many requests you can batch at once?
+
+**Answer.** GPU memory, mainly the KV cache. Each active sequence stores keys and values for every token it has processed, so longer contexts mean larger per-sequence memory. Weights, activations, and the cache all compete for the same memory. That is why batch limits are usually a function of context length, not just raw GPU compute.
+
+**Follow-up: "How do modern servers fit more?"** KV-cache paging (PagedAttention in vLLM), quantization, cache sharing for common prefixes, and prompt caching all reduce memory per sequence, allowing larger effective batches.
+
+**Trap.** Assuming a bigger GPU always means a proportionally bigger batch. Memory layout and context length can dominate.
+
+## Remember this
+
+- **Training changes weights; inference runs forward only.** Different budgets, different infrastructure.
+- **Inference is prefill then decode.** Prefill is parallel and compute-heavy; decode is sequential and memory-bandwidth-bound.
+- **Batching amortises the weight read** and is the main lever on cost per token.
+- **Static pads and blocks; continuous refills.** Continuous batching schedules at every decode step and avoids both wastes.
+- **Latency and throughput trade off.** Track TTFT and TPOT separately, and use percentiles, not averages.

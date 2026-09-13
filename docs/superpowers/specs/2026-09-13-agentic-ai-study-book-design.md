@@ -96,7 +96,7 @@ The review result for each topic is reported alongside the topic, naming any ite
 - [x] Phase 1, Topic 7 (Exception Handling) written.
 - [x] Phase 1, Topics 8–29 written.
 - [x] Phase 1 checkpoint review (independent content review + fixes applied).
-- [ ] Phase 2 — LLM and Generative AI Fundamentals.
+- [x] Phase 2 — LLM and Generative AI Fundamentals (overview + Topics 1–25 written, independent review + fixes applied).
 - [ ] Phases 3–13.
 - [ ] Final projects.
 

@@ -1,0 +1,451 @@
+---
+title: "Streaming Responses"
+---
+
+> **Interview answer (say this first).** Streaming sends each token to the client as the model produces it, instead of waiting for the whole answer. It does not make generation faster, but it cuts **time-to-first-token** from seconds to a fraction of a second, and that is what users perceive as speed. Providers deliver the tokens as server-sent events, and the client reassembles the deltas into the final text.
+
+## Why this exists
+
+A language model produces one token at a time. A 300-token answer generated at 40 tokens per second takes about **7.5 seconds** of work. The question is what the user sees during those 7.5 seconds.
+
+Without streaming, the client sends a request and waits for the entire response. The screen stays empty until the last token is generated:
+
+```text
+0s ───────────────────────────────────────────── 7.5s
+[                    empty screen                 ][ whole answer appears ]
+```
+
+Users do not read "7.5 seconds". They read **nothing is happening**, so they click again (starting a second expensive request), close the tab (throwing away paid-for tokens), or blame the model for a normal generation time.
+
+Now compare streaming:
+
+```text
+0s ─────── 0.4s ─────────────────────────────── 7.5s
+[ wait ]  [ first token ][ more tokens arrive ][ done ]
+```
+
+The total work is identical. Generation is not faster. But the first visible result arrives in about **0.4 seconds** instead of 7.5 seconds — roughly **19 times sooner to first content**. That is the entire value: streaming changes *perceived* latency, not actual latency.
+
+Streaming also matters beyond chat. An agent that reasons for twenty seconds and then calls a tool can stream its intermediate "thinking" text so the user sees progress. A coding assistant can show code appearing line by line. A voice assistant needs the first words as early as possible so speech can begin.
+
+::: {.callout-note}
+**The one-sentence purpose.** Streaming turns one long wait into many short waits, so the user sees the answer forming instead of staring at a blank screen.
+:::
+
+## Start from zero
+
+Every term below is used for the rest of the page. Pin them down now.
+
+| Word | Plain meaning |
+| --- | --- |
+| **Token** | The unit of text a model produces — roughly a word piece, often 3–4 characters of English. |
+| **Latency** | How long something takes, measured in milliseconds (ms) or seconds. |
+| **Time-to-first-token (TTFT)** | The delay between sending the request and receiving the first token. |
+| **Inter-token latency** | The average delay between one token and the next. |
+| **Total latency** | The full time from request to the last token. |
+| **Perceived latency** | How slow the system *feels* to a user. Driven mostly by TTFT, not total time. |
+| **Streaming** | Sending each piece of the answer as soon as it is ready, over a connection that stays open. |
+| **Server-sent events (SSE)** | A simple text protocol for a server to push a stream of events to a client. |
+| **Chunk** | One message in the stream. It usually carries a small piece of the answer. |
+| **Delta** | The *change* in that chunk — the new text, not the whole text so far. |
+| **`finish_reason`** | A field that says why generation stopped: `stop`, `length`, `tool_calls`, or `content_filter`. |
+| **Buffering** | Holding data back before passing it on. A proxy that buffers destroys streaming. |
+| **Cancellation** | Closing the connection to stop generation early, usually to save cost. |
+
+Two pairs cause most of the confusion: **TTFT vs total latency** (streaming improves the wait before anything appears, not the time to finish) and **chunk vs delta** (a chunk is the envelope; the delta is the new text inside it, which you append).
+
+## The core idea
+
+Picture a restaurant. The kitchen cooks six dishes one after another.
+
+- **Non-streaming service:** the waiter waits until all six dishes are cooked, then brings them at once. The customer sits hungry for the full cooking time.
+- **Streaming service:** the waiter brings each dish the moment it leaves the pan. The last dish still arrives at the same time, but the customer starts eating immediately.
+
+The waiter is the streaming connection. The dishes are tokens. Nothing in the kitchen got faster; the *experience* changed.
+
+Here is the flow over time:
+
+```{mermaid}
+sequenceDiagram
+    participant U as User
+    participant C as Client
+    participant S as Model server
+    U->>C: "Summarise this report"
+    C->>S: POST with stream=true
+    Note over S: prefill: read the whole prompt,<br/>this delay is the TTFT
+    S-->>C: chunk 1 (delta "The")
+    S-->>C: chunk 2 (delta " report")
+    S-->>C: chunk 3 (delta " covers")
+    Note over C: append each delta,<br/>re-render the text
+    S-->>C: data: [DONE]
+    C-->>U: final answer visible, token by token
+```
+
+The two modes differ in more than latency, and the differences are exactly what interviewers probe:
+
+| | Non-streaming | Streaming |
+| --- | --- | --- |
+| Time until first visible text | Total latency (seconds) | TTFT (fraction of a second) |
+| Total generation time | Same | Same, plus tiny per-chunk overhead |
+| Connection lifetime | One short request/response | Held open for the whole answer |
+| Detecting failure | One error response, or none | Error may arrive after partial text |
+| Structured output | Parse one complete JSON string | Must parse incomplete JSON while it grows |
+| Tool calls | One complete arguments string | Arguments arrive as string fragments to join |
+
+If you remember one line from this page, remember the table row about perceived latency: **users feel TTFT, not total latency.**
+
+## How it works
+
+1. **The client asks for a stream.** It sends the normal request with `stream=true` (or the provider's equivalent). The server no longer promises a single complete body.
+2. **The server processes the prompt.** It reads the system message, the history, and the tool schemas. This step is called **prefill**, and for a long prompt it is most of the TTFT. The model then emits the first token, which the server writes out immediately.
+3. **The connection stays open.** Instead of closing after one response, the server keeps sending bytes. Over HTTP/1.1 this uses chunked transfer encoding; the body has no fixed length.
+4. **Each token is wrapped as an event.** The provider formats each piece as server-sent events. A raw event looks like `data: {...}\n\n`. A blank line ends one event; the next line begins the next.
+5. **The client reads, parses, and appends.** As bytes arrive, it splits them into events, parses each JSON payload, extracts the delta — the object such as `{"delta": {"content": " covers"}}` — and adds it to a growing string. This is the step that makes text appear.
+6. **Tool-call arguments are accumulated.** When the model calls a tool, the arguments are not sent whole. Each chunk carries a fragment like `'{"ci'` then `'ty": "Pune"}'`. The client concatenates the fragments and only then parses the JSON.
+7. **The stream ends.** The provider sends a final chunk with a `finish_reason`, then a sentinel such as `data: [DONE]`. The client stops reading and closes the connection.
+8. **Failure or cancellation can happen at any point.** If the connection drops at token 40, the client keeps the 40 tokens it has and decides whether to retry, resume, or show an error.
+
+::: {.callout-tip}
+**Why SSE and not websockets?** Streaming is one-directional: the server sends, the client mostly listens. SSE is exactly that shape, rides on ordinary HTTP, and needs no special protocol upgrade. Websockets are for two-way, low-latency traffic, which is more machinery than one-way token output needs.
+:::
+
+## The syntax you will use
+
+These are the real forms, smallest to largest.
+
+**OpenAI, synchronous streaming.** The API returns an iterator of chunks instead of one completion.
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
+stream = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Explain tokens briefly."}],
+    stream=True,
+)
+for chunk in stream:
+    if not chunk.choices:          # usage-only chunk: choices == [], so skip it
+        continue
+    piece = chunk.choices[0].delta.content or ""
+    print(piece, end="", flush=True)
+```
+
+The `chunk.choices[0].delta` field holds the new piece. `content` can be `None` on control chunks, so `or ""` protects you. `choices` can also be **empty**, which happens on the final usage-only chunk when `stream_options={"include_usage": True}` is set — guard with `if not chunk.choices: continue` before indexing, or that chunk raises `IndexError`. The async SDK (`AsyncOpenAI`) has the same shape: `await client.chat.completions.create(..., stream=True)`, then `async for chunk in stream`.
+
+**Reading the finish reason.** The final chunk carries why generation stopped; its delta is empty and only `finish_reason` is set.
+
+```python
+if chunk.choices and chunk.choices[0].finish_reason:
+    print(chunk.choices[0].finish_reason)
+# "stop" | "length" | "tool_calls" | "content_filter"
+```
+
+`"length"` means the answer hit your token limit and was cut off — a real production bug if you never check it.
+
+**Real token usage while streaming.** Add `stream_options` to get a final chunk carrying usage. That chunk has `choices == []`, so the loop must skip it before reading a delta.
+
+```python
+stream = client.chat.completions.create(
+    model="gpt-4o-mini", messages=[{"role": "user", "content": "Hi"}],
+    stream=True, stream_options={"include_usage": True},
+)
+usage = None
+for chunk in stream:
+    if not chunk.choices:          # final usage-only chunk: choices == []
+        usage = chunk.usage
+        continue
+    print(chunk.choices[0].delta.content or "", end="", flush=True)
+print(usage)                       # CompletionUsage(prompt_tokens=..., ...)
+```
+
+Without this, streamed calls do not report token usage in the response body; you have to estimate or ask for it.
+
+**Anthropic, streaming with a helper.** The helper gives you a clean iterator of text strings.
+
+```python
+from anthropic import Anthropic
+
+client = Anthropic()
+with client.messages.stream(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Explain streaming."}],
+) as stream:
+    for text in stream.text_stream:
+        print(text, end="", flush=True)
+    final = stream.get_final_message()   # the assembled message
+```
+
+`text_stream` yields text pieces. `get_final_message()` returns the complete message once the stream ends, which is convenient for logging. The async version uses `AsyncAnthropic` with `async with` and `async for` in exactly the same shape.
+
+**The raw SSE wire format.** This is what travels over the socket, regardless of provider.
+
+```text
+event: content_block_delta
+data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Hello"}}
+
+data: {"choices":[{"delta":{"content":" world"}}]}
+
+data: [DONE]
+```
+
+A blank line separates events. Lines starting with `:` are comments. `[DONE]` is an OpenAI convention, not part of the SSE standard.
+
+**Parsing SSE yourself.** This is the loop every SDK hides.
+
+```python
+import json
+
+def parse_sse(lines):
+    for line in lines:
+        line = line.rstrip("\n")
+        if not line or line.startswith(":"):
+            continue                      # blank separator or keep-alive comment
+        if line.startswith("data:"):
+            payload = line[len("data:"):].strip()
+            if payload == "[DONE]":
+                return
+            yield json.loads(payload)
+```
+
+**Cancelling a stream.** Calling `stream.close()` (or exiting the client's context manager) stops reading and releases the connection, so you stop paying for tokens you no longer need. Closing is the signal to stop; a few tokens may already be in flight, so it is fast but not instantaneous.
+
+## Examples: simple to real
+
+**Example 1 — simulate a token stream and measure it.** Real providers are not needed to see the shape. This async generator waits once for the first token, then a little between tokens.
+
+```python
+import asyncio, time
+
+async def stream_tokens(prompt, tokens, ttft=0.30, per_token=0.08):
+    await asyncio.sleep(ttft)          # queue + prefill: time to first token
+    for tok in tokens:
+        yield {"delta": tok}
+        await asyncio.sleep(per_token) # inter-token latency
+
+async def consume(prompt, tokens):
+    start = time.perf_counter()
+    first_at = None
+    pieces = []
+    async for chunk in stream_tokens(prompt, tokens):
+        if first_at is None:
+            first_at = time.perf_counter()   # TTFT is measured here
+        pieces.append(chunk["delta"])
+    end = time.perf_counter()
+    return "".join(pieces), (first_at - start) * 1000, (end - start) * 1000
+
+text, ttft_ms, total_ms = asyncio.run(
+    consume("hi", ["Stream", "ing", " cuts", " perceived", " latency", "."])
+)
+print(repr(text), f"TTFT {ttft_ms:.0f} ms", f"total {total_ms:.0f} ms")
+```
+
+Measured output on this machine (one run; timing jitters by a few milliseconds):
+
+```text
+'Streaming cuts perceived latency.' TTFT 301 ms total 788 ms
+```
+
+Read the two numbers together. The full answer took 788 ms to generate, but the user saw text at 301 ms. In a non-streaming client, that first text would have waited the full 788 ms. That gap is the whole point.
+
+**Example 2 — the perceived-latency win scales with answer length.** Longer answers make streaming more valuable, because TTFT stays roughly constant while total time grows.
+
+At 40 tokens per second with a 0.30 s TTFT, total time is `TTFT + (tokens - 1) / rate`:
+
+```text
+answer length     streaming TTFT     non-streaming first text (total)
+50 tokens         0.30 s             1.5 s
+300 tokens        0.30 s             7.8 s
+1000 tokens       0.30 s             25.3 s
+```
+
+The first row is a short reply where streaming hardly matters. The last row is an agent writing a long report, where non-streaming feels broken. Streaming is most valuable exactly where answers are long.
+
+**Example 3 — assemble a tool call split across chunks.** This is the part that surprises people. The function name and the JSON arguments arrive in pieces.
+
+```python
+chunks = [
+    {"choices": [{"delta": {"content": "Check"}}]},
+    {"choices": [{"delta": {"content": "ing"}}]},
+    {"choices": [{"delta": {"content": " weather"}}]},
+    {"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "call_1",
+        "function": {"name": "get_weather", "arguments": '{"ci'}}]}}]},
+    {"choices": [{"delta": {"tool_calls": [{"index": 0,
+        "function": {"arguments": 'ty": "Pune"}'}}]}}]},
+]
+text = ""
+tool = {"id": None, "name": "", "arguments": ""}
+for c in chunks:
+    d = c["choices"][0]["delta"]
+    text += d.get("content") or ""
+    for tc in d.get("tool_calls", []):
+        tool["id"] = tc.get("id", tool["id"])
+        fn = tc.get("function", {})
+        tool["name"] += fn.get("name", "")
+        tool["arguments"] += fn.get("arguments", "")
+print("text:", repr(text))
+print("tool:", tool)
+```
+
+Measured output:
+
+```text
+text: 'Checking weather'
+tool: {'id': 'call_1', 'name': 'get_weather', 'arguments': '{"city": "Pune"}'}
+```
+
+Only the finished `arguments` string is valid JSON. Parsing on the first fragment would raise a `JSONDecodeError`, which is a classic streaming bug.
+
+**Example 4 — an error in the middle of a stream.** The stream can fail after it has already produced useful text. Good clients keep the partial result.
+
+```python
+import asyncio
+
+async def with_partial_failure(prompt, tokens):
+    await asyncio.sleep(0.01)
+    for i, tok in enumerate(tokens):
+        if i == 2:
+            raise ConnectionError("upstream closed the stream")
+        yield tok
+        await asyncio.sleep(0.01)
+
+async def collect_with_recovery(prompt, tokens):
+    pieces = []
+    try:
+        async for tok in with_partial_failure(prompt, tokens):
+            pieces.append(tok)
+    except ConnectionError as e:
+        return "".join(pieces), f"partial + error: {e}"
+    return "".join(pieces), "complete"
+
+text, status = asyncio.run(collect_with_recovery("hi", ["a", "b", "c", "d"]))
+print(repr(text), "|", status)
+```
+
+Measured output:
+
+```text
+'ab' | partial + error: upstream closed the stream
+```
+
+The client shows `ab`, then a retry or an error notice. Discarding `ab` and starting over wastes work and can make the answer worse.
+
+**Example 5 — cancellation.** A user closes the page. Stop reading and free the connection.
+
+```python
+import asyncio
+
+async def cancellable(prompt, tokens):
+    await asyncio.sleep(0.01)
+    for tok in tokens:
+        yield tok
+        await asyncio.sleep(0.10)
+
+async def main():
+    pieces = []
+    try:
+        async for tok in cancellable("hi", ["x", "y", "z", "w", "v"]):
+            pieces.append(tok)
+            if len(pieces) == 2:
+                raise asyncio.CancelledError
+    except asyncio.CancelledError:
+        print("cancelled after:", repr("".join(pieces)))
+
+asyncio.run(main())
+```
+
+Measured output:
+
+```text
+cancelled after: 'xy'
+```
+
+The generator stops where it was cancelled. In a real system this translates into a saved connection and less billed generation.
+
+## In production
+
+- **Measure TTFT separately from total latency.** A single "latency" number hides the two things users actually feel. Track p50 and p95 for both, and alert on TTFT regressions.
+- **The first chunk is often not content.** Many providers send a chunk that only sets the assistant role. Count TTFT from the first chunk with actual text, or your metric will look better than reality.
+- **Proxies silently break streaming.** A load balancer, CDN, or API gateway that buffers responses collects the whole answer before forwarding it. Disable buffering for streamed routes, and test through the real network path, not just locally.
+- **Handle `finish_reason: "length"`.** A truncated answer is worse than an error because it looks complete. Log the reason and surface a clear "response was cut off" path.
+- **Always keep partial text on failure.** A mid-stream error is normal, not exotic. Persist the deltas you received so you can retry, resume, or show what you have.
+- **Cancel when the user leaves.** Without cancellation, an abandoned request keeps generating and billing. Tie the HTTP request lifetime to the generation lifetime.
+- **Do not parse partial JSON with `json.loads`.** Either wait for the stream to finish, use an incremental parser, or use the provider's structured-streaming helper that assembles the object for you.
+- **Tool-call fragments must be concatenated by index.** Parallel tool calls are interleaved in one stream, keyed by `index`. Group by index before joining, or you will merge two different calls.
+- **SSE needs a heartbeat for long gaps.** If the model thinks for many seconds before the first token, some proxies drop an idle connection. Providers send comment lines like `: ping` to keep it alive.
+- **Report usage explicitly.** With streaming, token usage is not in the default response. Enable the usage option or count tokens yourself, or your cost dashboard will be wrong.
+
+## Interview questions
+
+### 1. Does streaming make the model generate faster?
+
+**Answer.** No. The model still produces the same tokens in the same order at the same speed. Streaming only changes *when* each token reaches the client. It improves time-to-first-token dramatically and leaves total generation time essentially unchanged.
+
+**Follow-up: "Then why do users say it feels faster?"** Because perceived latency is dominated by how long the screen stays empty. Streaming replaces one long wait with a short one followed by visible progress.
+
+**Trap.** Claiming streaming reduces compute cost. It usually adds a little per-chunk overhead, and the total tokens generated are the same unless the user cancels.
+
+### 2. What is time-to-first-token, and what determines it?
+
+**Answer.** TTFT is the delay from sending the request to receiving the first content token. It is made of network time, queueing time at the provider, and **prefill** — the work of reading the entire prompt before generating. Longer prompts and busier servers mean higher TTFT. Prompt caching of a repeated prefix is the main lever to reduce it.
+
+**Follow-up: "How does TTFT differ from inter-token latency?"** TTFT is a one-time startup cost; inter-token latency is the steady-state delay between later tokens. Total latency is roughly TTFT plus tokens times inter-token latency.
+
+**Trap.** Measuring TTFT from the first chunk you receive. That chunk may carry only the assistant role and no text, which flatters the number.
+
+### 3. What technology carries a streamed response?
+
+**Answer.** Server-sent events: a one-way stream of text events over an ordinary HTTP connection, with a `text/event-stream` content type. Each event is a `data:` line followed by a blank line, and HTTP chunked transfer encoding lets the body arrive in pieces of unknown total length. WebSockets would also work but are unnecessary because the traffic is one-directional.
+
+**Follow-up: "What does `data: [DONE]` mean?"** It is an OpenAI convention marking the end of the stream. It is not part of the SSE standard; other providers close the connection instead.
+
+**Trap.** Saying SSE is WebSockets, or that it is a special binary protocol. It is plain text over HTTP.
+
+### 4. How do you handle a tool call when streaming?
+
+**Answer.** The model streams the tool name and the JSON arguments as string fragments, keyed by an index. You concatenate the fragments per index until the stream ends, then parse the joined string as JSON and execute the tool. You must not parse a fragment on its own, because it is usually incomplete JSON.
+
+**Follow-up: "What about parallel tool calls?"** They are interleaved in the same stream with different `index` values. You accumulate a separate buffer per index and only dispatch once all are complete.
+
+**Trap.** Calling `json.loads` on each delta. It raises on the first fragment and looks like a provider bug when it is a client bug.
+
+### 5. What goes wrong when streaming fails halfway?
+
+**Answer.** The client has partial text and no final `finish_reason`. The right behaviour is to keep the partial text, record that the stream was incomplete, and then retry, resume from the last token, or show a clear error. Throwing away the partial output wastes tokens the user already paid for and gives a worse experience.
+
+**Follow-up: "Can you resume a stream?"** Not with the standard APIs. You would resend the conversation so far and ask the model to continue, which costs the prompt tokens again. True token-level resume is not exposed.
+
+**Trap.** Treating a mid-stream error as a total failure. Many failures happen after a useful prefix has already arrived.
+
+### 6. How do you cancel a running stream, and why does it matter?
+
+**Answer.** You close the connection, which signals the provider to stop generating. It matters because abandoned streams keep consuming GPU time and billing. Closing is fast but not instant: a few tokens may already be in flight, so you may be billed slightly past the cancellation point.
+
+**Follow-up: "How do you wire that up in a web app?"** Tie the request lifetime to the generation: when the client disconnects, cancel the async task that is reading the stream, and close the upstream connection in a `finally` or context manager.
+
+**Trap.** Forgetting to cancel at all, so every closed tab leaves a generation running to completion.
+
+### 7. How does streaming interact with structured JSON output?
+
+**Answer.** Providers can stream the JSON, but the bytes arrive as an incomplete document, so you cannot parse each chunk. You either buffer until the stream completes and parse once, use an incremental JSON parser that yields partial objects, or use the provider's structured-streaming helper, which accumulates the object and returns the finished model.
+
+**Follow-up: "When would you stream structured output at all?"** When the JSON is large and you want to show progress, such as filling a table row by row. For small objects, buffering and parsing once is simpler and safer.
+
+**Trap.** Assuming streaming and strict JSON schema are mutually exclusive. They work together; the constraint is on the *client parser*, not the model.
+
+### 8. What metrics would you put on a streaming endpoint?
+
+**Answer.** Time-to-first-token, inter-token latency, total latency, tokens per second, cancellation rate, and incomplete-stream rate, each with p50 and p95. Also track `finish_reason` distribution, because a rising `length` rate means answers are being truncated. Compare all of them against a non-streaming baseline if you ever switch.
+
+**Follow-up: "Which metric best predicts user satisfaction?"** TTFT, especially for short replies. Once text is moving, users tolerate a slow tail far better than a slow start.
+
+**Trap.** Reporting average latency only. Averages hide the p95 stalls that users actually complain about.
+
+## Remember this
+
+- Streaming changes **when** tokens arrive, not **how fast** they are generated.
+- **TTFT is perceived latency.** Optimise prefill, network, and prompt caching to improve it.
+- SSE over HTTP carries the tokens: `data:` lines separated by blank lines, ending at `[DONE]` or a closed socket.
+- **Append deltas; never replace with them.** Tool-call arguments arrive as fragments to concatenate by index.
+- **Handle partial results, errors, and cancellation** as first-class cases, because streams fail mid-flight by design.

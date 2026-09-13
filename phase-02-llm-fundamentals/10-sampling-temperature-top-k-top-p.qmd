@@ -1,0 +1,356 @@
+---
+title: "Sampling: Temperature, Top-K, Top-P"
+---
+
+> **Interview answer (say this first).** A language model outputs a raw score called a logit for every token in its vocabulary, and softmax turns those scores into a probability distribution. Greedy decoding always takes the highest-probability token; sampling draws a token from the distribution. Temperature rescales the logits to sharpen or flatten the distribution, top-k keeps only the k most likely tokens, and top-p (nucleus) keeps the smallest set of tokens whose probabilities add up to p. They are applied in order — penalties, then temperature, then top-k, then top-p — before one token is drawn.
+
+## Why this exists
+
+An LLM does not write a sentence. It predicts **one next token**, appends it, and predicts again. At each step the model produces a score for every token it knows — often 100,000 or more — and something has to choose one.
+
+The simplest choice is **greedy decoding**: always take the highest score. It is deterministic, but it fails in a specific and obvious way. Ask a model to list ideas and greedy decoding often loops:
+
+```text
+Q: Name three animals.
+Greedy:  Dog, dog, dog, dog, dog, ...
+```
+
+The highest-probability token after "Dog, dog, dog, " really is another "dog", so the loop is the model being *consistent* with its own output. Greedy decoding also produces flat, repetitive text and gets stuck in dead ends.
+
+The opposite extreme is to sample from the full distribution. That fixes repetition but lets the model pick a wildly unlikely token, which can derail the whole answer with one bad word. Real systems need a dial between "always the safest token" and "anything goes".
+
+Temperature, top-k, and top-p are that dial. They do not change the model's knowledge. They change **how the model chooses among the tokens it already scored**, and they are the difference between a reliable extraction pipeline and a creative writing assistant.
+
+This matters for agents directly: tool-calling and JSON output need near-deterministic choices, while brainstorming and copywriting want variety. The same model, with different sampling settings, behaves like two different products.
+
+## Start from zero
+
+Assume you have never seen these words. Here is every term this page uses.
+
+| Word | Plain meaning |
+| --- | --- |
+| **Token** | A chunk of text — a word, part of a word, or punctuation. Models read and write tokens, not characters. |
+| **Vocabulary** | The fixed set of all tokens the model can produce. Its size is the number of possible next tokens. |
+| **Logit** | The model's raw, unbounded score for one token before any probability is computed. Higher means more likely. |
+| **Softmax** | The function that turns a list of logits into probabilities that are positive and sum to 1. |
+| **Distribution** | A set of probabilities over all tokens that sums to 1. |
+| **Greedy decoding** | Always choose the token with the highest probability. Also called `argmax`. No randomness. |
+| **Sampling** | Draw a token at random, where each token's chance equals its probability. |
+| **Temperature (`T`)** | A number that divides the logits before softmax. Below 1 sharpens the distribution; above 1 flattens it. |
+| **Top-k** | Keep only the `k` tokens with the highest logits, discard the rest, then renormalise. |
+| **Top-p (nucleus)** | Keep the smallest set of highest-probability tokens whose probabilities sum to at least `p`, then renormalise. |
+| **Renormalise** | Rescale the kept probabilities so they add up to 1 again after some tokens were removed. |
+| **Repetition penalty** | A penalty applied to tokens that already appeared, to discourage repeating them. |
+| **Frequency penalty** | A penalty proportional to how *many* times a token already appeared. |
+| **Presence penalty** | A fixed penalty applied once to any token that already appeared at least once. |
+| **Seed** | A number that initialises the random generator, so the same draw can be repeated. |
+| **Determinism** | Getting the exact same output twice from the same input and settings. |
+| **Logprobs** | The log of the probabilities the model assigned; some APIs return them for inspection. |
+
+Two ideas cause most confusion, so pin them down now.
+
+- **Logits are not probabilities.** They can be negative, and they do not sum to anything. Softmax is what turns them into probabilities.
+- **Temperature changes the shape; top-k and top-p change the set.** Temperature re-weights all tokens. Top-k and top-p delete tokens entirely.
+
+## The core idea
+
+Picture a raffle with one bucket per possible next token. Each bucket holds colored balls, and the number of balls is proportional to that token's probability. To pick a token, you draw one ball at random. That draw **is** sampling.
+
+Now the three controls:
+
+- **Temperature** reshapes the piles. A low temperature moves balls toward the already-biggest pile. A high temperature spreads balls more evenly.
+- **Top-k** throws away all buckets except the `k` biggest, then re-divides the balls among the survivors.
+- **Top-p** throws away buckets starting from the smallest, and stops as soon as the surviving balls are at least fraction `p` of the total.
+
+Greedy decoding is a different game: never draw, just always take the biggest pile.
+
+```{mermaid}
+flowchart LR
+    A["logits<br/>raw scores"] --> B["penalties<br/>repetition / frequency"]
+    B --> C["temperature<br/>divide logits by T"]
+    C --> D["top-k<br/>keep k best"]
+    D --> E["top-p<br/>keep smallest set summing to p"]
+    E --> F["softmax<br/>scores to probabilities"]
+    F --> G{"greedy?"}
+    G -->|yes| H["argmax<br/>highest probability"]
+    G -->|no| I["sample<br/>draw from distribution"]
+    H --> J["append token"]
+    I --> J
+    J -->|"repeat"| A
+```
+
+The order matters, and this is a favourite interview question. Penalties act on the raw scores first, temperature rescales next, and the two truncation steps come after. Top-k is **invariant to temperature** — dividing every logit by the same positive number does not change which `k` tokens are largest. Top-p is **not** invariant: a lower temperature concentrates probability mass, so the same `p` keeps fewer tokens.
+
+| Method | What it changes | Random? | Typical use |
+| --- | --- | --- | --- |
+| Greedy / `argmax` | Nothing; takes the best token | No | Extraction, classification, code, tests |
+| Temperature only | Shape of the whole distribution | Yes | Creative writing with a single dial |
+| Top-k | Removes the long tail, keeps exactly `k` | Yes | Stable sampling when tail is dangerous |
+| Top-p (nucleus) | Removes the tail adaptively by mass | Yes | General chat; adapts to how confident the model is |
+| Top-k + top-p | Both limits together | Yes | Most production chat defaults |
+
+## How it works
+
+1. **The model produces logits.** One score per token in the vocabulary for the current position. These come from the final layer of the transformer.
+2. **Apply logit penalties.** Repetition, frequency, or presence penalties adjust the scores of tokens that already appeared. This happens before temperature because penalties are defined on the raw scores.
+3. **Apply temperature.** Divide every logit by `T`. Values below 1 make the gaps bigger, so the top token wins more; values above 1 shrink the gaps, so unlikely tokens get more chance.
+4. **Apply top-k.** Sort the logits, keep the `k` largest, and set all others to negative infinity. No token outside the top `k` can ever be chosen.
+5. **Apply top-p.** Sort the remaining tokens by score, convert them to probabilities with softmax, add them up, and keep the smallest prefix whose sum reaches `p`. Drop the rest. This adapts to confidence: a confident model keeps few tokens, an unsure model keeps many.
+6. **Softmax.** Turn the surviving scores into probabilities that sum to 1. Steps 3–5 are sometimes written with the softmax applied first, so truncation happens in probability space instead of logit space. Softmax is monotonic and renormalises over whatever it is given, so truncating before it (logit space, as drawn above) or after it (probability space) keeps the same set and yields the same final probabilities, as long as the kept probabilities are renormalised.
+7. **Choose.** If greedy, take `argmax`. Otherwise draw one token from the distribution — the standard choice is `numpy.random.Generator.choice` or `torch.multinomial`.
+8. **Append and repeat.** The chosen token becomes part of the input, and the loop runs again until a stop token or a length limit.
+
+::: {.callout-note}
+**The subtlety that separates a good answer from a great one.** Top-k and top-p are applied *before* the final softmax in most libraries, and the kept set is renormalised. That is logit space, and it is what the diagram shows; some codebases instead softmax first and truncate in probability space, which produces the same kept set and the same final probabilities, because softmax ranks tokens identically either way. Temperature is a monotonic rescale of logits, so it never changes the top-k *set*. It does change the top-p set, because top-p depends on the actual probability mass.
+:::
+
+## The syntax you will use
+
+You almost never hand-write the loop in production, but writing it once makes every API parameter obvious.
+
+**The pipeline by hand, in numpy.** This is the whole topic in nine lines.
+
+```python
+import numpy as np
+
+def softmax(logits, temperature=1.0):
+    z = np.asarray(logits, dtype=float) / temperature
+    z = z - z.max()                 # subtract the max for numerical stability
+    e = np.exp(z)
+    return e / e.sum()
+
+tokens = ["cat", "dog", "fish", "bird", "rock", "tree"]
+logits = np.array([2.0, 1.0, 0.5, 0.1, -1.0, -2.0])
+
+probs = softmax(logits, temperature=1.0)
+next_token = np.random.default_rng(0).choice(len(tokens), p=probs)
+print(tokens[next_token])           # dog — one draw from the distribution
+```
+
+**OpenAI Chat Completions.** `temperature`, `top_p`, penalties, `seed`, and `logprobs` are supported. There is **no `top_k`** in this API.
+
+```python
+resp = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Name three animals."}],
+    temperature=0.7,          # 0 to 2; lower is more focused
+    top_p=0.9,                # keep the top 90% of probability mass
+    frequency_penalty=0.2,    # -2.0 to 2.0; reduce word repetition
+    presence_penalty=0.0,     # -2.0 to 2.0; discourage new topics
+    seed=42,                  # best-effort determinism, not a guarantee
+)
+```
+
+OpenAI recommends changing **either** `temperature` **or** `top_p`, not both, because the two interact and make results hard to reason about.
+
+**Anthropic Messages.** This API historically exposed `top_k` as well as `temperature` and `top_p`. Newer Claude models are deprecating these controls: any `temperature` other than `1.0`, any `top_p` below `0.99`, and any `top_k` are rejected with a 400 error on models released after Claude Opus 4.6. Treat provider sampling controls as version-dependent and check the docs.
+
+```python
+resp = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=256,
+    temperature=0.7,          # pick temperature OR top_p, never both: Anthropic returns HTTP 400
+    top_k=50,                 # older models only; newer models reject top_k
+    messages=[{"role": "user", "content": "Name three animals."}],
+)
+```
+
+**Hugging Face `transformers`.** Local models expose the full set, including top-k and repetition penalty.
+
+```python
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+tok = AutoTokenizer.from_pretrained("gpt2")
+model = AutoModelForCausalLM.from_pretrained("gpt2")
+
+torch.manual_seed(0)          # seed the sampler for repeatable draws
+out = model.generate(
+    **tok("Name three animals:", return_tensors="pt"),
+    do_sample=True,             # do_sample=False means greedy
+    temperature=0.7,
+    top_k=50,
+    top_p=0.9,
+    repetition_penalty=1.1,
+    max_new_tokens=64,
+)
+print(tok.decode(out[0], skip_special_tokens=True))
+```
+
+**vLLM, for serving.** Sampling settings are passed per request as a `SamplingParams` object.
+
+```python
+from vllm import LLM, SamplingParams
+
+params = SamplingParams(
+    temperature=0.7, top_p=0.9, top_k=50,
+    repetition_penalty=1.1, seed=0, max_tokens=256,
+)
+llm = LLM(model="meta-llama/Llama-3.1-8B-Instruct")
+outputs = llm.generate(["Name three animals."], params)
+```
+
+## Examples: simple to real
+
+**Example 1 — from logits to a decision, and how temperature changes it.** Start with a fixed six-token vocabulary and logit vector.
+
+```python
+# logits: [2.0, 1.0, 0.5, 0.1, -1.0, -2.0]  over [cat, dog, fish, bird, rock, tree]
+# measured: softmax at T=1.0
+#   cat 0.5529  dog 0.2034  fish 0.1234  bird 0.0827  rock 0.0275  tree 0.0101
+# greedy (argmax) -> cat
+# measured p(cat) and p(rock) as temperature changes:
+#   T=0.5   p(cat)=0.8262   p(rock)=0.0020   (sharper, near-greedy)
+#   T=1.0   p(cat)=0.5529   p(rock)=0.0275   (the model's native shape)
+#   T=2.0   p(cat)=0.3541   p(rock)=0.0790   (flatter, more surprising)
+#   T=5.0   p(cat)=0.2358   p(rock)=0.1294   (nearly uniform, often nonsense)
+#   T=0.01  p(cat)=1.0000   (numerically the same as greedy)
+```
+
+"cat" is the single best answer, but there is real mass elsewhere: about 45% is spread over the other five tokens. Sampling is how that mass is used. Notice too that even at `T=5.0` "cat" is still the most likely token. Temperature does not change the ranking; it changes how much the ranking matters.
+
+**Example 2 — top-k removes the long tail.** Keep only the two best logits and renormalise.
+
+```python
+# top-k=2 keeps logits [2.0, 1.0] and sets the rest to -inf
+# measured renormalised probabilities: cat 0.7311, dog 0.2689, all others 0
+```
+
+Top-k is a hard safety rail. No matter how flat the distribution becomes, a token outside the top `k` has probability zero.
+
+**Example 3 — top-p adapts to confidence.** Keep the smallest set whose mass reaches `p`.
+
+```python
+# Same logits at T=1.0:
+#   top-p=0.50 keeps 1 token: cat
+#   top-p=0.90 keeps 4 tokens: cat, dog, fish, bird
+#   top-p=0.99 keeps 6 tokens: everything
+# Same top-p=0.90 but different temperature:
+#   T=0.5 -> keeps 2 tokens: cat, dog
+#   T=1.0 -> keeps 4 tokens: cat, dog, fish, bird
+#   T=2.0 -> keeps 5 tokens: cat, dog, fish, bird, rock
+```
+
+This is why top-p is called **adaptive**. When the model is confident, top-p keeps a tiny set, like top-k with a small `k`. When the model is unsure, top-p keeps a large set. A fixed top-k cannot do that.
+
+**Example 4 — order matters, and here is proof.** Take logits `[10, 9, 8, 7, 0, 0]` over `[a, b, c, d, e, f]` and combine top-k=3 with top-p=0.9.
+
+```python
+# measured:
+#   top-k=3 THEN top-p=0.9 keeps: a, b
+#   top-p=0.9 THEN top-k=3 keeps: a, b, c
+```
+
+After top-k=3, the surviving probabilities are renormalised and the top two already cross 0.9, so top-p cuts the third. Applied the other way, top-p allows three and top-k does not remove any. Same two parameters, different results. Most engines fix an order (typically top-k, then top-p); do not assume every provider uses the same one.
+
+**Example 5 — seeds give repeatable draws.** Sampling is random, but a seed makes the randomness replayable.
+
+```python
+# measured draws of 5 tokens from the T=1.0 distribution:
+#   seed=0 -> dog, cat, cat, cat, fish
+#   seed=1 -> cat, bird, cat, bird, cat
+#   seed=0 -> dog, cat, cat, cat, fish   (same seed, same result)
+```
+
+This is reproducibility, not determinism. The seed controls *your* random number generator; the provider's hardware and batching can still introduce differences. That is why OpenAI calls its `seed` "best effort" and exposes a `system_fingerprint` you can monitor.
+
+**Example 6 — frequency penalty pushes down repeated tokens.** Suppose "cat" has already appeared three times and "bird" once.
+
+```python
+# measured p(cat) as the frequency penalty rises (raw logits, no temperature):
+#   penalty 0.0 -> p(cat)=0.5529
+#   penalty 0.5 -> p(cat)=0.2293
+#   penalty 1.0 -> p(cat)=0.0652
+#   penalty 2.0 -> p(cat)=0.0036
+```
+
+A frequency penalty subtracts `penalty * count` from each logit. A presence penalty subtracts a flat amount once per token that appeared. Both are blunt instruments: too much and the model avoids necessary words such as "the" or a required key name.
+
+## In production
+
+- **Do not tune temperature and top-p at the same time.** They both reshape the distribution, so their effects are hard to separate. Pick one dial, usually temperature, and leave the other at its default.
+- **Temperature 0 is not a determinism guarantee.** Even with temperature 0 or greedy decoding, GPU kernels, floating-point summation order, and batching can change tiny values enough to flip an argmax. Use seeds and accept "approximately repeatable".
+- **Reasoning models may ignore sampling parameters.** Some newer models only accept their default temperature and reject or silently ignore `top_p` and `top_k`. Always check model-specific support before shipping a config.
+- **Top-p is the safer single knob for chat.** It adapts to confidence, so it does not force a fixed number of candidates when the model is very sure or very unsure.
+- **`top_k` is not portable.** OpenAI's Chat Completions API does not expose it; Anthropic is deprecating it; local and open-source stacks expose it. A config written for vLLM will not transfer unchanged to a hosted API.
+- **Repetition penalties break structured output.** If a JSON object legitimately repeats a key or a token, a penalty can corrupt it. Lower the penalty for tool-calling and extraction workloads, or drop it entirely.
+- **Sampling cannot fix a bad prompt.** High temperature on a vague prompt produces creative nonsense; low temperature on a vague prompt produces confident nonsense. Fix the prompt first.
+- **Sampling and hallucination are orthogonal.** Temperature changes how surprising the wording is, not whether the facts are true. A model can hallucinate at temperature 0 and be accurate at temperature 1.
+- **Cache keys must include sampling settings.** If you cache responses by prompt text alone, a later request with different temperature gets a stale answer with the wrong creativity. Include model, temperature, top-p, and seed in the cache key.
+- **Logprobs are your debugging tool.** Requesting log probabilities shows whether the model was confident or torn. A low-probability answer is a warning sign even when it looks fluent.
+- **Per-task defaults beat one global setting.** Extraction and classification: temperature 0-0.2. Chat and RAG answers: 0.2-0.7. Brainstorming and copy: 0.7-1.0. Make the setting part of the task definition, not a hard-coded global.
+- **Record the seed and settings in your traces.** When an agent behaves differently on two runs, the sampling config is one of the first things to compare.
+
+## Interview questions
+
+### 1. What is the difference between greedy decoding and sampling?
+
+**Answer.** Greedy decoding always picks the highest-probability token, so it is deterministic and tends to be repetitive and prone to loops. Sampling draws a token according to the probability distribution, so it can choose lower-probability tokens and produce more varied text. Most production chat uses sampling with a low temperature or a top-p cutoff, and uses greedy for tasks where there is one right answer.
+
+**Follow-up: "When is greedy the right choice?"** Classification, extraction, and structured output, where you want the single most likely answer and any variation is a bug.
+
+**Trap.** Saying sampling is "more accurate". Sampling is more varied. Accuracy comes from the model and the prompt, not from randomness.
+
+### 2. What does temperature actually do to the logits?
+
+**Answer.** It divides every logit by `T` before softmax. Since `T` is a single positive number, it does not change the ranking of tokens. Below 1 it widens the gaps between logits, so the top token gets more probability; above 1 it shrinks the gaps, moving the distribution toward uniform. At `T` near 0 it approaches greedy.
+
+**Follow-up: "Does temperature change which tokens top-k keeps?"** No. Dividing all logits by the same positive number preserves order, so the top-k set is identical at every temperature. It does change the top-p set, because top-p depends on the probability mass.
+
+**Trap.** Claiming temperature "makes the model more creative" as if it changes knowledge. It only changes the choice among tokens the model already scored.
+
+### 3. How does top-p (nucleus) sampling differ from top-k?
+
+**Answer.** Top-k keeps a fixed number of tokens, `k`, regardless of how confident the model is. Top-p keeps the smallest set of tokens whose probabilities sum to at least `p`, so the set size changes with confidence. A confident model keeps a few tokens; an unsure model keeps many. That adaptivity is why top-p is popular for chat.
+
+**Follow-up: "Can you use both?"** Yes, and many engines do, applying top-k first and top-p second. The order is implementation-defined, and as this page's example shows, the order changes the result.
+
+**Trap.** Thinking top-p=0.9 means "90% of the tokens". It means "the tokens that together account for 90% of the probability mass", which may be two tokens or two hundred.
+
+### 4. In what order are penalties, temperature, top-k, and top-p applied?
+
+**Answer.** Penalties first, on the raw logits, because they are defined on those scores. Then temperature, which rescales all logits. Then top-k, then top-p, each removing tokens and renormalising. Finally softmax and the draw. Implementations vary, but this is the common order and the one to state in an interview.
+
+**Follow-up: "Why does the order matter?"** Because truncation and renormalisation are not commutative. Cutting to three tokens and then applying top-p can keep a different set than applying top-p and then cutting to three.
+
+**Trap.** Assuming every provider uses the same order or the same semantics. A config tuned on one stack may not reproduce on another.
+
+### 5. Why is a seed not a determinism guarantee?
+
+**Answer.** A seed controls your random number generator, so the same seed and the same probability distribution produce the same draw. But it does not control the model's logits. GPU non-determinism, different kernel implementations, batch composition, and provider-side version changes can all alter the logits slightly. OpenAI therefore calls `seed` best effort and exposes `system_fingerprint` so you can detect backend changes.
+
+**Follow-up: "How do you test a stochastic system then?"** Fix the seed where you can, but assert on properties rather than exact strings — valid JSON, correct tool name, fact present — and run enough samples to see the distribution.
+
+**Trap.** Writing tests that compare exact output strings from a sampled model. They will flake.
+
+### 6. What is the difference between frequency and presence penalties?
+
+**Answer.** A frequency penalty subtracts an amount proportional to how many times a token has already appeared, so repeated tokens are penalised more each time. A presence penalty subtracts a fixed amount once for any token that has appeared at least once, which encourages the model to introduce new topics. Both are added to the logits before temperature.
+
+**Follow-up: "When do they backfire?"** In structured output and code, where repeating the same key or identifier is correct. A penalty can push the model away from the exact token the schema requires.
+
+**Trap.** Treating them as a fix for repetition. Repetition is often a prompt or decoding problem; penalties add a second, blunter failure mode.
+
+### 7. How would you choose sampling settings for a new production task?
+
+**Answer.** Start low and raise only if needed. For extraction, classification, and tool calls, use temperature 0 to 0.2 and no repetition penalty. For grounded question answering, use 0.2 to 0.7 with top-p around 0.9. For ideation and marketing copy, use 0.7 to 1.0. Then evaluate on a fixed set of prompts at each setting and pick the lowest randomness that meets the quality bar.
+
+**Follow-up: "What do you change first if answers are too repetitive?"** Check the prompt and the stop conditions before raising temperature; a good prompt with greedy decoding often beats a vague prompt with high temperature.
+
+**Trap.** Copying a temperature from a blog post without evaluating it on your own task and model.
+
+### 8. Why can one bad token ruin an answer, and how do the controls prevent it?
+
+**Answer.** Generation is autoregressive: each token becomes context for the next, so one unlikely token can pull the model into a region of low-quality continuations it cannot escape. Top-k and top-p cut off the low-probability tail so those tokens are never drawn, and a low temperature reduces their chance further. That is why a small amount of truncation makes long outputs much more stable.
+
+**Follow-up: "What is the cost of aggressive truncation?"** Diversity. Cut too hard and the model produces the same safe phrasing every time, which is a real problem for brainstorming and a non-issue for extraction.
+
+**Trap.** Believing truncation makes the model more truthful. It makes the output more typical; typical text can still be wrong.
+
+## Remember this
+
+- **Logits → softmax → probabilities.** Temperature rescales logits; top-k and top-p delete tokens; then one is drawn.
+- **Greedy is `argmax`; sampling draws.** Greedy for extraction, sampling for conversation and creativity.
+- **Temperature changes shape, not ranking.** Top-k is temperature-invariant; top-p is not.
+- **Order is penalties → temperature → top-k → top-p**, and the order can change the result.
+- **Seeds are best effort.** Fix them for tests and traces, but assert on properties, not exact strings.

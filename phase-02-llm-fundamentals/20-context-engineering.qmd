@@ -1,0 +1,416 @@
+---
+title: "Context Engineering"
+---
+
+> **Interview answer (say this first).** Context engineering is deciding what goes into the model's limited context window on every call. The window is a budget shared by the system prompt, tool schemas, memory, retrieved documents, and conversation history. You prioritise the most relevant items, place important ones at the start or end, compact or drop the rest, and reserve room for the answer.
+
+## Why this exists
+
+Every model has a **context window**: the maximum number of tokens it can read and write in one call. It is not infinite, and it is not free. Two failures follow from ignoring that.
+
+**Failure 1: the request is rejected or silently truncated.** An agent has been running for twenty turns. Each turn appends the user message, the assistant reply, several tool calls, and the tool results — including whole files. On turn twenty-one the message list is larger than the window. The API returns an error, or the client truncates the oldest turns, and the model forgets the instruction it was given at the start.
+
+```text
+context window: 8,192 tokens
+system prompt   32
+tool schemas    33
+history        5,900
+tool output    3,100   <- pushed it over
+---------------------
+total          9,065   exceeds the window
+```
+
+**Failure 2: the model gets worse before it runs out.** Long before the window is full, quality degrades. Research on long-context models found a U-shaped pattern: models use information well when it is at the **beginning or end** of the context, but perform noticeably worse when the relevant fact sits in the **middle** (Liu et al., 2023, "Lost in the Middle"). That finding gave the problem its name — **"lost in the middle"**.
+
+```{mermaid}
+flowchart LR
+    A["start of context<br/>high accuracy"] --> B["middle of context<br/>accuracy drops"] --> C["end of context<br/>high accuracy"]
+```
+
+So context engineering is not just "fit under the limit". It is **choosing what the model should see**, because every item you add competes for attention, tokens, and money.
+
+This matters most for agentic systems. A chat app sends a short, mostly linear conversation. An agent accumulates memory, retrieved documents, tool schemas, file contents, and error logs. Without deliberate budgeting, the useful instruction drowns in a growing pile of text.
+
+::: {.callout-note}
+**The one-sentence purpose.** The context window is a budget, and context engineering is deciding what earns a place in it.
+:::
+
+## Start from zero
+
+| Word | Plain meaning |
+| --- | --- |
+| **Context** | Everything the model can see in one call: instructions, history, documents, tool results. |
+| **Context window** | The maximum number of tokens the model can process in one call. |
+| **Token** | A small piece of text, roughly 3–4 characters of English. Models count in tokens. |
+| **Prompt tokens** | Tokens in the input you send. You pay for all of them. |
+| **Completion tokens** | Tokens the model writes back. Usually more expensive per token. |
+| **Token budget** | A plan for how many tokens each part of the context may use. |
+| **Headroom / reserve** | Space deliberately left empty so the answer fits and quality stays high. |
+| **Retrieval** | Fetching relevant text from a store and putting it in the context. |
+| **RAG (retrieval-augmented generation)** | Retrieval plus generation: answer using the fetched documents. |
+| **Chunk** | One retrieved piece of a larger document. |
+| **Top-k** | How many chunks retrieval returns. |
+| **Reranking** | Re-scoring retrieved chunks so the best ones come first. |
+| **Memory** | Stored information kept across turns or sessions, such as user preferences. |
+| **Compaction** | Replacing old detail with a shorter summary to save space. |
+| **Summarisation** | Producing the shorter form used by compaction. |
+| **Deduplication** | Removing repeated or near-identical content. |
+| **Recency** | The tendency to weight recent turns and the end of the context more heavily. |
+| **Lost in the middle** | The finding that facts in the middle of a long context are used less reliably. |
+| **Truncation** | Cutting content to fit, from the start, the end, or by a rule. |
+| **KV cache** | Attention data the server stores for the prompt so each new token is cheap. It grows with context length. |
+| **Prompt caching** | A provider feature that caches a repeated prompt prefix to cut cost and latency. |
+| **Tool schema** | The machine-readable description of a tool's name and arguments, sent on every call. |
+
+The single most important idea in that table is **headroom**. A window of 8,192 tokens does not mean you should send 8,192 tokens of input. The answer needs room too, and quality is best when the context is not packed to the brim.
+
+## The core idea
+
+Think of a desk. You can only work with what is on the desk, and the desk has a fixed size. Papers compete for space:
+
+- The **manual** (system prompt) stays on the desk permanently.
+- The **toolbox** (tool schemas) takes a fixed corner.
+- The **current file** (retrieved documents) changes with each task.
+- The **notebook** (conversation history) grows every minute.
+- You must leave space to actually **write the answer**.
+
+If you pile everything on, papers fall off the edge. If you pile the current file in the middle under a stack of old notes, you cannot find it. Context engineering is arranging the desk: keep essentials in view, put the current task where your eyes land, and clear out stale paper.
+
+Here is the budget as a picture:
+
+```{mermaid}
+flowchart TB
+    W["context window<br/>e.g. 8,192 tokens"] --> R["reserved for output<br/>max_tokens"]
+    W --> I["input budget"]
+    I --> F["fixed overhead<br/>system prompt + tool schemas"]
+    I --> D["retrieved documents"]
+    I --> H["conversation history"]
+    I --> S["safety headroom<br/>e.g. 5%"]
+```
+
+And the same picture as a priority table. When space runs short, drop from the bottom:
+
+| Content | Typical priority | If it does not fit |
+| --- | --- | --- |
+| System prompt and safety rules | Highest | Never drop; shorten instead |
+| Current user request | Highest | Never drop |
+| Tool schemas for tools in use | High | Drop unused tools |
+| Top retrieved chunks | High | Reduce top-k, rerank |
+| Recent conversation turns | Medium | Keep last few verbatim |
+| Older conversation turns | Low | Compact into a summary |
+| Large raw tool outputs | Low | Summarise or store, keep a handle |
+| Duplicate or stale chunks | Lowest | Remove first |
+
+**Order matters too.** Put the stable instructions first, the evidence next, and the actual question near the **end**, because the model attends more to the start and the end. A useful trick is to restate the key rule at the end, after the documents, so it is in a high-attention position.
+
+## How it works
+
+1. **Know the window size.** Look up the model's context limit in tokens, not characters or words. Different models differ by orders of magnitude.
+2. **Reserve the output.** Subtract `max_tokens` from the window first. This is the space the answer needs; without it, long answers hit the limit or get cut.
+3. **Count the fixed overhead.** Measure the system prompt and every tool schema. They are sent on every call, so their cost is real and constant.
+4. **Measure the candidates.** Count the tokens of each retrieved chunk and each history turn before deciding what to include.
+5. **Allocate by priority.** Give history a share and retrieval a share, for example 40% and 60% of what remains. These are policy choices, not laws.
+6. **Retrieve, then rerank.** Fetch a generous set by similarity, then re-score it and keep the best few. Recency of a document is not relevance.
+7. **Deduplicate.** Remove exact duplicates by hashing and near-duplicates by similarity. Repetition wastes budget and can make the model over-weight a repeated claim.
+8. **Compact old history.** Replace older turns with a short summary while keeping recent turns verbatim. Keep important identifiers, numbers, and decisions in the summary.
+9. **Place for attention.** Instructions and the question go at the edges; supporting detail sits in the middle. Restate the critical constraint at the end.
+10. **Re-count and trim.** Sum the final context. If it exceeds the budget, drop the lowest-priority items and count again.
+11. **Log usage.** Record prompt tokens, completion tokens, and which items were dropped. This is how you catch a context leak before it becomes an outage.
+
+::: {.callout-warning}
+**The trap of the big window.** A 1,000,000-token window does not make context engineering unnecessary. Attention and cost still scale with length, "lost in the middle" still applies, and a model given irrelevant text can perform worse than one given less. A bigger window is more room to make a mess.
+:::
+
+## The syntax you will use
+
+**Count tokens with a real tokenizer.** Character counts are a rough proxy; this is exact.
+
+```python
+import tiktoken
+
+enc = tiktoken.get_encoding("cl100k_base")
+count = lambda s: len(enc.encode(s))
+print(count("Refunds are processed within five business days."))
+```
+
+Token counts are what the API bills and what the window measures, so budget in tokens.
+
+**A budget function.** This turns window arithmetic into code you can test.
+
+```python
+def budget(context_window, max_output, fixed, safety=0.05, history_share=0.40):
+    safe_input = int((context_window - max_output) * (1 - safety))
+    remaining = safe_input - fixed
+    history = int(remaining * history_share)
+    docs = remaining - history
+    return {"safe_input": safe_input, "history": history, "docs": docs}
+
+b = budget(8192, 2000, fixed=65)
+print(b)   # {'safe_input': 5882, 'history': 2326, 'docs': 3491}
+```
+
+Every line is a decision: reserve output, keep a safety margin, subtract fixed costs, then split what remains.
+
+**Pack by priority.** Given more candidates than fit, keep the important ones and drop the rest.
+
+```python
+def pack(items, budget_tokens):
+    kept, dropped, used = [], [], 0
+    for item in sorted(items, key=lambda i: i["priority"]):   # 1 is highest
+        if used + item["tokens"] <= budget_tokens:
+            kept.append(item["id"]); used += item["tokens"]
+        else:
+            dropped.append(item["id"])
+    return kept, dropped, used
+```
+
+The function never exceeds the budget, and it reports exactly what was lost.
+
+**Deduplicate by content hash.** Identical text should appear once.
+
+```python
+import hashlib
+
+seen, unique = set(), []
+for chunk in chunks:
+    h = hashlib.sha256(chunk.encode()).hexdigest()
+    if h not in seen:
+        seen.add(h)
+        unique.append(chunk)
+```
+
+Hash-based dedup is exact and cheap. Near-duplicates need embedding similarity instead.
+
+**Compact old history.** Keep recent turns, replace old ones with a summary.
+
+```python
+recent = history[-2:]                  # keep the last two turns verbatim
+older = history[:-2]
+summary = summarise(older)             # your summariser call or a stored note
+context = [summary] + recent           # summary first, recent last
+```
+
+Putting the summary before the recent turns keeps the freshest detail in the high-attention tail.
+
+**Place the question last.** The task goes after the evidence so it sits in a strong position.
+
+```python
+messages = [
+    {"role": "system", "content": system_prompt},
+    {"role": "user", "content": f"<docs>\n{docs_text}\n</docs>\n\nQuestion: {question}"},
+]
+```
+
+The retrieved text is inside delimiters and the question is the final thing the model reads.
+
+**Read usage from the response.** Providers report the token counts you actually used.
+
+```python
+usage = response.usage
+print(usage.prompt_tokens, usage.completion_tokens, usage.total_tokens)
+```
+
+Track prompt tokens over time. A slow upward drift means a context leak: something is being appended and never removed.
+
+**Cache a stable prefix.** If the system prompt and tools never change, prompt caching can cut cost and TTFT.
+
+```python
+messages = [
+    {"role": "system", "content": system_prompt},   # stable prefix, cacheable
+    {"role": "user", "content": user_turn},         # changes each call
+]
+```
+
+Keep the changing parts at the end so the cacheable prefix stays identical.
+
+## Examples: simple to real
+
+**Example 1 — measure the pieces.** Before budgeting, know what each part costs.
+
+```python
+SYSTEM = ("You are a support agent for an online store. Answer only from the "
+          "provided documents. If the documents do not contain the answer, "
+          "say you do not know.")
+TOOLS = ('{"name":"search_docs","description":"Search the knowledge base",'
+         '"parameters":{"type":"object","properties":{"query":{"type":"string"}},'
+         '"required":["query"]}}')
+print("system:", count(SYSTEM))     # 32
+print("tools :", count(TOOLS))      # 33
+```
+
+Measured output:
+
+```text
+system: 32
+tools : 33
+```
+
+Thirty-two and thirty-three look tiny. On every call, across millions of calls, the fixed overhead is a real cost — and it is the part you can cache.
+
+**Example 2 — the budget changes everything with the window.** The same content fits comfortably in a large window and forces hard choices in a small one. One representative document chunk measures **112 tokens**.
+
+```text
+window      safe input   history budget   docs budget   chunks that fit
+8,192        5,882        2,326            3,491          31
+32,768      29,229       11,665           17,499         156
+128,000    119,700       47,854           71,781         640
+1,000,000  948,100      379,214          568,821       5,078
+```
+
+The arithmetic is `(window - max_output) * 0.95` for safe input, then fixed costs are subtracted, then the remainder is split 40% history and 60% documents. Notice what the table does **not** say: it does not say you should retrieve 640 chunks. Retrieval quality, latency, and attention all argue for a much smaller top-k. The budget tells you the ceiling, not the target.
+
+**Example 3 — pack by priority and watch what gets dropped.** On a small window with a large low-priority item, the packer drops it and keeps the essentials.
+
+```python
+items = [
+    {"id": "policy",  "priority": 1, "tokens": 8},
+    {"id": "faq",     "priority": 2, "tokens": 8},
+    {"id": "history", "priority": 3, "tokens": 11},
+    {"id": "blog",    "priority": 4, "tokens": 901},
+]
+kept, dropped, used = pack(items, budget_tokens=704)
+print("kept   :", kept)
+print("dropped:", dropped)
+print("used   :", used)
+```
+
+Measured output:
+
+```text
+kept   : ['policy', 'faq', 'history']
+dropped: ['blog']
+used   : 27
+```
+
+The 901-token blog post was excluded because three smaller, higher-priority items already earned their place. The choice is explicit and logged, not accidental.
+
+**Example 4 — deduplicate before you pack.** Repeated chunks waste budget and can distort attention. Here `count` is the token counter defined above.
+
+```python
+import hashlib
+
+chunks = ["Refunds take 5 days.", "Shipping is free over 50.", "Refunds take 5 days."]
+seen, unique = set(), []
+for c in chunks:
+    h = hashlib.sha256(c.encode()).hexdigest()
+    if h not in seen:
+        seen.add(h)
+        unique.append(c)
+print("chunks:", len(chunks), "-> unique:", len(unique),
+      "| tokens saved:", count(" ".join(chunks)) - count(" ".join(unique)))
+```
+
+Measured result:
+
+```text
+chunks: 3 -> unique: 2 | tokens saved: 7
+```
+
+Seven tokens is trivial here. With ten near-identical retrieved chunks of 400 tokens each, dedup saves thousands and removes the repeated signal that makes the model over-weight one fact.
+
+**Example 5 — compaction shrinks history without losing the thread.** Five old turns become one summary.
+
+```python
+old = ["User: where is my order?", "Assistant: can you share the order id?",
+       "User: it is 12345.", "Assistant: it shipped yesterday.",
+       "User: thanks, when will it arrive?"]
+summary = "User asked about order 12345; it shipped yesterday."
+print("history tokens:", count("\n".join(old)), "-> summary tokens:", count(summary))
+```
+
+Measured result:
+
+```text
+history tokens: 39 -> summary tokens: 12
+```
+
+The summary keeps the order id and the decision, and drops the pleasantries. A good summary preserves **entities, numbers, decisions, and open questions** — the things later turns will need. A bad summary says "user asked about an order" and loses the id.
+
+## In production
+
+- **A bigger window is not a strategy.** More context raises cost and latency and can lower accuracy. Treat the window as a ceiling, not a target.
+- **Reserve output space first.** `max_tokens` is not optional: fill the window with input and the answer gets truncated with `finish_reason: "length"`.
+- **Measure, do not estimate, tokens.** Character-count heuristics are off by large factors across languages and code. Use the model's tokenizer.
+- **Distractors hurt.** A retrieved chunk that is irrelevant is not neutral; it can pull the answer off course. Rerank aggressively and drop weak matches.
+- **Lost in the middle is real.** Put instructions and the current question at the start and end, and never bury the one critical fact in the centre of a long document dump.
+- **Deduplicate before packing.** Repeated chunks inflate cost and can make a model state the same point twice, or over-trust a single repeated claim.
+- **Compaction can silently delete the fact you need.** Summaries lose exact numbers, names, and ids. Keep recent turns verbatim and test that key facts survive compaction.
+- **Keep tool schemas lean.** Every tool you expose costs tokens on every call and expands the model's choice. Register only the tools relevant to the current task.
+- **Watch for a context leak.** If prompt tokens climb across turns without user input growing, something is being appended and never pruned. Alert on it.
+- **Cache the stable prefix.** A changing system prompt at the front invalidates provider prompt caching and raises cost on every call.
+- **Treat retrieved text as untrusted data.** A document can contain instructions. Delimit it, do not let it issue commands, and validate any action the model proposes — this is context poisoning.
+- **Log what was dropped.** When an answer is wrong, the first question is "what did the model not see?" Record the dropped items and the token counts per section.
+
+## Interview questions
+
+### 1. What is the context window, and why is it treated as a budget?
+
+**Answer.** The context window is the maximum number of tokens a model can process in one call, including both the input and the output. It is a budget because tokens are finite, cost money, and compete for attention. The system prompt, tool schemas, retrieved documents, memory, and history all draw from the same pool, and the answer needs space reserved too.
+
+**Follow-up: "What happens when you exceed it?"** The request fails, or the client drops content until it fits. Silent truncation is the dangerous case, because the model answers confidently without the information that was cut.
+
+**Trap.** Sending exactly as much context as the window allows. That leaves no room for the answer and harms quality.
+
+### 2. What is "lost in the middle"?
+
+**Answer.** It is a finding from long-context research: models use information more reliably when it appears at the beginning or end of the context, and less reliably when the relevant fact is in the middle. The practical rule is to put key instructions and the question at the edges and avoid burying critical facts in a long middle section.
+
+**Follow-up: "How do you work around it?"** Retrieve less but more relevant content, reorder so the best evidence is first, and restate the key constraint at the end after the documents.
+
+**Trap.** Assuming a longer window removes the effect. It does not; the middle is still the weakest position.
+
+### 3. What competes for space in the window?
+
+**Answer.** The system prompt and persona, the tool schemas, conversation history, retrieved documents, long-term memory, few-shot examples, and any tool results or raw data. Plus the reserved space for the model's answer. Each has a different priority, so the job is to rank them and drop from the bottom.
+
+**Follow-up: "Which would you drop first?"** Stale history, duplicate chunks, raw tool output that can be re-fetched, and unused tool schemas. The system prompt and the current question are never dropped.
+
+**Trap.** Forgetting that tool schemas and few-shot examples are paid for on every single call.
+
+### 4. What is compaction, and what can go wrong?
+
+**Answer.** Compaction replaces older, detailed content — usually conversation history — with a shorter summary to save tokens. It can lose exact facts: order ids, amounts, names, deadlines, and decisions. Good compaction keeps those entities and keeps the most recent turns verbatim so short-term context stays precise.
+
+**Follow-up: "How do you test it?"** Run the same downstream questions against the full history and the compacted version, and check that the answers still agree on the facts that matter.
+
+**Trap.** Summarising too aggressively and then blaming the model when it forgets a detail that was deleted before it ever saw the question.
+
+### 5. Why does order matter, and where should the question go?
+
+**Answer.** Models attend more strongly to the start and end of the context, so position changes results even when the content is identical. Put stable instructions first, evidence in the middle, and the actual question last, so the task is fresh when generation begins. Restating a critical rule after the evidence is a cheap reliability win.
+
+**Follow-up: "What about very long documents?"** Retrieve the relevant sections rather than pasting the whole document, and place the most relevant section nearest the question.
+
+**Trap.** Putting the question first and then thousands of tokens of documents, so the task competes with a long tail of text.
+
+### 6. How do you decide the retrieval top-k?
+
+**Answer.** Start from the token budget for documents, divide by the average chunk size, and treat that as the maximum. Then tune down from there using task accuracy, because more chunks introduce distractors and cost. Rerank candidates and keep only the ones above a relevance threshold.
+
+**Follow-up: "What if no chunk is relevant?"** Better to inject nothing and let the model say it does not know than to pad the context with weak matches. A relevance threshold with an abstention path is safer than always filling the budget.
+
+**Trap.** Setting top-k from the window size alone. Fitting is not the same as being useful.
+
+### 7. What is the KV cache, and how does it relate to the context window?
+
+**Answer.** The KV cache stores the attention keys and values for the prompt so the server does not recompute them for every new token. It makes generation cheap and is why prefill is a one-time cost. It grows with the length of the context, so a long context consumes more server memory and can reduce throughput.
+
+**Follow-up: "How does that differ from prompt caching?"** The KV cache is an internal runtime optimisation; prompt caching is a provider feature that reuses the work for a repeated prefix across requests. Both reward a stable, unchanging prefix.
+
+**Trap.** Thinking a long context is free because the provider advertises a large window. Memory, latency, and cost all scale with length.
+
+### 8. How would you debug a wrong answer caused by context?
+
+**Answer.** Log the exact message list and token counts per section for the request. Check whether the needed fact was present, whether it was truncated or compacted away, whether a distractor outranked it, and where it sat in the context. Then re-run with only the relevant evidence to confirm the context was the cause rather than the prompt or the model.
+
+**Follow-up: "What would you change first?"** Remove distractors and reorder so the best evidence is first. Most context bugs are relevance and ordering bugs before they are size bugs.
+
+**Trap.** Adding more context to fix a wrong answer. Extra text often makes it worse.
+
+## Remember this
+
+- The context window is a **budget**, shared by system prompt, tools, memory, retrieval, and history — plus the answer.
+- **Reserve output space and headroom** before filling the window with input.
+- **Position matters.** Start and end are strong; the middle is weak. Put instructions at the edges and the question last.
+- **Rerank and deduplicate** retrieved content. Irrelevant or repeated text costs money and lowers accuracy.
+- **Compact old history, keep recent turns verbatim**, and preserve entities, numbers, and decisions.
