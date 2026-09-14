@@ -108,6 +108,32 @@ flowchart LR
 - Two ADRs: the evaluator interface and the judge-calibration approach.
 - A short report on one real quality decision you made with the platform.
 
+## How to build it, step by step
+
+Start with one dataset version, one artifact version, and one deterministic evaluator that runs end to end, because the run record is the spine of the whole platform. Add richer evaluators on top of a reproducible run. Statistical comparison, the gate, and dashboards come after single runs are stable; feedback intake and judge calibration are later still.
+
+1. Create the repository: a Python app with config, lint/test commands, and `docker compose` for PostgreSQL and object storage.
+2. Define the data model: `datasets`/`dataset_versions`, `artifacts`, `runs`, `results`, `judgements`, and `gates`.
+3. Write migrations and the versioned dataset and artifact APIs, keeping published versions immutable.
+4. Create a tiny labelled dataset version (with relevant ids for retrieval) and register one prompt and model version.
+5. Build the runner: execute a target over the dataset in batch and record a run with exact artifact versions and a seed.
+6. Add the first evaluator (rule-based or exact-match) and store per-case results.
+7. Add retrieval metrics (recall@k, MRR, NDCG) and verify them against a hand-computed example.
+8. Add retries and partial-failure handling in the runner, and confirm a run is reproducible.
+9. Add dataset diffing and PII scrubbing for new versions.
+10. Add the pointwise LLM-as-judge with a rubric, storing raw scores and explanations.
+11. Add judge cost budgeting, caching of judgements, and sampling where appropriate.
+12. Add pairwise judging with order swap, and demonstrate detection of a biased judge.
+13. Calibrate the judge against a small human-labelled set and report agreement (for example, kappa).
+14. Capture cost and latency alongside quality for each run.
+15. Add run comparison with intervals and a significance test, producing a regression flag.
+16. Build the CI gate: a command or endpoint that fails a run below threshold, wire it to a GitHub Action, and demonstrate it on a real PR.
+17. Add dashboards for quality, cost, and latency over time, per artifact version.
+18. Add feedback intake that accepts production signals and proposes reviewed dataset candidates.
+19. Harden and document last: the two ADRs (evaluator interface and judge-calibration approach), the README, and a short report of one real quality decision, then re-run the acceptance checks.
+
+> **Build order tip.** Make one dataset version, one artifact version, and one evaluator produce a reproducible run before adding judges. The gate and the dashboards are only trustworthy once a single run is repeatable.
+
 ## Builds on
 
 Phase 3 (RAG Engineering), Phase 4 (Agentic AI Engineering), Phase 8 (AI Evaluation, Observability and Reliability).

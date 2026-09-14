@@ -138,6 +138,33 @@ flowchart TD
 - Three ADRs: the registry model, the scheduling and queue design, and the tenancy model.
 - A failure-mode table: what happens when the gateway, scheduler, queue, or a worker fails.
 
+## How to build it, step by step
+
+This is the most design-heavy project, so start with the registry contracts and the control-plane data model, because everything else references a version. Prove one run can travel gateway to scheduler to worker to model gateway and back before adding a second tenant or a policy rule. Leave autoscaling, infrastructure as code, and dashboards until the core path is observable.
+
+1. Create the repository with a layout for control plane, model gateway, workers, and SDK; add shared config and CI lint/test.
+2. Define the registry contracts for agents, models, tools/MCP, prompts, evaluations, and runs, each immutable once published.
+3. Write the PostgreSQL schema and migrations for those registries, with version and status columns.
+4. Stand up the control-plane API in FastAPI and register then read back a model and a stub agent version.
+5. Build the model gateway: one interface with provider adapters, routing by task and cost, and fallback.
+6. Add the scheduler: accept a run request, place it on a queue by capability, and track status.
+7. Add one worker pool that consumes a queued run, executes the stub agent through the model gateway, and reports heartbeat and completion.
+8. Close the thinnest end-to-end run path (gateway to scheduler to queue to worker to gateway to result) and trace it.
+9. Add durable leases so a dead worker's run is recovered without duplicate side effects.
+10. Add the prompt and tool/MCP registries, and have a run record exactly which versions it used.
+11. Add multi-tenancy: per-tenant keys, data isolation, and cost attribution on runs.
+12. Add policy and RBAC at the gateway: allowlists and decisions enforced outside prompts, deny by default.
+13. Add per-tenant token quotas and budgets, and refuse a run that would exceed them.
+14. Register evaluators and a versioned dataset, then run an evaluation for an agent version.
+15. Add the promotion gate: block publishing an agent version that fails its eval threshold, and record the approver.
+16. Prove recovery by killing a worker mid-run, showing the run resumes, and proving no duplicate effects.
+17. Add end-to-end traces across gateway, scheduler, and worker, an append-only audit log, and a cost dashboard.
+18. Add worker autoscaling on queue depth and confirm it scales back down.
+19. Package the platform as Terraform plus Helm with one documented deploy pipeline.
+20. Harden and document last: write the failure-mode table, the three ADRs (registry model, scheduling and queue design, tenancy model), and the README, then re-run the acceptance checks.
+
+> **Build order tip.** Prove one run can travel gateway to scheduler to worker to model gateway before adding a second tenant or a policy rule. Multi-tenancy, eval gates, and autoscaling are much easier to reason about once that single path is observable.
+
 ## Builds on
 
 Phase 6 (Distributed Systems), Phase 7 (AI Platform Engineering), Phase 9 (Security and Governance), Phase 10 (Model Serving), Phase 11 (AI Systems Architecture), Phase 12 (Multi-Agent Systems).

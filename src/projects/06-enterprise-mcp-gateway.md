@@ -116,6 +116,33 @@ flowchart LR
 - Two ADRs: the authorization model and the credential-scoping design.
 - A threat model for tool poisoning, rug pulls, and the confused deputy.
 
+## How to build it, step by step
+
+Start with one local stdio server: connect, discover, and list its tools. Add a second server and aggregation next, then the call-routing path with schema validation. Authorization, credential scoping, and approvals come after the proxy works, because policy is easier to test against a working call path. Resilience, schema-change detection, audit, and docs go last.
+
+1. Create the repository: a Python app using an MCP SDK, config from the environment, and lint/test commands.
+2. Bring up PostgreSQL and Redis with `docker compose`, and write the schema for `servers`, `tools`, `policies`, `credentials`, `audit`, and `approvals`.
+3. Build the server registry and register a local stdio MCP server with identity, owner, and status.
+4. Connect to that server, discover its tools/resources/prompts, and cache the schemas with a version.
+5. Expose a unified tool list endpoint from the one server.
+6. Register a second server over a remote transport and aggregate both behind one namespaced tool list.
+7. Build call routing: send a tool call to the correct server over the correct transport.
+8. Validate arguments against the tool schema before execution and the result after.
+9. Add caller authentication (API key or OIDC) and refuse unauthenticated callers.
+10. Add authorization: per-tool, per-tenant, and per-role allow/deny with deny-by-default policy.
+11. Add scoped credentials: fetch per-server, per-tenant, short-lived credentials from a secret store, and prove no token passthrough.
+12. Add per-tenant tool allowlists.
+13. Add the approval gate for destructive tools, binding execution to the approved payload.
+14. Add rate limiting and quotas per tenant and per tool.
+15. Add resilience: timeouts, retries for transient errors, and a per-server circuit breaker.
+16. Add schema-change (rug-pull) detection and per-server health checks.
+17. Add tracing and the append-only audit log for every call, allow and deny, with the reason.
+18. Prove tenant isolation: a tenant cannot see or call another tenant's tools.
+19. Measure the gateway's added latency per call.
+20. Harden and document last: the threat model, the two ADRs (authorization model and credential-scoping design), and the README, then re-run the acceptance checks.
+
+> **Build order tip.** Get one local server discovered, aggregated, and called with schema validation before writing any policy. Authorization and credential scoping are easier to test once a working call path exists.
+
 ## Builds on
 
 Phase 5 (MCP and Tool Ecosystems), Phase 7 (AI Platform Engineering), Phase 9 (AI Security and Governance).

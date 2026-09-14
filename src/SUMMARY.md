@@ -282,3 +282,4 @@
   - [Project 4 — Production LLM Gateway](projects/04-production-llm-gateway.md)
   - [Project 5 — AI Evaluation Platform](projects/05-ai-evaluation-platform.md)
   - [Project 6 — Enterprise MCP Gateway](projects/06-enterprise-mcp-gateway.md)
+- [Career Readiness — Roles and Specializations](career-readiness/index.md)

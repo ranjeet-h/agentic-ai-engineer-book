@@ -43,6 +43,8 @@ The book ends with six projects you build yourself. Each has requirements, a sug
 - [Project 5 — AI Evaluation Platform](projects/05-ai-evaluation-platform.md)
 - [Project 6 — Enterprise MCP Gateway](projects/06-enterprise-mcp-gateway.md)
 
+Once you have built a few, read [Career Readiness — Roles and Specializations](career-readiness/index.md) to map your work to the role you want next.
+
 
 ## Phase 1 — Production Python
 

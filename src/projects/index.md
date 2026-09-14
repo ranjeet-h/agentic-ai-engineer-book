@@ -12,6 +12,24 @@ That is deliberate. Reading a finished implementation teaches you what someone e
 4. **Self-assess against the acceptance criteria.** Every criterion is something you can show, not something you feel.
 5. **Keep a decisions log.** Every time you choose one option over another, write down why. This is what you will present in a project deep dive (Phase 13).
 
+## How to build any project, step by step
+
+Every project follows the same method. The briefs add project-specific steps; this is the shape underneath them.
+
+1. **Read the brief twice.** Once for the goal, once for the constraints and acceptance criteria.
+2. **Write your own plan first.** A component diagram, a data model, and the two or three hardest decisions. Do not look at the suggested architecture until you have yours.
+3. **Cut the thinnest end-to-end slice.** The smallest path that goes from input to output and actually works. No caching, no scale, no polish.
+4. **Make it correct.** Tests for the core logic and at least one failure path. If it has a boundary, test the boundary.
+5. **Make it observable.** Structured logs, one trace per request, and a metric you trust.
+6. **Make it safe.** Authentication, authorization, least-privilege credentials, and input validation.
+7. **Make it fast and cheap enough.** Measure first, then optimize the real bottleneck — not the one you assumed.
+8. **Make it survive failure.** Timeouts, retries, graceful degradation, and a recovery you have actually run.
+9. **Prove it.** Walk the acceptance criteria; every box must be demonstrable in a demo or a test.
+10. **Write it down.** README, ADRs, a failure-mode table, and a cost/latency report.
+11. **Rehearse the deep dive.** Present it in five minutes, then answer "why not X?" without notes.
+
+> **Build order tip.** Front-load the risky, uncertain part — the thing you are not sure will work. Leave logging polish and documentation until the system is correct.
+
 ## The projects
 
 | # | Project | Builds on | Rough scale |
@@ -37,6 +55,12 @@ These are not optional extras. A project without them is a demo, not a system, a
 - **Evaluation.** A small labelled dataset and a repeatable way to score the system's output. A number you can improve.
 - **README and ADRs.** How to run it, what it does, and two or three Architecture Decision Records for the hard choices.
 - **Cost awareness.** You can state the cost per request (or per task) from your own measurements.
+
+## What this makes you ready for
+
+The six projects are chosen so that finishing them maps onto the career ladder. Building Project 1 or 4 makes you a stronger **Senior Software Engineer**; adding evaluation makes you a **Senior AI Engineer**; Projects 2 and 6 make you an **Agentic AI Engineer**; Project 3 makes you an **AI Platform Engineer**; hardening Project 3 and writing its ADRs is **Staff/Principal** work; and presenting all of them as one portfolio is **AI Systems Architect** work.
+
+See [Career Readiness — Roles and Specializations](../career-readiness/index.md) for the full role-by-role mapping, the specializations this book targets, and a readiness rubric you can score yourself against.
 
 ## Order and scope
 

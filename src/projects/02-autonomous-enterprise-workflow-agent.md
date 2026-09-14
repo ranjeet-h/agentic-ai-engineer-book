@@ -123,6 +123,31 @@ flowchart TD
 - Two ADRs: the graph design (state and edges) and the tool-permission model.
 - One page on failure recovery: what happens at each crash point.
 
+## How to build it, step by step
+
+Build the state machine and its checkpointer before any tool writes anything, because durable resume and idempotency are properties of the graph, not features you add later. Build the read-only investigate-and-plan phase first, then the approval gate, then the write path. Leave sandbox hardening, budgets, and audit polish until the end.
+
+1. Create the repository: a Python app with config from the environment, lint/test commands, and a `docker compose` with PostgreSQL and Redis.
+2. Define the run and step state schema and sketch the graph nodes and edges on paper; keep the pipeline explicitly bounded.
+3. Create the PostgreSQL tables: `runs`, `steps`, `approvals`, `effects`, and `audit`.
+4. Wire the checkpointer to PostgreSQL and prove a run persists and resumes from a checkpoint.
+5. Add a mock ticket source and a run API (`start`, `status`); get a run from created to a terminal state with no tools at all.
+6. Implement the read-only investigation tools (read file, search code, git history, docs) behind scoped adapters using a read-only token.
+7. Have the agent produce a structured plan from the ticket and investigation, and store it on the run.
+8. Add the approval gate: pause durably, record approve/reject/edit, and resume on the decision.
+9. Bind approval to the exact payload hash and demonstrate that a payload changed after approval is not executed.
+10. Add the write path: create a branch and apply only the approved changes.
+11. Add the execution sandbox: run the test suite in a container with a read-only mount and an explicit writable workspace.
+12. Add the bounded reflection loop: on failure, analyse and attempt fixes up to a cap, then stop with a clear reason.
+13. Add idempotency keys for commits, comments, and pull requests; prove re-running a step creates no duplicates.
+14. Test durable resume: kill the worker at each step, restart, and confirm no repeated side effects.
+15. Add loop detection and hard budgets for steps, tokens, wall-clock time, and tool calls.
+16. Open a real pull request against a disposable demo repository and post a summary back to the ticket.
+17. Add tracing with one span per step and tool, plus the append-only audit log and a per-run cost/token report.
+18. Harden and document last: tighten least-privilege tokens and the sandbox network allowlist, write the README, the two ADRs (graph design and tool-permission model), and the failure-recovery page, then re-run the acceptance checks.
+
+> **Build order tip.** Build the graph and its checkpointer before any tool writes anything. Durable resume and idempotency are properties of the state machine, so test them on a trivial run early rather than retrofitting them later.
+
 ## Builds on
 
 Phase 1 (Production Python), Phase 4 (Agentic AI Engineering), Phase 5 (MCP and Tool Ecosystems), Phase 6 (Distributed Systems), Phase 8 (Evaluation and Observability), Phase 9 (Security and Governance). Phase 13 covers the project deep dive.
