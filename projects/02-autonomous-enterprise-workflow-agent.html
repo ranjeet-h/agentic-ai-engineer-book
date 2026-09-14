@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Phase 3 — RAG Engineering - Agentic AI Engineering Study Book</title>
+        <title>Project 2 — Autonomous Enterprise Workflow Agent - Agentic AI Engineering Study Book</title>
 
 
         <!-- Custom HTML head -->
@@ -179,80 +179,141 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="phase-3--rag-engineering"><a class="header" href="#phase-3--rag-engineering">Phase 3 — RAG Engineering</a></h1>
-<p>Retrieval-augmented generation (RAG) is how you give a language model knowledge it was never trained on: your documents, your policies, your code. Instead of hoping the model remembers, you retrieve the relevant text and put it in the prompt.</p>
-<p>RAG is the most common production AI pattern after plain chat, and it is where many AI systems succeed or fail. The model is rarely the weak link; retrieval is. This phase builds retrieval from the ground up: ingesting documents, chunking them, embedding them, searching them, ranking the results, and measuring whether any of it actually works.</p>
-<h2 id="what-you-will-be-able-to-do"><a class="header" href="#what-you-will-be-able-to-do">What you will be able to do</a></h2>
-<p>By the end of this phase you should be able to:</p>
-<ul>
-<li>Explain the full RAG pipeline and where each stage fails.</li>
-<li>Ingest and normalise PDFs, DOCX, and HTML into clean text.</li>
-<li>Choose and justify a chunking strategy, and attach useful metadata.</li>
-<li>Explain embeddings, similarity metrics, vector indexes, and ANN trade-offs.</li>
-<li>Implement dense, sparse, and hybrid retrieval, and apply metadata filters.</li>
-<li>Improve recall with query transformation (rewriting, expansion, multi-query, HyDE).</li>
-<li>Rerank, compress, and select context before generation.</li>
-<li>Generate grounded, cited answers and version a knowledge base safely.</li>
-<li>Measure retrieval and generation with Recall@K, Precision@K, MRR, NDCG, faithfulness, and relevance.</li>
-<li>Operate RAG securely across tenants with access-controlled retrieval.</li>
-</ul>
-<h2 id="the-pipeline"><a class="header" href="#the-pipeline">The pipeline</a></h2>
-<pre><code class="language-mermaid">flowchart TD
-    A["Documents&lt;br/&gt;PDF, DOCX, HTML"] --&gt; B["Ingest and parse"]
-    B --&gt; C["Normalise and extract metadata"]
-    C --&gt; D["Chunk"]
-    D --&gt; E["Embed"]
-    E --&gt; F["Vector + keyword index"]
-
-    Q["User query"] --&gt; G["Query transformation"]
-    G --&gt; H["Retrieve&lt;br/&gt;dense + sparse + filters"]
-    F --&gt; H
-    H --&gt; I["Rerank"]
-    I --&gt; J["Compress and select context"]
-    J --&gt; K["Generate grounded answer with citations"]
-    K --&gt; L["Evaluate: retrieval metrics + faithfulness"]
-</code></pre>
-<p>Everything before the user’s query is <strong>offline indexing</strong>; everything from the query onward is <strong>online serving</strong>. Most RAG bugs are in one of the two, and the first job in debugging is deciding which.</p>
-<h2 id="topic-order"><a class="header" href="#topic-order">Topic order</a></h2>
-<ol>
-<li><a href="01-rag-architecture.html">RAG architecture</a> — the whole pipeline end to end.</li>
-<li><a href="02-document-ingestion-and-parsing.html">Document ingestion and parsing</a> — getting clean text out of PDFs, DOCX, and HTML.</li>
-<li><a href="03-chunking-strategies.html">Chunking strategies</a> — fixed, recursive, semantic, and parent-child.</li>
-<li><a href="04-metadata-extraction-and-filtering.html">Metadata extraction and filtering</a> — attaching and using structure.</li>
-<li><a href="05-embedding-models-and-dimensions.html">Embedding models and dimensions</a> — choosing what turns text into vectors.</li>
-<li><a href="06-similarity-metrics.html">Similarity metrics</a> — cosine, dot product, and when they differ.</li>
-<li><a href="07-vector-databases-and-ann-indexes.html">Vector databases and ANN indexes</a> — HNSW and approximate search.</li>
-<li><a href="08-postgresql-pgvector.html">PostgreSQL pgvector</a> — vector search in a database you already run.</li>
-<li><a href="09-dense-and-sparse-retrieval.html">Dense and sparse retrieval</a> — embeddings versus BM25 and full-text search.</li>
-<li><a href="10-hybrid-search.html">Hybrid search</a> — combining dense and sparse results.</li>
-<li><a href="11-query-transformation.html">Query transformation</a> — rewriting, expansion, multi-query, and HyDE.</li>
-<li><a href="12-reranking.html">Reranking</a> — cross-encoders and the second stage.</li>
-<li><a href="13-context-construction.html">Context construction</a> — compression and selection.</li>
-<li><a href="14-citations-and-grounded-generation.html">Citations and grounded generation</a> — answers you can verify.</li>
-<li><a href="15-knowledge-base-versioning.html">Knowledge-base versioning</a> — changing the corpus safely.</li>
-<li><a href="16-rag-caching-and-latency.html">RAG caching and latency</a> — making retrieval fast and affordable.</li>
-<li><a href="17-retrieval-metrics.html">Retrieval metrics</a> — Recall@K, Precision@K, MRR, NDCG.</li>
-<li><a href="18-generation-quality-metrics.html">Generation quality metrics</a> — faithfulness, answer relevance, context relevance.</li>
-<li><a href="19-rag-evaluation-and-testing.html">RAG evaluation and testing</a> — offline suites, regression, and CI gates.</li>
-<li><a href="20-multi-tenant-rag.html">Multi-tenant RAG</a> — isolation and shared infrastructure.</li>
-<li><a href="21-rag-security-and-access-control.html">RAG security and access control</a> — retrieval that respects permissions.</li>
-</ol>
+                        <h1 id="project-2--autonomous-enterprise-workflow-agent"><a class="header" href="#project-2--autonomous-enterprise-workflow-agent">Project 2 — Autonomous Enterprise Workflow Agent</a></h1>
 <blockquote>
-<p><strong>Tip:</strong></p>
-<p><strong>How to study this phase.</strong> Keep asking “which stage is this?” Every technique here improves one of four things: the quality of the corpus, the quality of retrieval, the quality of the context, or your ability to measure the first three. If you cannot say which, the technique is not worth adding.</p>
+<p>Build an agent that takes a work item (a ticket or issue), investigates the codebase and docs, proposes a plan, waits for human approval, makes the change, runs the tests, and opens a pull request.</p>
 </blockquote>
-<h2 id="checkpoint-project"><a class="header" href="#checkpoint-project">Checkpoint project</a></h2>
-<p>At the end of the phase, build <a href="../projects/01-production-enterprise-rag-engine.html">Project 1 — Production Enterprise RAG Engine</a>: ingest PDFs and DOCX, chunk and embed them, serve hybrid search over PostgreSQL with pgvector, rerank, answer with citations, and evaluate retrieval and faithfulness on a labelled dataset. The exact scope lives in the projects part of the book.</p>
+<h2 id="goal"><a class="header" href="#goal">Goal</a></h2>
+<p>Prove you can run an agent that takes <strong>real, reversible-but-consequential actions</strong> safely. This is the project that tests durable execution, human-in-the-loop, tool permissions, sandboxing, and failure recovery — the parts that separate a demo agent from one you would let near a repository.</p>
+<h2 id="what-you-will-build"><a class="header" href="#what-you-will-build">What you will build</a></h2>
+<p>An agent that, given a ticket, works through a bounded pipeline:</p>
+<pre><code class="language-text">Ticket
+  -&gt; understand the task
+  -&gt; search docs and source
+  -&gt; inspect history and logs
+  -&gt; write an implementation plan
+  -&gt; human approval gate
+  -&gt; create a branch
+  -&gt; change code
+  -&gt; run tests
+  -&gt; analyse failures and fix
+  -&gt; open a pull request
+  -&gt; post a summary
+</code></pre>
+<p>Every arrow is a checkpoint, and every step is idempotent and resumable.</p>
+<h2 id="functional-requirements"><a class="header" href="#functional-requirements">Functional requirements</a></h2>
+<ul>
+<li><strong>Intake.</strong> Accept a ticket reference and fetch its content from your chosen tracker (a GitHub issue is enough).</li>
+<li><strong>Investigation tools.</strong> Read files, search code, read git history, query logs or monitoring, and read documentation — each as a scoped tool.</li>
+<li><strong>Planning.</strong> Produce a structured plan (a list of steps with intended files/commands) that a human reviews.</li>
+<li><strong>Approval gate.</strong> Pause durably for approve / reject / edit; execute the exact approved payload and nothing else.</li>
+<li><strong>Execution.</strong> Create a branch, apply changes, and run the test suite in a sandbox.</li>
+<li><strong>Reflection loop.</strong> On test failure, analyse the failure and attempt a bounded number of fixes.</li>
+<li><strong>Delivery.</strong> Open a pull request with a clear description and post a summary back to the ticket.</li>
+<li><strong>Resumability.</strong> If the process dies at any step, restarting resumes from the last checkpoint without repeating side effects.</li>
+<li><strong>Bounded behaviour.</strong> Hard limits on steps, tokens, wall-clock time, and tool calls; a loop detector that stops repeated identical actions.</li>
+<li><strong>Audit.</strong> Every tool call, approval, and state transition is logged with who, what, when, and the outcome.</li>
+</ul>
+<h2 id="non-functional-requirements"><a class="header" href="#non-functional-requirements">Non-functional requirements</a></h2>
+<ul>
+<li><strong>Safety.</strong> Tools are least-privilege: a read token for reads, a scoped write token for the branch, no force-push, no merge.</li>
+<li><strong>Isolation.</strong> Code execution happens in a sandbox with no access to production credentials or the network beyond what the task needs.</li>
+<li><strong>Idempotency.</strong> Re-running any step does not duplicate a commit, comment, or PR.</li>
+<li><strong>Observability.</strong> One trace per run with a span per step and tool; a per-run cost and token report.</li>
+<li><strong>Recovery.</strong> A killed worker leaves the run resumable, not corrupted.</li>
+<li><strong>Testability.</strong> The agent can run against a disposable demo repository and a mocked tracker.</li>
+</ul>
+<h2 id="suggested-architecture"><a class="header" href="#suggested-architecture">Suggested architecture</a></h2>
+<pre><code class="language-mermaid">flowchart TD
+    T["Ticket"] --&gt; API["Run API"]
+    API --&gt; G["LangGraph state machine"]
+    G --&gt; P["Plan"]
+    P --&gt; H{"Human approval"}
+    H --&gt;|approve| BR["Branch + edit"]
+    H --&gt;|reject| STOP["Stop with reason"]
+    H --&gt;|edit| P
+    BR --&gt; TEST["Run tests in sandbox"]
+    TEST --&gt;|fail| R["Reflect + fix (bounded)"]
+    R --&gt; TEST
+    TEST --&gt;|pass| PR["Open PR + summary"]
+    G &lt;--&gt; CP["Checkpointer&lt;br/&gt;Postgres"]
+    G --&gt; TOOLS["Scoped tools: fs, git, search, logs"]
+    G --&gt; AU["Audit log + traces"]
+</code></pre>
+<h2 id="suggested-stack"><a class="header" href="#suggested-stack">Suggested stack</a></h2>
+<ul>
+<li><strong>Language:</strong> Python.</li>
+<li><strong>Orchestration:</strong> LangGraph with a persistent checkpointer.</li>
+<li><strong>State:</strong> PostgreSQL for runs, steps, approvals, and audit.</li>
+<li><strong>Queue:</strong> a worker queue for long runs (Redis or SQS).</li>
+<li><strong>Sandbox:</strong> a container per run with a read-only mount and an explicit writable workspace.</li>
+<li><strong>Integrations:</strong> GitHub API (issues, branches, PRs) and a git CLI, all behind tool adapters.</li>
+</ul>
+<h2 id="data-model-sketch"><a class="header" href="#data-model-sketch">Data model sketch</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Store</th><th>Holds</th></tr></thead><tbody>
+<tr><td><code>runs</code></td><td>ticket, status, current step, budget used, timestamps</td></tr>
+<tr><td><code>steps</code></td><td>per-step input, output, status, attempts</td></tr>
+<tr><td><code>approvals</code></td><td>proposed payload, hash, approver, decision, timestamp</td></tr>
+<tr><td><code>effects</code></td><td>idempotency keys for commits, comments, PRs</td></tr>
+<tr><td><code>audit</code></td><td>append-only record of tool calls and decisions</td></tr>
+</tbody></table>
+</div>
+<h2 id="milestones"><a class="header" href="#milestones">Milestones</a></h2>
+<ol>
+<li><strong>M0 — Skeleton.</strong> Run API, state schema, checkpointer, and a mock ticket.</li>
+<li><strong>M1 — Plan only.</strong> The agent investigates read-only tools and produces a plan; nothing is written.</li>
+<li><strong>M2 — Approval + branch.</strong> Human approves, the agent creates a branch and a trivial commit.</li>
+<li><strong>M3 — Edit + test.</strong> Apply a small change, run tests, and loop on failures with a cap.</li>
+<li><strong>M4 — Durable resume.</strong> Kill the worker mid-run and show it resumes without duplicate effects.</li>
+<li><strong>M5 — PR + summary.</strong> Open a real PR against a demo repo and post a summary.</li>
+<li><strong>M6 — Hardening.</strong> Loop detection, budgets, sandboxing, audit, tracing, cost report, README and ADRs.</li>
+</ol>
+<h2 id="acceptance-criteria"><a class="header" href="#acceptance-criteria">Acceptance criteria</a></h2>
+<ul>
+<li><input disabled="" type="checkbox"/>
+A run survives a process kill at any step and resumes correctly.</li>
+<li><input disabled="" type="checkbox"/>
+No step can execute twice and create a duplicate commit, comment, or PR (prove it).</li>
+<li><input disabled="" type="checkbox"/>
+Approval is bound to the exact payload; changing the payload after approval does not execute the change.</li>
+<li><input disabled="" type="checkbox"/>
+The agent stops after the configured step/token/time limits instead of looping.</li>
+<li><input disabled="" type="checkbox"/>
+A repeated-action loop is detected and halted with a clear reason.</li>
+<li><input disabled="" type="checkbox"/>
+Code execution has no access to production credentials or the public internet beyond the allowlist.</li>
+<li><input disabled="" type="checkbox"/>
+Every tool call is visible in a trace and the audit log.</li>
+<li><input disabled="" type="checkbox"/>
+I can state the cost of one run and the token budget it respected.</li>
+<li><input disabled="" type="checkbox"/>
+A rejected plan stops the run and records why.</li>
+</ul>
+<h2 id="stretch-goals"><a class="header" href="#stretch-goals">Stretch goals</a></h2>
+<ul>
+<li>Multiple repositories or monorepo path scoping.</li>
+<li>A reviewer agent that critiques the diff before the PR.</li>
+<li>A UI showing pending approvals and run history.</li>
+<li>Learned routing: cheap model for investigation, strong model for planning and fixes.</li>
+</ul>
+<h2 id="what-to-document"><a class="header" href="#what-to-document">What to document</a></h2>
+<ul>
+<li>README: how to run against the demo repo, and the safety model.</li>
+<li>Two ADRs: the graph design (state and edges) and the tool-permission model.</li>
+<li>One page on failure recovery: what happens at each crash point.</li>
+</ul>
+<h2 id="builds-on"><a class="header" href="#builds-on">Builds on</a></h2>
+<p>Phase 1 (Production Python), Phase 4 (Agentic AI Engineering), Phase 5 (MCP and Tool Ecosystems), Phase 6 (Distributed Systems), Phase 8 (Evaluation and Observability), Phase 9 (Security and Governance). Phase 13 covers the project deep dive.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../projects/01-production-enterprise-rag-engine.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../phase-03-rag-engineering/01-rag-architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../projects/03-open-source-agent-platform.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -262,11 +323,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../projects/01-production-enterprise-rag-engine.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../phase-03-rag-engineering/01-rag-architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../projects/03-open-source-agent-platform.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

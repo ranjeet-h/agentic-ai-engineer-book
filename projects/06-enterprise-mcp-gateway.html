@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Phase 3 — RAG Engineering - Agentic AI Engineering Study Book</title>
+        <title>Project 6 — Enterprise MCP Gateway - Agentic AI Engineering Study Book</title>
 
 
         <!-- Custom HTML head -->
@@ -179,82 +179,138 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="phase-3--rag-engineering"><a class="header" href="#phase-3--rag-engineering">Phase 3 — RAG Engineering</a></h1>
-<p>Retrieval-augmented generation (RAG) is how you give a language model knowledge it was never trained on: your documents, your policies, your code. Instead of hoping the model remembers, you retrieve the relevant text and put it in the prompt.</p>
-<p>RAG is the most common production AI pattern after plain chat, and it is where many AI systems succeed or fail. The model is rarely the weak link; retrieval is. This phase builds retrieval from the ground up: ingesting documents, chunking them, embedding them, searching them, ranking the results, and measuring whether any of it actually works.</p>
-<h2 id="what-you-will-be-able-to-do"><a class="header" href="#what-you-will-be-able-to-do">What you will be able to do</a></h2>
-<p>By the end of this phase you should be able to:</p>
-<ul>
-<li>Explain the full RAG pipeline and where each stage fails.</li>
-<li>Ingest and normalise PDFs, DOCX, and HTML into clean text.</li>
-<li>Choose and justify a chunking strategy, and attach useful metadata.</li>
-<li>Explain embeddings, similarity metrics, vector indexes, and ANN trade-offs.</li>
-<li>Implement dense, sparse, and hybrid retrieval, and apply metadata filters.</li>
-<li>Improve recall with query transformation (rewriting, expansion, multi-query, HyDE).</li>
-<li>Rerank, compress, and select context before generation.</li>
-<li>Generate grounded, cited answers and version a knowledge base safely.</li>
-<li>Measure retrieval and generation with Recall@K, Precision@K, MRR, NDCG, faithfulness, and relevance.</li>
-<li>Operate RAG securely across tenants with access-controlled retrieval.</li>
-</ul>
-<h2 id="the-pipeline"><a class="header" href="#the-pipeline">The pipeline</a></h2>
-<pre><code class="language-mermaid">flowchart TD
-    A["Documents&lt;br/&gt;PDF, DOCX, HTML"] --&gt; B["Ingest and parse"]
-    B --&gt; C["Normalise and extract metadata"]
-    C --&gt; D["Chunk"]
-    D --&gt; E["Embed"]
-    E --&gt; F["Vector + keyword index"]
-
-    Q["User query"] --&gt; G["Query transformation"]
-    G --&gt; H["Retrieve&lt;br/&gt;dense + sparse + filters"]
-    F --&gt; H
-    H --&gt; I["Rerank"]
-    I --&gt; J["Compress and select context"]
-    J --&gt; K["Generate grounded answer with citations"]
-    K --&gt; L["Evaluate: retrieval metrics + faithfulness"]
-</code></pre>
-<p>Everything before the user’s query is <strong>offline indexing</strong>; everything from the query onward is <strong>online serving</strong>. Most RAG bugs are in one of the two, and the first job in debugging is deciding which.</p>
-<h2 id="topic-order"><a class="header" href="#topic-order">Topic order</a></h2>
-<ol>
-<li><a href="01-rag-architecture.html">RAG architecture</a> — the whole pipeline end to end.</li>
-<li><a href="02-document-ingestion-and-parsing.html">Document ingestion and parsing</a> — getting clean text out of PDFs, DOCX, and HTML.</li>
-<li><a href="03-chunking-strategies.html">Chunking strategies</a> — fixed, recursive, semantic, and parent-child.</li>
-<li><a href="04-metadata-extraction-and-filtering.html">Metadata extraction and filtering</a> — attaching and using structure.</li>
-<li><a href="05-embedding-models-and-dimensions.html">Embedding models and dimensions</a> — choosing what turns text into vectors.</li>
-<li><a href="06-similarity-metrics.html">Similarity metrics</a> — cosine, dot product, and when they differ.</li>
-<li><a href="07-vector-databases-and-ann-indexes.html">Vector databases and ANN indexes</a> — HNSW and approximate search.</li>
-<li><a href="08-postgresql-pgvector.html">PostgreSQL pgvector</a> — vector search in a database you already run.</li>
-<li><a href="09-dense-and-sparse-retrieval.html">Dense and sparse retrieval</a> — embeddings versus BM25 and full-text search.</li>
-<li><a href="10-hybrid-search.html">Hybrid search</a> — combining dense and sparse results.</li>
-<li><a href="11-query-transformation.html">Query transformation</a> — rewriting, expansion, multi-query, and HyDE.</li>
-<li><a href="12-reranking.html">Reranking</a> — cross-encoders and the second stage.</li>
-<li><a href="13-context-construction.html">Context construction</a> — compression and selection.</li>
-<li><a href="14-citations-and-grounded-generation.html">Citations and grounded generation</a> — answers you can verify.</li>
-<li><a href="15-knowledge-base-versioning.html">Knowledge-base versioning</a> — changing the corpus safely.</li>
-<li><a href="16-rag-caching-and-latency.html">RAG caching and latency</a> — making retrieval fast and affordable.</li>
-<li><a href="17-retrieval-metrics.html">Retrieval metrics</a> — Recall@K, Precision@K, MRR, NDCG.</li>
-<li><a href="18-generation-quality-metrics.html">Generation quality metrics</a> — faithfulness, answer relevance, context relevance.</li>
-<li><a href="19-rag-evaluation-and-testing.html">RAG evaluation and testing</a> — offline suites, regression, and CI gates.</li>
-<li><a href="20-multi-tenant-rag.html">Multi-tenant RAG</a> — isolation and shared infrastructure.</li>
-<li><a href="21-rag-security-and-access-control.html">RAG security and access control</a> — retrieval that respects permissions.</li>
-</ol>
+                        <h1 id="project-6--enterprise-mcp-gateway"><a class="header" href="#project-6--enterprise-mcp-gateway">Project 6 — Enterprise MCP Gateway</a></h1>
 <blockquote>
-<p><strong>Tip:</strong></p>
-<p><strong>How to study this phase.</strong> Keep asking “which stage is this?” Every technique here improves one of four things: the quality of the corpus, the quality of retrieval, the quality of the context, or your ability to measure the first three. If you cannot say which, the technique is not worth adding.</p>
+<p>Build the front door for MCP servers: one gateway that discovers tools, enforces policy, scopes credentials, and audits every tool call.</p>
 </blockquote>
-<h2 id="checkpoint-project"><a class="header" href="#checkpoint-project">Checkpoint project</a></h2>
-<p>At the end of the phase, build <a href="../projects/01-production-enterprise-rag-engine.html">Project 1 — Production Enterprise RAG Engine</a>: ingest PDFs and DOCX, chunk and embed them, serve hybrid search over PostgreSQL with pgvector, rerank, answer with citations, and evaluate retrieval and faithfulness on a labelled dataset. The exact scope lives in the projects part of the book.</p>
+<h2 id="goal"><a class="header" href="#goal">Goal</a></h2>
+<p>Prove you can make <strong>tool use safe in an enterprise</strong>. MCP gives agents a standard way to call tools; this project is the layer that decides which tools exist, who may call them, with what credentials, and records what happened. It is a focused security-and-platform project that pairs well with Project 2.</p>
+<h2 id="what-you-will-build"><a class="header" href="#what-you-will-build">What you will build</a></h2>
+<p>A gateway that sits between MCP clients (agents) and MCP servers (capability providers) and:</p>
+<ul>
+<li>registers MCP servers and discovers their tools, resources, and prompts;</li>
+<li>exposes one endpoint that aggregates many servers’ tools behind a single namespace;</li>
+<li>authenticates callers and authorizes each tool call against policy;</li>
+<li>injects scoped, short-lived credentials so the caller’s token never passes through;</li>
+<li>allowlists tools per tenant and role, and requires approval for dangerous ones;</li>
+<li>rate-limits, logs, traces, and audits every call;</li>
+<li>health-checks servers and versions their tool schemas.</li>
+</ul>
+<h2 id="functional-requirements"><a class="header" href="#functional-requirements">Functional requirements</a></h2>
+<ul>
+<li><strong>Server registry.</strong> Register an MCP server (local stdio or remote transport) with its identity, owner, and status.</li>
+<li><strong>Discovery.</strong> Connect to a server, list its tools/resources/prompts, and cache the schemas with a version.</li>
+<li><strong>Aggregation.</strong> Expose a unified tool list with namespacing to avoid collisions.</li>
+<li><strong>Call routing.</strong> Route a tool call to the correct server over the correct transport; validate arguments against the schema.</li>
+<li><strong>Authentication.</strong> Identify the calling user/agent (API key or OIDC).</li>
+<li><strong>Authorization.</strong> Decide allow/deny per tool from RBAC roles, tenant, and policy; deny by default.</li>
+<li><strong>Credential scoping.</strong> Fetch per-server, per-tenant, short-lived credentials from a secret store; never forward the caller’s token.</li>
+<li><strong>Allowlists and approvals.</strong> Per-tenant tool allowlists; a human approval gate for destructive tools.</li>
+<li><strong>Rate limiting and quotas.</strong> Per-tenant and per-tool limits.</li>
+<li><strong>Resilience.</strong> Timeouts, retries for transient errors, and circuit breaking per server.</li>
+<li><strong>Observability and audit.</strong> Traces per call and an append-only audit record (which tool, who, tenant, arguments hash, decision, result).</li>
+<li><strong>Versioning and health.</strong> Detect tool schema changes (rug pulls) and health-check servers.</li>
+</ul>
+<h2 id="non-functional-requirements"><a class="header" href="#non-functional-requirements">Non-functional requirements</a></h2>
+<ul>
+<li><strong>Security first.</strong> The gateway is the enforcement point; the model is never trusted. No token passthrough.</li>
+<li><strong>Isolation.</strong> A tenant’s tool access cannot leak to another tenant.</li>
+<li><strong>Least privilege.</strong> Every downstream credential is scoped to the minimum needed.</li>
+<li><strong>Auditability.</strong> Every decision is reconstructable after the fact.</li>
+<li><strong>Low overhead.</strong> The gateway adds small, measured latency per call.</li>
+</ul>
+<h2 id="suggested-architecture"><a class="header" href="#suggested-architecture">Suggested architecture</a></h2>
+<pre><code class="language-mermaid">flowchart LR
+    A["Agent / MCP client"] --&gt; GW["MCP gateway"]
+    GW --&gt; AUTHN["Authenticate caller"]
+    AUTHN --&gt; AUTHZ["Authorize tool + tenant&lt;br/&gt;(RBAC / policy)"]
+    AUTHZ --&gt;|deny| AUD["Audit + error"]
+    AUTHZ --&gt;|allow| CRED["Fetch scoped credential"]
+    CRED --&gt; RT["Route to server&lt;br/&gt;stdio / HTTP"]
+    RT --&gt; S1["MCP server: db"]
+    RT --&gt; S2["MCP server: github"]
+    RT --&gt; S3["MCP server: filesystem"]
+    RT --&gt; VAL["Validate result"]
+    VAL --&gt; AUD
+    VAL --&gt; A
+    GW -.-&gt; REG["Server + tool registry"]
+    GW -.-&gt; OBS["Traces · metrics · health"]
+    GW -.-&gt; APPROVE["Approval queue (dangerous tools)"]
+</code></pre>
+<h2 id="suggested-stack"><a class="header" href="#suggested-stack">Suggested stack</a></h2>
+<ul>
+<li><strong>Language:</strong> Python (the official MCP SDK) or another MCP SDK.</li>
+<li><strong>Data:</strong> PostgreSQL for the registry, policy, and audit; Redis for rate limits and cached health.</li>
+<li><strong>Secrets:</strong> a secret manager (Vault or a cloud equivalent) for scoped credentials.</li>
+<li><strong>Observability:</strong> OpenTelemetry, Prometheus.</li>
+</ul>
+<h2 id="data-model-sketch"><a class="header" href="#data-model-sketch">Data model sketch</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Store</th><th>Holds</th></tr></thead><tbody>
+<tr><td><code>servers</code></td><td>id, transport, endpoint, owner, health, status</td></tr>
+<tr><td><code>tools</code></td><td>server id, name, schema, schema fingerprint, version</td></tr>
+<tr><td><code>policies</code></td><td>role/tenant → allowed tools, scopes, approval required</td></tr>
+<tr><td><code>credentials</code></td><td>reference to a scoped secret per server/tenant (not the secret itself)</td></tr>
+<tr><td><code>audit</code></td><td>caller, tenant, tool, args hash, decision, latency, result status</td></tr>
+<tr><td><code>approvals</code></td><td>pending dangerous calls, approver, decision</td></tr>
+</tbody></table>
+</div>
+<h2 id="milestones"><a class="header" href="#milestones">Milestones</a></h2>
+<ol>
+<li><strong>M0 — Skeleton.</strong> Gateway process; register one local MCP server (stdio); list its tools.</li>
+<li><strong>M1 — Discovery + aggregation.</strong> Connect to two servers; expose a namespaced tool list.</li>
+<li><strong>M2 — Call routing.</strong> Call a tool, validate arguments and results against the schema.</li>
+<li><strong>M3 — Auth + authz.</strong> Authenticate a caller; allow/deny per tool and tenant; deny by default.</li>
+<li><strong>M4 — Scoped credentials.</strong> Fetch per-server credentials; prove no token passthrough.</li>
+<li><strong>M5 — Allowlists + approvals.</strong> Per-tenant allowlists and an approval gate for destructive tools.</li>
+<li><strong>M6 — Resilience + audit.</strong> Timeouts, circuit breaking, rate limits, traces, audit, schema-change detection, README and ADRs.</li>
+</ol>
+<h2 id="acceptance-criteria"><a class="header" href="#acceptance-criteria">Acceptance criteria</a></h2>
+<ul>
+<li><input disabled="" type="checkbox"/>
+The gateway aggregates tools from at least two MCP servers behind one endpoint.</li>
+<li><input disabled="" type="checkbox"/>
+A tool call is validated against its schema before execution and its result after.</li>
+<li><input disabled="" type="checkbox"/>
+An unauthenticated caller is refused; an unauthorized tool is denied by policy (not by the prompt).</li>
+<li><input disabled="" type="checkbox"/>
+The caller’s token is never forwarded to a server; the server receives a scoped gateway credential.</li>
+<li><input disabled="" type="checkbox"/>
+A destructive tool requires approval; the approved payload is the one executed.</li>
+<li><input disabled="" type="checkbox"/>
+A tool schema change is detected and the new version is reviewed before use.</li>
+<li><input disabled="" type="checkbox"/>
+A failing server is circuit-broken and does not stall other tools.</li>
+<li><input disabled="" type="checkbox"/>
+Every call (allow and deny) appears in the audit log with the reason.</li>
+<li><input disabled="" type="checkbox"/>
+A tenant cannot see or call another tenant’s tools.</li>
+<li><input disabled="" type="checkbox"/>
+I can state the gateway’s added latency per call.</li>
+</ul>
+<h2 id="stretch-goals"><a class="header" href="#stretch-goals">Stretch goals</a></h2>
+<ul>
+<li>Tool result caching and semantic dedup of repeated calls.</li>
+<li>Usage analytics per tool and per tenant.</li>
+<li>A policy engine (OPA-style) instead of hard-coded rules.</li>
+<li>A marketplace view of available servers and tools with review workflow.</li>
+</ul>
+<h2 id="what-to-document"><a class="header" href="#what-to-document">What to document</a></h2>
+<ul>
+<li>README: how to register a server and write a policy.</li>
+<li>Two ADRs: the authorization model and the credential-scoping design.</li>
+<li>A threat model for tool poisoning, rug pulls, and the confused deputy.</li>
+</ul>
+<h2 id="builds-on"><a class="header" href="#builds-on">Builds on</a></h2>
+<p>Phase 5 (MCP and Tool Ecosystems), Phase 7 (AI Platform Engineering), Phase 9 (AI Security and Governance).</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../projects/05-ai-evaluation-platform.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../phase-03-rag-engineering/01-rag-architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
-                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -262,13 +318,10 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../projects/05-ai-evaluation-platform.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../phase-03-rag-engineering/01-rag-architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
-                    </a>
             </nav>
 
         </div>

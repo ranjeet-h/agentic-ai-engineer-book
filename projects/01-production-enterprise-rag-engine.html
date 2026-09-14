@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Phase 3 — RAG Engineering - Agentic AI Engineering Study Book</title>
+        <title>Project 1 — Production Enterprise RAG Engine - Agentic AI Engineering Study Book</title>
 
 
         <!-- Custom HTML head -->
@@ -179,80 +179,135 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="phase-3--rag-engineering"><a class="header" href="#phase-3--rag-engineering">Phase 3 — RAG Engineering</a></h1>
-<p>Retrieval-augmented generation (RAG) is how you give a language model knowledge it was never trained on: your documents, your policies, your code. Instead of hoping the model remembers, you retrieve the relevant text and put it in the prompt.</p>
-<p>RAG is the most common production AI pattern after plain chat, and it is where many AI systems succeed or fail. The model is rarely the weak link; retrieval is. This phase builds retrieval from the ground up: ingesting documents, chunking them, embedding them, searching them, ranking the results, and measuring whether any of it actually works.</p>
-<h2 id="what-you-will-be-able-to-do"><a class="header" href="#what-you-will-be-able-to-do">What you will be able to do</a></h2>
-<p>By the end of this phase you should be able to:</p>
-<ul>
-<li>Explain the full RAG pipeline and where each stage fails.</li>
-<li>Ingest and normalise PDFs, DOCX, and HTML into clean text.</li>
-<li>Choose and justify a chunking strategy, and attach useful metadata.</li>
-<li>Explain embeddings, similarity metrics, vector indexes, and ANN trade-offs.</li>
-<li>Implement dense, sparse, and hybrid retrieval, and apply metadata filters.</li>
-<li>Improve recall with query transformation (rewriting, expansion, multi-query, HyDE).</li>
-<li>Rerank, compress, and select context before generation.</li>
-<li>Generate grounded, cited answers and version a knowledge base safely.</li>
-<li>Measure retrieval and generation with Recall@K, Precision@K, MRR, NDCG, faithfulness, and relevance.</li>
-<li>Operate RAG securely across tenants with access-controlled retrieval.</li>
-</ul>
-<h2 id="the-pipeline"><a class="header" href="#the-pipeline">The pipeline</a></h2>
-<pre><code class="language-mermaid">flowchart TD
-    A["Documents&lt;br/&gt;PDF, DOCX, HTML"] --&gt; B["Ingest and parse"]
-    B --&gt; C["Normalise and extract metadata"]
-    C --&gt; D["Chunk"]
-    D --&gt; E["Embed"]
-    E --&gt; F["Vector + keyword index"]
-
-    Q["User query"] --&gt; G["Query transformation"]
-    G --&gt; H["Retrieve&lt;br/&gt;dense + sparse + filters"]
-    F --&gt; H
-    H --&gt; I["Rerank"]
-    I --&gt; J["Compress and select context"]
-    J --&gt; K["Generate grounded answer with citations"]
-    K --&gt; L["Evaluate: retrieval metrics + faithfulness"]
-</code></pre>
-<p>Everything before the user’s query is <strong>offline indexing</strong>; everything from the query onward is <strong>online serving</strong>. Most RAG bugs are in one of the two, and the first job in debugging is deciding which.</p>
-<h2 id="topic-order"><a class="header" href="#topic-order">Topic order</a></h2>
-<ol>
-<li><a href="01-rag-architecture.html">RAG architecture</a> — the whole pipeline end to end.</li>
-<li><a href="02-document-ingestion-and-parsing.html">Document ingestion and parsing</a> — getting clean text out of PDFs, DOCX, and HTML.</li>
-<li><a href="03-chunking-strategies.html">Chunking strategies</a> — fixed, recursive, semantic, and parent-child.</li>
-<li><a href="04-metadata-extraction-and-filtering.html">Metadata extraction and filtering</a> — attaching and using structure.</li>
-<li><a href="05-embedding-models-and-dimensions.html">Embedding models and dimensions</a> — choosing what turns text into vectors.</li>
-<li><a href="06-similarity-metrics.html">Similarity metrics</a> — cosine, dot product, and when they differ.</li>
-<li><a href="07-vector-databases-and-ann-indexes.html">Vector databases and ANN indexes</a> — HNSW and approximate search.</li>
-<li><a href="08-postgresql-pgvector.html">PostgreSQL pgvector</a> — vector search in a database you already run.</li>
-<li><a href="09-dense-and-sparse-retrieval.html">Dense and sparse retrieval</a> — embeddings versus BM25 and full-text search.</li>
-<li><a href="10-hybrid-search.html">Hybrid search</a> — combining dense and sparse results.</li>
-<li><a href="11-query-transformation.html">Query transformation</a> — rewriting, expansion, multi-query, and HyDE.</li>
-<li><a href="12-reranking.html">Reranking</a> — cross-encoders and the second stage.</li>
-<li><a href="13-context-construction.html">Context construction</a> — compression and selection.</li>
-<li><a href="14-citations-and-grounded-generation.html">Citations and grounded generation</a> — answers you can verify.</li>
-<li><a href="15-knowledge-base-versioning.html">Knowledge-base versioning</a> — changing the corpus safely.</li>
-<li><a href="16-rag-caching-and-latency.html">RAG caching and latency</a> — making retrieval fast and affordable.</li>
-<li><a href="17-retrieval-metrics.html">Retrieval metrics</a> — Recall@K, Precision@K, MRR, NDCG.</li>
-<li><a href="18-generation-quality-metrics.html">Generation quality metrics</a> — faithfulness, answer relevance, context relevance.</li>
-<li><a href="19-rag-evaluation-and-testing.html">RAG evaluation and testing</a> — offline suites, regression, and CI gates.</li>
-<li><a href="20-multi-tenant-rag.html">Multi-tenant RAG</a> — isolation and shared infrastructure.</li>
-<li><a href="21-rag-security-and-access-control.html">RAG security and access control</a> — retrieval that respects permissions.</li>
-</ol>
+                        <h1 id="project-1--production-enterprise-rag-engine"><a class="header" href="#project-1--production-enterprise-rag-engine">Project 1 — Production Enterprise RAG Engine</a></h1>
 <blockquote>
-<p><strong>Tip:</strong></p>
-<p><strong>How to study this phase.</strong> Keep asking “which stage is this?” Every technique here improves one of four things: the quality of the corpus, the quality of retrieval, the quality of the context, or your ability to measure the first three. If you cannot say which, the technique is not worth adding.</p>
+<p>Build a retrieval-augmented generation service that answers questions over an enterprise document corpus, cites its sources, and respects document permissions.</p>
 </blockquote>
-<h2 id="checkpoint-project"><a class="header" href="#checkpoint-project">Checkpoint project</a></h2>
-<p>At the end of the phase, build <a href="../projects/01-production-enterprise-rag-engine.html">Project 1 — Production Enterprise RAG Engine</a>: ingest PDFs and DOCX, chunk and embed them, serve hybrid search over PostgreSQL with pgvector, rerank, answer with citations, and evaluate retrieval and faithfulness on a labelled dataset. The exact scope lives in the projects part of the book.</p>
+<h2 id="goal"><a class="header" href="#goal">Goal</a></h2>
+<p>Prove you can build the retrieval half of an AI product properly. The model is a small part; the work is ingestion, retrieval quality, access control, citations, and measurement. By the end you should be able to answer, with numbers, “why does this answer say that?” and “what does it cost per query?”</p>
+<h2 id="what-you-will-build"><a class="header" href="#what-you-will-build">What you will build</a></h2>
+<p>A service that:</p>
+<ul>
+<li>ingests PDF, DOCX, and HTML documents, normalises the text, and stores it in chunks;</li>
+<li>embeds the chunks and indexes them for both semantic and keyword search;</li>
+<li>answers a question by retrieving, reranking, and generating a grounded answer with citations;</li>
+<li>enforces per-user document permissions so a user never sees content they are not allowed to;</li>
+<li>exposes an evaluation endpoint and a small labelled dataset so quality is a number, not an opinion.</li>
+</ul>
+<h2 id="functional-requirements"><a class="header" href="#functional-requirements">Functional requirements</a></h2>
+<ul>
+<li><strong>Ingestion.</strong> Accept uploads (or a watched directory), extract text, detect and handle scanned pages, record source metadata (title, author, dates, ACL).</li>
+<li><strong>Normalisation.</strong> Consistent Unicode, whitespace, and hyphenation handling; reject or flag empty/oversized files.</li>
+<li><strong>Chunking.</strong> A configurable strategy (at minimum recursive, with parent-child as a stretch); store chunk text, position, and parent reference.</li>
+<li><strong>Embeddings.</strong> A configured embedding model; store vectors with the model identity so a model change is detectable.</li>
+<li><strong>Retrieval.</strong> Hybrid search combining vector similarity and keyword search, merged by rank fusion; metadata filters (date, source, type).</li>
+<li><strong>Access control.</strong> Retrieval filters by the caller’s permissions <em>before</em> ranking returns results; a permitted-only result set.</li>
+<li><strong>Reranking.</strong> A second-stage reranker over the top candidates.</li>
+<li><strong>Query handling.</strong> Rewrite follow-up questions into standalone queries.</li>
+<li><strong>Generation.</strong> Grounded answers with inline citations to chunk ids; abstain when the retrieved evidence is insufficient.</li>
+<li><strong>Versioning.</strong> Re-ingesting changed documents supersedes old chunks without breaking in-flight queries.</li>
+<li><strong>Caching.</strong> Cache embeddings and repeated query results.</li>
+<li><strong>Evaluation.</strong> A labelled question set with known relevant documents, and a command that prints retrieval and answer metrics.</li>
+</ul>
+<h2 id="non-functional-requirements"><a class="header" href="#non-functional-requirements">Non-functional requirements</a></h2>
+<ul>
+<li><strong>Latency.</strong> State a target (for example, p95 under 3 seconds excluding generation) and measure it per stage.</li>
+<li><strong>Cost.</strong> Report cost per query from your own token usage; show that caching and routing reduce it.</li>
+<li><strong>Isolation.</strong> Two tenants cannot retrieve each other’s content; demonstrate this with a test.</li>
+<li><strong>Reliability.</strong> A failing model or vector search degrades gracefully (keyword-only fallback) rather than erroring.</li>
+<li><strong>Observability.</strong> One trace per request covering embed, search, rerank, and generate; a metrics endpoint.</li>
+<li><strong>Security.</strong> Credentials from the environment; no document text in logs.</li>
+</ul>
+<h2 id="suggested-architecture"><a class="header" href="#suggested-architecture">Suggested architecture</a></h2>
+<pre><code class="language-mermaid">flowchart LR
+    U["Upload / document source"] --&gt; ING["Ingestion worker"]
+    ING --&gt; NORM["Parse + normalise"]
+    NORM --&gt; CHUNK["Chunk + metadata"]
+    CHUNK --&gt; EMB["Embed"]
+    EMB --&gt; DB["Postgres + pgvector&lt;br/&gt;chunks, vectors, ACL"]
+    Q["User question"] --&gt; API["API service"]
+    API --&gt; QT["Query rewrite"]
+    QT --&gt; RET["Hybrid retrieval&lt;br/&gt;vector + keyword + ACL filter"]
+    DB --&gt; RET
+    RET --&gt; RR["Rerank"]
+    RR --&gt; CTX["Context construction"]
+    CTX --&gt; GEN["Grounded generation + citations"]
+    GEN --&gt; API
+    API --&gt; CACHE["Cache"]
+    API --&gt; EVAL["Evaluation + metrics"]
+</code></pre>
+<h2 id="suggested-stack"><a class="header" href="#suggested-stack">Suggested stack</a></h2>
+<ul>
+<li><strong>Language:</strong> Python, FastAPI for the service.</li>
+<li><strong>Data:</strong> PostgreSQL with pgvector; a queue or background worker for ingestion.</li>
+<li><strong>Cache:</strong> Redis.</li>
+<li><strong>Models:</strong> one embedding model and one generation model, behind a small provider adapter so you can swap them.</li>
+<li><strong>Local run:</strong> Docker Compose for Postgres, Redis, and the service.</li>
+</ul>
+<h2 id="data-model-sketch"><a class="header" href="#data-model-sketch">Data model sketch</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Store</th><th>Holds</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>documents</code></td><td>source, title, version, hash, ACL</td><td>one row per document version</td></tr>
+<tr><td><code>chunks</code></td><td>text, position, parent id, document id, embedding</td><td>delete/supersede on re-ingest</td></tr>
+<tr><td><code>queries</code> (optional)</td><td>question, answer, retrieved ids, latency, cost</td><td>for offline analysis</td></tr>
+<tr><td>vector index</td><td>embeddings</td><td>one per embedding model version</td></tr>
+</tbody></table>
+</div>
+<h2 id="milestones"><a class="header" href="#milestones">Milestones</a></h2>
+<ol>
+<li><strong>M0 — Skeleton.</strong> Service runs, health endpoint, config from environment, Compose stack.</li>
+<li><strong>M1 — Ingestion.</strong> Upload a PDF/DOCX/HTML, parse, chunk, store; show the chunks.</li>
+<li><strong>M2 — Retrieval.</strong> Embed, store vectors, and run dense search; then add keyword search and fusion.</li>
+<li><strong>M3 — Generation.</strong> Rerank, build context, generate an answer with citations; abstain when evidence is weak.</li>
+<li><strong>M4 — Access control.</strong> Per-user permissions enforced at retrieval; a leak test that fails if isolation breaks.</li>
+<li><strong>M5 — Evaluation.</strong> Labelled set, retrieval metrics (recall@k, MRR, NDCG), faithfulness, and a repeatable eval command.</li>
+<li><strong>M6 — Hardening.</strong> Caching, versioning, graceful degradation, tracing, cost report, README and ADRs.</li>
+</ol>
+<h2 id="acceptance-criteria"><a class="header" href="#acceptance-criteria">Acceptance criteria</a></h2>
+<ul>
+<li><input disabled="" type="checkbox"/>
+One documented command brings up the whole stack locally.</li>
+<li><input disabled="" type="checkbox"/>
+I can ingest 100+ documents and query them.</li>
+<li><input disabled="" type="checkbox"/>
+Answers include citations that actually support the claims (spot-check ten).</li>
+<li><input disabled="" type="checkbox"/>
+The system abstains or says “not enough evidence” for out-of-corpus questions.</li>
+<li><input disabled="" type="checkbox"/>
+A cross-tenant retrieval test passes: a user cannot retrieve another tenant’s chunks.</li>
+<li><input disabled="" type="checkbox"/>
+The eval command prints retrieval and answer metrics against a labelled set.</li>
+<li><input disabled="" type="checkbox"/>
+A trace shows time spent in embed, search, rerank, and generate.</li>
+<li><input disabled="" type="checkbox"/>
+I can state the cost per query and show caching reduces it.</li>
+<li><input disabled="" type="checkbox"/>
+Killing the model call still returns keyword-only results rather than a 500.</li>
+</ul>
+<h2 id="stretch-goals"><a class="header" href="#stretch-goals">Stretch goals</a></h2>
+<ul>
+<li>Parent-child chunking and small-to-big retrieval.</li>
+<li>HyDE or multi-query retrieval, measured against the baseline.</li>
+<li>Knowledge-base versioning with blue/green index swaps.</li>
+<li>A tiny UI for upload and chat.</li>
+</ul>
+<h2 id="what-to-document"><a class="header" href="#what-to-document">What to document</a></h2>
+<ul>
+<li>README: setup, architecture, and the eval command.</li>
+<li>Two ADRs: your chunking strategy and your hybrid-search fusion choice.</li>
+<li>A one-page cost and latency report from your own measurements.</li>
+</ul>
+<h2 id="builds-on"><a class="header" href="#builds-on">Builds on</a></h2>
+<p>Phase 1 (Production Python), Phase 3 (RAG Engineering), Phase 7 (AI Platform Engineering), Phase 8 (Evaluation, Observability and Reliability). Reference Phase 13 for how to present it in a deep dive.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../projects/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../phase-03-rag-engineering/01-rag-architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../projects/02-autonomous-enterprise-workflow-agent.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -262,11 +317,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../projects/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../phase-03-rag-engineering/01-rag-architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../projects/02-autonomous-enterprise-workflow-agent.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

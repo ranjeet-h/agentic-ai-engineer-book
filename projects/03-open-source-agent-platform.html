@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Phase 3 — RAG Engineering - Agentic AI Engineering Study Book</title>
+        <title>Project 3 — Open-Source Agent Platform / AI Control Plane - Agentic AI Engineering Study Book</title>
 
 
         <!-- Custom HTML head -->
@@ -179,80 +179,157 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="phase-3--rag-engineering"><a class="header" href="#phase-3--rag-engineering">Phase 3 — RAG Engineering</a></h1>
-<p>Retrieval-augmented generation (RAG) is how you give a language model knowledge it was never trained on: your documents, your policies, your code. Instead of hoping the model remembers, you retrieve the relevant text and put it in the prompt.</p>
-<p>RAG is the most common production AI pattern after plain chat, and it is where many AI systems succeed or fail. The model is rarely the weak link; retrieval is. This phase builds retrieval from the ground up: ingesting documents, chunking them, embedding them, searching them, ranking the results, and measuring whether any of it actually works.</p>
-<h2 id="what-you-will-be-able-to-do"><a class="header" href="#what-you-will-be-able-to-do">What you will be able to do</a></h2>
-<p>By the end of this phase you should be able to:</p>
-<ul>
-<li>Explain the full RAG pipeline and where each stage fails.</li>
-<li>Ingest and normalise PDFs, DOCX, and HTML into clean text.</li>
-<li>Choose and justify a chunking strategy, and attach useful metadata.</li>
-<li>Explain embeddings, similarity metrics, vector indexes, and ANN trade-offs.</li>
-<li>Implement dense, sparse, and hybrid retrieval, and apply metadata filters.</li>
-<li>Improve recall with query transformation (rewriting, expansion, multi-query, HyDE).</li>
-<li>Rerank, compress, and select context before generation.</li>
-<li>Generate grounded, cited answers and version a knowledge base safely.</li>
-<li>Measure retrieval and generation with Recall@K, Precision@K, MRR, NDCG, faithfulness, and relevance.</li>
-<li>Operate RAG securely across tenants with access-controlled retrieval.</li>
-</ul>
-<h2 id="the-pipeline"><a class="header" href="#the-pipeline">The pipeline</a></h2>
-<pre><code class="language-mermaid">flowchart TD
-    A["Documents&lt;br/&gt;PDF, DOCX, HTML"] --&gt; B["Ingest and parse"]
-    B --&gt; C["Normalise and extract metadata"]
-    C --&gt; D["Chunk"]
-    D --&gt; E["Embed"]
-    E --&gt; F["Vector + keyword index"]
-
-    Q["User query"] --&gt; G["Query transformation"]
-    G --&gt; H["Retrieve&lt;br/&gt;dense + sparse + filters"]
-    F --&gt; H
-    H --&gt; I["Rerank"]
-    I --&gt; J["Compress and select context"]
-    J --&gt; K["Generate grounded answer with citations"]
-    K --&gt; L["Evaluate: retrieval metrics + faithfulness"]
-</code></pre>
-<p>Everything before the user’s query is <strong>offline indexing</strong>; everything from the query onward is <strong>online serving</strong>. Most RAG bugs are in one of the two, and the first job in debugging is deciding which.</p>
-<h2 id="topic-order"><a class="header" href="#topic-order">Topic order</a></h2>
-<ol>
-<li><a href="01-rag-architecture.html">RAG architecture</a> — the whole pipeline end to end.</li>
-<li><a href="02-document-ingestion-and-parsing.html">Document ingestion and parsing</a> — getting clean text out of PDFs, DOCX, and HTML.</li>
-<li><a href="03-chunking-strategies.html">Chunking strategies</a> — fixed, recursive, semantic, and parent-child.</li>
-<li><a href="04-metadata-extraction-and-filtering.html">Metadata extraction and filtering</a> — attaching and using structure.</li>
-<li><a href="05-embedding-models-and-dimensions.html">Embedding models and dimensions</a> — choosing what turns text into vectors.</li>
-<li><a href="06-similarity-metrics.html">Similarity metrics</a> — cosine, dot product, and when they differ.</li>
-<li><a href="07-vector-databases-and-ann-indexes.html">Vector databases and ANN indexes</a> — HNSW and approximate search.</li>
-<li><a href="08-postgresql-pgvector.html">PostgreSQL pgvector</a> — vector search in a database you already run.</li>
-<li><a href="09-dense-and-sparse-retrieval.html">Dense and sparse retrieval</a> — embeddings versus BM25 and full-text search.</li>
-<li><a href="10-hybrid-search.html">Hybrid search</a> — combining dense and sparse results.</li>
-<li><a href="11-query-transformation.html">Query transformation</a> — rewriting, expansion, multi-query, and HyDE.</li>
-<li><a href="12-reranking.html">Reranking</a> — cross-encoders and the second stage.</li>
-<li><a href="13-context-construction.html">Context construction</a> — compression and selection.</li>
-<li><a href="14-citations-and-grounded-generation.html">Citations and grounded generation</a> — answers you can verify.</li>
-<li><a href="15-knowledge-base-versioning.html">Knowledge-base versioning</a> — changing the corpus safely.</li>
-<li><a href="16-rag-caching-and-latency.html">RAG caching and latency</a> — making retrieval fast and affordable.</li>
-<li><a href="17-retrieval-metrics.html">Retrieval metrics</a> — Recall@K, Precision@K, MRR, NDCG.</li>
-<li><a href="18-generation-quality-metrics.html">Generation quality metrics</a> — faithfulness, answer relevance, context relevance.</li>
-<li><a href="19-rag-evaluation-and-testing.html">RAG evaluation and testing</a> — offline suites, regression, and CI gates.</li>
-<li><a href="20-multi-tenant-rag.html">Multi-tenant RAG</a> — isolation and shared infrastructure.</li>
-<li><a href="21-rag-security-and-access-control.html">RAG security and access control</a> — retrieval that respects permissions.</li>
-</ol>
+                        <h1 id="project-3--open-source-agent-platform--ai-control-plane"><a class="header" href="#project-3--open-source-agent-platform--ai-control-plane">Project 3 — Open-Source Agent Platform / AI Control Plane</a></h1>
 <blockquote>
-<p><strong>Tip:</strong></p>
-<p><strong>How to study this phase.</strong> Keep asking “which stage is this?” Every technique here improves one of four things: the quality of the corpus, the quality of retrieval, the quality of the context, or your ability to measure the first three. If you cannot say which, the technique is not worth adding.</p>
+<p>Build the control plane that lets many teams run many agents: registries, a scheduler, worker pools, a model gateway, and the governance around them.</p>
 </blockquote>
-<h2 id="checkpoint-project"><a class="header" href="#checkpoint-project">Checkpoint project</a></h2>
-<p>At the end of the phase, build <a href="../projects/01-production-enterprise-rag-engine.html">Project 1 — Production Enterprise RAG Engine</a>: ingest PDFs and DOCX, chunk and embed them, serve hybrid search over PostgreSQL with pgvector, rerank, answer with citations, and evaluate retrieval and faithfulness on a labelled dataset. The exact scope lives in the projects part of the book.</p>
+<h2 id="goal"><a class="header" href="#goal">Goal</a></h2>
+<p>Prove you can design and operate a <strong>platform</strong>, not just an app. This is the project that tests tenancy, versioning, scheduling, policy, cost control, and the control/data/runtime split. It is the most system-design-heavy project in the book.</p>
+<h2 id="what-you-will-build"><a class="header" href="#what-you-will-build">What you will build</a></h2>
+<p>A platform with two faces:</p>
+<ul>
+<li>a <strong>control plane</strong> where agents, models, tools, prompts, and evaluations are registered, versioned, and governed;</li>
+<li>a <strong>runtime plane</strong> where registered agents are scheduled and executed by worker pools, using the gateway and registries.</li>
+</ul>
+<p>The core architecture:</p>
+<pre><code class="language-text">Developers / Applications
+          |
+        SDK / API
+          |
+      API Gateway
+          |
+      Control Plane
+          |
+  +-------+--------+---------+
+  |       |        |         |
+Agent   Model    Tool      Prompt
+Registry Registry Registry  Registry
+  +-------+--------+---------+
+          |
+       Scheduler
+          |
+        Kafka
+          |
+  +-------+--------+
+  |       |        |
+Agent   Agent    Agent
+Worker  Worker   Worker
+          |
+      Kubernetes
+</code></pre>
+<h2 id="functional-requirements"><a class="header" href="#functional-requirements">Functional requirements</a></h2>
+<ul>
+<li><strong>Registries.</strong> Register and version agents, models, tools, MCP servers, prompts, evaluation datasets, and evaluators. Each entry is immutable once published.</li>
+<li><strong>Agent deployment.</strong> Publish an agent version and route traffic to it; promote between environments.</li>
+<li><strong>Model gateway.</strong> One API in front of multiple providers with routing, provider abstraction, fallback, load balancing, caching, and per-tenant quotas.</li>
+<li><strong>Scheduler.</strong> Accept run requests, place them on queues by capability, and track status.</li>
+<li><strong>Workers.</strong> Execute runs durably, reporting progress, heartbeats, and completion; recover leased work from dead workers.</li>
+<li><strong>Multi-tenancy.</strong> Per-tenant isolation for data, keys, quotas, and cost attribution.</li>
+<li><strong>Policy.</strong> RBAC/ABAC decisions and allowlists enforced at the gateway, not in prompts.</li>
+<li><strong>Evaluation and gates.</strong> Register evaluators; require an eval gate before promoting a version.</li>
+<li><strong>Observability and audit.</strong> Traces across gateway, scheduler, and workers; an append-only audit log.</li>
+<li><strong>Cost control.</strong> Token budgets per run/tenant and a cost dashboard.</li>
+</ul>
+<h2 id="non-functional-requirements"><a class="header" href="#non-functional-requirements">Non-functional requirements</a></h2>
+<ul>
+<li><strong>Scalability.</strong> Workers scale on queue depth; the control plane stays stateless.</li>
+<li><strong>Availability.</strong> A model or registry outage degrades gracefully, not fatally.</li>
+<li><strong>Isolation.</strong> A buggy or hostile tenant cannot affect another tenant’s runs or data.</li>
+<li><strong>Reproducibility.</strong> A run records the exact agent, model, prompt, and tool versions used.</li>
+<li><strong>Governance.</strong> Every promotion is traceable to an approver and an evaluation result.</li>
+</ul>
+<h2 id="suggested-architecture"><a class="header" href="#suggested-architecture">Suggested architecture</a></h2>
+<pre><code class="language-mermaid">flowchart TD
+    D["Developer / app"] --&gt; GW["API gateway"]
+    GW --&gt; CP["Control plane&lt;br/&gt;registries · policy · config"]
+    CP --&gt; SCH["Scheduler"]
+    SCH --&gt; Q["Kafka / queue"]
+    Q --&gt; W1["Agent worker"]
+    Q --&gt; W2["Agent worker"]
+    W1 --&gt; MG["Model gateway"]
+    W2 --&gt; MG
+    W1 --&gt; TR["Tool / MCP registry"]
+    W2 --&gt; TR
+    W1 --&gt; DP["Data plane&lt;br/&gt;Postgres · vectors · object store"]
+    CP -.-&gt; OBS["Observability · audit · cost"]
+    W1 -.-&gt; OBS
+</code></pre>
+<h2 id="suggested-stack"><a class="header" href="#suggested-stack">Suggested stack</a></h2>
+<ul>
+<li><strong>Language:</strong> Python.</li>
+<li><strong>Control plane:</strong> FastAPI, PostgreSQL.</li>
+<li><strong>Messaging:</strong> Kafka (or a managed equivalent), Redis for caching and quotas.</li>
+<li><strong>Runtime:</strong> Kubernetes with horizontal pod autoscaling on queue depth.</li>
+<li><strong>Infra:</strong> Terraform and Helm; container images in a registry.</li>
+<li><strong>Observability:</strong> OpenTelemetry, Prometheus, Grafana.</li>
+</ul>
+<h2 id="control-plane-data-model-sketch"><a class="header" href="#control-plane-data-model-sketch">Control-plane data model sketch</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Registry</th><th>Key fields</th></tr></thead><tbody>
+<tr><td>Agents</td><td>name, version, image/config ref, capabilities, owner, status</td></tr>
+<tr><td>Models</td><td>provider, model id, price, limits, health</td></tr>
+<tr><td>Tools / MCP</td><td>server, tool schema, scopes, version</td></tr>
+<tr><td>Prompts</td><td>template, variables, version, eval result</td></tr>
+<tr><td>Evaluations</td><td>dataset version, evaluator, thresholds, result</td></tr>
+<tr><td>Runs</td><td>tenant, agent version, status, cost, trace id</td></tr>
+</tbody></table>
+</div>
+<h2 id="milestones"><a class="header" href="#milestones">Milestones</a></h2>
+<ol>
+<li><strong>M0 — Skeleton.</strong> Gateway + control plane + Postgres; register a model and a stub agent.</li>
+<li><strong>M1 — Registries.</strong> Create, version, and read back agents, models, and prompts.</li>
+<li><strong>M2 — Gateway.</strong> Route a call through the model gateway with fallback and quota.</li>
+<li><strong>M3 — Scheduler + worker.</strong> Run an agent end-to-end through a queue with status tracking.</li>
+<li><strong>M4 — Durability.</strong> Recover a lost worker’s run; prove no duplicate side effects.</li>
+<li><strong>M5 — Tenancy + policy.</strong> Per-tenant keys, quotas, cost attribution, and an allowlist decision at the gateway.</li>
+<li><strong>M6 — Evaluation gate.</strong> Block promotion of a version that fails its eval threshold.</li>
+<li><strong>M7 — Hardening.</strong> Autoscaling, tracing, audit, cost dashboard, IaC, README and ADRs.</li>
+</ol>
+<h2 id="acceptance-criteria"><a class="header" href="#acceptance-criteria">Acceptance criteria</a></h2>
+<ul>
+<li><input disabled="" type="checkbox"/>
+I can register a model, a prompt, a tool, and an agent, each with a version.</li>
+<li><input disabled="" type="checkbox"/>
+Promoting a version is gated on an evaluation result and is auditable.</li>
+<li><input disabled="" type="checkbox"/>
+A run flows gateway -&gt; scheduler -&gt; worker -&gt; gateway -&gt; tool and returns a result.</li>
+<li><input disabled="" type="checkbox"/>
+Killing a worker mid-run recovers the run without duplicate effects.</li>
+<li><input disabled="" type="checkbox"/>
+Workers scale on queue depth and scale back down.</li>
+<li><input disabled="" type="checkbox"/>
+A tenant cannot exceed its token budget, and cannot see another tenant’s data or cost.</li>
+<li><input disabled="" type="checkbox"/>
+A disallowed tool is refused at the gateway (not by the prompt).</li>
+<li><input disabled="" type="checkbox"/>
+A trace shows the full path across gateway, scheduler, and worker.</li>
+<li><input disabled="" type="checkbox"/>
+The platform deploys from Terraform + Helm with one documented pipeline.</li>
+</ul>
+<h2 id="stretch-goals"><a class="header" href="#stretch-goals">Stretch goals</a></h2>
+<ul>
+<li>A self-service portal or CLI for publishing agents.</li>
+<li>Blue-green or canary promotion of an agent version with automatic rollback.</li>
+<li>A shared tool/MCP marketplace with review workflow.</li>
+<li>Chargeback reports per team.</li>
+</ul>
+<h2 id="what-to-document"><a class="header" href="#what-to-document">What to document</a></h2>
+<ul>
+<li>README: architecture, the control/data/runtime split, and how to publish an agent.</li>
+<li>Three ADRs: the registry model, the scheduling and queue design, and the tenancy model.</li>
+<li>A failure-mode table: what happens when the gateway, scheduler, queue, or a worker fails.</li>
+</ul>
+<h2 id="builds-on"><a class="header" href="#builds-on">Builds on</a></h2>
+<p>Phase 6 (Distributed Systems), Phase 7 (AI Platform Engineering), Phase 9 (Security and Governance), Phase 10 (Model Serving), Phase 11 (AI Systems Architecture), Phase 12 (Multi-Agent Systems).</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../projects/02-autonomous-enterprise-workflow-agent.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../phase-03-rag-engineering/01-rag-architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../projects/04-production-llm-gateway.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -262,11 +339,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../projects/02-autonomous-enterprise-workflow-agent.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../phase-03-rag-engineering/01-rag-architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../projects/04-production-llm-gateway.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

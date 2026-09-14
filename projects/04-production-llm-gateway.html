@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Phase 3 — RAG Engineering - Agentic AI Engineering Study Book</title>
+        <title>Project 4 — Production LLM Gateway - Agentic AI Engineering Study Book</title>
 
 
         <!-- Custom HTML head -->
@@ -179,80 +179,141 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="phase-3--rag-engineering"><a class="header" href="#phase-3--rag-engineering">Phase 3 — RAG Engineering</a></h1>
-<p>Retrieval-augmented generation (RAG) is how you give a language model knowledge it was never trained on: your documents, your policies, your code. Instead of hoping the model remembers, you retrieve the relevant text and put it in the prompt.</p>
-<p>RAG is the most common production AI pattern after plain chat, and it is where many AI systems succeed or fail. The model is rarely the weak link; retrieval is. This phase builds retrieval from the ground up: ingesting documents, chunking them, embedding them, searching them, ranking the results, and measuring whether any of it actually works.</p>
-<h2 id="what-you-will-be-able-to-do"><a class="header" href="#what-you-will-be-able-to-do">What you will be able to do</a></h2>
-<p>By the end of this phase you should be able to:</p>
-<ul>
-<li>Explain the full RAG pipeline and where each stage fails.</li>
-<li>Ingest and normalise PDFs, DOCX, and HTML into clean text.</li>
-<li>Choose and justify a chunking strategy, and attach useful metadata.</li>
-<li>Explain embeddings, similarity metrics, vector indexes, and ANN trade-offs.</li>
-<li>Implement dense, sparse, and hybrid retrieval, and apply metadata filters.</li>
-<li>Improve recall with query transformation (rewriting, expansion, multi-query, HyDE).</li>
-<li>Rerank, compress, and select context before generation.</li>
-<li>Generate grounded, cited answers and version a knowledge base safely.</li>
-<li>Measure retrieval and generation with Recall@K, Precision@K, MRR, NDCG, faithfulness, and relevance.</li>
-<li>Operate RAG securely across tenants with access-controlled retrieval.</li>
-</ul>
-<h2 id="the-pipeline"><a class="header" href="#the-pipeline">The pipeline</a></h2>
-<pre><code class="language-mermaid">flowchart TD
-    A["Documents&lt;br/&gt;PDF, DOCX, HTML"] --&gt; B["Ingest and parse"]
-    B --&gt; C["Normalise and extract metadata"]
-    C --&gt; D["Chunk"]
-    D --&gt; E["Embed"]
-    E --&gt; F["Vector + keyword index"]
-
-    Q["User query"] --&gt; G["Query transformation"]
-    G --&gt; H["Retrieve&lt;br/&gt;dense + sparse + filters"]
-    F --&gt; H
-    H --&gt; I["Rerank"]
-    I --&gt; J["Compress and select context"]
-    J --&gt; K["Generate grounded answer with citations"]
-    K --&gt; L["Evaluate: retrieval metrics + faithfulness"]
-</code></pre>
-<p>Everything before the user’s query is <strong>offline indexing</strong>; everything from the query onward is <strong>online serving</strong>. Most RAG bugs are in one of the two, and the first job in debugging is deciding which.</p>
-<h2 id="topic-order"><a class="header" href="#topic-order">Topic order</a></h2>
-<ol>
-<li><a href="01-rag-architecture.html">RAG architecture</a> — the whole pipeline end to end.</li>
-<li><a href="02-document-ingestion-and-parsing.html">Document ingestion and parsing</a> — getting clean text out of PDFs, DOCX, and HTML.</li>
-<li><a href="03-chunking-strategies.html">Chunking strategies</a> — fixed, recursive, semantic, and parent-child.</li>
-<li><a href="04-metadata-extraction-and-filtering.html">Metadata extraction and filtering</a> — attaching and using structure.</li>
-<li><a href="05-embedding-models-and-dimensions.html">Embedding models and dimensions</a> — choosing what turns text into vectors.</li>
-<li><a href="06-similarity-metrics.html">Similarity metrics</a> — cosine, dot product, and when they differ.</li>
-<li><a href="07-vector-databases-and-ann-indexes.html">Vector databases and ANN indexes</a> — HNSW and approximate search.</li>
-<li><a href="08-postgresql-pgvector.html">PostgreSQL pgvector</a> — vector search in a database you already run.</li>
-<li><a href="09-dense-and-sparse-retrieval.html">Dense and sparse retrieval</a> — embeddings versus BM25 and full-text search.</li>
-<li><a href="10-hybrid-search.html">Hybrid search</a> — combining dense and sparse results.</li>
-<li><a href="11-query-transformation.html">Query transformation</a> — rewriting, expansion, multi-query, and HyDE.</li>
-<li><a href="12-reranking.html">Reranking</a> — cross-encoders and the second stage.</li>
-<li><a href="13-context-construction.html">Context construction</a> — compression and selection.</li>
-<li><a href="14-citations-and-grounded-generation.html">Citations and grounded generation</a> — answers you can verify.</li>
-<li><a href="15-knowledge-base-versioning.html">Knowledge-base versioning</a> — changing the corpus safely.</li>
-<li><a href="16-rag-caching-and-latency.html">RAG caching and latency</a> — making retrieval fast and affordable.</li>
-<li><a href="17-retrieval-metrics.html">Retrieval metrics</a> — Recall@K, Precision@K, MRR, NDCG.</li>
-<li><a href="18-generation-quality-metrics.html">Generation quality metrics</a> — faithfulness, answer relevance, context relevance.</li>
-<li><a href="19-rag-evaluation-and-testing.html">RAG evaluation and testing</a> — offline suites, regression, and CI gates.</li>
-<li><a href="20-multi-tenant-rag.html">Multi-tenant RAG</a> — isolation and shared infrastructure.</li>
-<li><a href="21-rag-security-and-access-control.html">RAG security and access control</a> — retrieval that respects permissions.</li>
-</ol>
+                        <h1 id="project-4--production-llm-gateway"><a class="header" href="#project-4--production-llm-gateway">Project 4 — Production LLM Gateway</a></h1>
 <blockquote>
-<p><strong>Tip:</strong></p>
-<p><strong>How to study this phase.</strong> Keep asking “which stage is this?” Every technique here improves one of four things: the quality of the corpus, the quality of retrieval, the quality of the context, or your ability to measure the first three. If you cannot say which, the technique is not worth adding.</p>
+<p>Build one API that fronts every model provider, with routing, fallback, quotas, caching, and observability — the piece every AI product eventually needs.</p>
 </blockquote>
-<h2 id="checkpoint-project"><a class="header" href="#checkpoint-project">Checkpoint project</a></h2>
-<p>At the end of the phase, build <a href="../projects/01-production-enterprise-rag-engine.html">Project 1 — Production Enterprise RAG Engine</a>: ingest PDFs and DOCX, chunk and embed them, serve hybrid search over PostgreSQL with pgvector, rerank, answer with citations, and evaluate retrieval and faithfulness on a labelled dataset. The exact scope lives in the projects part of the book.</p>
+<h2 id="goal"><a class="header" href="#goal">Goal</a></h2>
+<p>Prove you can build the single chokepoint that makes a multi-provider AI system reliable and affordable. It is a small surface with a lot of depth: every request passes through routing, budgets, retries, caching, and audit. If you build this well, your Project 3 gets much easier.</p>
+<h2 id="what-you-will-build"><a class="header" href="#what-you-will-build">What you will build</a></h2>
+<p>A gateway that:</p>
+<ul>
+<li>exposes one API (OpenAI-compatible is a good target) that accepts a chat request;</li>
+<li>routes to one of several providers or models by task, cost, latency, tenant, or context length;</li>
+<li>falls back when a provider fails, and opens a circuit breaker when it is unhealthy;</li>
+<li>enforces per-tenant token quotas and cost budgets;</li>
+<li>caches responses (exact and semantic) and streams tokens to the caller;</li>
+<li>records usage and cost per tenant, model, and request;</li>
+<li>filters PII out of what it logs.</li>
+</ul>
+<h2 id="functional-requirements"><a class="header" href="#functional-requirements">Functional requirements</a></h2>
+<ul>
+<li><strong>Unified API.</strong> One request shape; adapters translate to and from each provider.</li>
+<li><strong>Streaming.</strong> Stream tokens through to the client with correct framing.</li>
+<li><strong>Routing.</strong> A configurable policy chooses a model; support small-model-first with escalation.</li>
+<li><strong>Fallback.</strong> On timeout, rate limit, or provider error, try the next candidate; never fall back to a model that violates a hard constraint (region, context, quality floor).</li>
+<li><strong>Health and circuit breaking.</strong> Track provider health; stop sending traffic to a failing provider for a cooldown.</li>
+<li><strong>Retries.</strong> Retry only transient errors, with exponential backoff and jitter.</li>
+<li><strong>Quotas and budgets.</strong> Per-tenant request/token limits and cost budgets checked before the call.</li>
+<li><strong>Caching.</strong> Exact-match response cache and a semantic cache with a similarity threshold; cache keys include model, version, parameters, and tenant.</li>
+<li><strong>Usage accounting.</strong> Tokens in/out, cost, latency, and which model served, per request.</li>
+<li><strong>PII filtering.</strong> Redact configured patterns before logging or storing prompts.</li>
+<li><strong>Multi-tenancy and RBAC.</strong> Per-tenant keys; scoped access to models and admin functions.</li>
+<li><strong>Audit.</strong> Who called what, when, with what result.</li>
+</ul>
+<h2 id="non-functional-requirements"><a class="header" href="#non-functional-requirements">Non-functional requirements</a></h2>
+<ul>
+<li><strong>Latency overhead.</strong> The gateway adds only a small, measured amount over the provider call.</li>
+<li><strong>Ride through failure.</strong> One provider outage reduces quality or raises latency, but does not take the gateway down.</li>
+<li><strong>Cost control.</strong> A tenant cannot exceed its budget; a runaway loop is stopped.</li>
+<li><strong>Correctness of accounting.</strong> Reported tokens and cost reconcile with provider responses within a small tolerance.</li>
+<li><strong>Streaming reliability.</strong> A mid-stream provider error surfaces to the client rather than being silently truncated.</li>
+</ul>
+<h2 id="suggested-architecture"><a class="header" href="#suggested-architecture">Suggested architecture</a></h2>
+<pre><code class="language-mermaid">flowchart LR
+    C["Client"] --&gt; AUTH["Auth + tenant"]
+    AUTH --&gt; POL["Policy: quotas, budgets, RBAC"]
+    POL --&gt; CACHE{"Cache hit?"}
+    CACHE --&gt;|yes| OUT["Return / stream"]
+    CACHE --&gt;|no| ROUTE["Router + fallback chain"]
+    ROUTE --&gt; CB["Circuit breakers"]
+    CB --&gt; P1["Provider A"]
+    CB --&gt; P2["Provider B"]
+    CB --&gt; P3["Local model"]
+    P1 --&gt; ACC["Usage + cost accounting"]
+    P2 --&gt; ACC
+    P3 --&gt; ACC
+    ACC --&gt; CACHEW["Write cache"]
+    ACC --&gt; OUT
+    ACC --&gt; OBS["Metrics · traces · audit"]
+    ACC --&gt; PII["PII redaction"]
+    PII --&gt; LOG["Logs"]
+</code></pre>
+<h2 id="suggested-stack"><a class="header" href="#suggested-stack">Suggested stack</a></h2>
+<ul>
+<li><strong>Language:</strong> Python, FastAPI.</li>
+<li><strong>Data:</strong> PostgreSQL for tenants, keys, budgets, and usage; Redis for rate limits, quotas, and caches.</li>
+<li><strong>Vector cache (semantic):</strong> pgvector or Redis on embeddings.</li>
+<li><strong>Observability:</strong> OpenTelemetry, Prometheus, Grafana.</li>
+</ul>
+<h2 id="data-model-sketch"><a class="header" href="#data-model-sketch">Data model sketch</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Store</th><th>Holds</th></tr></thead><tbody>
+<tr><td><code>tenants</code></td><td>id, name, status, RBAC role</td></tr>
+<tr><td><code>api_keys</code></td><td>key hash, tenant, scopes, created, revoked</td></tr>
+<tr><td><code>budgets</code></td><td>tenant, period, limit, spent</td></tr>
+<tr><td><code>usage</code></td><td>request id, tenant, model, tokens in/out, cost, latency</td></tr>
+<tr><td><code>cache</code></td><td>key, response, model version, ttl</td></tr>
+<tr><td><code>audit</code></td><td>actor, action, model, decision, timestamp</td></tr>
+</tbody></table>
+</div>
+<h2 id="milestones"><a class="header" href="#milestones">Milestones</a></h2>
+<ol>
+<li><strong>M0 — Skeleton.</strong> One API that proxies one provider; health endpoint; config.</li>
+<li><strong>M1 — Adapters.</strong> Two providers behind one interface; streaming works for both.</li>
+<li><strong>M2 — Routing + fallback.</strong> Policy-based routing and a fallback chain; test a provider failure.</li>
+<li><strong>M3 — Resilience.</strong> Retries with jitter and a circuit breaker; prove a failing provider is bypassed.</li>
+<li><strong>M4 — Quotas + accounting.</strong> Per-tenant token/cost budgets and a usage report.</li>
+<li><strong>M5 — Caching.</strong> Exact and semantic caches with correct cache keys; measure the hit rate and savings.</li>
+<li><strong>M6 — Security + ops.</strong> Keys, RBAC, PII redaction, audit, traces, metrics, README and ADRs.</li>
+</ol>
+<h2 id="acceptance-criteria"><a class="header" href="#acceptance-criteria">Acceptance criteria</a></h2>
+<ul>
+<li><input disabled="" type="checkbox"/>
+One request shape works against at least two providers.</li>
+<li><input disabled="" type="checkbox"/>
+Streaming works end to end for both.</li>
+<li><input disabled="" type="checkbox"/>
+Killing the primary provider triggers fallback and the request still succeeds (or fails cleanly).</li>
+<li><input disabled="" type="checkbox"/>
+A provider that keeps failing is circuit-broken and skipped for the cooldown.</li>
+<li><input disabled="" type="checkbox"/>
+A tenant over its budget is refused before the provider call.</li>
+<li><input disabled="" type="checkbox"/>
+A repeated identical request is served from cache; a paraphrased request hits the semantic cache above the threshold.</li>
+<li><input disabled="" type="checkbox"/>
+Cache keys separate tenants; a cross-tenant cache test passes.</li>
+<li><input disabled="" type="checkbox"/>
+Usage and cost per tenant reconcile with provider responses.</li>
+<li><input disabled="" type="checkbox"/>
+Prompts in logs have PII redacted; no secrets are logged.</li>
+<li><input disabled="" type="checkbox"/>
+I can state the gateway’s added latency (p50/p95).</li>
+</ul>
+<h2 id="stretch-goals"><a class="header" href="#stretch-goals">Stretch goals</a></h2>
+<ul>
+<li>Load balancing across multiple keys for one provider.</li>
+<li>Prompt/response logging with a retention policy and replay.</li>
+<li>A cost dashboard with per-model and per-tenant breakdowns.</li>
+<li>A/B routing between two models with quality and cost comparison.</li>
+</ul>
+<h2 id="what-to-document"><a class="header" href="#what-to-document">What to document</a></h2>
+<ul>
+<li>README: the API, the routing policy, and how to add a provider.</li>
+<li>Two ADRs: the routing/fallback policy and the caching strategy.</li>
+<li>A one-page cost and latency report.</li>
+</ul>
+<h2 id="builds-on"><a class="header" href="#builds-on">Builds on</a></h2>
+<p>Phase 1 (Production Python), Phase 6 (Distributed Systems), Phase 7 (AI Platform Engineering), Phase 8 (Evaluation and Observability), Phase 9 (Security and Governance).</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../projects/03-open-source-agent-platform.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../phase-03-rag-engineering/01-rag-architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../projects/05-ai-evaluation-platform.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -262,11 +323,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../phase-02-llm-fundamentals/25-open-source-models-and-hugging-face.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../projects/03-open-source-agent-platform.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../phase-03-rag-engineering/01-rag-architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../projects/05-ai-evaluation-platform.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
