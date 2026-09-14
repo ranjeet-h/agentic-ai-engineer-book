@@ -1,0 +1,691 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Incremental Ingestion, Backfills, and Deletion - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="incremental-ingestion-backfills-and-deletion"><a class="header" href="#incremental-ingestion-backfills-and-deletion">Incremental Ingestion, Backfills, and Deletion</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> Incremental ingestion keeps a knowledge base correct over time by giving every document a stable id and a content hash, then upserting only what changed, so a re-run never duplicates chunks. A backfill replays a corrected document through that same idempotent path, guarded by a source version. Deletion is a propagated and verified operation: a tombstone fans out to the source, chunks, vectors, keyword index, and caches, and you prove zero hits before calling it done.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>A knowledge base is not built once. Documents are edited, replaced, moved, and deleted every day. If the pipeline cannot handle those events, the index slowly diverges from reality. Two failures show the cost.</p>
+<p><strong>Failure 1: duplicates that drown out everything else.</strong> A nightly job re-ingests a shared folder. One <code>refund-policy.pdf</code> is re-parsed every night because the poller watches the file’s modified time, and that timestamp never settles. Each run inserts new chunk rows, because chunk ids are random UUIDs. After thirty nights:</p>
+<pre><code class="language-text">source:       refund-policy.pdf
+indexed rows: 30 copies of every chunk
+search "how long do refunds take":
+  1. refunds within 5 business days   (score 0.91)
+  2. refunds within 5 business days   (score 0.91)
+  3. refunds within 5 business days   (score 0.91)
+  ...                                  (27 more copies)
+  30. shipping takes 3 to 5 days       (score 0.62)
+</code></pre>
+<p>The duplicate copies fill the top of the ranking. The genuine shipping answer is pushed out of the context window. The model repeats one sentence because all of its evidence is the same sentence.</p>
+<p><strong>Failure 2: a deletion that does not stick.</strong> A customer asks you to erase their data. You delete the source file from the bucket. The chunks and vectors are still in the index, because nothing told them the source was gone. Search still returns the deleted text, and the model still quotes it back. The same thing happens for a revoked policy, a retracted price, or a leaked secret. Deleting the source deleted nothing that retrieval can see.</p>
+<p>Both failures share one root cause: ingestion is treated as a one-off write instead of a reconciliation between a source that changes and derived stores that must follow it. This page is how to reconcile.</p>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Incremental ingestion</strong></td><td>Indexing only what changed since the last run, instead of the whole corpus.</td></tr>
+<tr><td><strong>Full reindex</strong></td><td>Rebuilding the whole index from the corpus. Expensive but always correct.</td></tr>
+<tr><td><strong>Upsert</strong></td><td>Insert if the id is new, update if it already exists. One operation, no duplicates.</td></tr>
+<tr><td><strong>Idempotency</strong></td><td>Running an operation twice has the same effect as running it once.</td></tr>
+<tr><td><strong>Deduplication</strong></td><td>Detecting identical content so it is stored once, not many times.</td></tr>
+<tr><td><strong>Content hash</strong></td><td>A short fingerprint of the normalised text. Same text, same hash; changed text, changed hash.</td></tr>
+<tr><td><strong>Watermark / cursor</strong></td><td>A saved position (“I have processed up to here”) so the next run resumes without redoing work.</td></tr>
+<tr><td><strong>Backfill</strong></td><td>Recomputing derived data after a change: re-embedding a corrected document, or filling a new field.</td></tr>
+<tr><td><strong>Replay</strong></td><td>Re-processing an event or a batch you already handled. Safe only if the write is idempotent.</td></tr>
+<tr><td><strong>Tombstone</strong></td><td>A marker that says “this document is deleted”, kept so the deletion can propagate.</td></tr>
+<tr><td><strong>Soft delete</strong></td><td>Marking a row deleted (for example <code>deleted_at</code>) but keeping the row for audit or undo.</td></tr>
+<tr><td><strong>Hard delete</strong></td><td>Physically removing the row and its derived data.</td></tr>
+<tr><td><strong>Deletion propagation</strong></td><td>Pushing one deletion into every store that copied the data.</td></tr>
+<tr><td><strong>Derived store</strong></td><td>Any store built from the source: chunks, vectors, keyword index, cache, summaries.</td></tr>
+<tr><td><strong>Cache invalidation</strong></td><td>Removing cached answers that were computed from data that has since changed.</td></tr>
+<tr><td><strong>Eventual consistency</strong></td><td>A short window where old and new data both exist after a change.</td></tr>
+<tr><td><strong>Exactly-once effect</strong></td><td>The result happens once even though the work may be attempted many times.</td></tr>
+<tr><td><strong>Checkpoint</strong></td><td>A durable record of how far a job has progressed, used to resume after a crash.</td></tr>
+<tr><td><strong>Change data capture (CDC)</strong></td><td>Reading the database’s own write log to detect inserts, updates, and deletes.</td></tr>
+</tbody></table>
+</div>
+<p>Three ideas carry the whole topic:</p>
+<ul>
+<li><strong>Identity is not content.</strong> A document’s id comes from <em>where it lives</em> (its canonical source path), so an edit keeps the same id. The content hash comes from <em>what it says</em>, so you can detect the edit without comparing bytes. Mixing these up is the duplicate-chunk bug.</li>
+<li><strong>Delivery is usually at-least-once.</strong> Queues, webhooks, and retries deliver the same event more than once. You rarely get exactly-once delivery. You get the <em>effect</em> of exactly-once by making the write idempotent and recording a checkpoint.</li>
+<li><strong>The source is truth; everything else is a copy.</strong> A copy is only as correct as the last propagation that reached it. Deletion is the propagation people forget.</li>
+</ul>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Picture a librarian reconciling a catalogue against a stream of notices. The shelves are the source of truth; the catalogue is the index. Notices arrive all day: a new book, a corrected edition, a withdrawal. The librarian does not re-copy the whole library. They copy only the changed books and remove the withdrawn ones.</p>
+<p>Two details make it work. First, a catalogue number is assigned by shelf position, not by the book’s text, so a corrected edition keeps its number. Second, a withdrawal is not one action; it is a list — remove the card, the shelf copy, the reading-room copy, the index entry, and the reservation. If any copy survives, someone can still read a book that should be gone.</p>
+<p>Ingestion is the same reconciliation. A change is detected, parsed, chunked, embedded, and written by a stable id. Deletion is a fan-out to every copy.</p>
+<pre><code class="language-mermaid">flowchart LR
+    S["Source change&lt;br/&gt;create, edit, delete"] --&gt; D{"Detect change&lt;br/&gt;CDC, poll, or event"}
+    D --&gt;|"new or changed"| C["Parse and chunk"]
+    C --&gt; E["Embed"]
+    E --&gt; U["Upsert by stable id&lt;br/&gt;ON CONFLICT"]
+    U --&gt; IX["Vector + keyword index"]
+    U --&gt; CI["Invalidate cache&lt;br/&gt;by document id"]
+    D --&gt;|"deleted"| T["Write tombstone"]
+    T --&gt; DP["Propagation worker"]
+</code></pre>
+<p>A delete is not complete when the source row is gone. It is complete when every derived store agrees.</p>
+<pre><code class="language-mermaid">flowchart TD
+    T["Tombstone&lt;br/&gt;document_id, version"] --&gt; P["Propagation worker&lt;br/&gt;FOR UPDATE SKIP LOCKED"]
+    P --&gt; SRC["Source / object store"]
+    P --&gt; DOC["Relational rows&lt;br/&gt;documents, chunks"]
+    P --&gt; VEC["Vector index"]
+    P --&gt; KW["Keyword / full-text index"]
+    P --&gt; CACHE["Response cache"]
+    P --&gt; SUM["Summaries, exports, caches"]
+    P --&gt; BAK["Backups: a retention policy,&lt;br/&gt;not a query"]
+    VEC --&gt; V{"Verify: a phrase from the&lt;br/&gt;deleted document returns&lt;br/&gt;zero hits everywhere"}
+    KW --&gt; V
+    CACHE --&gt; V
+</code></pre>
+<p>The same decision applies to every change. Pick the tool from the situation:</p>
+<div class="table-wrapper"><table><thead><tr><th>Situation</th><th>Right tool</th><th>Why</th></tr></thead><tbody>
+<tr><td>New document</td><td>Incremental insert</td><td>Only the new chunks are embedded.</td></tr>
+<tr><td>Edited document (or metadata-only change)</td><td>Incremental upsert</td><td>Unchanged documents are skipped; if only metadata changed, the text hash is unchanged, so the vectors stay valid.</td></tr>
+<tr><td>Deleted document</td><td>Tombstone plus propagation</td><td>One marker must reach every derived store.</td></tr>
+<tr><td>Chunker or embedding-model change</td><td>Full reindex into a new index</td><td>Every chunk id or vector changes.</td></tr>
+<tr><td>Suspected drift or corruption</td><td>Full reindex</td><td>Rebuild from the source of truth, then compare.</td></tr>
+</tbody></table>
+</div>
+<blockquote>
+<p><strong>Tip:</strong></p>
+<p><strong>The mental shortcut.</strong> Upsert by a stable id, guard by a source version, and treat deletion as a fan-out you must verify. If you can replay the whole pipeline twice and get the same index, you have built the right thing.</p>
+</blockquote>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
+<li><strong>Detect the change.</strong> Three signals are common. <strong>CDC</strong> reads the source database’s write log (for example Postgres logical replication) and emits an event for each insert, update, and delete. A <strong>poll</strong> queries for rows or files newer than a saved cursor. An <strong>event</strong> is a webhook or a message the source pushes when something changes. CDC and events are fast and give deletes; a poll is simpler and often misses deletes unless the source tracks them.</li>
+<li><strong>Compute a stable document id.</strong> Derive it from the document’s canonical location, such as <code>tenant + source_uri</code>, and hash that. The id must not change when the content changes. If the id is derived from content, an edit looks like a new document and the old chunks are orphaned.</li>
+<li><strong>Compute a content hash.</strong> Normalise the text (unicode, whitespace) and hash it. The hash decides whether to re-embed. Compare normalised text, not raw bytes, or a metadata-only change triggers pointless work.</li>
+<li><strong>Upsert and skip unchanged content.</strong> Write the document row and its chunks with <code>ON CONFLICT DO UPDATE</code>. If the incoming content hash equals the stored one, advance the version and skip embedding. If it differs, replace the document’s chunks in the same transaction.</li>
+<li><strong>Handle late and out-of-order events with a version and a watermark.</strong> Every event carries a source version: a monotonic revision number or <code>updated_at</code> plus a tie-breaker. Apply an event only when its version is greater than the stored version. Ignore older events, because applying them would overwrite newer content with stale text. A watermark (or cursor) records how far a consumer has processed, so a restart resumes instead of restarting.</li>
+<li><strong>Delete orphan chunks when a document shrinks.</strong> Upsert alone never removes chunks. If a 40-chunk document is corrected down to 30 chunks, chunks 30–39 survive and keep serving deleted text. Delete rows with <code>ordinal &gt;= new_chunk_count</code>, or replace the whole chunk set, in the same transaction as the document write.</li>
+<li><strong>Backfill a corrected document through the identical path.</strong> A backfill is just a re-ingest with a higher version. It replaces the document’s chunk set atomically, so a concurrent reader sees either the old document or the new one, never a half-replaced mixture. Large backfills run in batches with a cursor and a checkpoint.</li>
+<li><strong>Fan out a deletion with a tombstone.</strong> Write the tombstone first. It stops the document from being served immediately and records the version so a late create for the same document cannot resurrect it. A worker claims unpropagated tombstones and deletes from every derived store: relational rows, chunks, vectors, keyword index, caches, and summaries.</li>
+<li><strong>Prove the deletion.</strong> Search each store for a distinctive phrase from the deleted document and assert zero hits. Record the check and its timestamp. Deletion from backups is a separate policy decision: you cannot query a backup, so you document that the data expires with the backup retention window.</li>
+<li><strong>Keep in-flight queries consistent during a backfill.</strong> Point serving at a versioned index, or build a shadow index and swap a pointer. Never delete and re-insert the live rows in a way that leaves a visible gap.</li>
+</ol>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p><strong>A stable id and a content hash.</strong> The id comes from identity; the hash comes from content. Keeping them separate is the whole trick.</p>
+<pre><code class="language-python">import hashlib
+import re
+import unicodedata
+
+
+def normalise(text: str) -&gt; str:
+    text = unicodedata.normalize("NFKC", text)      # one canonical unicode form
+    return re.sub(r"\s+", " ", text).strip()        # one canonical whitespace
+
+
+def document_id(tenant: str, source_uri: str) -&gt; str:
+    # Identity comes from where the document lives, not from its bytes.
+    key = f"{tenant}\x00{source_uri}".encode("utf-8")
+    return "doc_" + hashlib.sha256(key).hexdigest()[:32]   # 128 bits; a 12-hex-char id collides in large corpora
+
+
+def content_hash(text: str) -&gt; str:
+    return hashlib.sha256(normalise(text).encode("utf-8")).hexdigest()[:16]
+</code></pre>
+<p><strong>The tables that make idempotency possible.</strong> A unique <code>document_id</code> and a unique <code>chunk_id</code> let the database enforce “one row per thing”.</p>
+<pre><code class="language-sql">CREATE TABLE documents (
+    document_id  text PRIMARY KEY,
+    tenant_id    text NOT NULL,
+    source_uri   text NOT NULL,
+    version      bigint NOT NULL,          -- the source revision
+    content_hash text NOT NULL,
+    updated_at   timestamptz NOT NULL DEFAULT now(),
+    deleted_at   timestamptz
+);
+
+CREATE TABLE chunks (
+    chunk_id    text PRIMARY KEY,          -- e.g. doc_ab12:0
+    document_id text NOT NULL REFERENCES documents(document_id) ON DELETE CASCADE,
+    ordinal     integer NOT NULL,
+    content     text NOT NULL,
+    embedding   vector(1536) NOT NULL,
+    UNIQUE (document_id, ordinal)
+);
+</code></pre>
+<p><strong>An idempotent document upsert with a version guard.</strong> The <code>WHERE</code> clause is what makes late and duplicate events harmless: a lower or equal version updates nothing.</p>
+<pre><code class="language-sql">INSERT INTO documents (document_id, tenant_id, source_uri, version, content_hash, updated_at)
+SELECT $1, $2, $3, $4, $5, now()
+WHERE NOT EXISTS (                       -- never insert over an erasure
+    SELECT 1 FROM tombstones t
+    WHERE t.document_id = $1 AND $4 &lt;= t.deleted_version
+)
+ON CONFLICT (document_id) DO UPDATE
+SET source_uri   = EXCLUDED.source_uri,
+    version      = EXCLUDED.version,
+    content_hash = EXCLUDED.content_hash,
+    updated_at   = now(),
+    deleted_at   = NULL
+WHERE EXCLUDED.version &gt; documents.version   -- ignore late and duplicate events
+  AND NOT EXISTS (                           -- and never resurrect an erased document
+      SELECT 1 FROM tombstones t
+      WHERE t.document_id = EXCLUDED.document_id
+        AND EXCLUDED.version &lt;= t.deleted_version
+  );
+</code></pre>
+<p>The <code>WHERE</code> clause makes late and duplicate events harmless: an older or equal version updates nothing. The <code>NOT EXISTS</code> guards matter because a hard delete leaves no row to conflict with, so without them a later event would simply re-insert the document and resurrect content the user erased.</p>
+<p><strong>Replace a document’s chunks atomically.</strong> Upsert the chunks the new version produced, then remove surplus ordinals when the document shrank. Run it in the same transaction as the document upsert, so a reader sees the old document or the new one, never a mixture.</p>
+<pre><code class="language-sql">BEGIN;
+
+-- Upsert the new chunks; chunk_id is stable, so this is idempotent.
+INSERT INTO chunks (chunk_id, document_id, ordinal, content, embedding)
+VALUES ($2, $1, $3, $4, $5)
+ON CONFLICT (chunk_id) DO UPDATE
+SET content   = EXCLUDED.content,
+    embedding = EXCLUDED.embedding;
+
+-- If the corrected document is shorter, drop the surplus ordinals.
+DELETE FROM chunks WHERE document_id = $1 AND ordinal &gt;= $6;
+
+COMMIT;
+</code></pre>
+<p><strong>A tombstone table.</strong> The tombstone is written before any cleanup, so the document stops being served even if the cleanup job is slow or crashes. A <strong>lease</strong> lets a crashed worker’s claim be retried instead of being lost.</p>
+<pre><code class="language-sql">CREATE TABLE tombstones (
+    document_id      text PRIMARY KEY,
+    deleted_version  bigint NOT NULL,
+    deleted_at       timestamptz NOT NULL DEFAULT now(),
+    claimed_at       timestamptz,
+    lease_expires_at timestamptz,
+    propagated_at    timestamptz
+);
+</code></pre>
+<p><strong>A worker claims unpropagated tombstones safely.</strong> <code>FOR UPDATE SKIP LOCKED</code> lets several workers run at once without stepping on each other, and the lease (not <code>propagated_at</code>) records the claim.</p>
+<pre><code class="language-sql">WITH claimed AS (
+    SELECT document_id
+    FROM tombstones
+    WHERE propagated_at IS NULL
+      AND (lease_expires_at IS NULL OR lease_expires_at &lt; now())   -- free or expired lease
+    ORDER BY deleted_at
+    LIMIT 100
+    FOR UPDATE SKIP LOCKED
+)
+UPDATE tombstones t
+SET claimed_at       = now(),
+    lease_expires_at = now() + interval '1 minute'   -- claim only; do not mark done
+FROM claimed c
+WHERE t.document_id = c.document_id
+RETURNING t.document_id, t.deleted_version;
+</code></pre>
+<p>Mark the tombstone <strong>propagated only after</strong> the worker has removed the document from every derived store and verified it:</p>
+<pre><code class="language-sql">UPDATE tombstones SET propagated_at = now() WHERE document_id = $1;
+</code></pre>
+<p>This ordering is the whole point. The vector store and the cache are external and cannot be rolled back with the database transaction, so marking <code>propagated_at</code> at claim time would mark work as done that never happened — and the <code>WHERE propagated_at IS NULL</code> filter would never retry it.</p>
+<p><strong>A backfill loop with a keyset cursor and a checkpoint.</strong> Keyset pagination is stable under concurrent inserts <em>only if the key is immutable</em>. This job writes <code>updated_at</code>, so paging on <code>(updated_at, document_id)</code> revisits rows it just touched; page on an immutable key, or mark scanned rows, and save the checkpoint after each batch.</p>
+<pre><code class="language-sql">-- Next batch: take the rows after the last cursor you saw.
+SELECT document_id, source_uri
+FROM documents
+WHERE deleted_at IS NULL
+  AND (updated_at, document_id) &gt; ($1, $2)     -- row-value comparison
+ORDER BY updated_at, document_id
+LIMIT $3;
+</code></pre>
+<p>A checkpoint is the same idea persisted: <code>INSERT INTO ingest_checkpoints (job, cursor, saved_at) VALUES ($1, $2, now()) ON CONFLICT (job) DO UPDATE SET cursor = EXCLUDED.cursor, saved_at = now();</code>. Write the effect and the checkpoint in the same transaction, or make the effect idempotent so replay is always safe. The second option is what this page teaches.</p>
+<p><strong>Cache invalidation by key.</strong> A response cache must know which documents produced each answer. The writer records a reverse index (a set of cache keys per document) so deletion can find and remove them.</p>
+<pre><code class="language-python">def cache_key(query: str, index_version: str) -&gt; str:
+    q = hashlib.sha256(query.strip().lower().encode("utf-8")).hexdigest()[:16]
+    return f"rag:{index_version}:{q}"
+
+def invalidate_document(redis, document_id: str) -&gt; int:
+    tag = f"doc:{document_id}:cache_keys"
+    keys = redis.smembers(tag)
+    if keys:
+        redis.delete(*keys)
+    redis.delete(tag)
+    return len(keys)
+</code></pre>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p>These examples share one small in-memory store that mirrors the SQL above. It reuses <code>normalise</code>, <code>document_id</code>, and <code>content_hash</code> from the previous section. The store is a teaching model, not production code: it keeps chunks in a dict and replaces a document’s chunk set on every content change.</p>
+<pre><code class="language-python">class Store:
+    def __init__(self) -&gt; None:
+        self.docs: dict[str, dict] = {}
+        self.chunks: dict[str, dict] = {}
+        self.tombs: dict[str, int] = {}
+        self.applied: set[str] = set()          # idempotency keys already applied
+        self.cache: dict[str, set[str]] = {}     # query -&gt; source document ids
+
+    def chunk_ids(self, d: str) -&gt; list[str]:
+        return sorted(c for c, meta in self.chunks.items() if meta["doc"] == d)
+
+    def ingest(self, *, d, uri, text, version, event, chunk_words=6) -&gt; str:
+        if event in self.applied:                          # replayed event
+            return "skipped:event-replay"
+        if d in self.tombs and version &lt;= self.tombs[d]:   # event older than the delete
+            return "ignored:stale-after-delete"
+        current = self.docs.get(d)
+        if current is not None and version &lt;= current["version"]:
+            return "ignored:late-event"                    # out-of-order or duplicate event
+        h = content_hash(text)
+        if current is not None and h == current["hash"]:    # content unchanged
+            current["version"] = max(current["version"], version)
+            current["uri"] = uri                            # metadata may still have changed
+            self.applied.add(event)
+            return "skipped:unchanged"
+        for c in self.chunk_ids(d):                         # replace the chunk set
+            del self.chunks[c]
+        words = normalise(text).split()
+        ids = [f"{d}:{i}" for i in range((len(words) + chunk_words - 1) // chunk_words)]
+        for i, cid in enumerate(ids):
+            self.chunks[cid] = {"doc": d, "text": " ".join(words[i * chunk_words:(i + 1) * chunk_words])}
+        self.docs[d] = {"uri": uri, "version": version, "hash": h, "chunks": ids}
+        self.applied.add(event)
+        return f"upserted:{len(ids)}-chunks"
+
+    def delete(self, d: str, version: int) -&gt; dict:
+        self.tombs[d] = version                             # tombstone first
+        gone = self.chunk_ids(d)
+        for c in gone:
+            del self.chunks[c]
+        self.docs.pop(d, None)
+        keys = sorted(q for q, sources in self.cache.items() if d in sources)
+        for q in keys:
+            del self.cache[q]
+        return {"chunks_removed": len(gone), "cache_keys_invalidated": keys}
+</code></pre>
+<p><strong>Example 1 — ingest the same document twice and prove no duplicate chunks.</strong> The second event has a new event id and a higher version but identical content. The content hash matches, so the store skips embedding and keeps two chunks, not four.</p>
+<pre><code class="language-python">s = Store()
+uri = "s3://kb/refunds.md"
+d = document_id("tenant-a", uri)
+text = "Refunds take five business days to the original payment method."
+
+print("id:", d, "hash:", content_hash(text))
+print("1st :", s.ingest(d=d, uri=uri, text=text, version=1, event="e1"))
+print("2nd :", s.ingest(d=d, uri=uri, text=text, version=2, event="e2"))
+print("replay:", s.ingest(d=d, uri=uri, text=text, version=2, event="e1"))
+print("docs:", len(s.docs), "chunks:", s.chunk_ids(d))
+</code></pre>
+<p>Measured output:</p>
+<pre><code class="language-text">id: doc_a2daeb9e6be4 hash: 9c3268559fd6ad53
+1st : upserted:2-chunks
+2nd : skipped:unchanged
+replay: skipped:event-replay
+docs: 1 chunks: ['doc_a2daeb9e6be4:0', 'doc_a2daeb9e6be4:1']
+</code></pre>
+<p>Three runs, one document, two chunks. The <code>skipped:unchanged</code> path avoided a re-embed, and the replay was recognised by its event id. Compare this with the opening failure: thirty runs would still leave two chunks.</p>
+<p><strong>Example 2 — backfill a corrected document atomically.</strong> The refund window changed from five days to ten. The content hash changes, so the store deletes the old chunk set and writes the new one in one step. No stale chunk survives.</p>
+<pre><code class="language-python">old = s.docs[d]["hash"]
+print("before:", [s.chunks[c]["text"] for c in s.chunk_ids(d)])
+print("backfill:", s.ingest(d=d, uri=uri, version=3, event="e3",
+                            text="Refunds take ten business days to the original payment method."))
+print("after :", [s.chunks[c]["text"] for c in s.chunk_ids(d)])
+print("hash:", old, "-&gt;", s.docs[d]["hash"])
+print("stale chunks left:", [c for c in s.chunk_ids(d) if "five" in s.chunks[c]["text"]])
+</code></pre>
+<p>Measured output:</p>
+<pre><code class="language-text">before: ['Refunds take five business days to', 'the original payment method.']
+backfill: upserted:2-chunks
+after : ['Refunds take ten business days to', 'the original payment method.']
+hash: 9c3268559fd6ad53 -&gt; be742cf9b02db810
+stale chunks left: []
+</code></pre>
+<p>The unchanged second chunk was still re-written here because the store replaces the whole set. A smarter pipeline hashes each chunk and skips the unchanged ones, but correctness comes first: after the backfill, searching “five business days” returns nothing.</p>
+<p><strong>Example 3 — delete propagated to source, chunks, vectors, and cache.</strong> The refunds document is erased. The store records a tombstone, removes its chunks (the vector and keyword copies live in the same structure here), and invalidates every cache entry that cited it. The shipping answer survives.</p>
+<pre><code class="language-python">s2 = Store()
+a = document_id("tenant-a", "s3://kb/refunds.md")
+b = document_id("tenant-a", "s3://kb/shipping.md")
+s2.ingest(d=a, uri="s3://kb/refunds.md", text="Refunds take five business days.", version=1, event="a1")
+s2.ingest(d=b, uri="s3://kb/shipping.md", text="Shipping is free over fifty dollars.", version=1, event="b1")
+s2.cache = {"how long do refunds take": {a}, "is shipping free": {b}, "refund and shipping": {a, b}}
+
+print("before:", {k: sorted(v) for k, v in sorted(s2.cache.items())})
+print("report:", s2.delete(a, version=2))
+print("after :", {k: sorted(v) for k, v in sorted(s2.cache.items())})
+print("chunks left:", s2.chunk_ids(a), "| tombstones:", s2.tombs)
+print("late v1 after delete:", s2.ingest(d=a, uri="s3://kb/refunds.md",
+                                         text="Refunds take five business days.", version=1, event="a0"))
+print("resurrect v3:", s2.ingest(d=a, uri="s3://kb/refunds.md",
+                                 text="Refunds take five business days.", version=3, event="a3"))
+</code></pre>
+<p>Measured output:</p>
+<pre><code class="language-text">before: {'how long do refunds take': ['doc_a2daeb9e6be4'], 'is shipping free': ['doc_98c7fd6a5911'], 'refund and shipping': ['doc_98c7fd6a5911', 'doc_a2daeb9e6be4']}
+report: {'chunks_removed': 1, 'cache_keys_invalidated': ['how long do refunds take', 'refund and shipping']}
+after : {'is shipping free': ['doc_98c7fd6a5911']}
+chunks left: [] | tombstones: {'doc_a2daeb9e6be4': 2}
+late v1 after delete: ignored:stale-after-delete
+resurrect v3: upserted:1-chunks
+</code></pre>
+<p>Three things happened. The deleted document’s chunks are gone, so retrieval cannot return them. Both cache entries that cited it were invalidated, while the shipping-only entry stayed. And an old event (version 1) arriving after the delete was refused, because the tombstone recorded version 2; only a genuinely higher version (3) can re-create the document. In production, the same fan-out must also reach the separate vector store and keyword index, and a verification query must confirm zero hits in each.</p>
+<blockquote>
+<p><strong>Deletion is not the same as erasure.</strong> Letting a genuinely higher version (3) re-create a withdrawn document is correct when a source was removed temporarily and later restored. For a <strong>legal erasure</strong> — a data-subject deletion request — recreation must be impossible: keep a permanent suppression record that no future version can override, and verify it in every derived store.</p>
+</blockquote>
+<p><strong>Example 4 — a late event must not regress newer content.</strong> A queue redelivers an old edit. The stored document is at version 7 and says ten days; the late event is version 5 and says five days. The version guard rejects it, so the newer content stays.</p>
+<pre><code class="language-python">s3 = Store()
+d3 = document_id("tenant-a", "s3://kb/refunds.md")
+s3.ingest(d=d3, uri="s3://kb/refunds.md", text="Refunds take ten business days.", version=7, event="v7")
+print("stored:", s3.docs[d3]["version"], s3.chunks[s3.chunk_ids(d3)[0]]["text"])
+print("late v5:", s3.ingest(d=d3, uri="s3://kb/refunds.md",
+                            text="Refunds take five business days.", version=5, event="v5-late"))
+print("stored:", s3.docs[d3]["version"], s3.chunks[s3.chunk_ids(d3)[0]]["text"])
+print("hash:", s3.docs[d3]["hash"])
+</code></pre>
+<p>Measured output:</p>
+<pre><code class="language-text">stored: 7 Refunds take ten business days.
+late v5: ignored:late-event
+stored: 7 Refunds take ten business days.
+hash: a0b527c51a16f362
+</code></pre>
+<p>Without the guard, this late event would silently revert the policy to five days. The version need not be a number: a timestamp plus a tie-breaker works, as long as it is monotonic per document. Store the version with the document and compare on every write.</p>
+<p><strong>Example 5 — a checkpointed backfill resumes without double-applying.</strong> Five documents need a corrected field. The job pages by source URI, applies two at a time, and saves the cursor after each batch. After a simulated crash it retries the first batch; the event ids make that a no-op.</p>
+<pre><code class="language-python">s4 = Store()
+uris = sorted(f"s3://kb/{n}.md" for n in ["alpha", "beta", "gamma", "delta", "epsilon"])
+for i, u in enumerate(uris, 1):
+    s4.ingest(d=document_id("t", u), uri=u, text=f"{u} policy one two three four", version=1, event=f"e{i}")
+
+
+def backfill_batch(store, after, size=2):
+    order = sorted((v["uri"], k) for k, v in store.docs.items())
+    keys = [(u, k) for u, k in order if after is None or u &gt; after][:size]
+    done = [(u, store.ingest(d=k, uri=u, version=2, event=f"backfill-{u}",
+                             text=f"{u} policy one two three four revised")) for u, k in keys]
+    return (keys[-1][0] if keys else after), done
+
+
+checkpoint = None
+applied = []
+checkpoint, results = backfill_batch(s4, None)
+applied += [u for u, _ in results]
+print("batch 1:", results, "| checkpoint:", checkpoint)
+print("retry after crash:", backfill_batch(s4, None)[1])
+for _ in range(2):
+    checkpoint, results = backfill_batch(s4, checkpoint)
+    applied += [u for u, _ in results]
+    print("next batch:", results, "| checkpoint:", checkpoint)
+print("effects applied:", len(applied), "unique docs:", len(set(applied)))
+</code></pre>
+<p>Measured output:</p>
+<pre><code class="language-text">batch 1: [('s3://kb/alpha.md', 'upserted:2-chunks'), ('s3://kb/beta.md', 'upserted:2-chunks')] | checkpoint: s3://kb/beta.md
+retry after crash: [('s3://kb/alpha.md', 'skipped:event-replay'), ('s3://kb/beta.md', 'skipped:event-replay')]
+next batch: [('s3://kb/delta.md', 'upserted:2-chunks'), ('s3://kb/epsilon.md', 'upserted:2-chunks')] | checkpoint: s3://kb/epsilon.md
+next batch: [('s3://kb/gamma.md', 'upserted:2-chunks')] | checkpoint: s3://kb/gamma.md
+effects applied: 5 unique docs: 5
+</code></pre>
+<p>The retry after the crash did nothing, because the idempotency keys were already in <code>applied</code>. The backfill still finished all five documents. That combination — at-least-once delivery plus an idempotent write plus a checkpoint — is what people mean by an exactly-once effect.</p>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>Re-ingestion must be idempotent.</strong> Assume every job runs twice: once for real, once on retry. A second run must replace rows, not append copies. This is the single most common cause of duplicate chunks.</li>
+<li><strong>Stable ids and content hashes prevent duplicates.</strong> The id comes from the source location; the hash comes from normalised text. Deriving the id from content turns every edit into a new document and orphans the old chunks forever.</li>
+<li><strong>Deletes must reach every derived store or you have a data-protection problem.</strong> Chunks, vectors, keyword index, response caches, summaries, and exports are all copies. A deletion that stops at the source is not a deletion.</li>
+<li><strong>A tombstone is the ordering device.</strong> Write it before cleanup, keep the deleted version, and refuse later events at or below that version. It both stops serving immediately and prevents a stale re-create.</li>
+<li><strong><code>ON CONFLICT</code> is necessary but not sufficient.</strong> Upserting chunks never removes surplus ones. When a document shrinks, delete <code>ordinal &gt;= new_count</code>, or replace the whole chunk set in one transaction.</li>
+<li><strong>Late events cause stale overwrites.</strong> Compare a monotonic source version on every write. Without it, an old message redelivered by a queue silently reverts a corrected policy.</li>
+<li><strong>Backfills need a shadow or versioned index to keep queries consistent.</strong> Replacing a live document’s rows one statement at a time exposes a partial state. Do the replacement in a transaction, or build the new index beside the old one and swap a pointer.</li>
+<li><strong>Caches key on content version.</strong> A response cache with no version in the key keeps serving a deleted or corrected answer until its TTL expires. Invalidate on change, or include the version in the key so a new version is a new entry.</li>
+<li><strong>Deletion from backups is a policy, not a query.</strong> You cannot search a backup on demand. State how long erased data may persist in backups, encrypt them, and let the retention window expire it.</li>
+<li><strong>Verify deletion with a test, not a hope.</strong> After fan-out, search every store for a distinctive phrase from the deleted document and assert zero results. Record the check with a timestamp; compliance wants evidence.</li>
+<li><strong>Exactly-once effects need idempotency keys and checkpoints.</strong> Deduplicate on an event id, write the effect and the checkpoint together (or make the effect idempotent), and make retries safe.</li>
+<li><strong>Reindexing at scale is a cost and latency trade-off.</strong> Full reindexing is simple and always correct but re-embeds everything; incremental is cheap but needs stable ids and a diff. Start incremental, keep a full-reindex path for model and chunker changes.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-how-do-you-make-ingestion-idempotent"><a class="header" href="#1-how-do-you-make-ingestion-idempotent">1. How do you make ingestion idempotent?</a></h3>
+<p><strong>Answer.</strong> Give each operation a deterministic key and make the write an upsert. The document id is derived from the source location, the chunk id from the document id and ordinal, and the event id from the source event. Writing the same event twice hits <code>ON CONFLICT</code> and updates the same row instead of inserting a new one. If the content hash is unchanged, skip the embedding entirely.</p>
+<p><strong>Follow-up: “What if the pipeline crashes halfway?”</strong> Replay the batch from its checkpoint. Because every write is keyed, the replay overwrites the rows it already wrote and skips the rest. That is why idempotency and checkpoints are always discussed together.</p>
+<p><strong>Trap.</strong> Using random UUIDs as chunk ids. They make every run insert fresh rows, which is exactly the duplicate-chunk failure.</p>
+<h3 id="2-how-do-you-detect-what-changed-and-why-do-you-need-a-watermark"><a class="header" href="#2-how-do-you-detect-what-changed-and-why-do-you-need-a-watermark">2. How do you detect what changed, and why do you need a watermark?</a></h3>
+<p><strong>Answer.</strong> Three signals: CDC from the source’s write log, a poll against a saved cursor, or an event pushed by the source. All three need a watermark — a durable record of how far you have processed — so a restart resumes rather than reprocessing or skipping. A watermark on a monotonic column like <code>(updated_at, id)</code> is easy to reason about; a bare <code>updated_at</code> is not unique and can skip rows that share a timestamp.</p>
+<p><strong>Follow-up: “Why can a poll miss deletions?”</strong> A poll usually asks for rows that still exist and are newer than the cursor. A deleted row is gone, so it never appears. You need the source to keep a soft delete, a change log, or a CDC feed to see deletions.</p>
+<p><strong>Trap.</strong> Using a single non-unique timestamp as the cursor. Two rows updated in the same millisecond can cause one to be skipped forever.</p>
+<h3 id="3-when-do-you-upsert-incrementally-and-when-do-you-run-a-full-reindex"><a class="header" href="#3-when-do-you-upsert-incrementally-and-when-do-you-run-a-full-reindex">3. When do you upsert incrementally, and when do you run a full reindex?</a></h3>
+<p><strong>Answer.</strong> Incremental when the identity and meaning of chunks and vectors stay the same: content edits, metadata changes, new and deleted documents. Full reindex when every chunk or vector changes: a new embedding model, a different chunker or chunk size, a normalisation change, or a migration between stores. Also reindex when you suspect drift between the source and the index.</p>
+<p><strong>Follow-up: “Why not always reindex everything?”</strong> Cost and time. Re-embedding a large corpus takes hours and real money, and it rebuilds vectors that did not change. Incremental work scales with what changed; a full reindex scales with the corpus.</p>
+<p><strong>Trap.</strong> Running a full reindex in place over the live index. If it fails halfway, you serve a mixture of old and new vectors, which is worse than the state you started in.</p>
+<h3 id="4-how-do-you-delete-a-document-completely"><a class="header" href="#4-how-do-you-delete-a-document-completely">4. How do you delete a document completely?</a></h3>
+<p><strong>Answer.</strong> Write a tombstone first so it stops being served, then fan out to every derived store: relational rows and chunks, the vector index, the keyword index, response caches, and any summaries or exports. Verify by searching each store for a distinctive phrase and asserting zero hits. Backups are handled by retention policy, not by a query: you document how long erased data may remain and let it expire.</p>
+<p><strong>Follow-up: “What is the hardest part?”</strong> Finding every copy. Data is duplicated into indexes, caches, traces, and exports, and each copy has its own delete mechanism. Keeping a registry of derived stores and invalidation tags is the practical answer.</p>
+<p><strong>Trap.</strong> Deleting the source and assuming the index follows. Nothing propagates unless a job does it.</p>
+<h3 id="5-what-is-a-tombstone-and-why-not-just-delete-the-row"><a class="header" href="#5-what-is-a-tombstone-and-why-not-just-delete-the-row">5. What is a tombstone, and why not just delete the row?</a></h3>
+<p><strong>Answer.</strong> A tombstone is a durable marker that an id is deleted, with the version at which it was deleted. It lets you stop serving the document immediately, then propagate to slow stores asynchronously. It also blocks late events: an event whose version is at or below the tombstone’s version is ignored, so a redelivered old create cannot resurrect deleted content.</p>
+<p><strong>Follow-up: “When do you remove the tombstone?”</strong> Only after every derived store has acknowledged the deletion and any relevant retention window has passed. If you remove it too early, a late event can recreate the document.</p>
+<p><strong>Trap.</strong> Treating deletion as an event instead of a state. A one-shot delete message that is lost leaves the data in place; a tombstone is a fact workers can retry against.</p>
+<h3 id="6-how-do-late-or-out-of-order-events-corrupt-a-knowledge-base"><a class="header" href="#6-how-do-late-or-out-of-order-events-corrupt-a-knowledge-base">6. How do late or out-of-order events corrupt a knowledge base?</a></h3>
+<p><strong>Answer.</strong> An event that describes older content overwrites newer content if the write has no version guard. A queue redelivery, a retry, or two workers racing can all deliver an old edit after a new one. The result is a document that silently reverts: the index shows a superseded price, policy, or name. The fix is a monotonic version per document and a conditional write that only applies when the incoming version is greater.</p>
+<p><strong>Follow-up: “How do you build a monotonic version?”</strong> Use the source’s revision number if it has one. Otherwise use <code>updated_at</code> plus a tie-breaker such as a sequence id, and compare the tuple. Make the ordering rule explicit and tested.</p>
+<p><strong>Trap.</strong> Comparing timestamps from different clocks. Clock skew between services can make a newer event look older, so prefer a version generated by the source of truth.</p>
+<h3 id="7-how-do-you-keep-queries-consistent-during-a-backfill-or-large-reindex"><a class="header" href="#7-how-do-you-keep-queries-consistent-during-a-backfill-or-large-reindex">7. How do you keep queries consistent during a backfill or large reindex?</a></h3>
+<p><strong>Answer.</strong> Never mutate the live index in place in a way that leaves a visible gap. Either do each document’s replacement in a single transaction so readers see the old or the new version, or build a shadow copy and swap an alias when it is complete and validated. Warm the new copy and keep the old one for rollback. Document the short eventual-consistency window.</p>
+<p><strong>Follow-up: “What about changes that arrive during the backfill?”</strong> Snapshot the corpus at the start and queue changes that arrive during the run, then replay them after the swap, or run a short incremental catch-up before switching. Version guards make the catch-up safe.</p>
+<p><strong>Trap.</strong> Forgetting the caches. A response cache keyed only on the query keeps returning old answers after the index has moved on.</p>
+<h3 id="8-what-does-exactly-once-effect-mean-and-how-do-you-get-it"><a class="header" href="#8-what-does-exactly-once-effect-mean-and-how-do-you-get-it">8. What does “exactly-once effect” mean, and how do you get it?</a></h3>
+<p><strong>Answer.</strong> Delivery is usually at-least-once, so an operation may be attempted many times. The <em>effect</em> can still happen once if the write is idempotent and the job records progress. In practice: deduplicate on an event id, write the effect and the checkpoint in the same transaction, or make the effect an upsert keyed by a stable id so replay is harmless. Then a crash and retry produce the same index.</p>
+<p><strong>Follow-up: “Can you get true exactly-once delivery?”</strong> Not across a network with retries. You get at-least-once delivery plus idempotent processing, which is what people actually build when they say exactly-once.</p>
+<p><strong>Trap.</strong> Recording the checkpoint before the effect is durable. A crash in between marks work as done that never happened, and the data is silently missing. Record the checkpoint after the effect, or in the same transaction.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>Identity is not content.</strong> Derive the document id from the source location and the content hash from normalised text, so edits keep their id and unchanged content is skipped.</li>
+<li><strong>Upsert by stable id and guard by source version.</strong> Idempotent writes make retries safe, and the version guard stops late events overwriting newer content.</li>
+<li><strong>A backfill is just a re-ingest with a higher version.</strong> Replace the chunk set atomically, run it in batches with a checkpoint, and keep serving consistent with a versioned or shadow index.</li>
+<li><strong>Deletion is a fan-out you must verify.</strong> Write a tombstone first, propagate to every derived store including caches, and prove zero hits before you call it done.</li>
+<li><strong>Exactly-once effect = at-least-once delivery + idempotent writes + checkpoints.</strong> Backups expire by retention policy, not by a delete query.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-03-rag-engineering/22-data-contracts-lineage-and-quality.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-04-agentic-ai-engineering/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-03-rag-engineering/22-data-contracts-lineage-and-quality.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-04-agentic-ai-engineering/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

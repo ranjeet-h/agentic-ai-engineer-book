@@ -206,7 +206,11 @@
 <li><strong>Query handling.</strong> Rewrite follow-up questions into standalone queries.</li>
 <li><strong>Generation.</strong> Grounded answers with inline citations to chunk ids; abstain when the retrieved evidence is insufficient.</li>
 <li><strong>Versioning.</strong> Re-ingesting changed documents supersedes old chunks without breaking in-flight queries.</li>
-<li><strong>Caching.</strong> Cache embeddings and repeated query results.</li>
+<li><strong>Incremental ingestion and deduplication.</strong> Detect source changes, upsert by a stable document id, and skip unchanged content by content hash, so re-ingesting never produces duplicate chunks (see <a href="../phase-03-rag-engineering/23-incremental-ingestion-backfills-and-deletion.html">Incremental Ingestion, Backfills, and Deletion</a>).</li>
+<li><strong>Data contracts and lineage.</strong> Validate each source record at ingest, and record lineage from every chunk back to its source and the transforms applied (see <a href="../phase-03-rag-engineering/22-data-contracts-lineage-and-quality.html">Data Contracts, Lineage, and Quality</a>).</li>
+<li><strong>Backfill and delete.</strong> Backfill a corrected document atomically, and delete a document completely from source, chunks, vectors, and cache — with a test that proves zero retrieval hits afterwards.</li>
+<li><strong>Freshness and quality.</strong> Publish a freshness and data-quality report, and alert when a source breaches its freshness SLO.</li>
+<li><strong>Caching.</strong> Cache embeddings and repeated query results, keyed by content version.</li>
 <li><strong>Evaluation.</strong> A labelled question set with known relevant documents, and a command that prints retrieval and answer metrics.</li>
 </ul>
 <h2 id="non-functional-requirements"><a class="header" href="#non-functional-requirements">Non-functional requirements</a></h2>
@@ -281,7 +285,9 @@ A trace shows time spent in embed, search, rerank, and generate.</li>
 <li><input disabled="" type="checkbox"/>
 I can state the cost per query and show caching reduces it.</li>
 <li><input disabled="" type="checkbox"/>
-Killing the model call still returns keyword-only results rather than a 500.</li>
+Killing the model call still returns keyword-only results rather than a 500, and the service recovers when the model returns.</li>
+<li><input disabled="" type="checkbox"/>
+Deleting a document removes it from source, chunks, vectors, and cache, and a test proves zero retrieval hits afterwards.</li>
 </ul>
 <h2 id="stretch-goals"><a class="header" href="#stretch-goals">Stretch goals</a></h2>
 <ul>

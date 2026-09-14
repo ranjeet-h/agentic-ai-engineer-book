@@ -199,17 +199,19 @@
 <h2 id="functional-requirements"><a class="header" href="#functional-requirements">Functional requirements</a></h2>
 <ul>
 <li><strong>Server registry.</strong> Register an MCP server (local stdio or remote transport) with its identity, owner, and status.</li>
-<li><strong>Discovery.</strong> Connect to a server, list its tools/resources/prompts, and cache the schemas with a version.</li>
+<li><strong>Discovery.</strong> Connect to a server, list its tools/resources/prompts, and cache the schemas with a version; treat partial discovery (a server that is slow or down) as a first-class state, not a crash.</li>
 <li><strong>Aggregation.</strong> Expose a unified tool list with namespacing to avoid collisions.</li>
-<li><strong>Call routing.</strong> Route a tool call to the correct server over the correct transport; validate arguments against the schema.</li>
-<li><strong>Authentication.</strong> Identify the calling user/agent (API key or OIDC).</li>
+<li><strong>Call routing.</strong> Route a tool call to the correct server over the correct transport; validate arguments against the schema <em>before</em> forwarding, and validate the result against its contract <em>before</em> the model sees it.</li>
+<li><strong>Conformance suite.</strong> Run a contract suite against two server versions: a compatible schema change is accepted, a breaking change is rejected, a server that disappears mid-call is handled with a timeout and a structured error, and a malformed tool result is rejected (see <a href="../phase-05-mcp-tool-ecosystems/21-mcp-conformance-contract-testing-and-schema-evolution.html">MCP Conformance, Contract Testing, and Schema Evolution</a>).</li>
+<li><strong>Authentication.</strong> Identify the calling user/agent; validate bearer tokens fully — signature against the issuer’s JWKS, issuer, audience, and expiry — or use mTLS/workload identity for service callers (see <a href="../phase-09-ai-security-and-governance/20-identity-oauth-oidc-mtls-and-sessions.html">Identity: OAuth 2.0, OIDC, mTLS, and Sessions</a>).</li>
 <li><strong>Authorization.</strong> Decide allow/deny per tool from RBAC roles, tenant, and policy; deny by default.</li>
 <li><strong>Credential scoping.</strong> Fetch per-server, per-tenant, short-lived credentials from a secret store; never forward the caller’s token.</li>
 <li><strong>Allowlists and approvals.</strong> Per-tenant tool allowlists; a human approval gate for destructive tools.</li>
+<li><strong>Threat model.</strong> A written STRIDE threat model naming assets, trust boundaries, abuse cases, controls, and residual risk, plus a security test suite that tries invalid tokens, replay, unauthorised tool access, and prompt-injected tool output (see <a href="../phase-09-ai-security-and-governance/21-application-security-threat-modeling-and-supply-chain.html">Application Security, Threat Modeling, and Supply Chain</a>).</li>
 <li><strong>Rate limiting and quotas.</strong> Per-tenant and per-tool limits.</li>
 <li><strong>Resilience.</strong> Timeouts, retries for transient errors, and circuit breaking per server.</li>
 <li><strong>Observability and audit.</strong> Traces per call and an append-only audit record (which tool, who, tenant, arguments hash, decision, result).</li>
-<li><strong>Versioning and health.</strong> Detect tool schema changes (rug pulls) and health-check servers.</li>
+<li><strong>Versioning and health.</strong> Negotiate protocol and tool versions, detect tool schema changes (rug pulls), pin the version a caller was promised, and health-check servers.</li>
 </ul>
 <h2 id="non-functional-requirements"><a class="header" href="#non-functional-requirements">Non-functional requirements</a></h2>
 <ul>
@@ -286,6 +288,10 @@ Every call (allow and deny) appears in the audit log with the reason.</li>
 A tenant cannot see or call another tenant’s tools.</li>
 <li><input disabled="" type="checkbox"/>
 I can state the gateway’s added latency per call.</li>
+<li><input disabled="" type="checkbox"/>
+The conformance suite scores the gateway’s contract quality, rejects a malformed tool result before the model sees it, and refuses a breaking schema change.</li>
+<li><input disabled="" type="checkbox"/>
+A server that disappears mid-call is handled with a timeout and recovers, and a bad gateway version rolls back without dropping requests.</li>
 </ul>
 <h2 id="stretch-goals"><a class="header" href="#stretch-goals">Stretch goals</a></h2>
 <ul>

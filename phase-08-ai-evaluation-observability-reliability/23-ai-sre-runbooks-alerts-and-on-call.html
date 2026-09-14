@@ -1,0 +1,660 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>AI SRE: Runbooks, Alerts, and On-Call - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="ai-sre-runbooks-alerts-and-on-call"><a class="header" href="#ai-sre-runbooks-alerts-and-on-call">AI SRE: Runbooks, Alerts, and On-Call</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> SRE for AI means owning the service, not just deploying it. You alert on symptoms that affect users — error-budget burn rate, latency, task success, safety, and cost — not on every internal cause. Every alert has an owner and a runbook a tired engineer can follow at 3 a.m.: symptoms, first checks, mitigation, escalation, and rollback. Paging is a scarce resource, so page only for fast, user-visible harm and send everything else to a ticket. Run an explicit rotation with a written handoff, and turn every page into a blameless postmortem with tracked action items that make the alerts quieter and better.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>Two failures happen in almost every team that runs an AI service without SRE discipline.</p>
+<p>The first is the <strong>muted alert</strong>. A rule called <code>ModelLatencyHigh</code> fired whenever the model server’s p99 latency crossed three seconds. That happened most afternoons when traffic peaked, and nobody acted on it. After a few weeks the on-call engineer muted the alert in the interface and forgot to unmute it. A month later a provider had a partial outage. Latency doubled for fifty minutes, success rate fell, and users complained — but the only latency alert was muted, so no page fired. The team found out from a customer.</p>
+<p>The second is the <strong>runbook-less guess</strong>. At 03:10 a cost alert paged the on-call engineer: spend rate was eight times the baseline. The alert had no runbook. The engineer opened four dashboards, could not tell whether the spike came from one tenant or from a retry loop, restarted the service to “clear it”, and made things worse — the restart dropped in-flight work and the queue backed up. The fix took forty minutes of guessing; the real cause was a single tool call retrying without a cap, which a runbook would have named in its first line.</p>
+<p>Neither failure was caused by a lack of skill. They happened because the team had no alert ownership, no runbooks, and no shared rule about what deserved a page. That is what this page teaches.</p>
+<blockquote>
+<p><strong>The one-sentence purpose.</strong> AI SRE is the practice of owning a service end to end: alert on what users feel, give every alert an owner and a runbook, and keep on-call sustainable so the person woken at 3 a.m. can act instead of guess.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<p>Learn these words first. They are used loosely in conversation and precisely in interviews.</p>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Service ownership</strong></td><td>One named team or person is accountable for a service’s reliability, alerts, and runbooks. No orphan services.</td></tr>
+<tr><td><strong>SLI</strong></td><td>Service Level Indicator: the number you measure, such as the fraction of requests that succeed.</td></tr>
+<tr><td><strong>SLO</strong></td><td>Service Level Objective: the target for an SLI over a window, such as 99.9% success over 30 days.</td></tr>
+<tr><td><strong>Error budget</strong></td><td>The failure an SLO allows, <code>(1 - target) × total events</code>. Failure you may spend on risk.</td></tr>
+<tr><td><strong>Alert</strong></td><td>A rule that fires when a condition is true for long enough, then routes to a human.</td></tr>
+<tr><td><strong>Symptom</strong></td><td>What the user feels: a slow answer, a wrong answer, a failed action.</td></tr>
+<tr><td><strong>Cause</strong></td><td>The internal reason a symptom happens: a full queue, a slow provider, a bad prompt.</td></tr>
+<tr><td><strong>Page</strong></td><td>An interruption now, usually out of hours, that expects a human to act.</td></tr>
+<tr><td><strong>Ticket</strong></td><td>Work queued for the next working day; nobody is woken.</td></tr>
+<tr><td><strong>Severity</strong></td><td>A label for how bad an alert is, which decides who is paged and how fast.</td></tr>
+<tr><td><strong>Signal-to-noise ratio</strong></td><td>How many alerts are real and actionable compared with alerts that are noise.</td></tr>
+<tr><td><strong>Alert fatigue</strong></td><td>The numbness that follows too many low-value alerts, so people mute or ignore them.</td></tr>
+<tr><td><strong>Runbook</strong></td><td>A short operational document attached to an alert: symptoms, checks, mitigation, escalation, rollback.</td></tr>
+<tr><td><strong>Playbook</strong></td><td>A broader document for a class of situations, containing or linking several runbooks.</td></tr>
+<tr><td><strong>Escalation policy</strong></td><td>The written order in which people are contacted, and after how long.</td></tr>
+<tr><td><strong>On-call rotation</strong></td><td>The schedule that decides who the primary responder is at any time.</td></tr>
+<tr><td><strong>Handoff</strong></td><td>The structured transfer of open alerts and context when a rotation changes.</td></tr>
+<tr><td><strong>Postmortem (blameless)</strong></td><td>A written review of an incident that names system causes, not people.</td></tr>
+<tr><td><strong>Action item</strong></td><td>A specific fix from a postmortem with one owner and a date.</td></tr>
+<tr><td><strong>Dependency map</strong></td><td>A diagram of what the service needs to work: providers, databases, queues, tools.</td></tr>
+<tr><td><strong>Critical path</strong></td><td>The chain of dependencies a request must pass through to succeed; a failure anywhere on it is user-visible.</td></tr>
+</tbody></table>
+</div>
+<p>Three distinctions matter most:</p>
+<ul>
+<li><strong>Symptom vs cause.</strong> Users feel symptoms; engineers find causes. You alert on symptoms so the alert fires exactly when harm is happening, and you diagnose with causes.</li>
+<li><strong>Page vs ticket.</strong> A page spends a human’s sleep; a ticket spends their afternoon. Spend the sleep only when waiting until morning would make the harm much worse.</li>
+<li><strong>Runbook vs playbook.</strong> A runbook is per-alert and short. A playbook covers a class of problems. Start with runbooks; they are what the on-call actually opens under pressure.</li>
+</ul>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Think of a smoke detector. A good detector raises the alarm when there is smoke — a symptom — not every time someone cooks toast. The alarm must be rare enough that you always believe it, and loud enough that you always act. A sensor for every possible cause (heat, gas, dust, humidity) would cry wolf and get its battery pulled.</p>
+<p>Alerting works the same way. <strong>Alert on the symptoms users feel, and let the causes live on dashboards and in traces.</strong> The pager is a scarce, expensive resource: every page costs a person’s attention, and enough cheap pages cost you the real one.</p>
+<pre><code class="language-mermaid">flowchart TD
+    S["A measurement crosses a threshold"] --&gt; Q{"Does it affect users&lt;br/&gt;or spend the error budget?"}
+    Q --&gt;|"no"| D["Dashboard or log only"]
+    Q --&gt;|"yes"| R{"How fast is the budget burning?"}
+    R --&gt;|"fast: 14.4x over 1h,&lt;br/&gt;confirmed over 5m"| P["Page the on-call now"]
+    R --&gt;|"slow: 6x over 6h,&lt;br/&gt;confirmed over 30m"| P
+    R --&gt;|"chronic: 1x to 3x over days"| T["Open a ticket"]
+    P --&gt; RB["Follow the runbook:&lt;br/&gt;mitigate, confirm, postmortem"]
+    T --&gt; W["Fix next working day"]
+    RB -.-&gt;|"learn"| A["Add or prune an alert"]
+    A -.-&gt; S
+</code></pre>
+<p>The page decision is not “is there an error?” It is “is the error budget draining fast enough that waiting until morning would cost more than waking someone?” That is the burn rate.</p>
+<p><strong>Paging on error-budget burn rate.</strong> The error budget is the failure your SLO allows over a window. The <strong>burn rate</strong> is how fast you are spending it, relative to the sustainable rate: <code>burn_rate = observed_error_rate ÷ (1 - SLO)</code>. A burn of 1 exactly empties the budget at the end of the window. A burn of 14.4 empties a 30-day budget in about two days, so one hour at 14.4× costs about 2% of the whole window budget — that is worth a page. A steady burn of 1× costs about 10% over three days — that is a ticket, not a wake-up call. The thresholds are chosen from the percentage of budget spent per unit of time, so they mean the same thing for every service.</p>
+<p>The table below is the routing rule to memorise:</p>
+<div class="table-wrapper"><table><thead><tr><th>Signal</th><th>Alert?</th><th>Route to</th><th>What the runbook does</th></tr></thead><tbody>
+<tr><td>Provider error ratio is 20× the allowed rate for 1 hour</td><td>Page</td><td>Primary on-call</td><td>Fail over to the fallback model; confirm the success rate recovers</td></tr>
+<tr><td>Provider error ratio is 6× the allowed rate for 6 hours</td><td>Page (slow burn)</td><td>Primary on-call</td><td>Check for a bad deploy or provider degradation; mitigate or ticket</td></tr>
+<tr><td>Error ratio is 1.2× the allowed rate for 3 days</td><td>Ticket</td><td>Service team</td><td>Investigate the leak in normal hours; the budget still lasts weeks</td></tr>
+<tr><td>p99 latency is 20% above target for a day</td><td>Ticket</td><td>Service team</td><td>Examine retrieval, batching, and provider latency; no wake-up needed</td></tr>
+<tr><td>Cost per successful task is 5× baseline for 10 minutes</td><td>Page (safety)</td><td>On-call + budget owner</td><td>Trip the spend breaker; cap turns and tokens</td></tr>
+<tr><td>Refusal rate rose 2 points in a day</td><td>Ticket</td><td>Quality owner</td><td>Sample outputs and check prompt and model versions</td></tr>
+<tr><td>One tool call failed once</td><td>No alert</td><td>Dashboard and logs</td><td>Nothing; the request was retried successfully</td></tr>
+<tr><td>Certificate expires in 14 days</td><td>Ticket</td><td>Platform team</td><td>Renew and verify; automate it next time</td></tr>
+<tr><td>Disk is 80% full on a cache node</td><td>Ticket</td><td>Platform team</td><td>Expand the volume before it becomes user-visible</td></tr>
+</tbody></table>
+</div>
+<p>The pattern is simple: <strong>if a single request failing would page you, you will be paged constantly.</strong> Page on a rate over a window, route by how fast that rate spends the budget, and involve a human only when the answer cannot wait until morning.</p>
+<blockquote>
+<p><strong>The mental model in one line.</strong> A page is a promise that the problem is worth someone’s sleep; a runbook is the promise that they will know what to do when they wake.</p>
+</blockquote>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p>Follow one service from “no alerting” to “owned and sustainable”.</p>
+<ol>
+<li><strong>Define the SLOs first.</strong> An alert has nothing to measure against until you have written down what “healthy” means. Pick the user journey, define the SLI as a ratio or a threshold fraction, and set the target and window. For AI, include at least one quality SLI and one cost SLI, not only availability.</li>
+<li><strong>Derive alerts from the burn rate, with fast and slow windows.</strong> Do not invent a threshold from a feeling. Compute the burn rate from the SLO, and choose thresholds by how much budget they spend. Use two windows in each tier: a short one to detect quickly and a long one to confirm the burn is not a blip.</li>
+<li><strong>Route by severity.</strong> Label each alert <code>page</code> or <code>ticket</code>. Pages go to the on-call pager; tickets go to a work queue. Add <code>service</code>, <code>slo</code>, and <code>owner</code> labels so the alert is self-describing and routable.</li>
+<li><strong>Write a runbook for every page.</strong> A runbook has five parts: the symptoms you can see, the first checks to run, the mitigation to apply, the escalation path, and the rollback. If an alert can page, its annotations must link the runbook.</li>
+<li><strong>Assign an owner to every service and every alert.</strong> Ownership means one team is accountable for the SLO and for keeping the alert and runbook correct. A service without an owner produces alerts nobody tunes.</li>
+<li><strong>Run a rotation with an explicit handoff.</strong> Define primary and secondary, the escalation order, and the response time. At every rotation change, hand over open alerts, ongoing work, and anything recent that might flare up. A verbal “you are on now” is not a handoff.</li>
+<li><strong>Hold a blameless postmortem after pages and incidents.</strong> Review what happened, what made detection slow, and what would have caught it sooner. Blameless means the story names systems, not people, so nobody hides information.</li>
+<li><strong>Track action items to completion.</strong> Every postmortem produces specific, owned, dated fixes. A postmortem with no closed actions is a story. The best action item makes an alert quieter or a runbook shorter.</li>
+<li><strong>Prune or fix noisy alerts every rotation.</strong> Review the pages from the last period. Each one either led to an action (keep it) or it did not (fix the threshold, make it a ticket, or delete it). An alert nobody trusts is worse than no alert, because it teaches people to ignore the next one.</li>
+</ol>
+<p><strong>What a runbook must contain, every time.</strong> The five parts are non-negotiable because they answer the questions a person asks under stress: <em>What am I looking at? Where do I look first? What do I do? Who do I call? How do I undo it?</em> Keep it short, put the most likely fix first, and make every command copy-pasteable. A runbook is not documentation of how the system works; it is a script for a tired human.</p>
+<p>A useful way to test a runbook without waiting for a real incident is a <strong>game day</strong>: pick an alert, simulate the failure in staging, and ask someone who did not write the runbook to follow it while you watch. If they get stuck, the runbook is wrong, not the person.</p>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p>These are real production forms. Read them once; the examples that follow use them.</p>
+<p><strong>Recording rules: the burn-rate inputs.</strong> Precompute the error ratio at each window so every alert and dashboard reads the same number. The ratio is <code>bad ÷ total</code>.</p>
+<pre><code class="language-yaml"># ai-slo-rules.yaml — recording rules, evaluated every 30s
+groups:
+  - name: ai-slo-inputs
+    interval: 30s
+    rules:
+      - record: slo:error_ratio:5m
+        expr: |
+          sum(rate(ai_requests_total{outcome="bad"}[5m]))
+          /
+          sum(rate(ai_requests_total[5m]))
+      - record: slo:error_ratio:30m
+        expr: |
+          sum(rate(ai_requests_total{outcome="bad"}[30m]))
+          /
+          sum(rate(ai_requests_total[30m]))
+      - record: slo:error_ratio:1h
+        expr: |
+          sum(rate(ai_requests_total{outcome="bad"}[1h]))
+          /
+          sum(rate(ai_requests_total[1h]))
+      - record: slo:error_ratio:6h
+        expr: |
+          sum(rate(ai_requests_total{outcome="bad"}[6h]))
+          /
+          sum(rate(ai_requests_total[6h]))
+      - record: slo:error_ratio:3d
+        expr: |
+          sum(rate(ai_requests_total{outcome="bad"}[3d]))
+          /
+          sum(rate(ai_requests_total[3d]))
+</code></pre>
+<p>Each rule yields a fraction between 0 and 1. Dividing by the allowed error rate (<code>0.001</code> for a 99.9% target) turns it into a burn rate. Keeping the windows as shared recording rules means the alert and the dashboard cannot disagree.</p>
+<p><strong>The multi-window burn-rate alert rule.</strong> Two tiers page; the long window confirms the short one.</p>
+<pre><code class="language-yaml"># ai-slo-alerts.yaml — alerting rules
+groups:
+  - name: ai-slo-burn
+    rules:
+      # Fast burn: 14.4x over 1h, confirmed over 5m. About 2% of the 30d budget per hour.
+      - alert: AIFastBurn
+        expr: |
+          (slo:error_ratio:1h / 0.001 &gt; 14.4)
+          and
+          (slo:error_ratio:5m / 0.001 &gt; 14.4)
+        for: 2m
+        labels:
+          severity: page
+          service: agent-api
+          slo: availability
+        annotations:
+          summary: "agent-api is burning its 30d error budget fast (14.4x)"
+          description: "Both the 1h and 5m windows exceed 14.4x; roughly 2% of the budget per hour."
+          runbook_url: "https://runbooks.example.com/agent-api/fast-burn"
+
+      # Slow burn: 6x over 6h, confirmed over 30m. About 5% of the 30d budget per 6h.
+      - alert: AISlowBurn
+        expr: |
+          (slo:error_ratio:6h / 0.001 &gt; 6)
+          and
+          (slo:error_ratio:30m / 0.001 &gt; 6)
+        for: 15m
+        labels:
+          severity: page
+          service: agent-api
+          slo: availability
+        annotations:
+          summary: "agent-api is burning its 30d error budget steadily (6x)"
+          description: "Both the 6h and 30m windows exceed 6x; the budget lasts about five days at this rate."
+          runbook_url: "https://runbooks.example.com/agent-api/slow-burn"
+
+      # Chronic burn: 1x over 3d, confirmed over 6h. About 10% of the budget over three days.
+      - alert: AIChronicBurn
+        expr: |
+          (slo:error_ratio:3d / 0.001 &gt; 1)
+          and
+          (slo:error_ratio:6h / 0.001 &gt; 1)
+        for: 1h
+        labels:
+          severity: ticket
+          service: agent-api
+          slo: availability
+        annotations:
+          summary: "agent-api is slowly out of budget at steady traffic"
+          description: "Both the 3d and 6h windows are above 1x; about 10% of the budget over three days."
+          runbook_url: "https://runbooks.example.com/agent-api/chronic-burn"
+</code></pre>
+<p>The <code>and</code> is the important part. A five-minute spike clears the short window but not the long one, so it never wakes anyone. A slow leak clears both, so it pages once rather than never. The chronic tier never crosses the page thresholds, so it becomes a ticket for the next working day.</p>
+<p><strong>Alertmanager routing and inhibition.</strong> One alert, one route. Inhibition stops a ticket from being opened for a problem the page already covers.</p>
+<pre><code class="language-yaml"># alertmanager.yml
+route:
+  receiver: ticket-queue
+  group_by: [alertname, service]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity="page"
+      receiver: pagerduty
+      group_wait: 10s
+      repeat_interval: 1h
+      continue: false
+    - matchers:
+        - severity="ticket"
+      receiver: jira
+      repeat_interval: 24h
+
+inhibit_rules:
+  # A page for this service already covers the cause, so suppress the ticket.
+  - source_matchers:
+      - severity="page"
+    target_matchers:
+      - severity="ticket"
+    equal: [service]
+</code></pre>
+<p><code>matchers</code> uses the string form <code>label="value"</code>. Routes are checked in order and the first match wins unless <code>continue: true</code>. Inhibition stops one underlying problem from producing both a page and a ticket, or a parent alert and all of its children. The <code>receivers:</code> block (the page, ticket, and chat integrations) is omitted above for space; <code>amtool check-config</code> fails until every receiver named in <code>route</code> is defined.</p>
+<p><strong>A runbook template.</strong> Five parts, short, with a link from the alert annotation.</p>
+<pre><code class="language-markdown">## Runbook: AIFastBurn (service: agent-api)
+
+**Owner:** Agent Platform team | **Severity:** page | **Last tested:** 2026-08-12
+
+### Symptoms
+- Success rate below the 99.9% SLO and falling.
+- Users may see failed or retried AI requests.
+
+### First checks (2 minutes)
+1. `kubectl get pods -n agent-api` — are pods restarting?
+2. Open the SLO dashboard; which `outcome="bad"` reason dominates?
+3. `kubectl rollout history deploy/agent-api` — was there a deploy in the last hour?
+4. Check the provider status page.
+
+### Mitigation (first one that applies)
+1. Provider errors → `kubectl set env deploy/agent-api MODEL_PROVIDER=fallback`
+2. Bad deploy → `kubectl rollout undo deploy/agent-api`
+3. One bad tool → `flagctl set agent.tools.web_search.enabled=false`
+4. Unknown → page the secondary and declare an incident.
+
+### Confirm
+- Success rate back above target and burn below 1x for 10 minutes.
+
+### Escalate
+- 15 minutes with no improvement: page the secondary.
+- 30 minutes: page the engineering manager and open a SEV2.
+
+### Rollback
+- Invert the mitigation with the same command; the flag tool records the change.
+</code></pre>
+<p><strong>A small check command.</strong> Validate the rules and the routing before you commit, so a broken rule never reaches production.</p>
+<pre><code class="language-bash"># Syntax and semantics of the alert rules.
+promtool check rules deploy/prometheus/ai-slo-alerts.yaml
+
+# Routing and inhibition configuration.
+amtool check-config deploy/alertmanager/alertmanager.yml
+
+# Send a synthetic alert through the real route without a real incident.
+amtool alert add alertname=AIFastBurn severity=page service=agent-api \
+  --alertmanager.url=http://localhost:9093
+</code></pre>
+<p><code>promtool</code> and <code>amtool</code> are the standard command-line tools for Prometheus and Alertmanager. Run them in CI so a malformed rule or route fails the build.</p>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p><strong>Example 1 — a noisy cause-based alert versus an actionable symptom-based one.</strong> This is the difference that removes most alert fatigue.</p>
+<pre><code class="language-yaml"># Cause-based: fires on the model server's internal queue depth.
+- alert: ModelQueueDeep
+  expr: model_queue_depth &gt; 5
+  for: 1m
+  labels:
+    severity: page
+  annotations:
+    summary: "Model queue is deeper than 5"
+</code></pre>
+<p>This fired forty times a week. The queue often crosses five during an ordinary traffic peak, and by the time a human looked it had drained. Nothing bad happened, so people stopped reading it. A cause-based alert fires whenever an internal component is uncomfortable, which is most of the time.</p>
+<pre><code class="language-yaml"># Symptom-based: fires only when the budget is draining fast.
+- alert: AIFastBurn
+  expr: |
+    (slo:error_ratio:1h / 0.001 &gt; 14.4)
+    and
+    (slo:error_ratio:5m / 0.001 &gt; 14.4)
+  for: 2m
+  labels:
+    severity: page
+  annotations:
+    summary: "agent-api is burning its error budget fast"
+</code></pre>
+<p>This fires when users are actually being harmed and the harm is fast enough to matter. A deep queue that drains itself never pages, because the success-rate SLI never moves. <strong>One symptom alert replaces a dozen cause alerts, and it is true exactly when a human needs to act.</strong></p>
+<p><strong>Example 2 — fast and slow windows in one policy.</strong> The tiers below page on severe outages and on chronic ones, and send the long, slow leak to a ticket.</p>
+<div class="table-wrapper"><table><thead><tr><th>Tier</th><th>Long window</th><th>Short window</th><th>Burn threshold</th><th>Budget spent</th><th>Severity</th></tr></thead><tbody>
+<tr><td>Fast</td><td>1h</td><td>5m</td><td>14.4×</td><td>~2% per hour</td><td>page</td></tr>
+<tr><td>Slow</td><td>6h</td><td>30m</td><td>6×</td><td>~5% per 6 hours</td><td>page</td></tr>
+<tr><td>Chronic</td><td>3d</td><td>6h</td><td>1×</td><td>~10% per 3 days</td><td>ticket</td></tr>
+</tbody></table>
+</div>
+<pre><code class="language-python">def route(burn_1h, burn_5m, burn_6h, burn_30m, burn_3d):
+    if burn_1h &gt; 14.4 and burn_5m &gt; 14.4:
+        return "page"      # fast: about 2% of the budget per hour
+    if burn_6h &gt; 6 and burn_30m &gt; 6:
+        return "page"      # slow: about 5% of the budget per 6 hours
+    if burn_3d &gt; 1 and burn_6h &gt; 1:
+        return "ticket"    # chronic: about 10% of the budget over 3 days
+    return "no alert"
+
+print(route(20.0, 20.0, 8.0, 8.0, 2.0))   # page   (fast outage)
+print(route(2.0, 2.0, 8.0, 8.0, 2.0))     # page   (slow burn confirmed)
+print(route(2.0, 2.0, 2.0, 2.0, 1.5))     # ticket (chronic leak)
+print(route(2.0, 20.0, 2.0, 2.0, 0.5))    # no alert (5m blip only)
+</code></pre>
+<p>The short window catches the burn quickly; the long window proves it is not a blip. Requiring both is what lets you page fast without paging often. Note that the chronic tier is a ticket: at 1.5× the budget lasts weeks, and waking someone buys almost nothing.</p>
+<p><strong>Example 3 — a runbook an on-call engineer can follow at 3 a.m.</strong> A good runbook assumes the reader is tired, does not know the system deeply, and has two minutes to orient.</p>
+<pre><code class="language-markdown">## Runbook: AISlowBurn (service: agent-api)
+
+**Owner:** Agent Platform team | **Severity:** page
+
+### Symptoms
+- Success rate has been below the SLO for hours, not minutes.
+- No single deploy stands out; the failures are spread over time.
+
+### First checks (2 minutes)
+1. Open the SLO dashboard and read the `outcome="bad"` breakdown.
+2. `kubectl get events -n agent-api --sort-by=.lastTimestamp | tail -20`
+3. Check provider status and the last model or prompt change.
+
+### Mitigation
+1. If one `outcome` dominates and started after a deploy → `kubectl rollout undo deploy/agent-api`.
+2. If errors cluster on one tool → disable it: `flagctl set agent.tools.web_search.enabled=false`.
+3. If the provider is degraded → `kubectl set env deploy/agent-api MODEL_PROVIDER=fallback`.
+
+### Confirm
+- Burn below 1x for 30 minutes before you close.
+
+### Escalate
+- 30 minutes with no improvement: page the secondary and declare a SEV2.
+
+### Rollback
+- Invert the command; flags and environment changes are versioned and reversible.
+</code></pre>
+<p>Why it works at 3 a.m.:</p>
+<ul>
+<li><strong>Symptoms first</strong>, so the reader knows what “bad” looks like before touching anything.</li>
+<li><strong>Numbered checks</strong>, each one command, so there is no decision about where to start.</li>
+<li><strong>Mitigation ordered most-likely-first</strong>, so the common case needs no thought.</li>
+<li><strong>A confirmation step</strong>, so a mitigation that did not work is not mistaken for a fix.</li>
+<li><strong>Escalation with a clock</strong>, so the responder knows when asking for help is correct rather than weak.</li>
+<li><strong>Rollback</strong>, so every action can be undone.</li>
+</ul>
+<p><strong>Example 4 — an alert that should be a ticket, not a page.</strong> Pages are for harm that grows if you wait. This one does not grow.</p>
+<pre><code class="language-yaml">- alert: AICertificateExpiringSoon
+  expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 &lt; 14   # Blackbox exporter
+  for: 1h
+  labels:
+    severity: ticket
+  annotations:
+    summary: "TLS certificate for {{ $labels.instance }} expires in under 14 days"
+    runbook_url: "https://runbooks.example.com/platform/renew-tls"
+</code></pre>
+<p>If this alert paged, it would wake someone at 3 a.m. for a certificate that still has two weeks of life. The work is real, but it does not grow between midnight and 9 a.m., so it belongs in a ticket queue. The same logic moves “error budget is 80% spent” to a ticket, and keeps “we are burning the budget 14× an hour” as a page. <strong>The test is not “is this important?” but “does waiting until morning make it much worse?”</strong></p>
+<p><strong>Example 5 — an AI-specific case: latency rises while success stays inside budget.</strong> Availability is green, so an availability-only alert is silent, but users are waiting longer and the latency SLI is quietly draining.</p>
+<pre><code class="language-yaml"># The latency SLI counts the fraction of requests under 2s; the SLO is 99%.
+# The allowed error rate is 1% (0.01). Rising provider latency burns it slowly.
+# The latency_error_ratio recording rules are built the same way as the error rules.
+- alert: AILatencySlowBurn
+  expr: |
+    (slo:latency_error_ratio:6h / 0.01 &gt; 3)
+    and
+    (slo:latency_error_ratio:30m / 0.01 &gt; 3)
+  for: 15m
+  labels:
+    severity: ticket
+    service: agent-api
+    slo: latency_under_2s
+  annotations:
+    summary: "More than 1% of requests are over 2s and the latency budget is draining"
+    runbook_url: "https://runbooks.example.com/agent-api/latency-burn"
+</code></pre>
+<p>A provider’s latency crept up by 40%, so more requests crossed the two-second line. Every request still succeeded, so the availability SLO stayed green — but the latency SLO was burning at 3×, which is a ticket. The runbook checks whether the retrieval step or the provider is responsible, and whether warming the fallback provider is cheaper than waiting. <strong>For AI, quality, latency, and cost signals move independently of one another, so a green availability number is not a green service.</strong> When latency and error rate rise together, the fast-burn page usually fires first; when only latency rises, the slow-burn ticket catches a problem the error-rate page would miss.</p>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>Page on user-visible symptoms, not internal causes.</strong> A pager that fires on queue depth, CPU, or a single failed call will be muted. Page on success rate, latency, safety, and cost — the things a user or customer would notice.</li>
+<li><strong>Every alert needs an owner and a runbook.</strong> An alert with no owner is nobody’s job; an alert with no runbook is a puzzle at 3 a.m. Put the runbook link in the alert’s annotations so it is one click away.</li>
+<li><strong>Alert fatigue is an outage waiting to happen.</strong> Every false page trains people to ignore the next one. Treat a noisy alert as a defect and fix it in the current rotation, not “later”.</li>
+<li><strong>Burn-rate windows catch both fast and slow failures.</strong> A single threshold either pages on blips or misses a slow leak. Pair a short and a long window, and let the slow tier become a ticket.</li>
+<li><strong>Separate page from ticket.</strong> A page spends someone’s sleep; a ticket spends their afternoon. If waiting until morning does not make the harm much worse, it is a ticket.</li>
+<li><strong>AI quality is a signal too.</strong> Monitor drift, refusal rate, task success, safety-rule violations, and cost per request. These can decay with no error code and no red dashboard, which is exactly why they need alerts.</li>
+<li><strong>Map your dependencies, and alert on the critical path.</strong> You cannot mitigate a provider outage if nobody wrote down that the provider is a dependency. The dependency map tells you what to fail over to and who to escalate to.</li>
+<li><strong>Test your runbooks and your alerts.</strong> Run a game day: simulate the failure, have someone follow the runbook, and fix what confuses them. Unit-test the rules with <code>promtool test rules</code> so a threshold change cannot silently break the logic.</li>
+<li><strong>Postmortems are blameless and produce tracked actions.</strong> Name systems, not people, so information flows. Then give every action item one owner and a date, and close them; a postmortem with no closed actions changes nothing.</li>
+<li><strong>Rotate and hand off explicitly.</strong> Define primary and secondary, a written escalation policy, and a handoff at every change: open alerts, ongoing work, and anything likely to flare. A healthy rotation has time to sleep and time to do the reliability work it keeps discovering.</li>
+<li><strong>Measure alert precision, not alert count.</strong> Track the fraction of pages that led to a real action. Above roughly half is a working system; below that, you are training people to ignore the pager. Fewer, better alerts beat more coverage.</li>
+<li><strong>Escalate on time, before you are stuck.</strong> Escalating is not failing. A written policy that says “page the secondary after 15 minutes” makes asking for help the default instead of a judgement call under stress.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-should-you-alert-on-symptoms-or-causes-why"><a class="header" href="#1-should-you-alert-on-symptoms-or-causes-why">1. Should you alert on symptoms or causes? Why?</a></h3>
+<p><strong>Answer.</strong> Alert on symptoms: the things users feel, such as a failing request, a slow answer, a wrong answer, or a rising cost. Symptoms are what the SLO measures, and they fire exactly when a human needs to act. Causes — queue depth, cache hit rate, one provider’s error count — belong on dashboards and traces, because they are often true while users are fine. You diagnose with causes; you alert on symptoms.</p>
+<p><strong>Follow-up: “Is there any cause you would page on?”</strong> Yes, when the cause is a leading indicator with a known, short lead time to harm — for example, a certificate expiring in an hour, or a dependency that is known to fail hard. Even then, prefer to page on the symptom it will produce, and use the cause only if it buys useful warning.</p>
+<p><strong>Trap.</strong> Alerting on every internal metric you happen to have. That produces many alerts, most of them false, and teaches the team to ignore the pager.</p>
+<h3 id="2-explain-multi-window-multi-burn-rate-alerting"><a class="header" href="#2-explain-multi-window-multi-burn-rate-alerting">2. Explain multi-window, multi-burn-rate alerting.</a></h3>
+<p><strong>Answer.</strong> You alert on how fast the error budget is draining, not on the raw error rate. The burn rate is the observed error rate divided by the allowed error rate, <code>error_rate / (1 - SLO)</code>. You use pairs of windows: a short window detects quickly and a long window confirms the burn is sustained, and both must exceed the threshold for the alert to fire. A fast tier (14.4× over 1h, confirmed over 5m) pages on severe outages; a slower tier (6× over 6h, confirmed over 30m) pages on steady leaks; a chronic tier (1× over 3d, confirmed over 6h) opens a ticket. The thresholds come from the percentage of the budget they spend per hour or day.</p>
+<p><strong>Follow-up: “Why require the long window at all?”</strong> To filter noise. A five-minute spike clears the short window but not the long one, so a transient blip does not wake anyone. The long window costs a little detection latency in exchange for far fewer false pages.</p>
+<p><strong>Trap.</strong> Using a single window. Set the threshold high and you miss slow leaks; set it low and you page on every blip. The pair is what gives speed without crying wolf.</p>
+<h3 id="3-what-makes-a-runbook-usable-at-3-am"><a class="header" href="#3-what-makes-a-runbook-usable-at-3-am">3. What makes a runbook usable at 3 a.m.?</a></h3>
+<p><strong>Answer.</strong> Five parts, in a fixed order: symptoms, first checks, mitigation, escalation, and rollback. Make each check a single copy-pasteable command, put the most likely mitigation first, and include a confirmation step so a non-fix is not mistaken for a fix. Keep it short, link it from the alert annotation, and test it in a game day with someone who did not write it.</p>
+<p><strong>Follow-up: “What is the difference between a runbook and a playbook?”</strong> A runbook is attached to one alert and is short and specific. A playbook covers a class of situations, such as “provider outage”, and links the relevant runbooks together. Start with runbooks, because they are what the on-call opens under pressure.</p>
+<p><strong>Trap.</strong> Writing a runbook that explains the architecture instead of the actions. The reader does not need a design document at 3 a.m.; they need the next command.</p>
+<h3 id="4-how-do-you-decide-between-a-page-and-a-ticket"><a class="header" href="#4-how-do-you-decide-between-a-page-and-a-ticket">4. How do you decide between a page and a ticket?</a></h3>
+<p><strong>Answer.</strong> Ask whether waiting until morning makes the harm much worse. If the budget is draining fast, users are actively failing, or safety or money is at risk, page. If the problem is real but stable — a certificate with two weeks left, an error budget that is 80% spent, a slow quality drift — open a ticket. Severity labels make the routing explicit, and Alertmanager sends <code>page</code> to the pager and <code>ticket</code> to the work queue.</p>
+<p><strong>Follow-up: “How do you set severity from impact?”</strong> From blast radius and harm type: unsafe output, data loss, or a large fraction of users affected is the top severity; a smaller fraction or a high cost rate is the next; a single user or a slow trend is lower. Encode the thresholds so two engineers classify the same event the same way.</p>
+<p><strong>Trap.</strong> Paging because something is technically broken rather than because users are harmed. A broken internal component with a working fallback is a ticket, not a wake-up call.</p>
+<h3 id="5-what-is-alert-fatigue-and-how-do-you-measure-and-fix-it"><a class="header" href="#5-what-is-alert-fatigue-and-how-do-you-measure-and-fix-it">5. What is alert fatigue, and how do you measure and fix it?</a></h3>
+<p><strong>Answer.</strong> Alert fatigue is the numbness that comes from too many low-value alerts, so people mute, ignore, or batch-acknowledge them and miss the real one. Measure it with alert precision: the fraction of pages that led to a real action, plus the number of pages per on-call shift and how often alerts are muted. Fix it by deleting or retuning noisy alerts, converting causes to tickets, raising thresholds, and adding inhibition so one problem produces one notification.</p>
+<p><strong>Follow-up: “What precision should you target?”</strong> Aim for most pages to be actionable; a common working target is more than half of pages leading to an action. If it is much lower, the pager is a notification stream, not an alarm. Track the trend over rotations, not a single week.</p>
+<p><strong>Trap.</strong> Treating “more alerts” as “more coverage”. Coverage comes from the SLOs and the dependency map; an alert is worth keeping only if a human acts on it.</p>
+<h3 id="6-how-do-you-keep-an-on-call-rotation-sustainable"><a class="header" href="#6-how-do-you-keep-an-on-call-rotation-sustainable">6. How do you keep an on-call rotation sustainable?</a></h3>
+<p><strong>Answer.</strong> Use a defined rotation with a primary and a secondary, a written escalation policy with time limits, and an explicit handoff at every changeover covering open alerts, in-flight work, and anything likely to flare. Keep the pager load low through good alerting, give people time to do the reliability work they discover, and rotate so the same person is not always woken. Sustainability is a requirement, not a luxury: exhausted responders make worse decisions and leave.</p>
+<p><strong>Follow-up: “What belongs in a handoff?”</strong> Open and recently fired alerts, ongoing mitigations and their owners, upcoming risky changes such as deploys or model updates, and any alert that is currently flaky. The handoff is a short written note plus a conversation — not a ticket reassignment.</p>
+<p><strong>Trap.</strong> Relying on a hero who always answers. Heroics hide a broken alerting system and burn out the one person holding it together.</p>
+<h3 id="7-which-ai-specific-signals-should-you-alert-on"><a class="header" href="#7-which-ai-specific-signals-should-you-alert-on">7. Which AI-specific signals should you alert on?</a></h3>
+<p><strong>Answer.</strong> Alongside the usual availability and latency, alert on task success rate, unsafe-output rate, refusal rate, drift in input or output distributions, and cost per successful task or per request. Quality and cost can move with no error code, so they need their own SLIs and burn-rate alerts. Judge quality on a sample with a versioned evaluator, and treat a fast quality burn like any other fast burn: page. A slow drift is a ticket.</p>
+<p><strong>Follow-up: “How do you alert on quality without a hard threshold?”</strong> Compare the current window with a baseline using the same ratio machinery as availability, and use statistical tests for small samples so you do not page on variance. Set the SLO on the fraction of good outcomes and alert on its burn rate, exactly as you would for availability.</p>
+<p><strong>Trap.</strong> Monitoring only errors and latency. A model that returns 200 with worse answers, or a retry loop that doubles cost, is invisible to both — and is a real incident.</p>
+<h3 id="8-how-do-you-turn-a-postmortem-into-fewer-better-alerts"><a class="header" href="#8-how-do-you-turn-a-postmortem-into-fewer-better-alerts">8. How do you turn a postmortem into fewer, better alerts?</a></h3>
+<p><strong>Answer.</strong> Write the postmortem blamelessly, focused on system causes, and ask two alerting questions: what signal existed before the incident, and why did no alert fire on it — or why did an alert fire that nobody trusted? Then create owned, dated action items. Good actions usually do one of three things: add a symptom alert that would have caught it sooner, delete or retune a noisy alert, or shorten and correct a runbook. Close the action items, and verify the new alert actually fires in a game day.</p>
+<p><strong>Follow-up: “How do dependencies fit in?”</strong> Many incidents are a dependency failing on your critical path. Keep a dependency map and use it to decide what to fail over to, what to alert on, and who to escalate to. If a dependency is on the critical path, its failure is your symptom.</p>
+<p><strong>Trap.</strong> Writing a postmortem that ends with “be more careful”, or action items that are never closed. If nothing changes in the alerting or the runbooks, the same page will wake someone again.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>Alert on symptoms users feel, not on every internal cause.</strong> One good SLO burn-rate alert replaces a dozen noisy cause alerts.</li>
+<li><strong>Burn rate decides urgency.</strong> Page for fast and sustained burns; send the chronic leak to a ticket. Pair a short and a long window so you are fast without crying wolf.</li>
+<li><strong>Every page needs an owner and a runbook</strong> with symptoms, checks, mitigation, escalation, and rollback — tested with someone who did not write it.</li>
+<li><strong>On-call must be sustainable.</strong> Rotate with an explicit handoff and a written escalation policy, and measure alert precision so the pager stays trustworthy.</li>
+<li><strong>Blameless postmortems produce tracked actions</strong> that add, fix, or delete alerts; dependencies on the critical path are part of the service you own.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-08-ai-evaluation-observability-reliability/22-incident-response-for-ai-systems.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-08-ai-evaluation-observability-reliability/24-load-chaos-and-incident-drills.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-08-ai-evaluation-observability-reliability/22-incident-response-for-ai-systems.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-08-ai-evaluation-observability-reliability/24-load-chaos-and-incident-drills.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

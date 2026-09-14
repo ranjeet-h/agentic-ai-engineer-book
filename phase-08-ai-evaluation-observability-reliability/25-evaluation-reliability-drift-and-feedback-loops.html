@@ -1,0 +1,571 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Evaluation Reliability, Drift, and Feedback Loops - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="evaluation-reliability-drift-and-feedback-loops"><a class="header" href="#evaluation-reliability-drift-and-feedback-loops">Evaluation Reliability, Drift, and Feedback Loops</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> The evaluation is a production system, not a script you run once. A hosted judge can be upgraded under you, a rubric can be edited, and a dataset can go stale, so the same code scores differently even when nothing in your system changed. Pin the judge model and prompt, record their versions with every score, measure the judge’s agreement and flakiness, re-calibrate after any judge change, watch the dataset and production inputs for drift, canary a change before wide rollout, and admit production failures into the golden set only after human review. <strong>A metric you cannot trust is worse than no metric, because people act on it.</strong></p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>A support team ships an evaluator. The CI gate scores answers for <strong>faithfulness</strong> — does the answer stick to the retrieved evidence? — using a hosted judge. The judge is pinned by name only: <code>provider/strong-model</code>, temperature <code>0</code>. It has worked for months.</p>
+<p>On a Tuesday the provider upgrades <code>strong-model</code> behind the same name. The new revision is stricter. The mean faithfulness score falls from <code>0.86</code> to <code>0.79</code>. The build goes red.</p>
+<p>The team spends two days on the retriever. Nothing is wrong with it. Then someone re-runs last month’s known-good release under the new judge. It also scores <code>0.79</code>. <strong>The judge moved; the system did not.</strong> The regression was in the measuring instrument.</p>
+<p>The same failure runs the other way, and that direction is worse. A lenient judge upgrade lifts every score by three points. A real regression lands at <code>0.85</code> instead of <code>0.82</code> and passes the gate. A green build says the system is fine while users get worse answers.</p>
+<p>A third version needs no provider at all. An assistant suggests replies, users accept some, and the accepted replies are harvested into the evaluation set. Now the set is made of the model’s own outputs, and the same model family judges them. Each cycle the score rises while the system drifts towards its own habits. It becomes confident about its own mistakes because nothing in the loop ever disagrees with it. That is a <strong>feedback loop</strong>, and it quietly deletes the ground truth the score was meant to measure.</p>
+<p>These are one bug in three costumes: <strong>nobody was watching the watcher.</strong> Offline evaluation, the judge, and the dataset get treated as fixed infrastructure. They are not. They are code, data, and hosted models, and every one of them can drift. This page is about making the measurement as reliable as the system it measures.</p>
+<blockquote>
+<p><strong>Note.</strong> Evaluation reliability asks a different question from quality. Quality asks “is the system good?” Reliability asks “is the number that says so still telling the truth?”</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Evaluator drift</strong></td><td>The score moves because the evaluator changed, not the system under test.</td></tr>
+<tr><td><strong>Judge flakiness</strong></td><td>The same judge gives different scores for the same item with no change.</td></tr>
+<tr><td><strong>Position bias</strong></td><td>A judge prefers whichever answer is shown first.</td></tr>
+<tr><td><strong>Verbosity bias</strong></td><td>A judge prefers longer answers even when length adds nothing.</td></tr>
+<tr><td><strong>Self-preference</strong></td><td>A judge prefers text in its own style, or from its own model family.</td></tr>
+<tr><td><strong>Calibration</strong></td><td>Checking the judge against human labels and correcting it.</td></tr>
+<tr><td><strong>Human agreement</strong></td><td>How often the judge and a human give the same label.</td></tr>
+<tr><td><strong>Dataset staleness</strong></td><td>The evaluation cases no longer look like live traffic.</td></tr>
+<tr><td><strong>Data drift</strong></td><td>The distribution of inputs changes. Also called covariate shift.</td></tr>
+<tr><td><strong>Concept drift</strong></td><td>The correct answer for the same input changes.</td></tr>
+<tr><td><strong>Feedback loop</strong></td><td>The system’s outputs change future inputs, so it starts grading itself.</td></tr>
+<tr><td><strong>Distribution shift</strong></td><td>Any change in the shape of a variable’s values, inputs or outputs.</td></tr>
+<tr><td><strong>Golden set refresh</strong></td><td>Deliberately replacing stale cases with new, human-verified ones.</td></tr>
+<tr><td><strong>Canary evaluation</strong></td><td>Scoring a small slice of live traffic with the candidate before wide rollout.</td></tr>
+<tr><td><strong>Offline vs online</strong></td><td>Offline = fixed dataset and labels; online = live traffic and real outcomes.</td></tr>
+<tr><td><strong>Evaluation SLO</strong></td><td>A target for the health of the evaluation itself, such as agreement or cost.</td></tr>
+<tr><td><strong>Monitoring signal</strong></td><td>A measurement you track over time to detect a change.</td></tr>
+</tbody></table>
+</div>
+<p>Four distinctions do most of the work:</p>
+<ul>
+<li><strong>Model drift vs evaluator drift.</strong> Model drift is the system changing. Evaluator drift is the ruler changing. They produce the same symptom — a different number — and have opposite fixes. Always rule out evaluator drift first, because it is cheaper to check.</li>
+<li><strong>Flakiness vs drift.</strong> Flakiness is the same input bouncing around within one run. Drift is the score shifting between versions. Flakiness limits the smallest effect you can gate on; drift invalidates comparisons to older runs.</li>
+<li><strong>Data drift vs concept drift.</strong> Data drift is “the inputs look different”. Concept drift is “the same input now has a different correct answer”. The first is often harmless; the second always matters.</li>
+<li><strong>Offline vs online.</strong> Offline is a fixed set with trusted labels, so it is reproducible but can go stale. Online is live and current, so it never goes stale but you cannot label it all. A reliable evaluation uses both and reconciles them.</li>
+</ul>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Think of a laboratory instrument. You do not just read the dials. You calibrate the instrument, log its serial number, and re-calibrate after a service. If the dial reads three degrees high, every experiment is wrong by three degrees, and the error is invisible because the dial is the only reference you have.</p>
+<p>An LLM judge is that instrument. The dataset is the set of samples you measure. The metric is the reading. Evaluation reliability is instrument maintenance.</p>
+<p>The evaluation is a loop with a measurement path and a feedback path:</p>
+<pre><code class="language-mermaid">flowchart LR
+    DS["Offline dataset&lt;br/&gt;golden + regression"] --&gt; J["Judge&lt;br/&gt;pinned model + prompt"]
+    J --&gt; G{"CI gate&lt;br/&gt;vs pinned baseline"}
+    G --&gt;|pass| D["Deploy&lt;br/&gt;shadow · canary · rollout"]
+    G --&gt;|fail| DS
+    D --&gt; O["Online signals&lt;br/&gt;proxies · samples · drift"]
+    O --&gt; E["Error analysis&lt;br/&gt;named failure classes"]
+    E --&gt; H{"Human review"}
+    H --&gt;|approved| DS
+    H --&gt;|rejected| X["Discard"]
+    O --&gt; A["Evaluation health&lt;br/&gt;agreement · variance · cost"]
+    A --&gt; J
+</code></pre>
+<p>The top path measures the system. The bottom path learns from production. The danger sits at the two joins:</p>
+<ul>
+<li>If the arrow from online signals back to the dataset has no human review, the loop feeds on its own output.</li>
+<li>If the arrow from online signals back to the judge has no health check, you cannot tell whether a score moved because the system changed or because the judge did.</li>
+</ul>
+<p>Here is what can drift, and what detects each one. This table is the topic on one screen.</p>
+<div class="table-wrapper"><table><thead><tr><th>What drifts</th><th>What it looks like</th><th>Detector</th></tr></thead><tbody>
+<tr><td><strong>Judge model</strong></td><td>A hosted judge is updated under the same name; scores step up or down</td><td>Log the returned model id; re-run a frozen probe set</td></tr>
+<tr><td><strong>Judge prompt / rubric</strong></td><td>Someone edits the template; scores shift with no model change</td><td>Record the prompt hash with every score; diff in review</td></tr>
+<tr><td><strong>Evaluation dataset</strong></td><td>Cases stop resembling live traffic; the score looks great</td><td>Coverage check and refresh cadence; compare to a traffic sample</td></tr>
+<tr><td><strong>Production inputs</strong></td><td>Users ask longer, or in new topics or languages</td><td>Input length, embedding, and topic drift checks</td></tr>
+<tr><td><strong>User behaviour</strong></td><td>The system’s suggestions change what users do next</td><td>A held-out slice that gets no AI suggestions</td></tr>
+<tr><td><strong>Human label standard</strong></td><td>Reviewers reinterpret the rubric; the labels move</td><td>Re-label a sample and measure inter-rater agreement</td></tr>
+</tbody></table>
+</div>
+<p>A single rule ties it together: <strong>a green gate is only meaningful if it used the same ruler as the baseline.</strong> If the judge version, the prompt hash, or the dataset version changed, the comparison is between two different experiments.</p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
+<li><strong>Pin the judge and record its version with every score.</strong> Store the model id, the provider revision or fingerprint if it is exposed, the hash of the judge prompt, the temperature and decoding settings, the dataset version, and a run id. A score without a version is not reproducible, so it cannot be re-checked.</li>
+<li><strong>Freeze a probe set and re-run it after any judge change.</strong> A probe set is a fixed list of items with known human labels. Run it on every judge revision. If probe scores move, the evaluator drifted, and you say so before blaming the system.</li>
+<li><strong>Measure judge agreement and flakiness.</strong> Agreement is how often the judge matches a human, ideally measured with kappa so chance is removed. Flakiness is how much the same judge varies on the same item. A metric noisier than the effect it must detect cannot gate anything.</li>
+<li><strong>Re-calibrate when the judge or the provider changes.</strong> Re-run a human-labelled sample, recompute agreement, re-anchor the rubric with fixed examples, and store the result as a new calibration id. A judge is only calibrated for the version you measured.</li>
+<li><strong>Re-baseline before judging any code change.</strong> When the judge changes, re-run the frozen known-good release under the new judge and store the new baseline and the new judge version together as a pair. Never compare a run on judge-v2 with a baseline from judge-v1.</li>
+<li><strong>Detect dataset staleness and refresh on a schedule.</strong> Compare the slice mix and the input distribution of the dataset to a recent traffic sample. Track the age of each case. Retire or replace cases that no longer reflect the product, and version the refresh like any other data change.</li>
+<li><strong>Monitor production inputs and outputs for drift.</strong> Watch prompt length, topic (via embeddings), refusal rate, output length, and format. Input drift is a leading indicator: it often moves before quality does, and it tells you the dataset is about to go stale.</li>
+<li><strong>Use shadow and canary evaluation before wide rollout.</strong> Shadow scores the candidate on real requests without serving it. A canary serves a small slice — often <code>1%</code> to <code>5%</code> — with guardrails and automatic rollback. Both catch a regression the offline gate missed, including one caused by a judge that was too lenient to notice.</li>
+<li><strong>Close the loop carefully: production failures become cases, with human review.</strong> Every confirmed incident becomes a candidate case. A human labels it. Approved cases enter the regression set, and trusted ones enter the golden set. The human step is what keeps the loop honest.</li>
+<li><strong>Guard against training or tuning on your own outputs.</strong> Keep the data used to tune separate from the data used to evaluate. Never let the model under test author a golden label. Hold out a random, unassisted slice so the monitored distribution is not defined by the system itself.</li>
+<li><strong>Alert on the evaluation’s own health.</strong> Treat the evaluator as a service with its own <strong>evaluation SLOs</strong>: a kappa floor, a flakiness ceiling, a parse-failure limit, a cost budget, a runtime budget, and a maximum dataset age. This is the watcher that watches the watcher.</li>
+<li><strong>Record the whole chain in every run.</strong> Judge version, prompt hash, dataset version, calibration id, threshold, and baseline belong together. A green gate or an alert is only interpretable with all of them present.</li>
+</ol>
+<blockquote>
+<p><strong>Tip:</strong></p>
+<p><strong>Order the checks by cost.</strong> Confirm the judge is pinned and the probe set is unchanged first. Only then investigate the retriever, the prompt, or the model. Most “quality regressions” in a young evaluation are evaluator regressions.</p>
+</blockquote>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p><strong>Record the judge model and version with each score.</strong> The score is only useful next to the provenance that produced it.</p>
+<pre><code class="language-python">import hashlib
+from dataclasses import dataclass
+
+JUDGE_PROMPT = "Score faithfulness 1-5. Return JSON."
+
+def prompt_hash(template: str) -&gt; str:
+    return hashlib.sha256(template.encode()).hexdigest()[:12]
+
+@dataclass(frozen=True)
+class JudgeResponse:
+    model: str          # the model the provider says served the request
+    revision: str       # the provider fingerprint or version, if exposed
+    verdict: dict       # parsed JSON, e.g. {"score": 4}
+
+@dataclass(frozen=True)
+class JudgedScore:
+    case_id: str
+    score: float
+    judge_model: str
+    judge_revision: str
+    prompt_hash: str
+    temperature: float
+    dataset_version: str
+    run_id: str
+
+def record(case_id: str, response: JudgeResponse,
+           dataset_version: str, run_id: str) -&gt; JudgedScore:
+    return JudgedScore(
+        case_id=case_id,
+        score=float(response.verdict["score"]),
+        judge_model=response.model,
+        judge_revision=response.revision,
+        prompt_hash=prompt_hash(JUDGE_PROMPT),
+        temperature=0.0,
+        dataset_version=dataset_version,
+        run_id=run_id,
+    )
+
+response = JudgeResponse("provider/strong-model", "rev-2026-06", {"score": 4})
+print(record("c17", response, "golden-v9", "run-2026-09-14-01"))
+</code></pre>
+<p>Two runs with the same <code>judge_model</code> but different <code>judge_revision</code> are not comparable. The revision field is what turns a silent provider upgrade into a visible fact.</p>
+<p><strong>A flakiness check: score the same item <code>N</code> times and report the spread.</strong> Do this before you trust a metric to gate a release.</p>
+<pre><code class="language-python">import statistics
+
+def flakiness(scores: list[float]) -&gt; dict[str, float]:
+    n = len(scores)
+    return {
+        "n": float(n),
+        "mean": round(statistics.fmean(scores), 3),
+        "stdev": round(statistics.stdev(scores), 4) if n &gt; 1 else 0.0,
+        "spread": round(max(scores) - min(scores), 3),
+    }
+
+calm = [0.80, 0.80, 0.80, 0.80, 0.80]
+noisy = [0.60, 0.90, 0.70, 0.85, 0.55]
+print("calm ", flakiness(calm))
+print("noisy", flakiness(noisy))
+</code></pre>
+<p>Output (verified):</p>
+<pre><code class="language-text">calm  {'n': 5.0, 'mean': 0.8, 'stdev': 0.0, 'spread': 0.0}
+noisy {'n': 5.0, 'mean': 0.72, 'stdev': 0.1525, 'spread': 0.35}
+</code></pre>
+<p>The calm judge is deterministic on this item, so a three-point gate means something. The noisy judge swings <code>0.35</code> on the <em>same item with no code change</em>, so a three-point gate is inside its noise. Fix the variance — lower temperature, stricter prompt, average of several runs, more items — or widen the margin. Do not gate on a metric that is noisier than the change you want to detect.</p>
+<p><strong>A drift check on input length.</strong> Compare a recent traffic sample to the reference window; a large standardised difference means the inputs moved.</p>
+<pre><code class="language-python">import statistics
+
+def length_drift(reference: list[str], current: list[str]) -&gt; dict[str, float]:
+    ref = [len(t) for t in reference]
+    cur = [len(t) for t in current]
+    pooled = statistics.pstdev(ref + cur) or 1.0      # guard against zero spread
+    return {
+        "ref_mean_chars": round(statistics.fmean(ref), 1),
+        "cur_mean_chars": round(statistics.fmean(cur), 1),
+        "std_diff": round((statistics.fmean(cur) - statistics.fmean(ref)) / pooled, 3),
+    }
+
+reference = ["Where is my order?", "How do I return an item?",
+             "Reset my password", "Do you ship to Ireland?"]
+current = ["hi can u check order 88213 pls, it is late and I moved house so the address is wrong",
+           "REFUND NOW",
+           "my invoice has a charge I do not recognise, can you explain the line items and the tax",
+           "how do i change my delivery address before it ships because i typed it wrong"]
+print(length_drift(reference, current))
+</code></pre>
+<p>Output (verified):</p>
+<pre><code class="language-text">{'ref_mean_chars': 20.5, 'cur_mean_chars': 64.0, 'std_diff': 1.396}
+</code></pre>
+<p>The reference questions average <code>20.5</code> characters; live traffic averages <code>64.0</code>. A standardised difference above roughly <code>0.5</code> is worth investigating. Here the traffic is three times longer, which usually means multi-part questions, pasted context, or a new consumer channel — all of which the old evaluation set does not cover.</p>
+<p><strong>A drift check on meaning, using embedding centroids.</strong> Length can be stable while the <em>topics</em> change.</p>
+<pre><code class="language-python">import math
+
+def centroid(vectors: list[list[float]]) -&gt; list[float]:
+    return [sum(col) / len(col) for col in zip(*vectors)]
+
+def cosine(a: list[float], b: list[float]) -&gt; float:
+    dot = sum(x * y for x, y in zip(a, b))
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(y * y for y in b))
+    return dot / (na * nb)
+
+def embedding_drift(reference: list[list[float]],
+                    current: list[list[float]]) -&gt; float:
+    return round(1 - cosine(centroid(reference), centroid(current)), 6)
+
+ref = [[1.0, 0.0], [0.9, 0.1], [1.0, 0.2]]
+close = [[1.0, 0.1], [0.9, 0.0], [0.95, 0.15]]
+far = [[0.2, 1.0], [0.1, 0.9], [0.3, 1.0]]
+print("close", embedding_drift(ref, close), "far", embedding_drift(ref, far))
+</code></pre>
+<p>Output (verified):</p>
+<pre><code class="language-text">close 0.000121 far 0.697705
+</code></pre>
+<p>A near-zero value is normal jitter. The far case is a real change in what users are asking about. Embedding drift is often the earliest signal that the world moved and the dataset is about to go stale.</p>
+<p><strong>A feedback-loop guard: human review before a case can enter the golden set.</strong> The label must be human-authored, and the reviewer must exist.</p>
+<pre><code class="language-python">from dataclasses import dataclass
+
+@dataclass
+class CandidateCase:
+    case_id: str
+    input: str
+    model_output: str
+    label: str | None = None
+    label_source: str = "unlabelled"    # "human" | "model" | "unlabelled"
+    reviewed_by: str | None = None
+
+def admit_to_golden(case: CandidateCase) -&gt; tuple[bool, str]:
+    if case.reviewed_by is None:
+        return False, "needs human review"
+    if case.label_source != "human":
+        return False, "label must be human-authored, not model-generated"
+    if case.label is None:
+        return False, "no label"
+    return True, "admitted"
+
+self_labelled = CandidateCase("c1", "Refund window?", "30 days",
+                              label="30 days", label_source="model")
+human = CandidateCase("c2", "Refund window?", "30 days", label="5-7 business days",
+                      label_source="human", reviewed_by="ada")
+reviewed_but_model_labelled = CandidateCase("c3", "Refund window?", "30 days",
+                                            label="30 days", label_source="model", reviewed_by="bob")
+print(admit_to_golden(self_labelled))                 # (False, 'needs human review')
+print(admit_to_golden(reviewed_but_model_labelled))   # (False, 'label must be human-authored, not model-generated')
+print(admit_to_golden(human))                         # (True, 'admitted')
+</code></pre>
+<p>A model-labelled case is either wrong or a copy of the answer the model already gives. Either way it raises the score without measuring anything. The gate above refuses both the unreviewed case and the self-labelled one.</p>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p><strong>Example 1 — a judge upgrade shifts every score by three points, so the gate must be re-baselined.</strong></p>
+<pre><code class="language-text">week        judge_revision   mean_faithfulness   gate vs baseline 0.85
+2026-08-10  rev-2025-12      0.86                PASS
+2026-08-17  rev-2025-12      0.85                PASS
+2026-08-24  rev-2026-06      0.79                FAIL  &lt;-- provider upgrade
+</code></pre>
+<p>The build is red on a week the system did not change. The fix is to re-run the frozen known-good release under <code>rev-2026-06</code>. It also scores <code>0.79</code>. That proves the drop is evaluator drift, so the baseline moves to the new judge’s level and the two versions are stored together: <em>baseline <code>0.79</code>, judge <code>rev-2026-06</code>, calibration <code>cal-2026-08-24</code></em>. From now on the gate compares against that pair. The mistake to avoid is lowering the threshold by hand to <code>0.79</code> while leaving the judge version unrecorded; the next provider change will repeat the whole confusion.</p>
+<p><strong>Example 2 — judge flakiness measured across repeats, and the threshold adjusted.</strong></p>
+<p>Using the flakiness function above, the same five items are scored five times each:</p>
+<pre><code class="language-text">item   scores                          mean   stdev   spread
+c01    [0.8, 0.8, 0.8, 0.8, 0.8]       0.80   0.0000  0.00
+c02    [0.6, 0.9, 0.7, 0.85, 0.55]     0.72   0.1525  0.35
+</code></pre>
+<p><code>c02</code> bounces by <code>0.35</code> with no change, which is larger than the three-point effect the gate was built to catch. Two options: reduce the variance (temperature <code>0</code>, a stricter “return only JSON” prompt, average three runs per item) or make the gate a warning until the variance is smaller than the effect. Gating on <code>c02</code> as-is would block good changes at random and destroy trust in the build.</p>
+<p><strong>Example 3 — input drift detected from production traffic.</strong></p>
+<p>The length check above returns <code>std_diff 1.396</code> on live traffic. Traces confirm the cause: customers now paste whole email threads. The dataset has no long-input cases, so its score is optimistic. The response is to pull <code>50</code> long inputs from traffic, have a human label them, and add them to the evaluation set. Now the score reflects the traffic that actually arrives. The general lesson: <strong>monitor the inputs of the evaluation, not just the outputs of the system.</strong></p>
+<p><strong>Example 4 — a feedback loop that would reinforce its own errors, and the human-review gate that stops it.</strong></p>
+<pre><code class="language-text">round 1  model answers "Refunds take 30 days"      -&gt; user accepts        -&gt; candidate case added
+round 2  evaluation set now rewards the 30-day style                     -&gt; prompt tuning follows it
+round 3  judge (same model family) prefers that style -&gt; score rises     -&gt; all systems green
+round 4  a real customer asks the same question; the true answer is "5-7 business days"  -&gt; no case tests it
+</code></pre>
+<p>Without a gate, every round removes a disagreement and adds a copy of the model’s own belief. The <code>admit_to_golden</code> guard in the syntax section stops it: a case enters the golden set only when a human supplies the label. A second guard keeps a small, random, unassisted slice of traffic out of the loop entirely, so the monitored distribution is never fully defined by the system itself.</p>
+<p><strong>Example 5 — a canary evaluation catches a regression before full rollout.</strong></p>
+<pre><code class="language-text">offline gate:   task success  v12=0.89  v13=0.90   (+1 pt)   PASS
+canary 2%:      escalation    v12=0.041 v13=0.062  (+51%)   BREACH -&gt; rollback
+</code></pre>
+<p>Offline said the candidate was a point better. The canary — a small slice of live traffic with an automatic rollback rule — showed escalation rising by half, which the fixed dataset never captured. The change rolls back before it reaches most users, and the failing canary traces become new evaluation cases. This is why a green offline gate permits a canary, not a full rollout.</p>
+<p><strong>Example 6 — an evaluation-health alert that fires before quality moves.</strong></p>
+<pre><code class="language-text">signal                    budget            today    action
+judge kappa vs humans     &gt;= 0.60           0.42     alert: recalibrate judge
+repeat stdev (probe set)  &lt;= 0.05           0.09     alert: reduce variance
+JSON parse failures       &lt;= 1%             6.2%     alert: prompt drifted
+dataset age               &lt;= 90 days        148d     alert: refresh golden set
+</code></pre>
+<p>None of these four numbers is a quality metric, yet each one means the quality metric is currently untrustworthy. Alerting on them is what it means to treat the evaluation as a production system.</p>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>Pin the judge model and its version, and treat it as a dependency that can move.</strong> Record the exact model id, the provider revision or fingerprint, the prompt hash, and the decoding settings with every score. A provider upgrade is a behavioural change to a component you rely on, so log the returned model id, compare probes, and decide whether to accept, pin, or adapt.</li>
+<li><strong>Measure flakiness; do not assume determinism.</strong> Temperature <code>0</code> reduces variance but does not guarantee it, especially for hosted models. Repeat the same item and report the standard deviation and spread before gating on the metric.</li>
+<li><strong>Re-calibrate after any judge change.</strong> Re-run a human-labelled sample and recompute agreement. A calibration is only valid for the exact judge version and prompt that produced it.</li>
+<li><strong>Re-baseline, never compare across judge versions.</strong> When the judge changes, re-run the frozen known-good release and store the new baseline and judge version as a pair. A threshold carried across versions measures the judges against each other.</li>
+<li><strong>Datasets go stale silently.</strong> Cases that still pass can be quietly inflating the score. Compare the dataset’s slice mix and input distribution to recent traffic, and audit labels on a schedule, not only when something fails.</li>
+<li><strong>Monitor inputs, not just outputs.</strong> Input length, embedding, and topic drift are leading indicators. They move before quality does and tell you the dataset is ageing.</li>
+<li><strong>Canary evaluation before wide rollout.</strong> A green offline gate proves safety, not success. Keep shadow and canary in the release path, with an automatic rollback rule, so a missed regression has a small blast radius.</li>
+<li><strong>Feedback loops need human review.</strong> Every production failure becomes a candidate case, and a human labels it. Never let the model under test author its own ground truth.</li>
+<li><strong>Never train or tune on unreviewed model output.</strong> Separate the data used to tune from the data used to evaluate, and keep a random unassisted slice out of the loop so monitoring has a clean signal.</li>
+<li><strong>Alert on evaluation health: agreement, variance, and cost.</strong> Give the evaluator its own SLOs and its own alerts. High parse-failure rates and rising kappa failures mean the number is broken, even when it looks fine.</li>
+<li><strong>Keep a frozen regression set.</strong> Old cases are the only thing that connects today’s score to yesterday’s. Keep it append-only in spirit, and move it forward deliberately when the world genuinely changes.</li>
+<li><strong>Separate “the model changed” from “the evaluator changed”.</strong> Re-run the probe set and last known-good release first. Until you have ruled out the evaluator, any quality investigation is guesswork.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-what-does-the-evaluation-is-a-production-system-mean"><a class="header" href="#1-what-does-the-evaluation-is-a-production-system-mean">1. What does “the evaluation is a production system” mean?</a></h3>
+<p><strong>Answer.</strong> It means the evaluator has inputs, outputs, dependencies, versions, failure modes, and an owner. A hosted judge is a dependency that can change without your deploy. A prompt is code that can be edited. A dataset is data that can go stale. If the evaluation is unversioned and unmonitored, its failures look like failures of the system, and you tune the wrong thing. Treat the evaluator with the same discipline as the service it measures.</p>
+<p><strong>Follow-up: “What is the smallest first step?”</strong> Record the judge model id, prompt hash, and dataset version with every score. Without that, no investigation can tell a system change from an evaluator change.</p>
+<p><strong>Trap.</strong> Assuming a deterministic, locally hosted judge removes the problem. Prompt edits, dataset staleness, and feedback loops remain.</p>
+<h3 id="2-what-is-evaluator-drift-and-how-does-it-differ-from-model-drift"><a class="header" href="#2-what-is-evaluator-drift-and-how-does-it-differ-from-model-drift">2. What is evaluator drift, and how does it differ from model drift?</a></h3>
+<p><strong>Answer.</strong> Evaluator drift is the score moving because the evaluator changed: the judge model, the rubric, the calibration, or the labelling standard. Model drift is the system’s own behaviour changing. Both produce a different number, and the symptom is identical. The fix differs completely: evaluator drift means re-pinning, re-calibrating, and re-baselining; model drift means fixing or adapting the system. Rule out evaluator drift first, because it is cheaper to check.</p>
+<p><strong>Follow-up: “How do you check quickly?”</strong> Re-run the frozen probe set and the last known-good release under the current evaluator. If those moved, the evaluator moved.</p>
+<p><strong>Trap.</strong> Investigating the retriever or prompt for two days while the judge quietly changed. Check the ruler before the thing being measured.</p>
+<h3 id="3-how-do-you-pin-and-version-a-judge"><a class="header" href="#3-how-do-you-pin-and-version-a-judge">3. How do you pin and version a judge?</a></h3>
+<p><strong>Answer.</strong> Record the model id, the provider revision or fingerprint, the hash of the judge prompt template, the temperature and any other decoding settings, and a calibration id. Store all of it with every score. Pin to a versioned model id when the provider offers one, and if it does not, track a fingerprint: a fixed probe set whose score is a tripwire for silent updates. Version the judge and its prompt as a pair, because a prompt edit is a judge change.</p>
+<p><strong>Follow-up: “What if the provider exposes no version at all?”</strong> Keep a frozen probe set with known labels, run it on a schedule, and alert on any change. Behaviour is what matters, not the name.</p>
+<p><strong>Trap.</strong> Pinning by name only, such as <code>provider/strong-model</code>. The name is stable; the behaviour underneath it is not.</p>
+<h3 id="4-how-do-you-measure-judge-flakiness-and-decide-it-is-safe-to-gate-on"><a class="header" href="#4-how-do-you-measure-judge-flakiness-and-decide-it-is-safe-to-gate-on">4. How do you measure judge flakiness and decide it is safe to gate on?</a></h3>
+<p><strong>Answer.</strong> Score the same items several times with no code change and compute the mean, standard deviation, and spread per item. Also measure the flip rate for pairwise judges. If the repeat spread is smaller than the effect the gate must detect, the metric is stable enough to gate. If it is larger, reduce the variance first: lower temperature, a stricter output format, averaging several runs, or more items. Otherwise the gate fires on noise and gets ignored.</p>
+<p><strong>Follow-up: “Can a flaky metric still be useful?”</strong> Yes, as a warning on a pull request. It just cannot carry blocking authority.</p>
+<p><strong>Trap.</strong> Re-running a failed gate until it passes. That turns a gate into a coin flip and destroys its value.</p>
+<h3 id="5-how-do-you-keep-an-evaluation-dataset-from-going-stale"><a class="header" href="#5-how-do-you-keep-an-evaluation-dataset-from-going-stale">5. How do you keep an evaluation dataset from going stale?</a></h3>
+<p><strong>Answer.</strong> Compare it to live traffic on a cadence. Check the slice mix, the input length and embedding distribution, and the age of each case. Audit a sample of labels every quarter or after any product change, because a stale case that still passes quietly inflates the score. Refresh deliberately: retire cases that no longer reflect the product, add new human-verified cases from traffic, and version the whole change. Record why each case was added or removed.</p>
+<p><strong>Follow-up: “What is the sign of overfitting?”</strong> Offline scores rise while online quality stays flat. The system is learning the set’s quirks instead of the task.</p>
+<p><strong>Trap.</strong> Refreshing only after an incident. The stale case that still passes is exactly the one no incident will point at.</p>
+<h3 id="6-what-is-a-feedback-loop-and-how-does-it-poison-a-golden-set"><a class="header" href="#6-what-is-a-feedback-loop-and-how-does-it-poison-a-golden-set">6. What is a feedback loop, and how does it poison a golden set?</a></h3>
+<p><strong>Answer.</strong> A feedback loop happens when the system’s outputs change future inputs or labels. If answers the model produced are harvested, approved without human review, and used as ground truth, the set becomes a copy of the model’s beliefs. The score rises while real quality does not, and disagreements disappear because the model grades its own style. The guards are human review before a case enters the golden set, labels authored by a person rather than the model under test, and a random unassisted slice held out of the loop.</p>
+<p><strong>Follow-up: “Why is a random unassisted slice needed if every case is human-reviewed?”</strong> Human review is slow and incomplete, and reviewers can be anchored by the model’s suggestion. A clean, untouched slice gives an independent signal.</p>
+<p><strong>Trap.</strong> Letting the model under test write the expected answer. It measures self-consistency, not correctness.</p>
+<h3 id="7-how-do-you-distinguish-the-model-changed-from-the-evaluator-changed"><a class="header" href="#7-how-do-you-distinguish-the-model-changed-from-the-evaluator-changed">7. How do you distinguish “the model changed” from “the evaluator changed”?</a></h3>
+<p><strong>Answer.</strong> Re-run two fixed things: the frozen probe set, which measures the evaluator, and the last known-good system release, which measures the system under the current evaluator. If the probe set moved, the evaluator changed. If the known-good release moved but the probe set did not, the evaluator shifted in a way the probes missed, so widen the probes. If both are stable and only the new candidate moved, the model changed. This ordering is the cheapest possible diagnosis.</p>
+<p><strong>Follow-up: “What if only a slice of cases moved?”</strong> That points at a dataset or rubric issue in that slice, or a genuine system regression. Compare the slice’s inputs against the reference distribution before concluding.</p>
+<p><strong>Trap.</strong> Comparing a run on judge-v2 against a baseline from judge-v1. That comparison measures the two judges, not your change.</p>
+<h3 id="8-how-do-you-monitor-and-alert-on-the-evaluations-own-health"><a class="header" href="#8-how-do-you-monitor-and-alert-on-the-evaluations-own-health">8. How do you monitor and alert on the evaluation’s own health?</a></h3>
+<p><strong>Answer.</strong> Give the evaluator evaluation SLOs: a minimum judge agreement with humans, a maximum repeat variance, a parse-failure ceiling, a cost budget, a runtime budget, and a maximum dataset age. Track them as monitoring signals and alert on breaches, using the same hysteresis rules as any other alert. The point is that a broken evaluator must announce itself, because a broken evaluator usually produces a plausible number rather than an error.</p>
+<p><strong>Follow-up: “Which of these deserves a page?”</strong> Any breach that makes the release gate untrustworthy: a kappa collapse, a parse-failure spike, or a judge revision change. A slowly ageing dataset belongs on a dashboard with a scheduled refresh.</p>
+<p><strong>Trap.</strong> Alerting only on system quality. If the only alert is “score dropped”, you cannot tell whether to fix the system or the evaluator.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>The evaluation is a production system.</strong> Pin the judge, version the prompt, version the dataset, and monitor the evaluator itself.</li>
+<li><strong>Rule out evaluator drift first.</strong> A frozen probe set and the last known-good release separate “the model changed” from “the evaluator changed”.</li>
+<li><strong>Measure flakiness before you gate.</strong> A metric noisier than the effect it must detect cannot block a release.</li>
+<li><strong>Datasets go stale silently.</strong> Monitor inputs and refresh the golden set on a schedule; a case that still passes can still be wrong.</li>
+<li><strong>Feedback loops need human review.</strong> Never let the model under test author a golden label, and keep a random unassisted slice out of the loop.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-08-ai-evaluation-observability-reliability/24-load-chaos-and-incident-drills.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-09-ai-security-and-governance/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-08-ai-evaluation-observability-reliability/24-load-chaos-and-incident-drills.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-09-ai-security-and-governance/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
