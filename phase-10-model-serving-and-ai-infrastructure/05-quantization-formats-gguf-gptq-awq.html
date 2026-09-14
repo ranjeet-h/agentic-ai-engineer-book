@@ -1,0 +1,496 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Quantization Formats: GGUF, GPTQ, AWQ - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="quantization-formats-gguf-gptq-awq"><a class="header" href="#quantization-formats-gguf-gptq-awq">Quantization Formats: GGUF, GPTQ, AWQ</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> GGUF is a <strong>file format</strong> from <code>llama.cpp</code> that packs quantized weights, metadata, and tokenizer into one file for CPU, Mac, and edge inference. GPTQ and AWQ are <strong>quantization methods</strong> that produce 4-bit weights for GPU inference. GPTQ minimizes layer-by-layer output error using calibration data and second-order information; AWQ observes activations and protects the weight channels that matter most. They are not interchangeable: the format and the runtime must match your deployment target. “4-bit” is also not one number — the real size depends on the scale and block overhead, so a “4-bit” model is usually 4.1 to 4.5 bits per weight.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>You trained or downloaded a model, and now it has to run somewhere. A 7B model is about 14 GB in FP16 and about 3.5 GB at 4 bits. That gap decides whether the model fits on a laptop, a single 24 GB GPU, or a whole node. Quantization is how you buy that fit.</p>
+<p>But “quantize it” is not one decision. There are three separate things people blur together:</p>
+<ul>
+<li>A <strong>file format</strong>: how weights, tokenizer, and metadata are stored on disk. GGUF is one.</li>
+<li>A <strong>quantization method</strong>: the algorithm that chooses the numbers. GPTQ and AWQ are two.</li>
+<li>A <strong>runtime</strong>: the engine that loads and runs it. <code>llama.cpp</code>, vLLM, TGI, ExLlamaV2, Ollama.</li>
+</ul>
+<p>Pick the wrong combination and the model simply will not load. A GGUF file will not run in a GPTQ loader. An AWQ checkpoint needs kernels that support AWQ. The format is a contract between the model file and the engine.</p>
+<p>There is a second, subtler issue. Two models both labelled “4-bit” can differ in size by 20% and in quality by more, because the label hides the overhead: scale values, zero points, group size, and mixed-precision layers. If you plan memory from the label alone, you will under-provision and OOM under load.</p>
+<p>That matters for agents more than for chat. An agent may carry a large system prompt, a tool schema, and a long history, so the KV cache can rival the weights. A format that saves 10 GB on weights but forces you to shrink the context window changes what the agent can do, not just how fast it runs. Quantization is a capability decision as much as a cost decision.</p>
+<blockquote>
+<p><strong>Note:</strong></p>
+<p><strong>The one-sentence purpose.</strong> GGUF, GPTQ, and AWQ are three answers to “which compressed model should I ship?” GGUF targets CPU and Apple silicon, while GPTQ and AWQ target NVIDIA GPUs — and the exact bit width is always a bit more than the headline number.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Quantization</strong></td><td>Storing weights in fewer bits, usually 8 or 4, instead of 16.</td></tr>
+<tr><td><strong>Post-training quantization (PTQ)</strong></td><td>Quantizing a finished model without retraining. GPTQ, AWQ, and the GGUF quantization tiers are PTQ.</td></tr>
+<tr><td><strong>Weight-only quantization</strong></td><td>Only weights are stored low-bit; activations stay 16-bit at compute time. GPTQ and AWQ do this.</td></tr>
+<tr><td><strong>Calibration data</strong></td><td>A small sample of real inputs used to choose scales. Often 128 to 512 sequences.</td></tr>
+<tr><td><strong>Group / block</strong></td><td>A small run of weights that shares one scale. Common sizes are 32, 64, 128.</td></tr>
+<tr><td><strong>Scale</strong></td><td>The real-world size of one integer step. Stored as fp16 with each group.</td></tr>
+<tr><td><strong>Zero point</strong></td><td>The integer that means real zero, used when the range is not centred.</td></tr>
+<tr><td><strong>Quantization error</strong></td><td>The difference between the stored approximate weight and the original.</td></tr>
+<tr><td><strong>GGUF</strong></td><td>A single-file model format used by <code>llama.cpp</code>. Contains weights, tokenizer, and metadata.</td></tr>
+<tr><td><strong>k-quant</strong></td><td>A GGUF family, such as <code>Q4_K_M</code>, that uses larger super-blocks and mixed precision.</td></tr>
+<tr><td><strong>GPTQ</strong></td><td>A PTQ method that quantizes layer by layer and minimizes output error using second-order information.</td></tr>
+<tr><td><strong>AWQ</strong></td><td>Activation-aware Weight Quantization: it protects the weight channels that multiply large activations.</td></tr>
+<tr><td><strong>Salient weight</strong></td><td>A weight channel that strongly affects the output, usually because its activations are large.</td></tr>
+<tr><td><strong>Checkpoint</strong></td><td>The saved weights plus a config describing how they were quantized.</td></tr>
+<tr><td><strong>Runtime / engine</strong></td><td>The program that loads the checkpoint and runs inference, such as vLLM or <code>llama.cpp</code>.</td></tr>
+<tr><td><strong>Effective bits</strong></td><td>Real bits per weight after scale and group overhead. Always more than the headline number.</td></tr>
+<tr><td><strong>W4A16</strong></td><td>4-bit weights, 16-bit activations. The usual GPU serving scheme.</td></tr>
+<tr><td><strong>Mixed precision</strong></td><td>Keeping some layers or tensors at higher precision than others.</td></tr>
+</tbody></table>
+</div>
+<p>Three contrasts interviewers expect you to keep straight:</p>
+<ul>
+<li><strong>Format vs method vs runtime.</strong> GGUF is a format. GPTQ and AWQ are methods. vLLM, TGI, and <code>llama.cpp</code> are runtimes. A method produces a checkpoint; a runtime consumes it.</li>
+<li><strong>GPU vs CPU.</strong> GPTQ and AWQ assume GPU kernels. GGUF is designed for CPUs and Apple silicon, and can also run on GPU.</li>
+<li><strong>Nominal vs effective bits.</strong> “4-bit” is the weight width; group scales add overhead, so plan with effective bits.</li>
+</ul>
+<p>One more term worth separating: <strong>PTQ vs QAT</strong>. Post-training quantization (GPTQ, AWQ, GGUF tiers) compresses a finished model with no retraining. Quantization-aware training (QAT) simulates low precision during training so the model adapts. PTQ is what you will meet in serving; QAT appears when 4-bit PTQ is not accurate enough.</p>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Think about shipping a piano. You can put it in a specialized crate built for pianos (GGUF), or you can take it apart and rebuild it with two different engineering methods (GPTQ, AWQ). The crate is about <em>how it travels and who can unpack it</em>. The methods are about <em>how you compress the parts</em>. A delivery company that only accepts one kind of crate is like a runtime that only loads one format.</p>
+<p>The second mental model is the <strong>ruler with scales</strong>. One scale for a whole matrix (per-tensor) is like one ruler for a room that has both a pencil and a door. A scale per row or per small group is like a set of rulers, one for each object. Finer groups mean better accuracy and a little more overhead. GPTQ and AWQ both use groups, usually 128 weights, and differ mainly in <em>how they choose the numbers</em>.</p>
+<pre><code class="language-mermaid">flowchart TD
+    A["Where will the model run?"] --&gt;|"CPU, Mac, edge"| B["GGUF&lt;br/&gt;llama.cpp / Ollama"]
+    A --&gt;|"NVIDIA GPU server"| C["GPTQ or AWQ&lt;br/&gt;vLLM / TGI / ExLlama"]
+    B --&gt; B1["Quality tier&lt;br/&gt;Q3_K_M ... Q8_0"]
+    C --&gt; C1["AWQ: protect&lt;br/&gt;salient channels"]
+    C --&gt; C2["GPTQ: minimize&lt;br/&gt;layer output error"]
+    B1 --&gt; D["Single file:&lt;br/&gt;weights + tokenizer + metadata"]
+    C1 --&gt; E["Checkpoint + config&lt;br/&gt;W4A16 groups of 128"]
+    C2 --&gt; E
+</code></pre>
+<p>How the three compare at a glance:</p>
+<div class="table-wrapper"><table><thead><tr><th></th><th>GGUF</th><th>GPTQ</th><th>AWQ</th></tr></thead><tbody>
+<tr><td><strong>What it is</strong></td><td>File format</td><td>Quantization method</td><td>Quantization method</td></tr>
+<tr><td><strong>Main target</strong></td><td>CPU, Mac, edge</td><td>GPU serving</td><td>GPU serving</td></tr>
+<tr><td><strong>Typical runtime</strong></td><td><code>llama.cpp</code>, Ollama</td><td>vLLM, TGI, ExLlamaV2</td><td>vLLM, TGI, FastChat</td></tr>
+<tr><td><strong>Bit widths</strong></td><td>2 to 8, many tiers</td><td>usually 4, sometimes 3/8</td><td>usually 4</td></tr>
+<tr><td><strong>Uses calibration data</strong></td><td>For k-quants, optionally</td><td>Yes, required</td><td>Yes, required</td></tr>
+<tr><td><strong>Key idea</strong></td><td>Portable self-contained file</td><td>Error-minimizing weight choice</td><td>Activation-aware protection</td></tr>
+<tr><td><strong>Weights + activations</strong></td><td>Weights low-bit, compute mixed</td><td>W4A16</td><td>W4A16</td></tr>
+</tbody></table>
+</div>
+<blockquote>
+<p><strong>Note:</strong></p>
+<p><strong>A method can be stored in more than one container.</strong> GPTQ weights are usually saved as standard safetensors plus a <code>quantization_config</code>, but some tooling can also write a GPTQ-quantized model into GGUF. So “GPTQ” describes how the numbers were chosen; the file on disk may still be <code>.safetensors</code> or <code>.gguf</code>. Read the extension and the config, not just the model-card label.</p>
+</blockquote>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p><strong>Part 1 — GGUF.</strong></p>
+<ol>
+<li><strong>Package everything into one file.</strong> GGUF stores the tensors, the tokenizer, the chat template, and metadata like context length in a single container with a versioned header. That portability is why it spread across local tools.</li>
+<li><strong>Choose a quantization tier.</strong> <code>llama.cpp</code> ships families such as <code>Q2_K</code>, <code>Q3_K_S/M/L</code>, <code>Q4_K_S/M</code>, <code>Q5_K_M</code>, <code>Q6_K</code>, and <code>Q8_0</code>, plus legacy <code>Q4_0</code>. Bigger numbers mean more bits and better quality.</li>
+<li><strong>Understand the suffix.</strong> <code>S</code>, <code>M</code>, and <code>L</code> mean small, medium, and large <em>mixing</em>: how many sensitive tensors are kept at higher precision. <code>_K</code> types use larger super-blocks and quantized scales, which is more accurate than <code>Q4_0</code> at a similar size.</li>
+<li><strong>Store weights in blocks with a scale.</strong> A block of 32 weights shares one fp16 scale in <code>Q4_0</code>, so it uses <code>4 + 16/32 = 4.5</code> bits per weight.</li>
+<li><strong>Let the runtime pick compute precision.</strong> <code>llama.cpp</code> dequantizes blocks to run matrix multiplication, and on GPU it can offload layers. CPU inference is memory-bandwidth-bound, so fewer bytes per weight is faster.</li>
+</ol>
+<p><strong>Part 2 — GPTQ.</strong></p>
+<ol start="6">
+<li><strong>Collect calibration inputs.</strong> Run a small set of real text through the model layer by layer and record activations.</li>
+<li><strong>Quantize one layer at a time.</strong> For each linear layer, choose 4-bit weights that minimize the difference between the layer’s real output and its quantized output, not just the weight error.</li>
+<li><strong>Use second-order information.</strong> GPTQ uses an approximate Hessian (from the calibration activations) to decide which weights can absorb the error of others. This is why it beats naive rounding.</li>
+<li><strong>Quantize in groups.</strong> Weights are stored in groups of 128 with an fp16 scale, giving about <code>4 + 16/128 = 4.125</code> effective bits.</li>
+<li><strong>Save as a checkpoint with a config.</strong> The result is standard safetensors plus a <code>quantization_config</code>; the runtime reads it and selects the right kernels.</li>
+</ol>
+<p><strong>Part 3 — AWQ.</strong></p>
+<ol start="11">
+<li><strong>Observe activations, not just weights.</strong> AWQ runs calibration data and measures how large the activations are at each input channel.</li>
+<li><strong>Find the salient channels.</strong> A weight channel multiplied by large activations contributes more to the output, so errors there hurt more.</li>
+<li><strong>Scale those channels up before quantizing.</strong> Multiplying a salient channel by a factor <code>s &gt; 1</code> reduces its relative quantization error; the matching activation is divided by <code>s</code> at inference, so the maths is unchanged.</li>
+<li><strong>Keep the rest simple.</strong> AWQ protects a small fraction of channels and leaves the rest to normal per-group quantization. This tends to preserve general quality, including after instruction tuning.</li>
+<li><strong>Serve on GPU.</strong> The checkpoint carries a config that vLLM or TGI reads; AWQ kernels run it as W4A16.</li>
+</ol>
+<p><strong>Part 4 — choosing.</strong></p>
+<ol start="16">
+<li><strong>Match the format to the target.</strong> CPU, Mac, or edge means GGUF. A CUDA GPU server with an OpenAI-compatible stack means GPTQ or AWQ.</li>
+<li><strong>Prefer AWQ when quality is the concern, GPTQ when support is the concern.</strong> GPTQ has the widest kernel coverage; AWQ is often a little better on instruction-tuned models. The only honest answer is to measure both on your task.</li>
+<li><strong>Plan memory with effective bits, not the label.</strong> Multiply parameters by effective bits, then add the KV cache and activations.</li>
+</ol>
+<p>The three approaches share one idea: quantization is a lossy compression, and the job is to put the inevitable error somewhere that barely reaches the output. GPTQ does that by minimizing output error directly. AWQ does it by spending precision where activations are large. GGUF does it by offering a ladder of sizes so you can trade a little more memory for a lot more quality. In all three, the group size and the precision of the scales are the knobs that decide how fine the grid is.</p>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p><strong>Quantize to GGUF with <code>llama.cpp</code>.</strong> The converter makes an fp16 GGUF, then the quantizer compresses it.</p>
+<pre><code class="language-bash"># convert a Hugging Face model to GGUF
+python convert_hf_to_gguf.py ./model --outfile model-f16.gguf --outtype f16
+
+# quantize to a 4-bit k-quant tier
+./llama-quantize model-f16.gguf model-Q4_K_M.gguf Q4_K_M
+</code></pre>
+<p><code>Q4_K_M</code> is the common quality-per-byte default; <code>Q8_0</code> is nearly lossless and much larger.</p>
+<p><strong>Serve GGUF over an OpenAI-compatible API.</strong> <code>llama.cpp</code> ships <code>llama-server</code>.</p>
+<pre><code class="language-bash">./llama-server -m model-Q4_K_M.gguf --host 0.0.0.0 --port 8080 -c 8192 -ngl 99
+</code></pre>
+<p><code>-ngl 99</code> offloads as many layers as possible to the GPU; on CPU it stays at 0.</p>
+<p><strong>Run GGUF through Ollama.</strong> Ollama wraps <code>llama.cpp</code> and manages downloads.</p>
+<pre><code class="language-bash">ollama run llama3.1:8b          # pulls a quantized GGUF; tags can pin a tier
+</code></pre>
+<p>Ollama handles the GGUF tier, manages the download, and exposes an OpenAI-compatible endpoint.</p>
+<p><strong>Quantize with GPTQ or AWQ using standard tooling.</strong> Library names are real; the calls are illustrative and vary by version.</p>
+<pre><code class="language-python"># GPTQ (auto-gptq / GPTQModel style)
+from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+config = BaseQuantizeConfig(bits=4, group_size=128, desc_act=False)
+
+# AWQ (autoawq style)
+from awq import AutoAWQForCausalLM
+quant_config = {"zero_point": True, "q_group_size": 128, "w_bit": 4, "version": "GEMM"}
+</code></pre>
+<p><code>bits=4, group_size=128</code> is the standard W4A16 recipe for both.</p>
+<p><strong>Serve an AWQ or GPTQ checkpoint in vLLM.</strong> The runtime reads the config from the model directory.</p>
+<pre><code class="language-bash">vllm serve ./model-awq-4bit --quantization awq --max-model-len 8192
+vllm serve ./model-gptq-4bit --quantization gptq --max-model-len 8192
+</code></pre>
+<p>The <code>--quantization</code> flag must match the method that made the checkpoint.</p>
+<p><strong>Inspect what a checkpoint says about itself.</strong> The config records the method and the group size, which is what a runtime needs.</p>
+<pre><code class="language-python">from transformers import AutoConfig
+cfg = AutoConfig.from_pretrained("./model-awq-4bit")
+cfg.quantization_config
+# {'quant_method': 'awq', 'bits': 4, 'group_size': 128, ...} (illustrative shape)
+</code></pre>
+<p>If the config is missing or does not match the weights, the runtime will either refuse to load or silently fall back to slower unquantized paths.</p>
+<p><strong>Estimate memory with effective bits.</strong> This is the arithmetic that prevents a surprise OOM.</p>
+<pre><code class="language-python">def model_gb(params_billion, bits_per_weight):
+    return params_billion * 1e9 * bits_per_weight / 8 / 1e9
+
+model_gb(7, 16)            # 14.00 GB in FP16
+model_gb(7, 4)             #  3.50 GB nominal 4-bit
+model_gb(7, 4 + 16/128)    #  3.61 GB GPTQ/AWQ, group 128
+model_gb(7, 4 + 16/32)     #  3.94 GB Q4_0, block 32
+</code></pre>
+<p>The same model labelled “4-bit” is anything from 3.5 to 4 GB once overhead is counted.</p>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p><strong>Example 1 — memory for a 7B model.</strong> Parameters times bytes per weight, verified arithmetic.</p>
+<pre><code class="language-text">7B weights:  FP16 14.00 GB | INT8 7.00 GB | 4-bit nominal 3.50 GB
+             GPTQ/AWQ 4.125-bit 3.61 GB | Q4_0 4.5-bit 3.94 GB
+</code></pre>
+<p>Quantization gets a 7B model onto a 24 GB GPU alongside a large cache, and a 4-bit 7B onto many laptops.</p>
+<p><strong>Example 2 — “4-bit” is really 4.1 to 4.5 bits.</strong> Scale overhead per group, verified.</p>
+<pre><code class="language-text">4-bit + group 128, fp16 scale: 4 + 16/128 = 4.125 bits/weight -&gt; 3.61 GB
+4-bit + group  64, fp16 scale: 4 + 16/64  = 4.250 bits/weight -&gt; 3.72 GB
+Q4_0 block 32,    fp16 scale: 4 + 16/32  = 4.500 bits/weight -&gt; 3.94 GB
+Q8_0 block 32,    fp16 scale: 8 + 16/32  = 8.500 bits/weight -&gt; 7.44 GB
+</code></pre>
+<p>Smaller groups cost a little memory and buy accuracy. The headline number is the weight width, never the total.</p>
+<p><strong>Example 3 — per-tensor vs per-group error with uneven magnitudes.</strong> An illustrative example: four groups of 32 weights with maximum absolute values <code>0.05</code>, <code>0.5</code>, <code>5.0</code>, and <code>0.2</code>, quantized to 4 bits.</p>
+<pre><code class="language-text">per-tensor scale: 0.71428            (set by the 5.0 group)
+group scales: [0.00714, 0.07143, 0.71428, 0.02857]
+
+group 0 (max 0.05): per-tensor err 0.05000 | per-group err 0.00320
+group 1 (max 0.50): per-tensor err 0.34025 | per-group err 0.03368
+group 3 (max 0.20): per-tensor err 0.19999 | per-group err 0.01347
+overall max err:    per-tensor 0.34025 | per-group 0.31995
+</code></pre>
+<p>The small groups are quantized about 15x more accurately with their own scales. This is why GPTQ and AWQ use groups of 128 rather than one scale per matrix.</p>
+<p><strong>Example 4 — why activation awareness matters.</strong> An illustrative simulation: one weight row <code>[0.10, 0.22, ..., 0.85]</code> where channel 0 sees activation 10.0 and the others see 1.0. Output error is the weight error times the activation size.</p>
+<pre><code class="language-text">no scaling:       output error 0.36571
+scale channel 0 by 4 (AWQ style): output error 0.24071
+channel-0 weight error drops from 0.02143 to 0.00893
+</code></pre>
+<p>The same weight error costs ten times more where activations are large, so AWQ spends its precision there.</p>
+<p><strong>Example 5 — GGUF quality tiers, ordered by size and quality.</strong> Approximate effective widths; K-quants mix block sizes.</p>
+<div class="table-wrapper"><table><thead><tr><th>Tier</th><th>Rough effective bits</th><th>Use</th></tr></thead><tbody>
+<tr><td><code>Q2_K</code></td><td>~2.6</td><td>Last resort; quality drops visibly</td></tr>
+<tr><td><code>Q3_K_M</code></td><td>~3.9</td><td>Tight memory, acceptable for small models</td></tr>
+<tr><td><code>Q4_K_M</code></td><td>~4.5</td><td>The common CPU default</td></tr>
+<tr><td><code>Q5_K_M</code></td><td>~5.5</td><td>Better quality, still practical</td></tr>
+<tr><td><code>Q6_K</code></td><td>~6.6</td><td>Near-lossless for most tasks</td></tr>
+<tr><td><code>Q8_0</code></td><td>8.5</td><td>Reference quality, ~2x the size of Q4</td></tr>
+</tbody></table>
+</div>
+<p>Pick the smallest tier that passes your eval; do not assume the default is best for your task.</p>
+<p><strong>Example 6 — choosing by deployment target.</strong></p>
+<pre><code class="language-text">Laptop / Mac / edge, no GPU:     GGUF  Q4_K_M via llama.cpp or Ollama
+Single NVIDIA GPU, max quality:  AWQ or GPTQ 4-bit, groups of 128, via vLLM
+Multi-GPU, tensor parallel:      GPTQ or AWQ in vLLM (format must load on every rank)
+Latency-critical consumer GPU:   ExLlamaV2 / EXL2 (GPTQ-like, tuned kernels)
+Need near-lossless:              FP8/INT8, or Q8_0 just to save some memory
+</code></pre>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>Match the checkpoint to the runtime before anything else.</strong> A GGUF file cannot be loaded by a GPTQ loader. Confirm the engine supports the method, the bit width, and the model architecture.</li>
+<li><strong>Plan with effective bits, not the headline.</strong> Group scales add 3.125% to 12.5% over nominal at group 128 and block 32 (an extra 16 scale bits per 128 or 32 weights). Add the KV cache and activations on top.</li>
+<li><strong>Calibrate on data that looks like production.</strong> Scales chosen from Wikipedia may be wrong for code, JSON, or tool-call traffic. Calibration quality shows up as quality drift.</li>
+<li><strong>Keep the first and last layers in higher precision when quality is tight.</strong> They are more sensitive, and some pipelines exclude them from low-bit quantization.</li>
+<li><strong>Measure on your own evaluation set.</strong> A model can match a benchmark and still regress on your task. Never ship a quantized model on vibes.</li>
+<li><strong>Sweet spot is 4-bit weights.</strong> Below that, quality degrades quickly on hard reasoning. 3-bit and 2-bit exist but need careful tests.</li>
+<li><strong>Quantized models are often faster, not just smaller.</strong> Decode is memory-bandwidth-bound, so moving fewer bytes per weight raises tokens per second.</li>
+<li><strong>Check hardware support.</strong> Some accelerators have fast INT8 and no fast INT4, so a 4-bit model can be slower than 8-bit despite using less memory.</li>
+<li><strong>AWQ and GPTQ are close; benchmark both.</strong> GPTQ usually has broader kernel support, and AWQ often preserves instruction-following a little better. Differences are model-specific.</li>
+<li><strong>GGUF tier choice changes quality, not just size.</strong> <code>Q4_K_M</code> is a good default, but <code>Q3</code> can break structured output and tool calls that <code>Q5_K_M</code> keeps.</li>
+<li><strong>Watch the tokenizer and chat template.</strong> They live inside the GGUF; a mismatched template silently changes the prompt and therefore the answers.</li>
+<li><strong>KV-cache quantization is separate.</strong> You can combine 4-bit weights with an 8-bit cache. Cache quantization is more sensitive, so test it independently.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-what-is-gguf-and-when-would-you-use-it"><a class="header" href="#1-what-is-gguf-and-when-would-you-use-it">1. What is GGUF, and when would you use it?</a></h3>
+<p><strong>Answer.</strong> GGUF is a single-file model format from <code>llama.cpp</code>. It stores quantized weights, the tokenizer, metadata, and the chat template in one versioned container. It is designed for CPU, Apple silicon, and edge inference, with families like <code>Q4_K_M</code> that trade quality for size. You use it when the target has no NVIDIA GPU or when you want a portable file that one runtime can load directly.</p>
+<p><strong>Follow-up: “Can GGUF run on a GPU?”</strong> Yes. <code>llama.cpp</code> can offload layers to CUDA or Metal with <code>-ngl</code>, but GGUF’s design centre is CPU and Mac inference, not datacentre GPU throughput.</p>
+<p><strong>Trap.</strong> Calling GGUF a quantization method. It is a format; the quality tiers are the quantization, and the format can even hold unquantized fp16 weights.</p>
+<h3 id="2-what-is-gptq"><a class="header" href="#2-what-is-gptq">2. What is GPTQ?</a></h3>
+<p><strong>Answer.</strong> GPTQ is a post-training method that quantizes weights layer by layer. It runs calibration data, then chooses 4-bit weights that minimize the difference between the layer’s original output and its quantized output. It uses approximate second-order information from the activations to decide how error should be spread. The result is a W4A16 checkpoint, usually with group size 128, served on GPUs.</p>
+<p><strong>Follow-up: “Why is it better than rounding?”</strong> Naive rounding minimizes each weight’s error in isolation. GPTQ minimizes the error that reaches the output, and it can trade a little error in one weight to cancel error in another.</p>
+<p><strong>Trap.</strong> Saying GPTQ quantizes activations. It quantizes weights; activations stay at 16 bits. Activation quantization is a different and harder problem.</p>
+<h3 id="3-what-is-awq-and-how-does-it-differ-from-gptq"><a class="header" href="#3-what-is-awq-and-how-does-it-differ-from-gptq">3. What is AWQ, and how does it differ from GPTQ?</a></h3>
+<p><strong>Answer.</strong> AWQ is Activation-aware Weight Quantization. It measures activation magnitudes on calibration data, identifies the weight channels multiplied by large activations, and scales those channels up before quantizing so their relative error shrinks. GPTQ instead performs an error-minimizing reconstruction layer by layer. Both produce 4-bit W4A16 GPU checkpoints; AWQ’s bet is that protecting a few salient channels preserves quality.</p>
+<p><strong>Follow-up: “Does scaling change the model?”</strong> No. The weight channel is scaled by <code>s</code> and the corresponding activation is divided by <code>s</code>, so the product is unchanged. Only the quantization error changes.</p>
+<p><strong>Trap.</strong> Thinking AWQ protects weights with the largest values. It protects weights whose <em>activations</em> are largest; those are not always the largest weights.</p>
+<h3 id="4-are-a-format-a-method-and-a-runtime-the-same-thing"><a class="header" href="#4-are-a-format-a-method-and-a-runtime-the-same-thing">4. Are a format, a method, and a runtime the same thing?</a></h3>
+<p><strong>Answer.</strong> No, and interviewers listen for the distinction. GGUF is a file format. GPTQ and AWQ are quantization methods that produce checkpoints. vLLM, TGI, ExLlamaV2, and <code>llama.cpp</code> are runtimes that load and execute checkpoints. A method writes a file; a format describes the file; a runtime reads it.</p>
+<p><strong>Follow-up: “Give a mismatched pair.”</strong> A GPTQ checkpoint cannot be loaded by <code>llama.cpp</code>, which expects GGUF; and a GGUF file cannot be passed to vLLM’s <code>--quantization gptq</code>.</p>
+<p><strong>Trap.</strong> Saying “GGUF is a quantization like AWQ”. GGUF is a container that can hold several quantization types.</p>
+<h3 id="5-what-does-4-bit-actually-mean-across-these-formats"><a class="header" href="#5-what-does-4-bit-actually-mean-across-these-formats">5. What does “4-bit” actually mean across these formats?</a></h3>
+<p><strong>Answer.</strong> It means 4 bits for each weight, but not 4 bits total. Scales add overhead: GPTQ and AWQ use a group of 128 with an fp16 scale, giving 4.125 effective bits, while GGUF <code>Q4_0</code> uses a 32-block with an fp16 scale, giving 4.5. K-quants mix block sizes and precisions, so <code>Q4_K_M</code> sits a little above 4.5. Always plan memory from effective bits.</p>
+<p><strong>Follow-up: “How big is the difference?”</strong> For a 7B model, 3.50 GB nominal versus 3.61 GB for GPTQ/AWQ and 3.94 GB for <code>Q4_0</code>. That is about 13% more than the label suggests.</p>
+<p><strong>Trap.</strong> Estimating memory as <code>params × 4 / 8</code>. That under-counts scales and is exactly how deployments OOM.</p>
+<h3 id="6-how-do-you-choose-a-quantization-format-for-a-deployment-target"><a class="header" href="#6-how-do-you-choose-a-quantization-format-for-a-deployment-target">6. How do you choose a quantization format for a deployment target?</a></h3>
+<p><strong>Answer.</strong> Start with the hardware. CPU, Mac, or edge means GGUF, usually <code>Q4_K_M</code> or <code>Q5_K_M</code>. An NVIDIA GPU server means GPTQ or AWQ in vLLM or TGI. Then consider the engine’s kernel support and whether you need tensor parallelism. Finally, benchmark the candidates on your own eval set, because quality differences at the same bit width are model- and task-specific.</p>
+<p><strong>Follow-up: “AWQ or GPTQ?”</strong> GPTQ has the widest support; AWQ often holds instruction-following a bit better. There is no universal winner — run both if quality matters.</p>
+<p><strong>Trap.</strong> Choosing by the smallest file. A slightly larger tier that passes your eval is better than a tiny one that fails it.</p>
+<h3 id="7-what-is-quantization-error-and-what-controls-it"><a class="header" href="#7-what-is-quantization-error-and-what-controls-it">7. What is quantization error, and what controls it?</a></h3>
+<p><strong>Answer.</strong> It is the gap between the stored approximate weight and the original, caused by rounding onto a small integer grid. It is bounded by half a scale step. You control it with finer groups (per-channel or groups of 128 instead of per-tensor), better scale choice from calibration, and methods like GPTQ and AWQ that choose values to minimize output error. The error that matters is weighted by activation magnitude.</p>
+<p><strong>Follow-up: “Why can error in a large group be so bad?”</strong> One scale covers the whole group. If one weight is huge, the step is large and every small weight rounds coarsely — sometimes to zero. Groups and better scale choice fix that.</p>
+<p><strong>Trap.</strong> Assuming error is uniform. It is largest where scales are set by outliers and where activations are large.</p>
+<h3 id="8-what-tooling-do-you-use-to-produce-and-serve-these-formats"><a class="header" href="#8-what-tooling-do-you-use-to-produce-and-serve-these-formats">8. What tooling do you use to produce and serve these formats?</a></h3>
+<p><strong>Answer.</strong> For GGUF: <code>convert_hf_to_gguf.py</code> and <code>llama-quantize</code> from <code>llama.cpp</code>, served by <code>llama-server</code>, <code>ollama</code>, or LM Studio. For GPTQ: <code>auto-gptq</code> or <code>GPTQModel</code>. For AWQ: <code>autoawq</code> or <code>llm-compressor</code>. For serving: vLLM and TGI load AWQ and GPTQ checkpoints with a <code>--quantization</code> flag. The tool produces a checkpoint plus a config the runtime reads.</p>
+<p><strong>Follow-up: “What do you check after quantizing?”</strong> That the runtime loads it, that memory matches the effective-bit estimate, and that task-level evals still pass — especially structured output and tool calls.</p>
+<p><strong>Trap.</strong> Assuming the library version does not matter. Quantization formats and kernel support evolve; a checkpoint made by one version may not load in another.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>GGUF is a format; GPTQ and AWQ are methods; vLLM, TGI, and <code>llama.cpp</code> are runtimes.</strong> Keep the three separate.</li>
+<li><strong>CPU, Mac, and edge point to GGUF. NVIDIA GPU serving points to GPTQ or AWQ.</strong></li>
+<li><strong>GPTQ minimizes layer output error with calibration; AWQ protects the channels that see large activations.</strong></li>
+<li><strong>Headline bits is not total bits.</strong> Group scales make a “4-bit” model about 4.1 to 4.5 effective bits.</li>
+<li><strong>Measure on your own evals.</strong> Format and bit-width choices are quality decisions, not just memory decisions.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-10-model-serving-and-ai-infrastructure/04-quantization-for-serving.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-10-model-serving-and-ai-infrastructure/06-model-parallelism.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-10-model-serving-and-ai-infrastructure/04-quantization-for-serving.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-10-model-serving-and-ai-infrastructure/06-model-parallelism.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

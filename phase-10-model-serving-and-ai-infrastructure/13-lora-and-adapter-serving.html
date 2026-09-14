@@ -1,0 +1,518 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>LoRA and Adapter Serving - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="lora-and-adapter-serving"><a class="header" href="#lora-and-adapter-serving">LoRA and Adapter Serving</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> A fine-tune does not have to be a full copy of the model. LoRA stores the change as a small adapter, often a few megabytes, on top of a frozen base model. In serving this becomes a huge win: load the base model once into VRAM and swap in different adapters per request, so one GPU can serve many customer- or task-specific fine-tunes. Multi-LoRA engines (vLLM, S-LoRA-style systems) batch requests that use different adapters together. Adapters can be pinned and versioned per tenant. The two deployment shapes are <strong>merged</strong> (fold the adapter into the base and serve an ordinary full model, simplest and fastest) and <strong>on-the-fly</strong> (keep the base shared and apply adapters at request time, most flexible). The real constraints are not adapter size in bytes — those are tiny — but batching efficiency when many adapters are in flight, adapter loading latency, and version routing.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>A team fine-tunes one model for support replies and gets a great result. Then legal wants one, and sales wants one, and then every enterprise customer wants their own tone and terminology. With full fine-tuning, each of those is a complete copy of the weights: several gigabytes each. Loading them all at once does not fit on a GPU, and even storing them is wasteful because they differ by less than one percent of their parameters.</p>
+<p>LoRA (chapter 14 of phase 2) exists exactly for this. It freezes the base model and trains a small low-rank update <code>B @ A</code> for chosen weight matrices. The result is an adapter file that is orders of magnitude smaller than the base. The base model is shared; only the small delta changes.</p>
+<p>Serving many variants cheaply is the natural next step. If the base is shared and the delta is tiny, then one GPU can hold one base and many adapters, and each request can declare which adapter it wants. This is <strong>multi-LoRA serving</strong>, and it turns “one fine-tune per cluster” into “one fine-tune per request.”</p>
+<p>There is a second, quieter benefit: <strong>upgrades</strong>. When the base model improves, every adapter can benefit without retraining them all into new full checkpoints. And rollback is easy, because an adapter is a small, versioned artifact.</p>
+<p>The catch is that adapters are cheap in memory but not free in throughput. Requests using different adapters cannot always share a batch efficiently, and loading an adapter per request is slow. The engineering is in the batching and the routing, not in the bytes.</p>
+<blockquote>
+<p><strong>Note:</strong></p>
+<p><strong>The one-sentence purpose.</strong> Serve one base model plus many small adapters, swap them per request, and accept a batching cost in exchange for not shipping a full model per fine-tune.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Base model</strong></td><td>The pretrained model the adapters attach to. Frozen and shared.</td></tr>
+<tr><td><strong>Adapter</strong></td><td>The small trained delta (LoRA weights) applied on top of the base. Usually a few MB.</td></tr>
+<tr><td><strong>LoRA</strong></td><td>Low-Rank Adaptation: the adapter is a low-rank update <code>B @ A</code>.</td></tr>
+<tr><td><strong>Rank (<code>r</code>)</strong></td><td>How many numbers describe each update. Bigger rank, bigger adapter, more capacity.</td></tr>
+<tr><td><strong>Adapter file</strong></td><td>Typically <code>adapter_model.safetensors</code> plus <code>adapter_config.json</code>.</td></tr>
+<tr><td><strong>Multi-LoRA serving</strong></td><td>Serving many adapters over one base model, selected per request.</td></tr>
+<tr><td><strong>Hot swap</strong></td><td>Loading or switching an adapter while the server keeps running.</td></tr>
+<tr><td><strong>Merged model</strong></td><td>The adapter folded into the base weights, producing a normal full model.</td></tr>
+<tr><td><strong>On-the-fly adapter</strong></td><td>The adapter stays separate and is applied during the forward pass.</td></tr>
+<tr><td><strong>Adapter registry</strong></td><td>A store of adapter artifacts with names, versions, and metadata.</td></tr>
+<tr><td><strong>Routing</strong></td><td>Mapping a request (often by tenant or task) to the adapter it should use.</td></tr>
+<tr><td><strong>Tenant</strong></td><td>One customer or isolated group of users in a shared system.</td></tr>
+<tr><td><strong>Version pinning</strong></td><td>Fixing a tenant to a specific adapter version instead of “latest”.</td></tr>
+<tr><td><strong>Batched adapter kernel</strong></td><td>A GPU kernel that applies several different adapters in one batch.</td></tr>
+<tr><td><strong>S-LoRA</strong></td><td>A research system for serving thousands of concurrent LoRA adapters using paged memory.</td></tr>
+<tr><td><strong>Punica</strong></td><td>A related approach that batches requests with different adapters efficiently.</td></tr>
+<tr><td><strong>Confounding</strong></td><td>Mixing requests unexpectedly across adapters; prevented by correct routing.</td></tr>
+<tr><td><strong>Adapter leak</strong></td><td>A bug where tenant A’s request is served by tenant B’s adapter. Serious.</td></tr>
+<tr><td><strong>Quantized base</strong></td><td>A base stored in 4 or 8 bits to save memory, with adapters on top.</td></tr>
+<tr><td><strong>Warm adapter</strong></td><td>An adapter already loaded in VRAM, ready with no load delay.</td></tr>
+<tr><td><strong>Cold adapter</strong></td><td>An adapter not yet loaded; the first request pays a load cost.</td></tr>
+</tbody></table>
+</div>
+<p>Two distinctions matter from the start:</p>
+<ul>
+<li><strong>Adapter size vs adapter cost.</strong> A 1 MB adapter is almost free in memory <em>as weights</em>. Its cost is in batching and switching — a throughput cost — plus a smaller per-adapter runtime memory reservation the engine keeps for buffers and kernel slots. So the adapter is not a cost in adapter weights, but it is not free in throughput or resident memory either.</li>
+<li><strong>Merging is a one-way door for that artifact.</strong> Once merged, there is no separate adapter to remove or swap. Keep the unmerged adapter as the source of truth.</li>
+</ul>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Imagine a single piano in a concert hall and a shelf of sheet-music books. The piano is expensive and there is one of it. Each performer brings a different small book. The piano does not change; the book changes what is played. You do not buy a new piano for every concert.</p>
+<p>Multi-LoRA serving is that piano. The base weights sit in VRAM once, and each request carries a small adapter that changes how the base behaves. The router is the librarian who hands out the right book.</p>
+<pre><code class="language-mermaid">flowchart LR
+    R1["Request: tenant=acme"] --&gt; RT["Router&lt;br/&gt;tenant + version -&gt; adapter"]
+    R2["Request: tenant=globex"] --&gt; RT
+    RT --&gt; REG["Adapter registry&lt;br/&gt;immutable versions"]
+    REG --&gt; LM["LoRA manager&lt;br/&gt;load / pin / unload"]
+    LM --&gt; K["Batched adapter kernels"]
+    B["Frozen base weights&lt;br/&gt;one copy in VRAM"] --&gt; K
+    K --&gt; O["Outputs&lt;br/&gt;different adapters, one batch"]
+</code></pre>
+<p>The key serving property is that requests with different adapters can still share the expensive part: the base model’s forward pass. The adapter only adds a small low-rank term to chosen layers, and modern engines can apply several adapters inside one batch. That is what makes “thousands of fine-tunes on one GPU” possible.</p>
+<p>The trade-off in one table:</p>
+<div class="table-wrapper"><table><thead><tr><th></th><th>Merged model</th><th>On-the-fly adapter</th></tr></thead><tbody>
+<tr><td>Artifact</td><td>one full model per fine-tune</td><td>one base + small adapters</td></tr>
+<tr><td>VRAM for N variants</td><td>N full models (or swap)</td><td>one base + N adapters</td></tr>
+<tr><td>Latency</td><td>baseline</td><td>small extra per token</td></tr>
+<tr><td>Switch cost</td><td>load a new model (slow)</td><td>swap or select (fast)</td></tr>
+<tr><td>Batching</td><td>one model per batch</td><td>several adapters per batch</td></tr>
+<tr><td>Rollback</td><td>redeploy a model</td><td>point the route at the old version</td></tr>
+<tr><td>Tooling</td><td>any server</td><td>needs adapter-aware engine</td></tr>
+<tr><td>Best when</td><td>one hot variant, max speed</td><td>many variants, hot-swap, tenancy</td></tr>
+</tbody></table>
+</div>
+<blockquote>
+<p><strong>Note:</strong></p>
+<p><strong>The counter-intuitive part.</strong> Adapter weights are tiny, so memory is rarely the limit. The limit is <strong>batching</strong>: the more adapters in flight at once, the harder it is to fill each batch, and throughput falls. Optimize for adapter locality, not adapter size.</p>
+</blockquote>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
+<li><strong>Train or obtain adapters.</strong> Use PEFT to train a LoRA adapter against a specific base model and revision. Record the base name, revision, and tokenizer next to the adapter (chapter 14 of phase 2).</li>
+<li><strong>Publish adapters to a registry.</strong> Store each adapter as an immutable, versioned artifact, for example <code>support-v3</code>, <code>legal-v1</code>. Never overwrite a version in place.</li>
+<li><strong>Load the base model once.</strong> The server starts with the frozen base in VRAM. This is the expensive, shared thing.</li>
+<li><strong>Enable multi-LoRA in the engine.</strong> Tell the server how many adapters may be active in a batch and the maximum rank to reserve kernels for.</li>
+<li><strong>Register adapters.</strong> Either list them at startup or load them dynamically over an HTTP endpoint while the server runs.</li>
+<li><strong>Route each request to an adapter.</strong> The router maps tenant, task, or an explicit field to an adapter name and version. Default to the base model when no adapter matches.</li>
+<li><strong>Apply the adapter in the forward pass.</strong> For a target layer, the output is <code>x @ W.T + scale * x @ (B @ A).T</code>. The base <code>W</code> is untouched.</li>
+<li><strong>Batch across adapters.</strong> The engine groups in-flight requests so that requests using different adapters still share the base computation. This is where S-LoRA-style paged adapters and batched kernels matter.</li>
+<li><strong>Manage adapter lifecycle.</strong> Pin frequently used adapters in VRAM (“warm”), evict cold ones, and bound how many are resident at once.</li>
+<li><strong>Version and roll back.</strong> Promotion and rollback are registry operations plus a routing change, not a model redeploy. Verify on a canary tenant first.</li>
+<li><strong>Audit the routing decision.</strong> Log which adapter and version served each request. This is how you debug a wrong tone or, worse, a cross-tenant leak.</li>
+<li><strong>Decide merge vs on-the-fly per variant.</strong> Merge the hot, stable variant for speed; keep everything experimental or multi-tenant on the shared base.</li>
+</ol>
+<p>The subtle steps are 8, 9, and 11. Most multi-LoRA incidents are a routing mistake or an eviction storm, not a math problem.</p>
+<h3 id="where-the-cost-actually-is"><a class="header" href="#where-the-cost-actually-is">Where the cost actually is</a></h3>
+<ul>
+<li><strong>Adapter weights in memory:</strong> small. A rank-16 adapter on the four attention projections of a 4096-wide model is about 1 MB in bf16.</li>
+<li><strong>Runtime overhead per loaded adapter:</strong> larger than the weights, because the engine reserves buffers and kernel slots. This is why engines cap the number of resident adapters.</li>
+<li><strong>Batching fragmentation:</strong> the real cost. If 96 concurrent requests are spread over 32 adapters, the average group is 3 requests, so the GPU is underfed.</li>
+<li><strong>Load latency:</strong> a cold adapter must be read from disk and copied to VRAM. Do it outside the request path where possible.</li>
+<li><strong>Merge cost:</strong> merging is a one-time linear algebra step and produces a full-size model, so the storage cost is the full model again.</li>
+</ul>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p><strong>Start a server with named adapters.</strong> vLLM takes the base model plus one or more LoRA modules, each with a name and a path.</p>
+<pre><code class="language-bash">vllm serve meta-llama/Llama-3.1-8B-Instruct \
+  --enable-lora \
+  --max-loras 8 --max-lora-rank 32 \
+  --lora-modules support=/adapters/support-v3 \
+                   legal=/adapters/legal-v1
+</code></pre>
+<p><code>--max-loras</code> bounds how many adapters can appear in one batch; <code>--max-lora-rank</code> reserves kernel capacity for the largest adapter.</p>
+<p><strong>Request a specific adapter.</strong> The adapter name is used as the model name, so the same endpoint serves every variant.</p>
+<pre><code class="language-python">resp = client.chat.completions.create(
+    model="support",                 # selects the support LoRA adapter
+    messages=[{"role": "user", "content": "How do I reset my router?"}],
+)
+</code></pre>
+<p><strong>Load and unload adapters at runtime.</strong> No restart, so new fine-tunes go live by publication plus one HTTP call.</p>
+<pre><code class="language-python">requests.post(f"{base}/v1/load_lora_adapter",
+              json={"lora_name": "support-v4", "lora_path": "/adapters/support-v4"})
+requests.post(f"{base}/v1/unload_lora_adapter",
+              json={"lora_name": "support-v3"})
+</code></pre>
+<p><strong>Load an adapter with PEFT for a single-model server.</strong> This is the simple path when you only need one adapter.</p>
+<pre><code class="language-python">from peft import PeftModel
+
+model = PeftModel.from_pretrained(base_model, "adapters/support-v3")
+model = model.merge_and_unload()      # optional: fold for zero adapter overhead
+</code></pre>
+<p><strong>Merge for the hot path.</strong> After merging, the model is ordinary again and needs no adapter-aware engine.</p>
+<pre><code class="language-python">from peft import PeftModel
+
+peft_model = PeftModel.from_pretrained(base_model, "adapters/legal-v1")
+merged = peft_model.merge_and_unload()
+merged.save_pretrained("models/legal-v1-merged")   # a full-size artifact
+</code></pre>
+<p><strong>Route by tenant and version.</strong> The registry is data, not code, so promotion and rollback are config changes.</p>
+<pre><code class="language-python">ADAPTER_ROUTES = {
+    ("acme", "prod"):   ("support-v3", "/adapters/support-v3"),
+    ("globex", "prod"): ("legal-v1",   "/adapters/legal-v1"),
+}
+
+def route(tenant: str, env: str, base: str = "base") -&gt; str:
+    entry = ADAPTER_ROUTES.get((tenant, env))
+    return entry[0] if entry else base      # base model when no adapter matches
+</code></pre>
+<div class="table-wrapper"><table><thead><tr><th>Setting</th><th>Typical values</th><th>Effect</th></tr></thead><tbody>
+<tr><td><code>--enable-lora</code></td><td>flag</td><td>turns on adapter support</td></tr>
+<tr><td><code>--max-loras</code></td><td>1–32</td><td>adapters that can share one batch</td></tr>
+<tr><td><code>--max-lora-rank</code></td><td>8–64</td><td>reserves kernels for the largest adapter</td></tr>
+<tr><td><code>--lora-modules</code></td><td>name=path pairs</td><td>adapters available at startup</td></tr>
+<tr><td>load/unload endpoints</td><td>HTTP</td><td>hot-swap without restart</td></tr>
+</tbody></table>
+</div>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p>All examples are pure Python. Every number is an <strong>illustrative example input</strong>, not a benchmark or a real price. Substitute your own measurements.</p>
+<p><strong>Example 1 — adapter size by rank.</strong> For a 4096-wide model, each target module contributes <code>r x (d_in + d_out)</code> parameters. With four attention projections (<code>q</code>, <code>k</code>, <code>v</code>, <code>o</code>):</p>
+<pre><code class="language-python">D, MODULES = 4096, 4     # q, k, v, o
+
+def adapter_params(r):
+    return MODULES * 2 * r * D
+
+for r in (8, 16, 32, 64):
+    p = adapter_params(r)
+    print(f"r={r:3d}  params {p:&gt;9,}  bf16 MB {p * 2 / 1e6:.2f}")
+</code></pre>
+<pre><code class="language-text">r=  8  params   262,144  bf16 MB 0.52
+r= 16  params   524,288  bf16 MB 1.05
+r= 32  params 1,048,576  bf16 MB 2.10
+r= 64  params 2,097,152  bf16 MB 4.19
+</code></pre>
+<p>A rank-16 adapter is about <strong>1 MB</strong>. Against a 16 GB base in bf16, that is roughly <strong>0.0065%</strong> of the model. This is why the artifact ships cheaply and why a hundred variants is a storage non-problem.</p>
+<p><strong>Example 2 — how many adapters fit in a memory budget.</strong> The weights are tiny; the engine’s per-adapter overhead is what matters.</p>
+<pre><code class="language-python">GPU_GB, BASE_GB, KV_GB = 80.0, 16.0, 40.0
+OVERHEAD_MB_PER_ADAPTER = 50.0      # illustrative runtime overhead
+
+free_gb = GPU_GB - BASE_GB - KV_GB
+max_adapters = free_gb * 1000 / OVERHEAD_MB_PER_ADAPTER
+
+print(round(free_gb, 1))            # 24.0
+print(int(max_adapters))            # 480
+</code></pre>
+<p>An 80 GB GPU holding a 16 GB base and a 40 GB KV cache leaves about <strong>24 GB</strong>, which at an illustrative 50 MB of overhead per adapter is room for hundreds. So set the resident-adapter limit by the engine’s batch configuration (<code>--max-loras</code>) and by how much adapter diversity your traffic actually has — not by VRAM.</p>
+<p><strong>Example 3 — adapter diversity shrinks your batches.</strong> Batching is where the throughput cost appears. With 96 concurrent requests:</p>
+<pre><code class="language-python">CONCURRENT = 96
+for adapters in (1, 2, 4, 8, 32):
+    print(f"adapters {adapters:2d}  avg group {CONCURRENT / adapters:5.1f}")
+</code></pre>
+<pre><code class="language-text">adapters  1  avg group  96.0
+adapters  2  avg group  48.0
+adapters  4  avg group  24.0
+adapters  8  avg group  12.0
+adapters 32  avg group   3.0
+</code></pre>
+<p>Thirty-two adapters turn one large batch into thirty-two tiny ones. Modern engines mitigate this with batched adapter kernels that still process several adapters together, but the effect is real: <strong>more variants means lower throughput per GPU</strong> unless you consolidate traffic.</p>
+<p><strong>Example 4 — load per request vs loading once.</strong> A cold adapter load is a fixed cost. Paying it per request is catastrophic.</p>
+<pre><code class="language-python">LOAD_MS = 200.0
+COMPUTE_MS = 20.0
+
+def rps(mode, requests):
+    if mode == "per_request":
+        return 1000.0 / LOAD_MS
+    return requests * 1000.0 / (LOAD_MS + COMPUTE_MS * requests)
+
+print(rps("per_request", 1))        # 5.0
+print(round(rps("grouped", 100), 2))  # 45.45
+</code></pre>
+<p>Loading the adapter on every request caps you at about <strong>5 requests/sec</strong>. Loading once and amortizing over a group of 100 reaches about <strong>45 requests/sec</strong> in this illustrative model. Pin hot adapters and load cold ones ahead of first use.</p>
+<p><strong>Example 5 — merged copies versus a shared base.</strong> This is the storage and memory argument in one line.</p>
+<pre><code class="language-python">N, BASE_GB, ADAPTER_MB = 50, 16.0, 1.05
+
+merged_gb = N * BASE_GB
+shared_gb = BASE_GB + N * ADAPTER_MB / 1000
+
+print(merged_gb)                 # 800.0
+print(round(shared_gb, 3))       # 16.052
+</code></pre>
+<p>Fifty merged fine-tunes are <strong>800 GB</strong>; one base plus fifty adapters is about <strong>16.05 GB</strong>. Even accounting for the adapters’ runtime overhead, the shared-base model is roughly <strong>50x</strong> smaller — nearly two orders of magnitude.</p>
+<p><strong>Example 6 — routing with a safe fallback.</strong> Routing is ordinary code, and it must fail closed, not open, when an adapter is missing.</p>
+<pre><code class="language-python">ADAPTER_ROUTES = {
+    ("acme", "prod"): ("support-v3", 0.9),
+    ("globex", "prod"): ("legal-v1", 1.0),
+}
+
+def route(tenant, env, base=("base", 1.0)):
+    return ADAPTER_ROUTES.get((tenant, env), base)
+
+print(route("acme", "prod"))        # ('support-v3', 0.9)
+print(route("initech", "prod"))     # ('base', 1.0)
+</code></pre>
+<p>An unknown tenant gets the base model, not someone else’s adapter. For sensitive tenants you may prefer to fail the request instead of silently degrading — decide that per tier and test it.</p>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>Adapters are cheap; adapter diversity is expensive.</strong> The constraint is batch fragmentation, not bytes. Measure throughput as the number of distinct live adapters grows.</li>
+<li><strong>Keep the unmerged adapter as the artifact of record.</strong> Merged weights are derived build outputs. If you merge your only copy, you cannot swap, roll back, or continue training.</li>
+<li><strong>Version adapters immutably.</strong> <code>support-v3</code> should mean the same bytes forever. Publish <code>support-v4</code> instead of overwriting. This makes rollback a one-line route change.</li>
+<li><strong>Record the base model revision with the adapter.</strong> An adapter trained on one base checkpoint can behave badly or fail to load on another. Store base name, revision, and tokenizer alongside it.</li>
+<li><strong>Route by tenant, fail closed, and test the routing.</strong> A cross-tenant adapter leak is a security incident (chapter 16 of phase 9). Log the resolved adapter and version per request, and unit-test that “tenant acme resolves to support-v3”.</li>
+<li><strong>Warm the adapters that matter.</strong> Keep hot variants resident and load cold ones asynchronously. A cold load inside a user request adds visible latency.</li>
+<li><strong>Cap resident adapters deliberately.</strong> Engines expose a max-loras setting. Set it from your traffic profile and test the throughput curve; do not assume more is better.</li>
+<li><strong>Do not load a separate full model per tenant.</strong> That is the pattern adapters exist to replace. If a variant truly diverges in architecture or tokenizer, it needs its own base and its own deployment.</li>
+<li><strong>Expect rank and target-module differences across adapters.</strong> The engine reserves capacity for the largest, so a rank-64 adapter can reduce how many others fit in a batch. Standardize rank where you can.</li>
+<li><strong>Merge for max speed on the hot path when the variant is stable.</strong> Merged models have no adapter overhead and work with any server. Keep the flexible path for everything under active change.</li>
+<li><strong>Quantized bases and adapters interact.</strong> A 4-bit base plus adapters is a common memory win, but confirm that your engine supports the combination and re-measure quality (chapter 4).</li>
+<li><strong>Adapters still need evaluation.</strong> A new adapter version is a new model version. Gate promotion on the same offline and online checks (phase 8) before it serves real traffic.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-why-serve-many-fine-tuned-models-with-lora-adapters-instead-of-separate-full-models"><a class="header" href="#1-why-serve-many-fine-tuned-models-with-lora-adapters-instead-of-separate-full-models">1. Why serve many fine-tuned models with LoRA adapters instead of separate full models?</a></h3>
+<p><strong>Answer.</strong> Because the variants differ by a fraction of a percent of their parameters. A full model per fine-tune means a multi-gigabyte artifact and a full GPU allocation per variant, so a handful of variants exhausts memory and storage. A LoRA adapter is typically one to a few megabytes and attaches to a shared base. One base plus many adapters fits far more variants on the same hardware, makes rollback a route change, and lets a base-model upgrade benefit every variant at once.</p>
+<p><strong>Follow-up: “What is the cost of this approach?”</strong> Batching efficiency and a small per-token overhead. Requests using different adapters are harder to batch together, so throughput per GPU falls as adapter diversity rises.</p>
+<p><strong>Trap.</strong> Saying adapters are free. The adapter weights are tiny, but the engine reserves runtime memory per resident adapter and pays a batching penalty.</p>
+<h3 id="2-what-is-multi-lora-serving-and-how-does-it-work"><a class="header" href="#2-what-is-multi-lora-serving-and-how-does-it-work">2. What is multi-LoRA serving and how does it work?</a></h3>
+<p><strong>Answer.</strong> It is serving many adapters over one base model, selected per request. The base weights live in VRAM once. Each request names an adapter, and the engine applies that adapter’s low-rank update during the forward pass. Modern engines use batched adapter kernels and paged adapter memory so requests with different adapters can still share the expensive base computation — S-LoRA and Punica are well-known examples of the technique.</p>
+<p><strong>Follow-up: “How does the request say which adapter to use?”</strong> Usually by setting the model name to the adapter’s registered name on an OpenAI-compatible endpoint, or by passing an explicit adapter object in the Python API.</p>
+<p><strong>Trap.</strong> Assuming every adapter must be loaded at startup. Runtime load and unload endpoints exist precisely so new fine-tunes go live without a restart.</p>
+<h3 id="3-merged-versus-on-the-fly-adapters--when-do-you-choose-each"><a class="header" href="#3-merged-versus-on-the-fly-adapters--when-do-you-choose-each">3. Merged versus on-the-fly adapters — when do you choose each?</a></h3>
+<p><strong>Answer.</strong> Merge when a variant is stable, hot, and latency-sensitive: the result is an ordinary model with no adapter overhead that works on any server. Keep adapters on the fly when you have many variants, need hot-swapping or fast rollback, or want multi-tenancy on one base. A common production mix is a merged model for the top one or two variants on the hot path, and shared-base adapters for everything experimental or long-tail.</p>
+<p><strong>Follow-up: “Is merging lossy?”</strong> Only in floating-point rounding. The math is <code>W + scale * (B @ A)</code>, and the difference from applying the adapter separately is float precision, not approximation.</p>
+<p><strong>Trap.</strong> Merging your only copy of an adapter. Keep the unmerged adapter as the source artifact and treat merged weights as a build output.</p>
+<h3 id="4-what-is-the-real-bottleneck-in-multi-tenant-adapter-serving"><a class="header" href="#4-what-is-the-real-bottleneck-in-multi-tenant-adapter-serving">4. What is the real bottleneck in multi-tenant adapter serving?</a></h3>
+<p><strong>Answer.</strong> Batching, not memory. If concurrent requests are spread across many adapters, each group is small and the GPU is underfed. With 96 concurrent requests over 32 adapters, the average group is three requests, so throughput per GPU drops sharply. Mitigations are batched adapter kernels that process several adapters together, consolidating tenants onto shared adapters where possible, and capping how much diversity you actually serve from one deployment.</p>
+<p><strong>Follow-up: “How would you measure it?”</strong> Sweep the number of distinct live adapters at fixed request rate and plot throughput and latency. The curve shows you where diversity starts to hurt.</p>
+<p><strong>Trap.</strong> Optimizing adapter file size. Bytes are not the constraint; concurrent adapter diversity is.</p>
+<h3 id="5-how-do-you-version-and-roll-back-an-adapter-safely"><a class="header" href="#5-how-do-you-version-and-roll-back-an-adapter-safely">5. How do you version and roll back an adapter safely?</a></h3>
+<p><strong>Answer.</strong> Treat adapters like immutable container images. Each version has a unique name and content, a recorded base-model revision, and evaluation results. Promotion moves a tenant’s route from one version to the next; rollback moves it back. Neither touches the running server’s weights. You can also load the new adapter alongside the old one, canary it on a small tenant, and shift traffic without downtime.</p>
+<p><strong>Follow-up: “What metadata travels with an adapter?”</strong> Base model name and revision, tokenizer, rank and target modules, training data version, and evaluation scores. Without the base revision, the adapter may not reproduce.</p>
+<p><strong>Trap.</strong> Overwriting a version tag. If <code>support-v3</code> changes underneath you, no rollback is possible and A/B results become meaningless.</p>
+<h3 id="6-how-do-you-route-requests-to-the-right-adapter-in-a-multi-tenant-system"><a class="header" href="#6-how-do-you-route-requests-to-the-right-adapter-in-a-multi-tenant-system">6. How do you route requests to the right adapter in a multi-tenant system?</a></h3>
+<p><strong>Answer.</strong> Keep routing as data, keyed by tenant and environment, mapping to an adapter name and version. Resolve it in one place, log the resolved adapter per request, and use the base model or an explicit failure when no route exists. For sensitive tenants, fail closed rather than silently falling back, because serving the wrong tenant’s adapter is a data-isolation incident.</p>
+<p><strong>Follow-up: “What goes wrong in practice?”</strong> Stale routes after a tenant rename, a default that leaks another tenant’s adapter, and cache keys that omit the adapter so one tenant’s response is served to another. Include the adapter version in any cache key.</p>
+<p><strong>Trap.</strong> Leaving adapter selection to the client. A client should not be able to name an arbitrary adapter; the router decides from identity and policy.</p>
+<h3 id="7-should-you-deploy-a-fine-tuned-model-as-full-weights-or-as-an-adapter"><a class="header" href="#7-should-you-deploy-a-fine-tuned-model-as-full-weights-or-as-an-adapter">7. Should you deploy a fine-tuned model as full weights or as an adapter?</a></h3>
+<p><strong>Answer.</strong> It depends on the deployment shape. Full weights are simplest to operate: any server can load them, there is no adapter runtime, and latency has no extra term. Adapters win when you have many variants, need shared infrastructure, or want hot-swap and cheap rollback. The decision is about how many variants you must serve and how often they change, not about quality — the model is mathematically the same either way.</p>
+<p><strong>Follow-up: “What if only one variant ever exists?”</strong> Merge it and serve full weights. Multi-LoRA is complexity you do not need for a single model.</p>
+<p><strong>Trap.</strong> Assuming adapter deployment is always cheaper operationally. It adds a registry, routing, and an adapter-aware engine; that is worth it for many variants and overkill for one.</p>
+<h3 id="8-connect-adapter-serving-to-agentic-ai-systems"><a class="header" href="#8-connect-adapter-serving-to-agentic-ai-systems">8. Connect adapter serving to agentic AI systems.</a></h3>
+<p><strong>Answer.</strong> Agents often need several specializations at once: one model for planning, another for tool-call formatting, another for a customer’s domain vocabulary. Adapter serving lets an agent platform host all of those on one base and select per step, so a planning call uses the planner adapter and a tool-formatting call uses the formatter adapter without loading separate models. It also makes per-tenant agents affordable, because each tenant’s behavior is a small adapter rather than a dedicated deployment. The caveats are the same as any routing: version pinning, logging, and cache keys that include the adapter.</p>
+<p><strong>Follow-up: “What is the risk in an agent loop?”</strong> A loop makes many model calls, so batching and routing overheads multiply across steps. Measure end-to-end latency per agent run, not per call.</p>
+<p><strong>Trap.</strong> Assuming the agent can safely switch adapters mid-run without pinning a version. If the route changes while a run is in flight, the agent’s behavior changes underneath it. Pin the adapter version for the duration of a run.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>One base, many adapters.</strong> LoRA turns “a model per fine-tune” into “a small file per fine-tune” on shared hardware.</li>
+<li><strong>Memory is not the bottleneck; batching is.</strong> Adapter diversity fragments batches and lowers throughput per GPU.</li>
+<li><strong>Merge for speed and stability, keep adapters for flexibility and tenancy.</strong> The math is identical; only operations differ.</li>
+<li><strong>Version adapters immutably and route by tenant, failing closed for sensitive data.</strong> Log the resolved adapter and version per request.</li>
+<li><strong>Adapters are still models.</strong> Gate every new version on evaluation before promoting it, and pin the version for the duration of an agent run.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-10-model-serving-and-ai-infrastructure/12-local-cloud-and-hybrid-models.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-10-model-serving-and-ai-infrastructure/14-serving-optimization.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-10-model-serving-and-ai-infrastructure/12-local-cloud-and-hybrid-models.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-10-model-serving-and-ai-infrastructure/14-serving-optimization.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
