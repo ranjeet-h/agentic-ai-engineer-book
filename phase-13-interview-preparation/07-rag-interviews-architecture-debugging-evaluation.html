@@ -1,0 +1,545 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>RAG Interviews: Architecture, Debugging, Evaluation - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="rag-interviews-architecture-debugging-evaluation"><a class="header" href="#rag-interviews-architecture-debugging-evaluation">RAG Interviews: Architecture, Debugging, Evaluation</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> RAG retrieves relevant evidence at query time and puts it in the prompt so the model answers from your data instead of its memory. The pipeline is <strong>ingest</strong> (parse → chunk → embed → index), <strong>retrieve</strong> (dense vector search plus keyword search), <strong>fuse and rerank</strong> (merge the lists, reorder a short candidate set with a cross-encoder), <strong>construct the context</strong> (fit the best chunks in the window with metadata and citations), <strong>generate</strong> (answer only from the context), and <strong>evaluate</strong> (retrieval metrics and faithfulness). When an answer is wrong, I localise it first: <strong>is the evidence missing, or did the model ignore evidence it had?</strong> That single split decides whether I fix retrieval or generation, and it is the most valuable debugging step in the interview.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>RAG looks simple on a slide and is hard in production. The demo works because the demo query is easy. Real traffic exposes the failure modes:</p>
+<ul>
+<li>The right chunk was never retrieved, so the model invented an answer.</li>
+<li>The right chunk was retrieved but buried under four irrelevant ones, so the model used the wrong one.</li>
+<li>The context was too long and the useful passage sat in the middle, where attention is weakest.</li>
+<li>The answer was correct but had no citation, so nobody trusted it.</li>
+<li>A tenant’s query matched another tenant’s document, which is a security incident, not a quality bug.</li>
+<li>The system changed end to end and nobody could tell which stage caused the regression.</li>
+</ul>
+<p>Every one of those has a different fix, and the fixes point in opposite directions. If you tune the prompt when retrieval is broken, you will spend a week for nothing. If you add a reranker when recall is already low, you have polished a list that never contained the answer.</p>
+<p>RAG interviews are really <strong>debugging interviews</strong>. The interviewer wants to see whether you can measure the pipeline stage by stage and localise a fault, rather than guessing at prompts.</p>
+<blockquote>
+<p><strong>The one-sentence rule.</strong> RAG quality is capped by retrieval recall: if the evidence is not in the context, no prompt, model, or temperature can produce a grounded answer.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<p>Every word below is used later on this page. Read the table first.</p>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>RAG</strong></td><td>Retrieval-augmented generation: fetch evidence, then generate an answer conditioned on it.</td></tr>
+<tr><td><strong>Corpus</strong></td><td>The full set of documents you can search.</td></tr>
+<tr><td><strong>Chunk</strong></td><td>A slice of a document, usually a few hundred tokens, that is indexed as one unit.</td></tr>
+<tr><td><strong>Embedding</strong></td><td>A vector that represents meaning, so similar meanings are close in space.</td></tr>
+<tr><td><strong>Dense retrieval</strong></td><td>Search by embedding similarity. Handles paraphrase, misses exact keywords.</td></tr>
+<tr><td><strong>Sparse retrieval</strong></td><td>Keyword search such as BM25. Handles exact terms and rare ids, misses paraphrase.</td></tr>
+<tr><td><strong>Vector store</strong></td><td>A database that finds nearest embeddings quickly.</td></tr>
+<tr><td><strong>ANN</strong></td><td>Approximate nearest neighbour: a fast, slightly inexact search over vectors.</td></tr>
+<tr><td><strong>HNSW</strong></td><td>A popular ANN index: a layered graph you walk toward the query.</td></tr>
+<tr><td><strong>Hybrid search</strong></td><td>Running dense and sparse retrieval, then combining the results.</td></tr>
+<tr><td><strong>RRF</strong></td><td>Reciprocal rank fusion: merge lists using <code>1 / (k + rank)</code> so scores need no calibration.</td></tr>
+<tr><td><strong>Reranker</strong></td><td>A second-stage model (usually a cross-encoder) that reorders a short candidate list.</td></tr>
+<tr><td><strong>Bi-encoder</strong></td><td>Encodes query and document separately; fast, used for retrieval.</td></tr>
+<tr><td><strong>Cross-encoder</strong></td><td>Reads query and document together; accurate, too slow for the whole corpus.</td></tr>
+<tr><td><strong>Top-k</strong></td><td>The number of results taken from a ranked list.</td></tr>
+<tr><td><strong>Context construction</strong></td><td>Deciding which chunks, in what order, with what metadata, go into the prompt.</td></tr>
+<tr><td><strong>Citation</strong></td><td>A link from a claim in the answer to the source chunk it came from.</td></tr>
+<tr><td><strong>Grounded</strong></td><td>The answer is supported by the retrieved context.</td></tr>
+<tr><td><strong>Faithfulness</strong></td><td>Fraction of the answer’s claims that the context supports.</td></tr>
+<tr><td><strong>Hallucination</strong></td><td>A claim that is not supported by the context or is simply invented.</td></tr>
+<tr><td><strong>Recall@K</strong></td><td>Share of all relevant chunks present in the top K.</td></tr>
+<tr><td><strong>MRR</strong></td><td>Mean reciprocal rank: where the first relevant chunk appears, averaged over queries.</td></tr>
+<tr><td><strong>NDCG@K</strong></td><td>Ranking quality that rewards putting the most relevant chunks highest.</td></tr>
+<tr><td><strong>Golden set</strong></td><td>A labelled set of queries with known relevant chunks, used as a regression test.</td></tr>
+<tr><td><strong>Abstention</strong></td><td>The system says “I do not know” instead of guessing.</td></tr>
+<tr><td><strong>Lost in the middle</strong></td><td>Long contexts attend most strongly to the start and end, so middle evidence is missed.</td></tr>
+<tr><td><strong>Tenant isolation</strong></td><td>Guaranteeing one customer never sees another customer’s data.</td></tr>
+</tbody></table>
+</div>
+<p>Two distinctions cause most confusion, so fix them now:</p>
+<ul>
+<li><strong>Recall vs precision.</strong> Recall asks “did we find all the relevant chunks?” Precision asks “how clean is the returned list?” A retrieval miss is fatal; noise is survivable. Tune recall first, then precision with a reranker.</li>
+<li><strong>Retrieval failure vs generation failure.</strong> Missing evidence is a retrieval bug. Ignoring good evidence is a generation bug. The same wrong answer can come from either, and the fix is different.</li>
+</ul>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Think of RAG as <strong>a researcher with a small desk</strong>. The query goes to the library (retrieval). The researcher carries back a pile of notes (chunks). The desk is small (context window), so only the best notes fit, and where you place them matters. Then the researcher writes an answer using only those notes, and marks which note each sentence came from (citations). If the answer is wrong, you check two things in order: were the right notes in the pile, and did the writer use them?</p>
+<pre><code class="language-mermaid">flowchart LR
+    Q["Query"] --&gt; QT["Query transform&lt;br/&gt;rewrite · expand"]
+    QT --&gt; D["Dense search&lt;br/&gt;embeddings"]
+    QT --&gt; S["Sparse search&lt;br/&gt;BM25"]
+    D --&gt; F["Fuse&lt;br/&gt;RRF / weighted"]
+    S --&gt; F
+    F --&gt; RR["Rerank&lt;br/&gt;cross-encoder&lt;br/&gt;top 50 -&gt; top 5"]
+    RR --&gt; CC["Context construction&lt;br/&gt;order · metadata · budget"]
+    CC --&gt; G["Generate&lt;br/&gt;answer + citations"]
+    G --&gt; E["Evaluate&lt;br/&gt;recall · faithfulness"]
+    E -.-&gt;|"fix the failing stage"| QT
+</code></pre>
+<p>The evaluation arrow is what makes this engineering rather than hoping. The cache and the access-control-list (ACL) filter sit on the retrieval path; the citations sit on the generation path.</p>
+<p>Where the faults live, at a glance:</p>
+<div class="table-wrapper"><table><thead><tr><th>Symptom</th><th>Likely stage</th><th>First measurement</th></tr></thead><tbody>
+<tr><td>Answer is wrong and evidence was never retrieved</td><td>Retrieval / indexing</td><td>Recall@candidate_K (recall at the candidate-set size K, e.g. 50)</td></tr>
+<tr><td>Evidence was retrieved but the wrong chunk won</td><td>Ranking / fusion</td><td>Precision@K, NDCG@K</td></tr>
+<tr><td>Evidence is in the context but the model ignored it</td><td>Generation / context order</td><td>Faithfulness, lost-in-the-middle check</td></tr>
+<tr><td>Answer is right but nobody trusts it</td><td>Citations</td><td>Citation coverage and correctness</td></tr>
+<tr><td>One tenant sees another’s data</td><td>Access control</td><td>ACL filter audit</td></tr>
+<tr><td>Quality dropped after a change</td><td>Any</td><td>Per-stage metrics on the golden set</td></tr>
+</tbody></table>
+</div>
+<h3 id="debugging-the-answer-is-wrong-as-a-decision-tree"><a class="header" href="#debugging-the-answer-is-wrong-as-a-decision-tree">Debugging “the answer is wrong”, as a decision tree</a></h3>
+<p>This is the interview favourite. Say the two branches out loud.</p>
+<pre><code class="language-mermaid">flowchart TD
+    W["Wrong answer"] --&gt; R1{"Was the correct chunk&lt;br/&gt;in the retrieved context?"}
+    R1 --&gt;|No| A["RETRIEVAL fault&lt;br/&gt;check recall@candidate_K"]
+    R1 --&gt;|"Yes"| R2{"Did the model use it?"}
+    R2 --&gt;|No| B["GENERATION fault&lt;br/&gt;prompt · order · model"]
+    R2 --&gt;|"Yes, but answer still wrong"| C["CONTEXT fault&lt;br/&gt;chunk split · stale data · conflict"]
+    A --&gt; A1["fix: chunking, embeddings,&lt;br/&gt;hybrid, query rewrite, filters"]
+    B --&gt; B1["fix: grounding prompt, citations,&lt;br/&gt;reorder context, stronger model"]
+    C --&gt; C1["fix: better chunking, versioning,&lt;br/&gt;dedupe conflicting sources"]
+</code></pre>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p>Follow one query from raw text to a grounded answer.</p>
+<ol>
+<li><strong>Ingest.</strong> Parse each source document (PDF, HTML, wiki, ticket), strip boilerplate, and extract metadata: tenant, source, section, version, timestamp, access level.</li>
+<li><strong>Chunk.</strong> Split into passages of a few hundred tokens, with overlap so a sentence spanning a boundary is not lost. Preserve the heading path with each chunk, because a chunk out of context is ambiguous.</li>
+<li><strong>Embed and index.</strong> Encode each chunk with an embedding model and store the vector plus metadata in a vector store. Build a sparse index (BM25) over the same chunks for keyword search.</li>
+<li><strong>Rewrite the query.</strong> Optionally expand, decompose, or rewrite the user’s question into a better search query. This helps multi-hop and conversational follow-ups (Phase 3, Query Transformation).</li>
+<li><strong>Retrieve.</strong> Run dense and sparse search in parallel, with ACL and metadata filters applied. Take a generous candidate set, often 50–100.</li>
+<li><strong>Fuse.</strong> Merge the two ranked lists. RRF is the common default because it needs no score calibration between the two systems.</li>
+<li><strong>Rerank.</strong> Run a cross-encoder over the candidate set and keep the top few, often 3–8. Reranking fixes ordering; it cannot recover a chunk retrieval never found.</li>
+<li><strong>Construct the context.</strong> Deduplicate, enforce a token budget, order the best evidence near the end, and attach source ids so a citation can be produced.</li>
+<li><strong>Generate.</strong> Prompt the model to answer only from the context, cite each factual claim, and say “not in the provided context” when evidence is missing. Constrain the output shape if a machine will read it.</li>
+<li><strong>Evaluate and monitor.</strong> Log the query, retrieved ids, scores, context, answer, and citations. Run retrieval metrics and faithfulness on a golden set, and track them per stage so a regression is attributable.</li>
+</ol>
+<p>Notice step 10 keeps happening. A RAG system without per-stage logging cannot be debugged, only guessed at.</p>
+<h3 id="chunking-the-decision-nobody-agrees-on"><a class="header" href="#chunking-the-decision-nobody-agrees-on">Chunking: the decision nobody agrees on</a></h3>
+<p>There is no universal chunk size. The trade is context completeness against precision and cost.</p>
+<div class="table-wrapper"><table><thead><tr><th>Strategy</th><th>Strength</th><th>Weakness</th><th>When to use</th></tr></thead><tbody>
+<tr><td><strong>Fixed-size + overlap</strong></td><td>Simple, predictable token counts</td><td>Splits mid-sentence or mid-table</td><td>Baseline; uniform prose</td></tr>
+<tr><td><strong>Recursive by separator</strong></td><td>Respects paragraphs and headings</td><td>Uneven chunk sizes</td><td>Most documents</td></tr>
+<tr><td><strong>Semantic / sentence-window</strong></td><td>Chunks break at meaning boundaries</td><td>Slower, needs sentence embeddings</td><td>Q&amp;A over dense prose</td></tr>
+<tr><td><strong>Parent-child</strong></td><td>Index small chunks, return the parent</td><td>More storage, two-step lookup</td><td>Precise matching, rich context</td></tr>
+<tr><td><strong>Structure-aware</strong></td><td>Uses headings, rows, and code blocks</td><td>Parser per format; brittle</td><td>Tables, code, legal clauses</td></tr>
+</tbody></table>
+</div>
+<blockquote>
+<p><strong>Why overlap exists.</strong> A fact that straddles a boundary is unanswerable if both halves are separate chunks with no overlap. Overlap of 10–20% is cheap insurance, but it also duplicates content, which inflates recall and NDCG unless you deduplicate before scoring.</p>
+</blockquote>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p><strong>Retrieval metrics.</strong> Short functions you own; standard library is enough (full treatment in Phase 3, Retrieval Metrics).</p>
+<pre><code class="language-python">import math
+
+def recall_at_k(retrieved, relevant, k):
+    if not relevant:
+        return None                       # zero-relevant query: skip
+    return sum(1 for d in retrieved[:k] if d in relevant) / len(relevant)
+
+def reciprocal_rank(retrieved, relevant):
+    for i, d in enumerate(retrieved, start=1):
+        if d in relevant:
+            return 1.0 / i
+    return 0.0
+
+def dcg(grades):
+    return sum((2 ** g - 1) / math.log2(i + 1) for i, g in enumerate(grades, 1))
+
+def ndcg_at_k(retrieved, grades, k):
+    if not grades:
+        return None
+    actual = [grades.get(d, 0) for d in retrieved[:k]]
+    ideal = sorted(grades.values(), reverse=True)[:k]
+    return dcg(actual) / dcg(ideal)
+</code></pre>
+<p><strong>Reciprocal rank fusion.</strong> Merge dense and sparse lists without calibrating their scores. <code>k = 60</code> is the common default.</p>
+<pre><code class="language-python">def rrf(rankings, k=60, weights=None):
+    weights = weights or [1.0] * len(rankings)
+    scores = {}
+    for w, ranking in zip(weights, rankings):
+        for rank, doc in enumerate(ranking, start=1):
+            scores[doc] = scores.get(doc, 0.0) + w * (1.0 / (k + rank))
+    return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+</code></pre>
+<p><strong>A retrieval call with filters and ACL.</strong> Security belongs here, not in the prompt.</p>
+<pre><code class="language-python">hits = vector_store.search(
+    vector=embed(query),
+    top_k=50,
+    filter={"tenant_id": tenant_id, "access_level": {"$in": user_roles}},
+)
+# The filter is mandatory: a prompt cannot enforce tenant isolation.
+</code></pre>
+<p><strong>Context assembly with a budget and citations.</strong> Keep the best evidence near the end, and always carry source ids.</p>
+<pre><code class="language-python">def build_context(chunks, max_tokens=2400, best_last=True):
+    chosen, used = [], 0
+    for c in chunks:
+        if used + c.tokens &gt; max_tokens:
+            break
+        chosen.append(c)
+        used += c.tokens
+    if best_last:
+        chosen.sort(key=lambda c: c.score)      # best chunk ends up last
+    return "\n\n".join(f"[{c.id}] {c.text}" for c in chosen)
+</code></pre>
+<p><strong>A grounding prompt.</strong> The instruction that turns retrieved text into a citational answer.</p>
+<pre><code class="language-text">Answer only from the context below. Cite every factual claim with [chunk_id].
+If the context does not contain the answer, reply exactly:
+"The provided documents do not answer this."
+Do not use outside knowledge.
+
+Context:
+{context}
+
+Question: {question}
+</code></pre>
+<p><strong>A per-stage trace.</strong> One log line per request is what makes debugging possible.</p>
+<pre><code class="language-python">log.info("rag_request", extra={
+    "request_id": rid, "tenant": tenant_id,
+    "retrieved_ids": dense + sparse, "fused_ids": fused_ids, "reranked_ids": final_ids,
+    "context_tokens": used, "answer": answer, "citations": cited_ids,
+    "latency_ms": {"retrieve": 250, "rerank": 150, "generate": 1600},
+})
+</code></pre>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p><strong>Example 1 — one query, by hand.</strong> Relevant chunks are <code>{A, C}</code>; the retriever returns <code>[A, B, C, D, E]</code>.</p>
+<pre><code class="language-text">Recall@5    = 2 / 2 = 1.0     (both relevant chunks found)
+Precision@5 = 2 / 5 = 0.4     (two of five were relevant)
+RR          = 1 / 1 = 1.0     (first relevant is at rank 1)
+NDCG@5      = 1.5 / 1.6309 = 0.9197
+</code></pre>
+<p>Recall is perfect and precision is poor: the evidence is present but competing with three irrelevant chunks. That is a reranking problem, not a retrieval problem.</p>
+<p><strong>Example 2 — rank matters, and recall cannot see it.</strong> Same relevant set <code>{A, C}</code>, but <code>A</code> sits at rank 3.</p>
+<pre><code class="language-python">relevant = {"A", "C"}
+print(round(recall_at_k(["X", "Y", "A", "C"], relevant, 4), 2))     # 1.0
+print(round(reciprocal_rank(["X", "Y", "A", "C"], relevant), 4))   # 0.3333
+</code></pre>
+<p>Recall is unchanged at 1.0; MRR fell from 1.0 to 0.33. If the context budget only fits two chunks, the answer is now wrong even though retrieval “found” everything. <strong>Report a rank-aware metric as well as recall.</strong></p>
+<p><strong>Example 3 — hybrid fusion with RRF.</strong> Dense and sparse lists disagree; RRF rewards chunks that both rank highly.</p>
+<pre><code class="language-python">bm25  = ["A", "B", "C"]
+dense = ["B", "D", "A"]
+for doc, score in rrf([bm25, dense]):
+    print(doc, round(score, 6))
+# B 0.032522   &lt;- second and first: the consensus winner
+# A 0.032266   &lt;- first and third
+# D 0.016129
+# C 0.015873
+</code></pre>
+<p><code>B</code> wins because it appears near the top of both lists. RRF needs no score normalisation, which is why it is the standard first fusion step. Adding a weight, for example <code>weights=[2.0, 1.0]</code> to trust BM25 more for exact ids, is a one-line change.</p>
+<p><strong>Example 4 — compute the chunk count and context budget before you promise a design.</strong> Numbers make the pipeline concrete.</p>
+<pre><code class="language-python">import math
+tokens = 10_000 / 0.75          # ~13,333 tokens for a 10k-word document
+chunk, overlap = 500, 50
+chunks = math.ceil(tokens / (chunk - overlap))     # 30 chunks
+context = 5 * chunk + 800 + 50                     # top 5 + system prompt + question
+print(chunks, context)          # 30 3350
+</code></pre>
+<p>Five 500-token chunks plus a system prompt and the question is ~3,350 tokens. That fits an 8k window with room for the answer, so for this corpus you do <strong>not</strong> need a 128k model. The 10k-word document becomes 30 chunks, so your index is 30 vectors per document — size the store and re-embedding cost from that.</p>
+<p><strong>Example 5 — localise the fault with a classifier over logs.</strong> The debugging move, expressed as a rule.</p>
+<pre><code class="language-python">def diagnose(correct_chunk_retrieved: bool, answer_uses_chunk: bool,
+             answer_correct: bool) -&gt; str:
+    if not correct_chunk_retrieved:
+        return "RETRIEVAL: fix chunking, embeddings, hybrid search, or query rewrite"
+    if not answer_uses_chunk:
+        return "GENERATION: fix grounding prompt, context order, or model"
+    if not answer_correct:
+        return "CONTEXT: fix chunk split, stale data, or conflicting sources"
+    return "OK"
+
+print(diagnose(False, False, False))   # RETRIEVAL: ...
+print(diagnose(True, False, False))    # GENERATION: ...
+print(diagnose(True, True, False))     # CONTEXT: ...
+</code></pre>
+<p>The first branch is the one people skip. <code>correct_chunk_retrieved=False</code> means the answer was doomed before generation ran, and no prompt change will fix it. This is why you log retrieved ids with every request.</p>
+<p><strong>Example 6 — faithfulness and abstention are the generation-side metrics.</strong> Retrieval can be perfect and the answer still ungrounded.</p>
+<pre><code class="language-python">claims, supported = 4, 3
+faithfulness = supported / claims
+answered, correct, faithful = 940, 900, 880
+print(round(faithfulness, 2))                     # 0.75
+print(round(correct / 1000, 3), round(faithful / answered, 3))
+# 0.9 0.936
+</code></pre>
+<p>Read it as a funnel. Of 1,000 questions, 940 were answered rather than abstained, 900 were correct (<code>90%</code> end-to-end), and 880 of the 940 answers were fully faithful (<code>93.6%</code>). Track coverage (how often it answers at all), correctness, and faithfulness separately, because a system that abstains more can look better on faithfulness while being less useful.</p>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>Recall first, then precision.</strong> A retrieval miss is unfixable by the model; extra chunks are noise the model can often ignore. Measure recall at the candidate K, then add a reranker.</li>
+<li><strong>A reranker cannot invent a chunk.</strong> If Recall@50 is low, fix indexing, chunking, embeddings, or query rewriting before touching stage two.</li>
+<li><strong>Chunk on structure, not just a character count.</strong> Headings, sections, table rows, and code blocks carry meaning. Always store the heading path with the chunk.</li>
+<li><strong>Overlap duplicates content.</strong> Deduplicate near-identical chunks before scoring, or recall and NDCG look better than the context really is.</li>
+<li><strong>Hybrid search beats either method alone.</strong> Dense handles paraphrase; sparse handles exact terms, product codes, and rare names. Fuse with RRF by default.</li>
+<li><strong>Reranking is usually the highest-return single change.</strong> It fixes the “right chunk, wrong order” failure that shows up as good recall and bad precision.</li>
+<li><strong>Context order matters.</strong> Models attend most strongly to the beginning and end. Put the strongest evidence near the end and keep the window tight; “lost in the middle” is real.</li>
+<li><strong>Enforce access control at retrieval, never in the prompt.</strong> A tenant filter in the query is a guarantee; an instruction in the prompt is a hope (Phase 3, RAG Security and Access Control).</li>
+<li><strong>Cite at claim level, and validate the citation.</strong> A citation that points to a chunk which does not support the sentence is worse than no citation, because it manufactures trust.</li>
+<li><strong>Golden sets rot.</strong> Re-indexing changes ids; documents change; labels go stale. Version the golden set with the corpus and re-check on every index rebuild.</li>
+<li><strong>Track metrics per stage, not just end to end.</strong> Store retrieved ids, fused ids, reranked ids, context tokens, and citations so a regression is attributable.</li>
+<li><strong>Separate coverage from correctness.</strong> A system can minimise hallucinations by abstaining too often. Watch how often it answers, how often it is right, and how faithful it is, as three numbers.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-walk-me-through-a-rag-pipeline"><a class="header" href="#1-walk-me-through-a-rag-pipeline">1. Walk me through a RAG pipeline.</a></h3>
+<p><strong>Answer.</strong> Offline: parse documents, chunk them with metadata, embed the chunks, and build a dense index plus a sparse index. Online: rewrite the query if useful, retrieve 50–100 candidates from both indexes with an ACL filter, fuse the lists with RRF, rerank with a cross-encoder down to a handful, assemble them into a token-budgeted context ordered best-last, generate with a grounding prompt and citations, then log everything and evaluate retrieval and faithfulness on a golden set. The evaluation is not a final step; it is what makes the rest debuggable.</p>
+<p><strong>Follow-up: “What is the biggest quality lever?”</strong> Retrieval recall, then reranking. Generation can only use what retrieval returns, so quality is capped there. Reranking is usually the highest-return single change after recall is adequate.</p>
+<p><strong>Trap.</strong> Describing only the online path. Half the system is ingestion: parsing, chunking, embedding, re-indexing, and versioning. Interviewers notice when it is missing.</p>
+<h3 id="2-how-do-you-choose-a-chunk-size-and-overlap"><a class="header" href="#2-how-do-you-choose-a-chunk-size-and-overlap">2. How do you choose a chunk size and overlap?</a></h3>
+<p><strong>Answer.</strong> Match the chunk to the question type and the document structure. For fact lookup, smaller chunks (200–500 tokens) improve precision; for multi-paragraph reasoning, larger chunks or parent-child retrieval give the model enough context. I chunk on structure — headings, paragraphs, table rows — rather than a raw character count, keep 10–20% overlap so facts spanning a boundary survive, and store the heading path with each chunk because a chunk without its section is ambiguous. Then I tune size empirically against the golden set, not by taste.</p>
+<p><strong>Follow-up: “What is parent-child retrieval?”</strong> Index small child chunks for precise matching, but return the larger parent section as context. You get precision from the small chunk and completeness from the parent.</p>
+<p><strong>Trap.</strong> Assuming one chunk size fits every corpus. A support FAQ, a legal contract, and a code repository want different chunking, and mixing formats in one index usually needs per-format rules.</p>
+<h3 id="3-dense-versus-sparse-retrieval-when-do-you-use-each"><a class="header" href="#3-dense-versus-sparse-retrieval-when-do-you-use-each">3. Dense versus sparse retrieval: when do you use each?</a></h3>
+<p><strong>Answer.</strong> Dense retrieval embeds the query and documents and searches by vector similarity, so it handles paraphrase and synonyms. Sparse retrieval such as BM25 matches terms directly, so it nails exact strings: product codes, error numbers, rare names. Each fails where the other shines, so production systems run both and fuse the lists, usually with reciprocal rank fusion, which needs no score calibration. Hybrid search is the default for enterprise corpora.</p>
+<p><strong>Follow-up: “Why RRF instead of adding the scores?”</strong> Dense cosine scores and BM25 scores live on different scales, so adding them lets one dominate arbitrarily. RRF uses only rank, which is comparable across systems.</p>
+<p><strong>Trap.</strong> Believing embeddings understand negation and exact identifiers. Dense vectors often place “not covered” near “covered”, and they blur a specific part number. That is exactly what the sparse half is for.</p>
+<h3 id="4-how-does-vector-search-work-underneath-and-what-are-the-trade-offs"><a class="header" href="#4-how-does-vector-search-work-underneath-and-what-are-the-trade-offs">4. How does vector search work underneath, and what are the trade-offs?</a></h3>
+<p><strong>Answer.</strong> A vector store indexes embeddings so it can find the nearest neighbours to a query vector without scanning everything. Most production indexes, such as HNSW, are approximate: they trade a little recall for a large speed-up. The knobs are the graph size and search breadth — more breadth means higher recall and higher latency and memory. So there is a three-way trade among recall, latency, and index size, and the right point depends on whether you rerank afterward.</p>
+<p><strong>Follow-up: “Why is approximate search acceptable?”</strong> Because a reranker only needs the correct chunk to be somewhere in the candidate set, not at rank 1. High recall@50 is enough; exact ordering is the reranker’s job.</p>
+<p><strong>Trap.</strong> Assuming the index always returns the true nearest neighbours. ANN can miss them, so measure recall of the index itself, not just the pipeline.</p>
+<h3 id="5-why-add-a-reranker-and-what-does-it-fix"><a class="header" href="#5-why-add-a-reranker-and-what-does-it-fix">5. Why add a reranker, and what does it fix?</a></h3>
+<p><strong>Answer.</strong> First-stage retrieval is fast but noisy near the top because a bi-encoder compresses each document into one vector without seeing the query. A cross-encoder reads the query and document together, so it judges relevance far better, but it costs one forward pass per candidate, which is why it only runs on a short list. Reranking fixes ordering: it raises precision and NDCG while leaving recall unchanged, because it can only reorder what retrieval already found.</p>
+<p><strong>Follow-up: “How do you size the candidate list?”</strong> Big enough that recall is high — often 50–100 — and small enough that reranking latency stays inside the budget. Measure recall at that K before tuning the reranker.</p>
+<p><strong>Trap.</strong> Expecting reranking to fix a retrieval miss. If the right chunk is absent, the cross-encoder has nothing to promote.</p>
+<h3 id="6-how-do-you-construct-the-context-and-produce-trustworthy-citations"><a class="header" href="#6-how-do-you-construct-the-context-and-produce-trustworthy-citations">6. How do you construct the context and produce trustworthy citations?</a></h3>
+<p><strong>Answer.</strong> I deduplicate the reranked chunks, enforce a token budget, and order them so the strongest evidence sits near the end, because models attend most to the start and end. Each chunk carries a source id and metadata, and the prompt requires the model to cite the chunk id for every factual claim and to abstain when the context does not answer the question. Then I validate citations: does the cited chunk actually support the sentence? A fabricated citation is worse than none.</p>
+<p><strong>Follow-up: “What is lost in the middle?”</strong> Evidence placed in the middle of a long context is attended to less than evidence at the edges, so a correct answer can be missed even when the chunk is present. Tight context and best-last ordering both help.</p>
+<p><strong>Trap.</strong> Treating citations as decoration. If the citation is not validated against the claim, it manufactures false trust and is worse than no citation at all.</p>
+<h3 id="7-a-user-says-the-answer-is-wrong-how-do-you-debug-it"><a class="header" href="#7-a-user-says-the-answer-is-wrong-how-do-you-debug-it">7. A user says the answer is wrong. How do you debug it?</a></h3>
+<p><strong>Answer.</strong> I localise the fault before changing anything. First question: was the correct chunk in the retrieved context? I check the logged retrieved ids against a known relevant chunk and look at Recall@candidate_K. If it was missing, it is a retrieval fault: chunking, embeddings, filters, or query rewrite. If it was present, I check whether the model used it — that is a generation or context-order problem. If the model used it and the answer is still wrong, the chunk itself is stale, split badly, or in conflict with another source. Each branch has a different fix.</p>
+<p><strong>Follow-up: “What if retrieval recall is high and faithfulness is still low?”</strong> Then it is generation: the grounding prompt is weak, the context is too long, the evidence is buried in the middle, or the model is too small. Reorder the context, tighten the prompt, or upgrade the model.</p>
+<p><strong>Trap.</strong> Starting with a prompt change. It is the cheapest change to make and the easiest to make uselessly when the evidence never reached the model. Measure retrieval first.</p>
+<h3 id="8-how-do-you-evaluate-a-rag-system"><a class="header" href="#8-how-do-you-evaluate-a-rag-system">8. How do you evaluate a RAG system?</a></h3>
+<p><strong>Answer.</strong> Two layers. Retrieval: Recall@K at the candidate K, plus a rank-aware metric such as MRR or NDCG to capture ordering, measured on a golden set with independent labels. Generation: faithfulness (what fraction of claims the context supports), answer relevance, citation correctness, and coverage or abstention rate. I keep a hard slice — multi-hop, acronym, no-answer questions — because averages hide failures, and I gate deploys on the golden set so a change is judged by numbers rather than by a demo query.</p>
+<p><strong>Follow-up: “How do you build the golden set?”</strong> From real user questions, labelled by a human or a strong model with human spot-checks, never from the retriever’s own output. Split it into a tuning part and a held-out part so the reported number is not a memory of your own choices.</p>
+<p><strong>Trap.</strong> Using an LLM judge without validating it against human labels. An unvalidated judge can be confidently wrong, and it will reward the same biases the system already has.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>Recall is the ceiling.</strong> If the evidence is not in the context, no prompt or model can save the answer.</li>
+<li><strong>Debug in order: retrieval, then generation, then context.</strong> Check whether the correct chunk was retrieved before blaming the model.</li>
+<li><strong>Hybrid retrieval plus a reranker is the production default.</strong> Dense for meaning, sparse for exact terms, cross-encoder for order.</li>
+<li><strong>Measure per stage on a versioned golden set.</strong> Recall@K, MRR, and NDCG for retrieval; faithfulness, citation correctness, and coverage for generation.</li>
+<li><strong>Citations and access control are guarantees, not prompts.</strong> Enforce tenant filters at retrieval, and validate every citation against the claim it supports.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-13-interview-preparation/06-llm-fundamentals-and-transformer-questions.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-13-interview-preparation/08-agent-and-langgraph-interviews.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-13-interview-preparation/06-llm-fundamentals-and-transformer-questions.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-13-interview-preparation/08-agent-and-langgraph-interviews.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
