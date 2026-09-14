@@ -64,4 +64,4 @@ The **host** is the application. Each **client** is one connection managed by th
 
 ## Checkpoint project
 
-At the end of the phase, build **Project 6 — Enterprise MCP Gateway**: a gateway in front of several MCP servers with authentication, authorization, tool allowlists, versioning, audit logging, and monitoring. The exact scope lives in the projects part of the book.
+At the end of the phase, build [Project 6 — Enterprise MCP Gateway](../projects/06-enterprise-mcp-gateway.md): a gateway in front of several MCP servers with authentication, authorization, tool allowlists, versioning, audit logging, and monitoring. The exact scope lives in the projects part of the book.

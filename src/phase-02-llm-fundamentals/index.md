@@ -83,4 +83,4 @@ Work through these in order. Each topic is one concept, and merged roadmap bulle
 
 ## Checkpoint project
 
-At the end of the phase, extend **Project 2 — Grounded knowledge assistant** with a small model component: call two providers through one interface, produce a structured (validated) answer, stream it, and compare model behaviour on a fixed set of prompts. The exact scope lives in the projects part of the book.
+At the end of the phase, build the model layer of [Project 4 — Production LLM Gateway](../projects/04-production-llm-gateway.md): call two providers through one interface, produce a structured (validated) answer, stream it, and compare model behaviour on a fixed set of prompts. The exact scope lives in the projects part of the book.

@@ -71,4 +71,4 @@ Everything in this phase is one of four concerns: **what the loop does** (planni
 
 ## Checkpoint project
 
-At the end of the phase, build **Project 2 — Autonomous Enterprise Workflow Agent**: a LangGraph agent that plans, uses tools, checkpoints, pauses for human approval, resumes durably, and reports. The exact scope lives in the projects part of the book.
+At the end of the phase, build [Project 2 — Autonomous Enterprise Workflow Agent](../projects/02-autonomous-enterprise-workflow-agent.md): a LangGraph agent that plans, uses tools, checkpoints, pauses for human approval, resumes durably, and reports. The exact scope lives in the projects part of the book.

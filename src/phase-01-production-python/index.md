@@ -73,4 +73,4 @@ Work through these in order. Each topic is one concept, and each assumes the one
 
 ## Checkpoint project
 
-At the end of the phase, build **Project 1 — Production Python service**: a tested, containerized FastAPI service with PostgreSQL, Redis, authentication, background jobs, and CI/CD. The exact scope lives in the projects part of the book. The point of the checkpoint is to prove the phase end-to-end: if you can build this service without looking things up, Phase 1 is done.
+At the end of the phase, build the shared foundation used by most of the projects: a tested, containerized FastAPI service with PostgreSQL, Redis, authentication, background jobs, and CI/CD. It is the base layer of [Project 1 — Production Enterprise RAG Engine](../projects/01-production-enterprise-rag-engine.md) and [Project 4 — Production LLM Gateway](../projects/04-production-llm-gateway.md). The point of the checkpoint is to prove the phase end-to-end: if you can build this service without looking things up, Phase 1 is done.

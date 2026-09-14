@@ -4,14 +4,17 @@ This book is a progressive, production-focused study path for building, operatin
 
 Each phase is a part of the book. Inside a phase, every topic is a short, self-contained lesson that follows the same shape:
 
-1. **The one idea** — what it is and why it exists, in plain language.
-2. **How it works** — the mechanism, with a small diagram or table.
-3. **A small example** — a short snippet, only when words are not enough.
-4. **In production** — trade-offs, failure modes, and what to watch.
-5. **Interview questions** — real questions with model answers, follow-ups, and the trap answers interviewers look for.
-6. **Remember this** — three lines to revise before an interview.
+1. **Why this exists** — the problem it solves, in plain language.
+2. **Start from zero** — the vocabulary and first principles, for a reader who has never seen the topic.
+3. **The core idea** — an analogy, a mental model, and a diagram or table.
+4. **How it works** — the mechanism, step by step.
+5. **The syntax you will use** — the real forms, each with a short example.
+6. **Examples: simple to real** — graded worked examples.
+7. **In production** — trade-offs, failure modes, and gotchas.
+8. **Interview questions** — model answers with follow-ups and the trap answers interviewers look for.
+9. **Remember this** — the few lines to revise before an interview.
 
-Read the phases in order. Each phase ends with a checkpoint project that uses everything in it.
+Read the phases in order. Each phase has a short checkpoint, and the book ends with six projects you build yourself.
 
 ## Learning progression
 
@@ -27,22 +30,18 @@ Read the phases in order. Each phase ends with a checkpoint project that uses ev
 10. Model Serving and AI Infrastructure
 11. AI Systems Architecture
 12. Multi-Agent Systems
+13. Interview Preparation
 
-## Planned project track
+## Final projects
 
-The future book will use projects to connect the phases:
+The book ends with six projects you build yourself. Each has requirements, a suggested architecture, milestones, and acceptance criteria — but no implementation code, so you make the decisions. Start here: [Final Projects](projects/index.md).
 
-- **Project 1 — Production Python service:** a tested, containerized FastAPI service with PostgreSQL, Redis, authentication, background jobs, and CI/CD.
-- **Project 2 — Grounded knowledge assistant:** a versioned RAG system with ingestion, hybrid retrieval, citations, evaluation, and access control.
-- **Project 3 — Reliable tool-using agent:** an agent loop with schemas, permissions, memory, checkpoints, retries, approvals, and observability.
-- **Project 4 — MCP tool ecosystem:** MCP client/server integrations with discovery, authorization, audit logging, and versioning.
-- **Project 5 — Distributed agent platform:** event-driven workers, durable workflows, queues, idempotency, scaling, and failure recovery.
-- **Project 6 — Production AI platform:** model/tool/prompt registries, routing, tenancy, deployment, cost controls, and governance.
-- **Project 7 — Multi-agent system:** coordinated specialist agents with evaluation, security boundaries, shared/private memory, and conflict handling.
-
-> **Note:**
->
-> The project names above are architectural placeholders. Implementation details will be added as the corresponding phase content is written.
+- [Project 1 — Production Enterprise RAG Engine](projects/01-production-enterprise-rag-engine.md)
+- [Project 2 — Autonomous Enterprise Workflow Agent](projects/02-autonomous-enterprise-workflow-agent.md)
+- [Project 3 — Open-Source Agent Platform / AI Control Plane](projects/03-open-source-agent-platform.md)
+- [Project 4 — Production LLM Gateway](projects/04-production-llm-gateway.md)
+- [Project 5 — AI Evaluation Platform](projects/05-ai-evaluation-platform.md)
+- [Project 6 — Enterprise MCP Gateway](projects/06-enterprise-mcp-gateway.md)
 
 
 ## Phase 1 — Production Python
@@ -710,6 +709,8 @@ The future book will use projects to connect the phases:
 * Architecture walkthroughs
 
 # Final Projects
+
+> **Full requirements live in the [Final Projects](projects/index.md) part.** The lists below are a feature checklist; the briefs there give the goal, suggested architecture, milestones, and acceptance criteria for each project.
 
 ## Project 1 — Production Enterprise RAG Engine
 

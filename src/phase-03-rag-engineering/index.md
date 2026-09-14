@@ -71,4 +71,4 @@ Everything before the user's query is **offline indexing**; everything from the 
 
 ## Checkpoint project
 
-At the end of the phase, extend **Project 1 — Production Enterprise RAG Engine**: ingest PDFs and DOCX, chunk and embed them, serve hybrid search over PostgreSQL with pgvector, rerank, answer with citations, and evaluate retrieval and faithfulness on a labelled dataset. The exact scope lives in the projects part of the book.
+At the end of the phase, build [Project 1 — Production Enterprise RAG Engine](../projects/01-production-enterprise-rag-engine.md): ingest PDFs and DOCX, chunk and embed them, serve hybrid search over PostgreSQL with pgvector, rerank, answer with citations, and evaluate retrieval and faithfulness on a labelled dataset. The exact scope lives in the projects part of the book.
