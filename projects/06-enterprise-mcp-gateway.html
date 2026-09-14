@@ -300,6 +300,33 @@ I can state the gateway’s added latency per call.</li>
 <li>Two ADRs: the authorization model and the credential-scoping design.</li>
 <li>A threat model for tool poisoning, rug pulls, and the confused deputy.</li>
 </ul>
+<h2 id="how-to-build-it-step-by-step"><a class="header" href="#how-to-build-it-step-by-step">How to build it, step by step</a></h2>
+<p>Start with one local stdio server: connect, discover, and list its tools. Add a second server and aggregation next, then the call-routing path with schema validation. Authorization, credential scoping, and approvals come after the proxy works, because policy is easier to test against a working call path. Resilience, schema-change detection, audit, and docs go last.</p>
+<ol>
+<li>Create the repository: a Python app using an MCP SDK, config from the environment, and lint/test commands.</li>
+<li>Bring up PostgreSQL and Redis with <code>docker compose</code>, and write the schema for <code>servers</code>, <code>tools</code>, <code>policies</code>, <code>credentials</code>, <code>audit</code>, and <code>approvals</code>.</li>
+<li>Build the server registry and register a local stdio MCP server with identity, owner, and status.</li>
+<li>Connect to that server, discover its tools/resources/prompts, and cache the schemas with a version.</li>
+<li>Expose a unified tool list endpoint from the one server.</li>
+<li>Register a second server over a remote transport and aggregate both behind one namespaced tool list.</li>
+<li>Build call routing: send a tool call to the correct server over the correct transport.</li>
+<li>Validate arguments against the tool schema before execution and the result after.</li>
+<li>Add caller authentication (API key or OIDC) and refuse unauthenticated callers.</li>
+<li>Add authorization: per-tool, per-tenant, and per-role allow/deny with deny-by-default policy.</li>
+<li>Add scoped credentials: fetch per-server, per-tenant, short-lived credentials from a secret store, and prove no token passthrough.</li>
+<li>Add per-tenant tool allowlists.</li>
+<li>Add the approval gate for destructive tools, binding execution to the approved payload.</li>
+<li>Add rate limiting and quotas per tenant and per tool.</li>
+<li>Add resilience: timeouts, retries for transient errors, and a per-server circuit breaker.</li>
+<li>Add schema-change (rug-pull) detection and per-server health checks.</li>
+<li>Add tracing and the append-only audit log for every call, allow and deny, with the reason.</li>
+<li>Prove tenant isolation: a tenant cannot see or call another tenant’s tools.</li>
+<li>Measure the gateway’s added latency per call.</li>
+<li>Harden and document last: the threat model, the two ADRs (authorization model and credential-scoping design), and the README, then re-run the acceptance checks.</li>
+</ol>
+<blockquote>
+<p><strong>Build order tip.</strong> Get one local server discovered, aggregated, and called with schema validation before writing any policy. Authorization and credential scoping are easier to test once a working call path exists.</p>
+</blockquote>
 <h2 id="builds-on"><a class="header" href="#builds-on">Builds on</a></h2>
 <p>Phase 5 (MCP and Tool Ecosystems), Phase 7 (AI Platform Engineering), Phase 9 (AI Security and Governance).</p>
 
@@ -311,6 +338,9 @@ I can state the gateway’s added latency per call.</li>
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
+                            <a rel="next prefetch" href="../career-readiness/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -322,6 +352,9 @@ I can state the gateway’s added latency per call.</li>
                         <i class="fa fa-angle-left"></i>
                     </a>
 
+                    <a rel="next prefetch" href="../career-readiness/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>

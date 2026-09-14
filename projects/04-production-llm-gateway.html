@@ -302,6 +302,33 @@ I can state the gateway’s added latency (p50/p95).</li>
 <li>Two ADRs: the routing/fallback policy and the caching strategy.</li>
 <li>A one-page cost and latency report.</li>
 </ul>
+<h2 id="how-to-build-it-step-by-step"><a class="header" href="#how-to-build-it-step-by-step">How to build it, step by step</a></h2>
+<p>Start with one provider and streaming, because the unified request and response shape is the whole foundation. Add a second adapter behind the same interface before routing and fallback, and add caching only after usage accounting so you can prove the savings. Security, PII handling, and cost reconciliation come last.</p>
+<ol>
+<li>Create the repository: a FastAPI skeleton with config from the environment, a health endpoint, and lint/test commands.</li>
+<li>Bring up PostgreSQL and Redis with <code>docker compose</code>, and wire configuration and migrations.</li>
+<li>Define the unified request/response shape (OpenAI-compatible is a good target) and the provider adapter interface.</li>
+<li>Build the thinnest end-to-end slice: proxy a chat request to one provider and return the response.</li>
+<li>Add streaming pass-through from that provider with correct framing.</li>
+<li>Add a second provider adapter behind the same interface, make provider selection config-driven, and stream for both.</li>
+<li>Add a routing policy that chooses a model by task, cost, context length, or tenant, with small-model-first escalation.</li>
+<li>Add the fallback chain and enforce its hard constraints (region, context, quality floor).</li>
+<li>Add retries for transient errors only, with exponential backoff and jitter.</li>
+<li>Add provider health tracking and a circuit breaker, and prove a failing provider is skipped for its cooldown.</li>
+<li>Add tenants and API keys, hash keys at rest, and scope access to models.</li>
+<li>Add quotas and budgets checked before the provider call, and refuse a tenant over budget.</li>
+<li>Add usage accounting: tokens in and out, cost, latency, and serving model per request.</li>
+<li>Add the exact-match response cache with keys that include model, version, parameters, and tenant.</li>
+<li>Add the semantic cache with an embedding and a similarity threshold, then measure hit rate and savings.</li>
+<li>Add a cross-tenant cache test that fails if keys leak between tenants.</li>
+<li>Add PII redaction before prompts are logged or stored, plus the audit record.</li>
+<li>Add tracing and metrics, and measure gateway overhead (p50/p95) over the provider call.</li>
+<li>Reconcile reported tokens and cost against provider responses within a tolerance, then write the cost/latency report.</li>
+<li>Harden and document last: RBAC and admin scopes, the two ADRs (routing/fallback and caching), and the README, then re-run the acceptance checks.</li>
+</ol>
+<blockquote>
+<p><strong>Build order tip.</strong> Start with one provider and streaming, because the request and response contract is the foundation. Add the second adapter before routing and fallback, and add caching only after usage accounting so you can prove the savings.</p>
+</blockquote>
 <h2 id="builds-on"><a class="header" href="#builds-on">Builds on</a></h2>
 <p>Phase 1 (Production Python), Phase 6 (Distributed Systems), Phase 7 (AI Platform Engineering), Phase 8 (Evaluation and Observability), Phase 9 (Security and Governance).</p>
 

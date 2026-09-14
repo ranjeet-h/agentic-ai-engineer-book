@@ -221,6 +221,7 @@
 <li><a href="projects/05-ai-evaluation-platform.html">Project 5 — AI Evaluation Platform</a></li>
 <li><a href="projects/06-enterprise-mcp-gateway.html">Project 6 — Enterprise MCP Gateway</a></li>
 </ul>
+<p>Once you have built a few, read <a href="career-readiness/index.html">Career Readiness — Roles and Specializations</a> to map your work to the role you want next.</p>
 <h2 id="phase-1--production-python"><a class="header" href="#phase-1--production-python">Phase 1 — Production Python</a></h2>
 <ul>
 <li>Python syntax for experienced developers</li>
@@ -84252,6 +84253,24 @@ API at that volume; that trade-off held up."
 <li><strong>Self-assess against the acceptance criteria.</strong> Every criterion is something you can show, not something you feel.</li>
 <li><strong>Keep a decisions log.</strong> Every time you choose one option over another, write down why. This is what you will present in a project deep dive (Phase 13).</li>
 </ol>
+<h2 id="how-to-build-any-project-step-by-step"><a class="header" href="#how-to-build-any-project-step-by-step">How to build any project, step by step</a></h2>
+<p>Every project follows the same method. The briefs add project-specific steps; this is the shape underneath them.</p>
+<ol>
+<li><strong>Read the brief twice.</strong> Once for the goal, once for the constraints and acceptance criteria.</li>
+<li><strong>Write your own plan first.</strong> A component diagram, a data model, and the two or three hardest decisions. Do not look at the suggested architecture until you have yours.</li>
+<li><strong>Cut the thinnest end-to-end slice.</strong> The smallest path that goes from input to output and actually works. No caching, no scale, no polish.</li>
+<li><strong>Make it correct.</strong> Tests for the core logic and at least one failure path. If it has a boundary, test the boundary.</li>
+<li><strong>Make it observable.</strong> Structured logs, one trace per request, and a metric you trust.</li>
+<li><strong>Make it safe.</strong> Authentication, authorization, least-privilege credentials, and input validation.</li>
+<li><strong>Make it fast and cheap enough.</strong> Measure first, then optimize the real bottleneck — not the one you assumed.</li>
+<li><strong>Make it survive failure.</strong> Timeouts, retries, graceful degradation, and a recovery you have actually run.</li>
+<li><strong>Prove it.</strong> Walk the acceptance criteria; every box must be demonstrable in a demo or a test.</li>
+<li><strong>Write it down.</strong> README, ADRs, a failure-mode table, and a cost/latency report.</li>
+<li><strong>Rehearse the deep dive.</strong> Present it in five minutes, then answer “why not X?” without notes.</li>
+</ol>
+<blockquote>
+<p><strong>Build order tip.</strong> Front-load the risky, uncertain part — the thing you are not sure will work. Leave logging polish and documentation until the system is correct.</p>
+</blockquote>
 <h2 id="the-projects"><a class="header" href="#the-projects">The projects</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>#</th><th>Project</th><th>Builds on</th><th>Rough scale</th></tr></thead><tbody>
 <tr><td>1</td><td>Production Enterprise RAG Engine</td><td>Phases 1, 3, 7, 8</td><td>Medium-large</td></tr>
@@ -84276,6 +84295,9 @@ API at that volume; that trade-off held up."
 <li><strong>README and ADRs.</strong> How to run it, what it does, and two or three Architecture Decision Records for the hard choices.</li>
 <li><strong>Cost awareness.</strong> You can state the cost per request (or per task) from your own measurements.</li>
 </ul>
+<h2 id="what-this-makes-you-ready-for"><a class="header" href="#what-this-makes-you-ready-for">What this makes you ready for</a></h2>
+<p>The six projects are chosen so that finishing them maps onto the career ladder. Building Project 1 or 4 makes you a stronger <strong>Senior Software Engineer</strong>; adding evaluation makes you a <strong>Senior AI Engineer</strong>; Projects 2 and 6 make you an <strong>Agentic AI Engineer</strong>; Project 3 makes you an <strong>AI Platform Engineer</strong>; hardening Project 3 and writing its ADRs is <strong>Staff/Principal</strong> work; and presenting all of them as one portfolio is <strong>AI Systems Architect</strong> work.</p>
+<p>See <a href="projects/../career-readiness/index.html">Career Readiness — Roles and Specializations</a> for the full role-by-role mapping, the specializations this book targets, and a readiness rubric you can score yourself against.</p>
 <h2 id="order-and-scope"><a class="header" href="#order-and-scope">Order and scope</a></h2>
 <p>You do not have to build all six. Build <strong>one properly</strong> rather than three halfway. A sensible path:</p>
 <ol>
@@ -84404,6 +84426,33 @@ Killing the model call still returns keyword-only results rather than a 500.</li
 <li>Two ADRs: your chunking strategy and your hybrid-search fusion choice.</li>
 <li>A one-page cost and latency report from your own measurements.</li>
 </ul>
+<h2 id="how-to-build-it-step-by-step"><a class="header" href="#how-to-build-it-step-by-step">How to build it, step by step</a></h2>
+<p>Build the thinnest end-to-end path first: one document in, one grounded answer with a real citation out. Everything else (hybrid search, reranking, ACLs, evaluation) is an upgrade to a slice that already works. This order keeps retrieval quality and permissions measurable instead of hypothetical.</p>
+<ol>
+<li>Create the repository: a Python + FastAPI skeleton with <code>pyproject.toml</code>, lint/format/test commands, and config loaded from the environment.</li>
+<li>Bring up PostgreSQL with pgvector and Redis with <code>docker compose</code>, and make one documented command start the stack.</li>
+<li>Write the schema migration for <code>documents</code>, <code>chunks</code>, and the optional <code>queries</code> table; enable the vector extension.</li>
+<li>Define the domain types and config: chunking parameters, embedding model id, retrieval <code>k</code>, and the ACL shape attached to a document.</li>
+<li>Build the smallest end-to-end slice: ingest one PDF, parse the text, chunk it recursively, and store the chunks with position and parent reference.</li>
+<li>Put the embedding model behind a small adapter interface; embed the stored chunks and write vectors next to the chunks, recording the model identity.</li>
+<li>Run dense (vector) search for a question and return the top-k chunk ids.</li>
+<li>Generate a grounded answer from those chunks with inline chunk-id citations, and abstain when the evidence is weak.</li>
+<li>Add keyword search with PostgreSQL full-text and merge it with dense results by rank fusion; make the fusion constant configurable.</li>
+<li>Add metadata filters (source, date, type) to retrieval.</li>
+<li>Add query rewriting so follow-up questions become standalone queries.</li>
+<li>Add a second-stage reranker over the top candidates, and measure the lift against no reranking.</li>
+<li>Enforce access control: filter retrieval by the caller’s permissions before ranking returns results, and write a cross-tenant leak test that fails loudly.</li>
+<li>Add document versioning: re-ingesting a changed document supersedes old chunks as one atomic step without breaking in-flight queries.</li>
+<li>Add caching for embeddings and repeated query results; record hits and misses.</li>
+<li>Add observability: one trace per request spanning embed, search, rerank, and generate, plus a metrics endpoint.</li>
+<li>Compute cost per query from your own token usage; compare cached versus uncached.</li>
+<li>Add graceful degradation: keyword-only results when the embedding or model call fails, never a 500.</li>
+<li>Build the labelled question set and the eval command that prints recall@k, MRR, NDCG, and faithfulness; run it before and after each change.</li>
+<li>Harden and document last: measure p95 latency per stage, write the README, the two ADRs (chunking and fusion), and the cost/latency report, then re-run the acceptance checks.</li>
+</ol>
+<blockquote>
+<p><strong>Build order tip.</strong> Get one document from upload to a cited answer end to end before you add hybrid search, reranking, or ACLs. Every later quality claim is only meaningful once this thinnest slice works.</p>
+</blockquote>
 <h2 id="builds-on"><a class="header" href="#builds-on">Builds on</a></h2>
 <p>Phase 1 (Production Python), Phase 3 (RAG Engineering), Phase 7 (AI Platform Engineering), Phase 8 (Evaluation, Observability and Reliability). Reference Phase 13 for how to present it in a deep dive.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="project-2--autonomous-enterprise-workflow-agent-1"><a class="header" href="#project-2--autonomous-enterprise-workflow-agent-1">Project 2 — Autonomous Enterprise Workflow Agent</a></h1>
@@ -84529,6 +84578,31 @@ A rejected plan stops the run and records why.</li>
 <li>Two ADRs: the graph design (state and edges) and the tool-permission model.</li>
 <li>One page on failure recovery: what happens at each crash point.</li>
 </ul>
+<h2 id="how-to-build-it-step-by-step-1"><a class="header" href="#how-to-build-it-step-by-step-1">How to build it, step by step</a></h2>
+<p>Build the state machine and its checkpointer before any tool writes anything, because durable resume and idempotency are properties of the graph, not features you add later. Build the read-only investigate-and-plan phase first, then the approval gate, then the write path. Leave sandbox hardening, budgets, and audit polish until the end.</p>
+<ol>
+<li>Create the repository: a Python app with config from the environment, lint/test commands, and a <code>docker compose</code> with PostgreSQL and Redis.</li>
+<li>Define the run and step state schema and sketch the graph nodes and edges on paper; keep the pipeline explicitly bounded.</li>
+<li>Create the PostgreSQL tables: <code>runs</code>, <code>steps</code>, <code>approvals</code>, <code>effects</code>, and <code>audit</code>.</li>
+<li>Wire the checkpointer to PostgreSQL and prove a run persists and resumes from a checkpoint.</li>
+<li>Add a mock ticket source and a run API (<code>start</code>, <code>status</code>); get a run from created to a terminal state with no tools at all.</li>
+<li>Implement the read-only investigation tools (read file, search code, git history, docs) behind scoped adapters using a read-only token.</li>
+<li>Have the agent produce a structured plan from the ticket and investigation, and store it on the run.</li>
+<li>Add the approval gate: pause durably, record approve/reject/edit, and resume on the decision.</li>
+<li>Bind approval to the exact payload hash and demonstrate that a payload changed after approval is not executed.</li>
+<li>Add the write path: create a branch and apply only the approved changes.</li>
+<li>Add the execution sandbox: run the test suite in a container with a read-only mount and an explicit writable workspace.</li>
+<li>Add the bounded reflection loop: on failure, analyse and attempt fixes up to a cap, then stop with a clear reason.</li>
+<li>Add idempotency keys for commits, comments, and pull requests; prove re-running a step creates no duplicates.</li>
+<li>Test durable resume: kill the worker at each step, restart, and confirm no repeated side effects.</li>
+<li>Add loop detection and hard budgets for steps, tokens, wall-clock time, and tool calls.</li>
+<li>Open a real pull request against a disposable demo repository and post a summary back to the ticket.</li>
+<li>Add tracing with one span per step and tool, plus the append-only audit log and a per-run cost/token report.</li>
+<li>Harden and document last: tighten least-privilege tokens and the sandbox network allowlist, write the README, the two ADRs (graph design and tool-permission model), and the failure-recovery page, then re-run the acceptance checks.</li>
+</ol>
+<blockquote>
+<p><strong>Build order tip.</strong> Build the graph and its checkpointer before any tool writes anything. Durable resume and idempotency are properties of the state machine, so test them on a trivial run early rather than retrofitting them later.</p>
+</blockquote>
 <h2 id="builds-on-1"><a class="header" href="#builds-on-1">Builds on</a></h2>
 <p>Phase 1 (Production Python), Phase 4 (Agentic AI Engineering), Phase 5 (MCP and Tool Ecosystems), Phase 6 (Distributed Systems), Phase 8 (Evaluation and Observability), Phase 9 (Security and Governance). Phase 13 covers the project deep dive.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="project-3--open-source-agent-platform--ai-control-plane-1"><a class="header" href="#project-3--open-source-agent-platform--ai-control-plane-1">Project 3 — Open-Source Agent Platform / AI Control Plane</a></h1>
@@ -84670,6 +84744,33 @@ The platform deploys from Terraform + Helm with one documented pipeline.</li>
 <li>Three ADRs: the registry model, the scheduling and queue design, and the tenancy model.</li>
 <li>A failure-mode table: what happens when the gateway, scheduler, queue, or a worker fails.</li>
 </ul>
+<h2 id="how-to-build-it-step-by-step-2"><a class="header" href="#how-to-build-it-step-by-step-2">How to build it, step by step</a></h2>
+<p>This is the most design-heavy project, so start with the registry contracts and the control-plane data model, because everything else references a version. Prove one run can travel gateway to scheduler to worker to model gateway and back before adding a second tenant or a policy rule. Leave autoscaling, infrastructure as code, and dashboards until the core path is observable.</p>
+<ol>
+<li>Create the repository with a layout for control plane, model gateway, workers, and SDK; add shared config and CI lint/test.</li>
+<li>Define the registry contracts for agents, models, tools/MCP, prompts, evaluations, and runs, each immutable once published.</li>
+<li>Write the PostgreSQL schema and migrations for those registries, with version and status columns.</li>
+<li>Stand up the control-plane API in FastAPI and register then read back a model and a stub agent version.</li>
+<li>Build the model gateway: one interface with provider adapters, routing by task and cost, and fallback.</li>
+<li>Add the scheduler: accept a run request, place it on a queue by capability, and track status.</li>
+<li>Add one worker pool that consumes a queued run, executes the stub agent through the model gateway, and reports heartbeat and completion.</li>
+<li>Close the thinnest end-to-end run path (gateway to scheduler to queue to worker to gateway to result) and trace it.</li>
+<li>Add durable leases so a dead worker’s run is recovered without duplicate side effects.</li>
+<li>Add the prompt and tool/MCP registries, and have a run record exactly which versions it used.</li>
+<li>Add multi-tenancy: per-tenant keys, data isolation, and cost attribution on runs.</li>
+<li>Add policy and RBAC at the gateway: allowlists and decisions enforced outside prompts, deny by default.</li>
+<li>Add per-tenant token quotas and budgets, and refuse a run that would exceed them.</li>
+<li>Register evaluators and a versioned dataset, then run an evaluation for an agent version.</li>
+<li>Add the promotion gate: block publishing an agent version that fails its eval threshold, and record the approver.</li>
+<li>Prove recovery by killing a worker mid-run, showing the run resumes, and proving no duplicate effects.</li>
+<li>Add end-to-end traces across gateway, scheduler, and worker, an append-only audit log, and a cost dashboard.</li>
+<li>Add worker autoscaling on queue depth and confirm it scales back down.</li>
+<li>Package the platform as Terraform plus Helm with one documented deploy pipeline.</li>
+<li>Harden and document last: write the failure-mode table, the three ADRs (registry model, scheduling and queue design, tenancy model), and the README, then re-run the acceptance checks.</li>
+</ol>
+<blockquote>
+<p><strong>Build order tip.</strong> Prove one run can travel gateway to scheduler to worker to model gateway before adding a second tenant or a policy rule. Multi-tenancy, eval gates, and autoscaling are much easier to reason about once that single path is observable.</p>
+</blockquote>
 <h2 id="builds-on-2"><a class="header" href="#builds-on-2">Builds on</a></h2>
 <p>Phase 6 (Distributed Systems), Phase 7 (AI Platform Engineering), Phase 9 (Security and Governance), Phase 10 (Model Serving), Phase 11 (AI Systems Architecture), Phase 12 (Multi-Agent Systems).</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="project-4--production-llm-gateway-1"><a class="header" href="#project-4--production-llm-gateway-1">Project 4 — Production LLM Gateway</a></h1>
@@ -84795,6 +84896,33 @@ I can state the gateway’s added latency (p50/p95).</li>
 <li>Two ADRs: the routing/fallback policy and the caching strategy.</li>
 <li>A one-page cost and latency report.</li>
 </ul>
+<h2 id="how-to-build-it-step-by-step-3"><a class="header" href="#how-to-build-it-step-by-step-3">How to build it, step by step</a></h2>
+<p>Start with one provider and streaming, because the unified request and response shape is the whole foundation. Add a second adapter behind the same interface before routing and fallback, and add caching only after usage accounting so you can prove the savings. Security, PII handling, and cost reconciliation come last.</p>
+<ol>
+<li>Create the repository: a FastAPI skeleton with config from the environment, a health endpoint, and lint/test commands.</li>
+<li>Bring up PostgreSQL and Redis with <code>docker compose</code>, and wire configuration and migrations.</li>
+<li>Define the unified request/response shape (OpenAI-compatible is a good target) and the provider adapter interface.</li>
+<li>Build the thinnest end-to-end slice: proxy a chat request to one provider and return the response.</li>
+<li>Add streaming pass-through from that provider with correct framing.</li>
+<li>Add a second provider adapter behind the same interface, make provider selection config-driven, and stream for both.</li>
+<li>Add a routing policy that chooses a model by task, cost, context length, or tenant, with small-model-first escalation.</li>
+<li>Add the fallback chain and enforce its hard constraints (region, context, quality floor).</li>
+<li>Add retries for transient errors only, with exponential backoff and jitter.</li>
+<li>Add provider health tracking and a circuit breaker, and prove a failing provider is skipped for its cooldown.</li>
+<li>Add tenants and API keys, hash keys at rest, and scope access to models.</li>
+<li>Add quotas and budgets checked before the provider call, and refuse a tenant over budget.</li>
+<li>Add usage accounting: tokens in and out, cost, latency, and serving model per request.</li>
+<li>Add the exact-match response cache with keys that include model, version, parameters, and tenant.</li>
+<li>Add the semantic cache with an embedding and a similarity threshold, then measure hit rate and savings.</li>
+<li>Add a cross-tenant cache test that fails if keys leak between tenants.</li>
+<li>Add PII redaction before prompts are logged or stored, plus the audit record.</li>
+<li>Add tracing and metrics, and measure gateway overhead (p50/p95) over the provider call.</li>
+<li>Reconcile reported tokens and cost against provider responses within a tolerance, then write the cost/latency report.</li>
+<li>Harden and document last: RBAC and admin scopes, the two ADRs (routing/fallback and caching), and the README, then re-run the acceptance checks.</li>
+</ol>
+<blockquote>
+<p><strong>Build order tip.</strong> Start with one provider and streaming, because the request and response contract is the foundation. Add the second adapter before routing and fallback, and add caching only after usage accounting so you can prove the savings.</p>
+</blockquote>
 <h2 id="builds-on-3"><a class="header" href="#builds-on-3">Builds on</a></h2>
 <p>Phase 1 (Production Python), Phase 6 (Distributed Systems), Phase 7 (AI Platform Engineering), Phase 8 (Evaluation and Observability), Phase 9 (Security and Governance).</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="project-5--ai-evaluation-platform-1"><a class="header" href="#project-5--ai-evaluation-platform-1">Project 5 — AI Evaluation Platform</a></h1>
@@ -84909,6 +85037,32 @@ Judge cost per run is reported and cached judgements reduce it.</li>
 <li>Two ADRs: the evaluator interface and the judge-calibration approach.</li>
 <li>A short report on one real quality decision you made with the platform.</li>
 </ul>
+<h2 id="how-to-build-it-step-by-step-4"><a class="header" href="#how-to-build-it-step-by-step-4">How to build it, step by step</a></h2>
+<p>Start with one dataset version, one artifact version, and one deterministic evaluator that runs end to end, because the run record is the spine of the whole platform. Add richer evaluators on top of a reproducible run. Statistical comparison, the gate, and dashboards come after single runs are stable; feedback intake and judge calibration are later still.</p>
+<ol>
+<li>Create the repository: a Python app with config, lint/test commands, and <code>docker compose</code> for PostgreSQL and object storage.</li>
+<li>Define the data model: <code>datasets</code>/<code>dataset_versions</code>, <code>artifacts</code>, <code>runs</code>, <code>results</code>, <code>judgements</code>, and <code>gates</code>.</li>
+<li>Write migrations and the versioned dataset and artifact APIs, keeping published versions immutable.</li>
+<li>Create a tiny labelled dataset version (with relevant ids for retrieval) and register one prompt and model version.</li>
+<li>Build the runner: execute a target over the dataset in batch and record a run with exact artifact versions and a seed.</li>
+<li>Add the first evaluator (rule-based or exact-match) and store per-case results.</li>
+<li>Add retrieval metrics (recall@k, MRR, NDCG) and verify them against a hand-computed example.</li>
+<li>Add retries and partial-failure handling in the runner, and confirm a run is reproducible.</li>
+<li>Add dataset diffing and PII scrubbing for new versions.</li>
+<li>Add the pointwise LLM-as-judge with a rubric, storing raw scores and explanations.</li>
+<li>Add judge cost budgeting, caching of judgements, and sampling where appropriate.</li>
+<li>Add pairwise judging with order swap, and demonstrate detection of a biased judge.</li>
+<li>Calibrate the judge against a small human-labelled set and report agreement (for example, kappa).</li>
+<li>Capture cost and latency alongside quality for each run.</li>
+<li>Add run comparison with intervals and a significance test, producing a regression flag.</li>
+<li>Build the CI gate: a command or endpoint that fails a run below threshold, wire it to a GitHub Action, and demonstrate it on a real PR.</li>
+<li>Add dashboards for quality, cost, and latency over time, per artifact version.</li>
+<li>Add feedback intake that accepts production signals and proposes reviewed dataset candidates.</li>
+<li>Harden and document last: the two ADRs (evaluator interface and judge-calibration approach), the README, and a short report of one real quality decision, then re-run the acceptance checks.</li>
+</ol>
+<blockquote>
+<p><strong>Build order tip.</strong> Make one dataset version, one artifact version, and one evaluator produce a reproducible run before adding judges. The gate and the dashboards are only trustworthy once a single run is repeatable.</p>
+</blockquote>
 <h2 id="builds-on-4"><a class="header" href="#builds-on-4">Builds on</a></h2>
 <p>Phase 3 (RAG Engineering), Phase 4 (Agentic AI Engineering), Phase 8 (AI Evaluation, Observability and Reliability).</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="project-6--enterprise-mcp-gateway-1"><a class="header" href="#project-6--enterprise-mcp-gateway-1">Project 6 — Enterprise MCP Gateway</a></h1>
@@ -85032,8 +85186,197 @@ I can state the gateway’s added latency per call.</li>
 <li>Two ADRs: the authorization model and the credential-scoping design.</li>
 <li>A threat model for tool poisoning, rug pulls, and the confused deputy.</li>
 </ul>
+<h2 id="how-to-build-it-step-by-step-5"><a class="header" href="#how-to-build-it-step-by-step-5">How to build it, step by step</a></h2>
+<p>Start with one local stdio server: connect, discover, and list its tools. Add a second server and aggregation next, then the call-routing path with schema validation. Authorization, credential scoping, and approvals come after the proxy works, because policy is easier to test against a working call path. Resilience, schema-change detection, audit, and docs go last.</p>
+<ol>
+<li>Create the repository: a Python app using an MCP SDK, config from the environment, and lint/test commands.</li>
+<li>Bring up PostgreSQL and Redis with <code>docker compose</code>, and write the schema for <code>servers</code>, <code>tools</code>, <code>policies</code>, <code>credentials</code>, <code>audit</code>, and <code>approvals</code>.</li>
+<li>Build the server registry and register a local stdio MCP server with identity, owner, and status.</li>
+<li>Connect to that server, discover its tools/resources/prompts, and cache the schemas with a version.</li>
+<li>Expose a unified tool list endpoint from the one server.</li>
+<li>Register a second server over a remote transport and aggregate both behind one namespaced tool list.</li>
+<li>Build call routing: send a tool call to the correct server over the correct transport.</li>
+<li>Validate arguments against the tool schema before execution and the result after.</li>
+<li>Add caller authentication (API key or OIDC) and refuse unauthenticated callers.</li>
+<li>Add authorization: per-tool, per-tenant, and per-role allow/deny with deny-by-default policy.</li>
+<li>Add scoped credentials: fetch per-server, per-tenant, short-lived credentials from a secret store, and prove no token passthrough.</li>
+<li>Add per-tenant tool allowlists.</li>
+<li>Add the approval gate for destructive tools, binding execution to the approved payload.</li>
+<li>Add rate limiting and quotas per tenant and per tool.</li>
+<li>Add resilience: timeouts, retries for transient errors, and a per-server circuit breaker.</li>
+<li>Add schema-change (rug-pull) detection and per-server health checks.</li>
+<li>Add tracing and the append-only audit log for every call, allow and deny, with the reason.</li>
+<li>Prove tenant isolation: a tenant cannot see or call another tenant’s tools.</li>
+<li>Measure the gateway’s added latency per call.</li>
+<li>Harden and document last: the threat model, the two ADRs (authorization model and credential-scoping design), and the README, then re-run the acceptance checks.</li>
+</ol>
+<blockquote>
+<p><strong>Build order tip.</strong> Get one local server discovered, aggregated, and called with schema validation before writing any policy. Authorization and credential scoping are easier to test once a working call path exists.</p>
+</blockquote>
 <h2 id="builds-on-5"><a class="header" href="#builds-on-5">Builds on</a></h2>
 <p>Phase 5 (MCP and Tool Ecosystems), Phase 7 (AI Platform Engineering), Phase 9 (AI Security and Governance).</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="career-readiness--roles-and-specializations"><a class="header" href="#career-readiness--roles-and-specializations">Career Readiness — Roles and Specializations</a></h1>
+<blockquote>
+<p>This page answers one question: what does “ready” actually mean at each step of the ladder, and how do the phases and projects prove it?</p>
+</blockquote>
+<h2 id="why-this-page-exists"><a class="header" href="#why-this-page-exists">Why this page exists</a></h2>
+<p>It is easy to finish a study book and still not know whether you are ready for the job you want. Knowledge is necessary but not sufficient: interviews and promotions test whether you can <strong>make decisions, build systems, and explain trade-offs</strong>.</p>
+<p>This page maps the book to the career ladder and to the specializations this book targets. Use it as a gap analysis: for the role you want next, find the phase that teaches the skill and the project that proves it, then check the box only when you can demonstrate it.</p>
+<h2 id="the-role-ladder"><a class="header" href="#the-role-ladder">The role ladder</a></h2>
+<pre><code class="language-mermaid">flowchart TD
+    A["Senior Software Engineer"] --&gt; B["Senior AI Engineer"]
+    B --&gt; C["Agentic AI Engineer"]
+    C --&gt; D["AI Platform Engineer"]
+    D --&gt; E["Staff / Principal AI Engineer"]
+    E --&gt; F["AI Systems Architect"]
+    A -.-&gt; S1["Backend + Distributed Systems&lt;br/&gt;+ Cloud + Reliability"]
+    B -.-&gt; S2["AI Engineering + Model Serving"]
+    C -.-&gt; S3["Agentic AI + MCP + Multi-Agent"]
+    D -.-&gt; S4["AI Platform + Security + Governance"]
+    E -.-&gt; S5["System Architecture + Trade-offs"]
+    F -.-&gt; S6["All specializations, end to end"]
+</code></pre>
+<p>Each rung keeps everything below it and adds a new axis. You do not leave backend engineering behind to become an AI engineer; you add modelling and retrieval. You do not leave distributed systems behind to become a platform engineer; you add registries, tenancy, and governance.</p>
+<h2 id="what-each-role-actually-tests"><a class="header" href="#what-each-role-actually-tests">What each role actually tests</a></h2>
+<h3 id="senior-software-engineer"><a class="header" href="#senior-software-engineer">Senior Software Engineer</a></h3>
+<p><strong>What it is.</strong> You own a service end to end: design, code, tests, deployment, on-call.</p>
+<p><strong>What you must be able to do.</strong> Write clean typed Python; design a database schema; build an API; handle concurrency correctly; test and profile; containerise and ship; debug a production incident.</p>
+<p><strong>Taught in.</strong> Phase 1 (Production Python), Phase 6 (Distributed Systems).</p>
+<p><strong>Proven by.</strong> The foundation of Projects 1 and 4, and the shared requirements every project must meet (tests, Docker, migrations, observability).</p>
+<p><strong>Self-check.</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+I can build a tested, containerised FastAPI service from scratch without a tutorial.</li>
+<li><input disabled="" type="checkbox"/>
+I can explain the difference between threads, processes, and async and pick the right one.</li>
+<li><input disabled="" type="checkbox"/>
+I can take a slow endpoint and find the bottleneck with evidence.</li>
+</ul>
+<h3 id="senior-ai-engineer"><a class="header" href="#senior-ai-engineer">Senior AI Engineer</a></h3>
+<p><strong>What it is.</strong> You build AI features that work: retrieval, evaluation, provider integration, cost and latency control.</p>
+<p><strong>What you must be able to do.</strong> Explain how a transformer and sampling work; build and debug a RAG pipeline; choose and compare models; design structured outputs and tool calls; measure quality with real metrics; control cost.</p>
+<p><strong>Taught in.</strong> Phase 2 (LLM Fundamentals), Phase 3 (RAG Engineering), Phase 8 (Evaluation and Observability).</p>
+<p><strong>Proven by.</strong> Project 1 (RAG engine) and Project 5 (evaluation platform).</p>
+<p><strong>Self-check.</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+I can explain attention, tokenization, the KV cache, and sampling without notes.</li>
+<li><input disabled="" type="checkbox"/>
+I can debug “the answer is wrong” and say whether retrieval or generation is at fault.</li>
+<li><input disabled="" type="checkbox"/>
+I can show retrieval and faithfulness metrics for my own system, and improve them.</li>
+</ul>
+<h3 id="agentic-ai-engineer"><a class="header" href="#agentic-ai-engineer">Agentic AI Engineer</a></h3>
+<p><strong>What it is.</strong> You build agents that act safely: tool use, memory, planning, durable execution, human approval.</p>
+<p><strong>What you must be able to do.</strong> Design the agent loop; define tool schemas and permissions; manage state and memory; make runs durable and resumable; stop loops and deadlocks; wire in approvals and guardrails; evaluate agent behaviour.</p>
+<p><strong>Taught in.</strong> Phase 4 (Agentic AI Engineering), Phase 5 (MCP and Tool Ecosystems), Phase 12 (Multi-Agent Systems).</p>
+<p><strong>Proven by.</strong> Project 2 (autonomous workflow agent) and Project 6 (MCP gateway).</p>
+<p><strong>Self-check.</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+I can explain why an agent is justified over a deterministic workflow (and when it is not).</li>
+<li><input disabled="" type="checkbox"/>
+My agent survives a restart without duplicating side effects.</li>
+<li><input disabled="" type="checkbox"/>
+I can show a run trace with every tool call, decision, and approval.</li>
+</ul>
+<h3 id="ai-platform-engineer"><a class="header" href="#ai-platform-engineer">AI Platform Engineer</a></h3>
+<p><strong>What it is.</strong> You build the platform other teams use: registries, gateway, tenancy, policy, deployment.</p>
+<p><strong>What you must be able to do.</strong> Design control/data/runtime planes; version agents, models, and prompts; run a model gateway with routing and fallback; enforce RBAC/ABAC and policy; isolate tenants; operate on Kubernetes with IaC and CI/CD.</p>
+<p><strong>Taught in.</strong> Phase 7 (AI Platform Engineering), Phase 6 (Distributed Systems), Phase 9 (Security and Governance), Phase 10 (Model Serving).</p>
+<p><strong>Proven by.</strong> Project 3 (agent platform / control plane) and Project 4 (LLM gateway).</p>
+<p><strong>Self-check.</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+I can register and version an agent, a model, and a prompt, and gate promotion on an evaluation.</li>
+<li><input disabled="" type="checkbox"/>
+A tenant over budget is stopped, and cannot see another tenant’s data.</li>
+<li><input disabled="" type="checkbox"/>
+I can deploy the platform from Terraform and Helm through one pipeline.</li>
+</ul>
+<h3 id="staff--principal-ai-engineer"><a class="header" href="#staff--principal-ai-engineer">Staff / Principal AI Engineer</a></h3>
+<p><strong>What it is.</strong> You set technical direction across teams: architecture, standards, reliability, cost, and risk.</p>
+<p><strong>What you must be able to do.</strong> Run a system-design discussion; estimate capacity, latency, and cost; choose build vs buy; define SLOs; run failure-mode analysis; make and record decisions (ADRs); mentor through design review.</p>
+<p><strong>Taught in.</strong> Phase 11 (AI Systems Architecture), Phase 8 (Reliability), Phase 9 (Security and Governance).</p>
+<p><strong>Proven by.</strong> Project 3 (the platform), plus the ADRs, failure-mode tables, and cost/latency reports that every project asks you to write.</p>
+<p><strong>Self-check.</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+I can lead a design review and defend every major choice with a trade-off and a failure mode.</li>
+<li><input disabled="" type="checkbox"/>
+I can state an SLO, its error budget, and what I do when the budget is spent.</li>
+<li><input disabled="" type="checkbox"/>
+My ADRs show decisions I would make again — and one or two I would change.</li>
+</ul>
+<h3 id="ai-systems-architect"><a class="header" href="#ai-systems-architect">AI Systems Architect</a></h3>
+<p><strong>What it is.</strong> You design whole systems across domains: data, models, agents, platform, cloud, security, and operations — and you can defend them to both engineers and executives.</p>
+<p><strong>What you must be able to do.</strong> Everything above, connected: requirements to estimates to architecture to trade-offs to failure analysis to a rollout plan, with reliability, security, cost, and compliance designed in rather than bolted on.</p>
+<p><strong>Taught in.</strong> Phase 11 above all, with Phase 9 (security/governance), Phase 10 (serving), and the cross-cutting reliability work in Phase 8.</p>
+<p><strong>Proven by.</strong> All six projects as one portfolio, plus a full architecture walkthrough of your largest one.</p>
+<p><strong>Self-check.</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+I can take a vague brief and produce requirements, estimates, a target architecture, a rollout plan, and a risk register.</li>
+<li><input disabled="" type="checkbox"/>
+I can explain where the design fails, how it degrades, and what it costs at each scale.</li>
+<li><input disabled="" type="checkbox"/>
+I can present the same design to a principal engineer and to a non-technical stakeholder.</li>
+</ul>
+<h2 id="the-specializations"><a class="header" href="#the-specializations">The specializations</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Specialization</th><th>What “ready” means</th><th>Taught in</th><th>Proven by</th></tr></thead><tbody>
+<tr><td><strong>AI Engineering</strong></td><td>Can build, evaluate, and operate model-backed features</td><td>Phases 2, 3, 8</td><td>Projects 1, 5</td></tr>
+<tr><td><strong>Agentic AI</strong></td><td>Can build safe, durable, evaluated agents</td><td>Phases 4, 5, 12</td><td>Projects 2, 6</td></tr>
+<tr><td><strong>AI Platform Engineering</strong></td><td>Can run shared platform services with registries, gateway, and tenancy</td><td>Phases 7, 10</td><td>Project 3</td></tr>
+<tr><td><strong>Backend Engineering</strong></td><td>Can design and ship reliable services, schemas, and APIs</td><td>Phase 1</td><td>Projects 1, 4</td></tr>
+<tr><td><strong>Distributed Systems</strong></td><td>Can reason about consistency, delivery, and failure under load</td><td>Phase 6</td><td>Project 3</td></tr>
+<tr><td><strong>Cloud Infrastructure</strong></td><td>Can deploy and operate on Kubernetes and AWS with IaC</td><td>Phase 7</td><td>Projects 3, 4</td></tr>
+<tr><td><strong>AI Reliability</strong></td><td>Can define SLOs, trace, monitor, and recover AI systems</td><td>Phase 8</td><td>Projects 2, 5</td></tr>
+<tr><td><strong>AI Security</strong></td><td>Can threat-model, least-privilege, and govern AI systems</td><td>Phase 9</td><td>Projects 2, 6</td></tr>
+<tr><td><strong>System Architecture</strong></td><td>Can design end-to-end and defend trade-offs with evidence</td><td>Phase 11</td><td>All projects</td></tr>
+</tbody></table>
+</div>
+<h2 id="the-readiness-rubric"><a class="header" href="#the-readiness-rubric">The readiness rubric</a></h2>
+<p>A role is not earned by reading. Score yourself honestly; check a box only when you can demonstrate it without notes.</p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+<strong>Explain</strong> — I can explain the core ideas of each phase out loud, with trade-offs and failure modes.</li>
+<li><input disabled="" type="checkbox"/>
+<strong>Build</strong> — I have built at least one project end to end, not just the easy half.</li>
+<li><input disabled="" type="checkbox"/>
+<strong>Measure</strong> — I can state real numbers for latency, cost, and quality <em>from my own system</em>.</li>
+<li><input disabled="" type="checkbox"/>
+<strong>Debug</strong> — I have found and fixed a real failure, and I can tell the story.</li>
+<li><input disabled="" type="checkbox"/>
+<strong>Decide</strong> — I have written ADRs with alternatives and consequences.</li>
+<li><input disabled="" type="checkbox"/>
+<strong>Operate</strong> — I have run and recovered my system, not only deployed it.</li>
+<li><input disabled="" type="checkbox"/>
+<strong>Secure</strong> — I can state the threat model and the least-privilege design of my system.</li>
+<li><input disabled="" type="checkbox"/>
+<strong>Communicate</strong> — I can walk through my architecture and answer “why not X?” calmly.</li>
+</ul>
+<h2 id="how-the-projects-map-to-the-ladder"><a class="header" href="#how-the-projects-map-to-the-ladder">How the projects map to the ladder</a></h2>
+<ul>
+<li><strong>Senior Software Engineer:</strong> finish the shared foundation and Project 1 or 4.</li>
+<li><strong>Senior AI Engineer:</strong> add Project 5 and the evaluation/measurement work in Project 1.</li>
+<li><strong>Agentic AI Engineer:</strong> build Project 2; add Project 6 for tools and security depth.</li>
+<li><strong>AI Platform Engineer:</strong> build Project 3 on top of the gateway and registries.</li>
+<li><strong>Staff / Principal AI Engineer:</strong> harden Project 3 (SLOs, DR, multi-region, capacity planning) and write its ADRs.</li>
+<li><strong>AI Systems Architect:</strong> present all of your projects as one connected portfolio and defend the trade-offs.</li>
+</ul>
+<h2 id="what-will-truly-make-you-ready"><a class="header" href="#what-will-truly-make-you-ready">What will truly make you ready</a></h2>
+<p>The honest list, in order of impact:</p>
+<ol>
+<li><strong>Build the projects yourself.</strong> Read the brief, write your own plan, then build. Copying a finished implementation teaches you almost nothing.</li>
+<li><strong>Measure everything.</strong> A candidate who says “p95 is 1.9 s and cost is $0.004 per query, from these traces” is in a different category from one who says “it’s fast.”</li>
+<li><strong>Break your own system.</strong> Kill a worker, drop the network, exhaust a queue, exceed a budget. Recovery stories are the strongest interview material you own.</li>
+<li><strong>Write the decisions down.</strong> ADRs, a failure-mode table, and a cost/latency report turn your project into something you can defend under questioning.</li>
+<li><strong>Rehearse out loud.</strong> Phase 13 is worthless read silently. Say the answers, get the pauses out, and practise the “why not X?” follow-ups.</li>
+<li><strong>Teach it.</strong> Explaining a topic to someone else is the fastest way to find the gap that reading hides.</li>
+</ol>
+<blockquote>
+<p><strong>The one-line test.</strong> If you can design it, build it, measure it, break it, fix it, and explain why you chose it — you are ready. Everything else is preparation for that conversation.</p>
+</blockquote>
 
                     </main>
 

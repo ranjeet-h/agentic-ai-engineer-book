@@ -296,6 +296,33 @@ Killing the model call still returns keyword-only results rather than a 500.</li
 <li>Two ADRs: your chunking strategy and your hybrid-search fusion choice.</li>
 <li>A one-page cost and latency report from your own measurements.</li>
 </ul>
+<h2 id="how-to-build-it-step-by-step"><a class="header" href="#how-to-build-it-step-by-step">How to build it, step by step</a></h2>
+<p>Build the thinnest end-to-end path first: one document in, one grounded answer with a real citation out. Everything else (hybrid search, reranking, ACLs, evaluation) is an upgrade to a slice that already works. This order keeps retrieval quality and permissions measurable instead of hypothetical.</p>
+<ol>
+<li>Create the repository: a Python + FastAPI skeleton with <code>pyproject.toml</code>, lint/format/test commands, and config loaded from the environment.</li>
+<li>Bring up PostgreSQL with pgvector and Redis with <code>docker compose</code>, and make one documented command start the stack.</li>
+<li>Write the schema migration for <code>documents</code>, <code>chunks</code>, and the optional <code>queries</code> table; enable the vector extension.</li>
+<li>Define the domain types and config: chunking parameters, embedding model id, retrieval <code>k</code>, and the ACL shape attached to a document.</li>
+<li>Build the smallest end-to-end slice: ingest one PDF, parse the text, chunk it recursively, and store the chunks with position and parent reference.</li>
+<li>Put the embedding model behind a small adapter interface; embed the stored chunks and write vectors next to the chunks, recording the model identity.</li>
+<li>Run dense (vector) search for a question and return the top-k chunk ids.</li>
+<li>Generate a grounded answer from those chunks with inline chunk-id citations, and abstain when the evidence is weak.</li>
+<li>Add keyword search with PostgreSQL full-text and merge it with dense results by rank fusion; make the fusion constant configurable.</li>
+<li>Add metadata filters (source, date, type) to retrieval.</li>
+<li>Add query rewriting so follow-up questions become standalone queries.</li>
+<li>Add a second-stage reranker over the top candidates, and measure the lift against no reranking.</li>
+<li>Enforce access control: filter retrieval by the caller’s permissions before ranking returns results, and write a cross-tenant leak test that fails loudly.</li>
+<li>Add document versioning: re-ingesting a changed document supersedes old chunks as one atomic step without breaking in-flight queries.</li>
+<li>Add caching for embeddings and repeated query results; record hits and misses.</li>
+<li>Add observability: one trace per request spanning embed, search, rerank, and generate, plus a metrics endpoint.</li>
+<li>Compute cost per query from your own token usage; compare cached versus uncached.</li>
+<li>Add graceful degradation: keyword-only results when the embedding or model call fails, never a 500.</li>
+<li>Build the labelled question set and the eval command that prints recall@k, MRR, NDCG, and faithfulness; run it before and after each change.</li>
+<li>Harden and document last: measure p95 latency per stage, write the README, the two ADRs (chunking and fusion), and the cost/latency report, then re-run the acceptance checks.</li>
+</ol>
+<blockquote>
+<p><strong>Build order tip.</strong> Get one document from upload to a cited answer end to end before you add hybrid search, reranking, or ACLs. Every later quality claim is only meaningful once this thinnest slice works.</p>
+</blockquote>
 <h2 id="builds-on"><a class="header" href="#builds-on">Builds on</a></h2>
 <p>Phase 1 (Production Python), Phase 3 (RAG Engineering), Phase 7 (AI Platform Engineering), Phase 8 (Evaluation, Observability and Reliability). Reference Phase 13 for how to present it in a deep dive.</p>
 
