@@ -1,0 +1,607 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>LLM Gateway and Model-Routing Architecture - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="llm-gateway-and-model-routing-architecture"><a class="header" href="#llm-gateway-and-model-routing-architecture">LLM Gateway and Model-Routing Architecture</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> An LLM gateway is the <strong>single chokepoint</strong> between your applications and every model provider. It owns provider credentials, routing, fallback, caching, retries, quotas, and observability, so no agent ever holds a provider key or hard-codes a model endpoint. Routing picks a model by cost, latency, task, tenant, or context length, and a <strong>cascade</strong> sends easy requests to a cheap model and escalates the hard ones. Because everything passes through one place, the gateway is also the natural home for circuit breakers, retries with backoff, tenant isolation, and a single trace of every token you spend.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>The first version of every AI system calls the provider directly. The key sits in an environment variable. The model name is a string in the code. It works, and it is a trap.</p>
+<p>The trap springs slowly. A second team copies the call and picks a different model. A third team hard-codes a key and forgets to rotate it. A provider has an outage and nobody has a fallback because fallback logic lives in one developer’s head. Finance asks which team spent $40,000 on tokens last month, and the honest answer is that nobody can tell. A prompt injection exfiltrates an API key that was never scoped. A single tenant’s runaway agent consumes the shared quota and takes everyone down.</p>
+<p>None of these are model problems. They are <strong>architecture</strong> problems: there is no single place that owns access, policy, and visibility.</p>
+<p>The gateway exists to be that place. Every request goes through one door, and the door owns the things that must be consistent across teams:</p>
+<ul>
+<li><strong>Credentials</strong> — held once, never in application code.</li>
+<li><strong>Routing</strong> — the mapping from a logical model to a provider endpoint.</li>
+<li><strong>Fallback and retries</strong> — one policy, applied everywhere.</li>
+<li><strong>Caching</strong> — one cache, with correct tenant scoping.</li>
+<li><strong>Quotas and rate limits</strong> — enforced at the point of spend.</li>
+<li><strong>Observability</strong> — one trace, one cost record, per request.</li>
+</ul>
+<blockquote>
+<p><strong>The one-sentence rule.</strong> One door for every model call: if a policy must hold for all traffic, it belongs in the gateway, not in each agent.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Gateway</strong></td><td>A single service all model calls pass through, owning policy and routing.</td></tr>
+<tr><td><strong>Chokepoint</strong></td><td>A single mandatory path; everything that must be consistent lives here.</td></tr>
+<tr><td><strong>Provider abstraction</strong></td><td>A common interface so code says “chat”, not “call vendor X”.</td></tr>
+<tr><td><strong>Logical model</strong></td><td>A name your app uses, like <code>chat-standard</code>, mapped by the gateway to a real model.</td></tr>
+<tr><td><strong>Routing</strong></td><td>Choosing which provider or model handles a request.</td></tr>
+<tr><td><strong>Cascade</strong></td><td>Try a cheap model first; escalate to a bigger one under a condition.</td></tr>
+<tr><td><strong>Fallback</strong></td><td>A backup provider or model when the primary fails.</td></tr>
+<tr><td><strong>Circuit breaker</strong></td><td>A switch that stops calling a failing dependency for a while.</td></tr>
+<tr><td><strong>Half-open</strong></td><td>The breaker’s test state: allow a probe to see if the dependency recovered.</td></tr>
+<tr><td><strong>Retry with backoff</strong></td><td>Retrying after a growing delay; jitter randomises the delay.</td></tr>
+<tr><td><strong>Quota</strong></td><td>A budget limit, often tokens or dollars, per tenant or per period.</td></tr>
+<tr><td><strong>Rate limit</strong></td><td>A cap on requests per unit time, to protect capacity and fairness.</td></tr>
+<tr><td><strong>Cache key</strong></td><td>The identity of a cached result: tenant, model, prompt, and parameters.</td></tr>
+<tr><td><strong>Semantic cache</strong></td><td>A cache that matches on meaning, not exact text, using embeddings.</td></tr>
+<tr><td><strong>Tenant</strong></td><td>One customer or team whose data and spend must be isolated.</td></tr>
+<tr><td><strong>Control plane</strong></td><td>Configuration: routes, quotas, keys, model mappings.</td></tr>
+<tr><td><strong>Data plane</strong></td><td>The request path itself: the gateway processing live traffic.</td></tr>
+<tr><td><strong>Observability</strong></td><td>Traces, metrics, and logs that explain what happened and what it cost.</td></tr>
+<tr><td><strong>Canary</strong></td><td>Releasing a change to a small slice of traffic before the full rollout.</td></tr>
+<tr><td><strong>Span</strong></td><td>One traced operation with timing and attributes, in a distributed trace.</td></tr>
+<tr><td><strong>Thundering herd</strong></td><td>Many clients retrying at once, turning a blip into an outage.</td></tr>
+</tbody></table>
+</div>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Think of an airport. There is <strong>one security checkpoint</strong> every passenger passes through. The checkpoint owns identity, the rules, and the record of who went where. Passengers do not walk onto the tarmac directly, and airlines do not run their own private checkpoints.</p>
+<p>The gateway is that checkpoint for model traffic:</p>
+<ul>
+<li><strong>One door</strong> — every application calls the gateway, never a provider directly.</li>
+<li><strong>Identity and rules</strong> — the gateway authenticates the caller and applies quotas and policy.</li>
+<li><strong>Routing desk</strong> — it sends each request to the right airline (provider) for the job.</li>
+<li><strong>Flight log</strong> — it records every request, its route, its latency, and its cost.</li>
+</ul>
+<pre><code class="language-mermaid">flowchart LR
+    APP["Applications&lt;br/&gt;agents · RAG · batch"] --&gt; GW["LLM Gateway&lt;br/&gt;auth · quotas · router · cache · breakers · traces"]
+    GW --&gt; P1["Provider A&lt;br/&gt;small"]
+    GW --&gt; P2["Provider B&lt;br/&gt;mid"]
+    GW --&gt; P3["Provider C&lt;br/&gt;large"]
+    GW --&gt; SELF["Self-hosted&lt;br/&gt;serving"]
+    GW -.-&gt; OBS["Metrics · logs · audit"]
+    GW -.-&gt; CP["Control plane&lt;br/&gt;routes · quotas · keys"]
+</code></pre>
+<p>Read the arrows as policy. Applications never reach a provider. The gateway decides, caches, retries, and records. The control plane supplies routes and limits as data, so changing a model mapping is a config change, not a redeploy.</p>
+<h3 id="routing-strategies-compared"><a class="header" href="#routing-strategies-compared">Routing strategies, compared</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Strategy</th><th>Chooses by</th><th>Best when</th><th>Risk</th></tr></thead><tbody>
+<tr><td><strong>Cost</strong></td><td>Cheapest that meets the bar</td><td>High volume, mixed difficulty</td><td>Silent quality drop if the bar is wrong</td></tr>
+<tr><td><strong>Latency</strong></td><td>Fastest candidate</td><td>Interactive UI, tight budget</td><td>Higher cost; small models may fail</td></tr>
+<tr><td><strong>Task</strong></td><td>Task type or label</td><td>Distinct workloads with distinct needs</td><td>Needs a reliable classifier</td></tr>
+<tr><td><strong>Tenant</strong></td><td>Tenant tier or contract</td><td>Enterprise isolation and SLAs</td><td>Complexity; tier sprawl</td></tr>
+<tr><td><strong>Context length</strong></td><td>Smallest model that fits the tokens</td><td>Long documents</td><td>Context limit errors if misjudged</td></tr>
+<tr><td><strong>Quality</strong></td><td>Best available</td><td>Accuracy-critical steps</td><td>Most expensive; slowest</td></tr>
+<tr><td><strong>Cascade</strong></td><td>Cheap first, escalate on signal</td><td>Mixed difficulty, cheap gate</td><td>Escalated requests pay twice</td></tr>
+</tbody></table>
+</div>
+<blockquote>
+<p><strong>Why routing is an architecture decision, not a config detail.</strong> The routing policy determines your quality, your latency, and your bill. It is where the requirement meets the model, so it deserves a test and an ADR, not a hard-coded <code>if</code>.</p>
+</blockquote>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p>Follow one request through the gateway, from authentication to a recorded cost.</p>
+<ol>
+<li><strong>Authenticate the caller.</strong> The gateway verifies the API key or token and resolves the tenant. No downstream service ever sees a provider credential.</li>
+<li><strong>Apply rate limits and quotas.</strong> Check requests per minute and remaining token or dollar budget for this tenant. Reject early if the limit is exceeded — cheap rejection beats expensive failure.</li>
+<li><strong>Resolve the logical model.</strong> The app asks for <code>chat-standard</code>; the gateway maps that name to a concrete provider model through the control plane.</li>
+<li><strong>Check the cache.</strong> Build the cache key from tenant, logical model, normalised prompt, and parameters. A hit returns immediately and costs nothing.</li>
+<li><strong>Apply routing policy.</strong> Filter candidates by the request’s constraints — context length, region, minimum quality, deadline — then rank by the strategy: cost, latency, task, or tenant.</li>
+<li><strong>Pick a healthy provider.</strong> Consult the circuit breakers. A provider in the open state is skipped; a half-open provider may receive a single probe.</li>
+<li><strong>Call the provider with a timeout.</strong> Every call has a deadline. A call with no timeout holds a slot forever and turns latency into an outage.</li>
+<li><strong>On failure, retry or fall back.</strong> Retry idempotent calls with backoff and jitter. If retries are exhausted, move to the next provider in the fallback chain. Never retry a non-idempotent side effect blindly.</li>
+<li><strong>Record the outcome.</strong> One span captures tenant, logical model, real model, tokens in and out, latency, cache status, route, and cost. This is the record finance and debugging both need.</li>
+<li><strong>Update the breakers.</strong> Success closes a half-open breaker; repeated failure opens a closed one. Health is learned from traffic, not assumed.</li>
+</ol>
+<p>Notice that the gateway is stateless where it can be: request handling holds no per-request state; quota counters live in a shared store; and breaker state is kept locally for the hot path and synced periodically to that same shared store. That lets you run several gateway replicas behind a load balancer.</p>
+<h3 id="where-caching-sits"><a class="header" href="#where-caching-sits">Where caching sits</a></h3>
+<p>Caching belongs in the gateway because the key must include the tenant, and because everyone benefits from one shared ceiling.</p>
+<div class="table-wrapper"><table><thead><tr><th>Cache layer</th><th>What it stores</th><th>Typical key</th><th>Risk</th></tr></thead><tbody>
+<tr><td><strong>Exact response</strong></td><td>Full model answer</td><td>tenant + model + prompt + params</td><td>Stale answers; must version prompts</td></tr>
+<tr><td><strong>Prompt prefix</strong></td><td>Reused input tokens</td><td>tenant + system prompt + tools</td><td>Small leakage if key is wrong</td></tr>
+<tr><td><strong>Semantic</strong></td><td>Answers by meaning</td><td>tenant + embedding of the question</td><td>Wrong match returns a wrong answer</td></tr>
+<tr><td><strong>Retrieval</strong></td><td>Retrieved passages</td><td>tenant + query + index version</td><td>Stale index or leaked documents</td></tr>
+</tbody></table>
+</div>
+<p>The rule: <strong>the tenant is always in the key.</strong> A cache that ignores tenancy is a data breach waiting to happen.</p>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p>These are production forms. The exact names vary; the shape is standard.</p>
+<p><strong>A gateway route config: logical name to concrete models.</strong> Apps depend on logical names, not vendors.</p>
+<pre><code class="language-yaml">routes:
+  - logical: chat-standard
+    strategy: cost                 # cheapest that meets the request constraints
+    candidates:
+      - model: provider-a/mid
+        quality: 0.86
+        cost_per_1k: 0.0060
+        latency_ms: 900
+        context: 128000
+        regions: [eu]
+      - model: provider-b/mid
+        quality: 0.84
+        cost_per_1k: 0.0050
+        latency_ms: 800
+        context: 64000
+        regions: [eu]
+    fallback: [provider-c/mid]
+    timeout_ms: 2000
+    retries: {max: 2, backoff_ms: 200, jitter: true}
+</code></pre>
+<p>The app asks for <code>chat-standard</code>; operations can change the candidates without touching application code.</p>
+<p><strong>A provider abstraction: one interface, many vendors.</strong> This is what keeps switching cheap.</p>
+<pre><code class="language-python">from typing import Protocol
+
+class ModelProvider(Protocol):
+    name: str
+    def complete(self, model: str, messages: list[dict],
+                 timeout_s: float) -&gt; dict: ...
+
+class ProviderA:
+    name = "provider-a"
+    def complete(self, model, messages, timeout_s):
+        """Call the vendor SDK and normalise the response shape."""
+        ...
+
+# the gateway holds providers, not the business logic
+PROVIDERS: dict[str, ModelProvider] = {"provider-a": ProviderA()}
+</code></pre>
+<p>Every provider returns the same normalised shape, so routing and caching do not care who answered.</p>
+<p><strong>A circuit-breaker config per provider.</strong> Failure handling is config, not scattered code.</p>
+<pre><code class="language-yaml">circuit_breaker:
+  provider-a:
+    failure_threshold: 5      # consecutive failures to open
+    cooldown_s: 30            # time before a half-open probe
+    probe_requests: 1         # requests allowed while half-open
+    timeout_ms: 2000
+</code></pre>
+<p>One bad provider stops receiving traffic for a cooldown, then gets a single probe. Recovery is automatic.</p>
+<p><strong>A cache policy with tenant scoping.</strong> Correctness depends on the key.</p>
+<pre><code class="language-yaml">cache:
+  exact:
+    enabled: true
+    ttl_s: 3600
+    key: [tenant, logical_model, prompt_hash, params_hash]
+  prefix:
+    enabled: true
+    min_prefix_tokens: 512
+  semantic:
+    enabled: false            # opt-in: wrong matches return wrong answers
+    threshold: 0.97
+</code></pre>
+<p>Turn on the safe layers first. Semantic caching is powerful and dangerous; enable it with a high threshold and a clear metric.</p>
+<p><strong>A quota policy per tenant.</strong> Enforced before the spend, not after the invoice.</p>
+<pre><code class="language-yaml">tenants:
+  - id: acme
+    rate_limit: {requests_per_minute: 600}
+    quota: {tokens_per_month: 200000000, usd_per_month: 500}
+    max_context_tokens: 128000
+    allowed_models: [chat-standard, chat-long]
+    region: eu
+</code></pre>
+<p>Quotas are the fairness mechanism. Without them, one tenant’s runaway agent is everyone’s incident.</p>
+<p><strong>The routing decision as pure Python.</strong> Make the policy explicit and testable.</p>
+<pre><code class="language-python">def route(req: dict, routes: list[dict]) -&gt; dict | None:
+    """Filter by hard constraints, then pick by strategy."""
+    ok = [r for r in routes
+          if r["quality"] &gt;= req["min_quality"]
+          and r["context"] &gt;= req["tokens"]
+          and r["latency_ms"] &lt;= req["deadline_ms"]
+          and r["region"] in req["allowed_regions"]
+          and r["name"] not in req["unhealthy"]]
+    if not ok:
+        return None
+    if req["strategy"] == "cost":
+        return min(ok, key=lambda r: r["cost_per_1k"])
+    if req["strategy"] == "latency":
+        return min(ok, key=lambda r: r["latency_ms"])
+    return max(ok, key=lambda r: r["quality"])
+</code></pre>
+<p>Constraints are hard filters; the strategy only ranks what survives. That ordering prevents routing a request to a model that cannot serve it.</p>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p><strong>Example 1 — filter first, rank second.</strong> The candidates differ in quality, cost, latency, context, and region.</p>
+<pre><code class="language-python"># route() is defined in "The syntax you will use" above
+ROUTES = [
+    {"name": "small-a", "quality": 0.70, "cost_per_1k": 0.001, "latency_ms": 350,  "context": 32_000,  "region": "eu"},
+    {"name": "mid-a",   "quality": 0.86, "cost_per_1k": 0.006, "latency_ms": 900,  "context": 128_000, "region": "eu"},
+    {"name": "large-a", "quality": 0.95, "cost_per_1k": 0.020, "latency_ms": 2200, "context": 200_000, "region": "us"},
+    {"name": "mid-b",   "quality": 0.84, "cost_per_1k": 0.005, "latency_ms": 800,  "context": 64_000,  "region": "eu"},
+]
+
+base = {"tokens": 4_000, "min_quality": 0.80, "deadline_ms": 1500,
+        "allowed_regions": {"eu"}, "unhealthy": set()}
+
+print(route({**base, "strategy": "cost"}, ROUTES)["name"])     # mid-b
+print(route({**base, "strategy": "latency"}, ROUTES)["name"])  # mid-b
+print(route({**base, "strategy": "quality"}, ROUTES)["name"])  # mid-a
+print(route({**base, "tokens": 100_000, "strategy": "cost"}, ROUTES)["name"])  # mid-a
+print(route({**base, "strategy": "cost", "unhealthy": {"mid-a"}}, ROUTES)["name"])  # mid-b
+print(route({**base, "min_quality": 0.99}, ROUTES))            # None
+</code></pre>
+<p>Cost and latency both choose <code>mid-b</code>; quality chooses <code>mid-a</code>. With a 100k-token context only <code>mid-a</code> fits, and if <code>mid-a</code> is unhealthy the router falls to <code>mid-b</code>. A quality bar of 0.99 returns <code>None</code>, which forces a deliberate fallback path rather than a silent quality failure.</p>
+<p><strong>Example 2 — cascade with a quality gate.</strong> Cheap first, escalate when the gate is not cleared.</p>
+<pre><code class="language-python"># base and ROUTES are from Example 1
+def cascade(req: dict, routes: list[dict], gate: float) -&gt; str | None:
+    """Cheapest candidate that clears every hard constraint and the gate."""
+    ok = [r for r in routes
+          if r["quality"] &gt;= req["min_quality"]
+          and r["context"] &gt;= req["tokens"]
+          and r["latency_ms"] &lt;= req["deadline_ms"]
+          and r["region"] in req["allowed_regions"]
+          and r["name"] not in req["unhealthy"]]
+    for r in sorted(ok, key=lambda r: r["cost_per_1k"]):
+        if r["quality"] &gt;= gate:
+            return r["name"]
+    return None   # nothing qualifies: degrade or use the fallback chain
+
+print(cascade(base, ROUTES, 0.65))   # mid-b
+print(cascade(base, ROUTES, 0.85))   # mid-a
+print(cascade(base, ROUTES, 0.90))   # None -&gt; degrade honestly
+</code></pre>
+<p>A cascade must obey the same hard constraints as <code>route</code>, then apply the gate on top. With a 0.65 gate the cheapest qualifying model is <code>mid-b</code> (quality 0.84). Raise the gate to 0.85 and it escalates to <code>mid-a</code> (quality 0.86). At 0.90 no candidate clears both the request’s constraints and the gate, so <code>cascade</code> returns <code>None</code> and the gateway must degrade deliberately or use its fallback chain. <code>small-a</code> never competes because its quality (0.70) is below the 0.80 minimum; <code>large-a</code> is excluded despite its 0.95 quality because it is in the <code>us</code> region and exceeds the 1500 ms deadline. The gate trades cost for quality — but only among the models the hard constraints allow.</p>
+<p><strong>Example 3 — a circuit breaker, state by state.</strong> The breaker learns which providers are healthy.</p>
+<pre><code class="language-python">class Breaker:
+    def __init__(self, threshold=3, cooldown=2):
+        self.state, self.failures = "closed", 0
+        self.threshold, self.cooldown, self.tick, self.opened_at = threshold, cooldown, 0, -1
+
+    def call(self, ok: bool) -&gt; str:
+        if self.state == "open":
+            if self.tick - self.opened_at &gt;= self.cooldown:
+                self.state = "half-open"
+            else:
+                return "reject (open)"
+        if self.state == "half-open":
+            self.state = "closed" if ok else "open"
+            if not ok:
+                self.opened_at = self.tick
+            self.failures = 0 if ok else self.failures + 1
+            return f"probe -&gt; {self.state}"
+        if ok:
+            self.failures = 0
+            return "pass"
+        self.failures += 1
+        if self.failures &gt;= self.threshold:
+            self.state, self.opened_at = "open", self.tick
+        return "fail"
+
+b = Breaker()
+for i, ok in enumerate([False, False, False, True, True, True, True]):
+    b.tick = i
+    print(f"t={i} ok={ok!s:5s} -&gt; {b.call(ok):14s} state={b.state}")
+# t=0 ok=False -&gt; fail           state=closed
+# t=1 ok=False -&gt; fail           state=closed
+# t=2 ok=False -&gt; fail           state=open
+# t=3 ok=True  -&gt; reject (open)  state=open
+# t=4 ok=True  -&gt; probe -&gt; closed state=closed
+# t=5 ok=True  -&gt; pass           state=closed
+# t=6 ok=True  -&gt; pass           state=closed
+</code></pre>
+<p>Three failures open the breaker. Requests are rejected immediately rather than hanging. After the cooldown one probe is allowed, and a success closes the breaker. This is how one bad provider stops hurting the whole fleet.</p>
+<p><strong>Example 4 — a fallback chain.</strong> When the primary is down, the next provider takes over without a redeploy.</p>
+<pre><code class="language-python">def fallback(primary: str, chain: list[str], unhealthy: set[str]) -&gt; str | None:
+    for name in [primary] + chain:
+        if name not in unhealthy:
+            return name
+    return None
+
+print(fallback("mid-a", ["large-a", "mid-b"], set()))                    # mid-a
+print(fallback("mid-a", ["large-a", "mid-b"], {"mid-a"}))                # large-a
+print(fallback("mid-a", ["large-a", "mid-b"], {"mid-a", "large-a"}))     # mid-b
+print(fallback("mid-a", ["large-a", "mid-b"], {"mid-a", "large-a", "mid-b"}))  # None
+</code></pre>
+<p>When every provider is unhealthy the answer is <code>None</code>, and the gateway must <strong>degrade deliberately</strong>: return a cached answer, queue the work, or tell the user. Selling a silent failure as a fallback is worse than admitting the outage.</p>
+<p><strong>Example 5 — cache keys must include the tenant.</strong> This is the most common and most dangerous gateway bug.</p>
+<pre><code class="language-python">import hashlib
+
+def cache_key(tenant: str, model: str, prompt: str, params: str) -&gt; str:
+    raw = f"{tenant}|{model}|{prompt}|{params}".encode()
+    return hashlib.sha256(raw).hexdigest()[:12]
+
+k1 = cache_key("acme", "mid-a", "what is our refund policy", "temp=0")
+k2 = cache_key("acme", "mid-a", "what is our refund policy", "temp=0")
+k3 = cache_key("globex", "mid-a", "what is our refund policy", "temp=0")
+
+print(k1 == k2, k1)   # True 84005f2e1f16
+print(k1 != k3, k3)   # True 22dddf67a0c0
+</code></pre>
+<p>Same tenant and prompt give the same key, so the cache hits. A different tenant gives a different key, so Acme never sees Globex’s answer. Drop the tenant from the key and you have built a cross-tenant data leak with excellent hit rates.</p>
+<p><strong>Example 6 — a quota check before the spend.</strong> Reject early, not after the invoice.</p>
+<pre><code class="language-python">def allow(spent: int, budget: int, estimated: int) -&gt; str:
+    remaining = budget - spent
+    if estimated &gt; remaining:
+        return f"deny (need {estimated}, have {remaining})"
+    return f"allow (remaining after = {remaining - estimated})"
+
+print(allow(80, 100, 5))   # allow (remaining after = 15)
+print(allow(99, 100, 5))   # deny (need 5, have 1)
+</code></pre>
+<p>The gateway estimates the cost of the call before making it. A tenant near its ceiling is stopped at the boundary, not discovered at month end. Combined with rate limits, this is what keeps one tenant from consuming shared capacity.</p>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>One door only.</strong> Any code path that calls a provider directly is a credential leak, an unaccounted cost, and a blind spot. Enforce it at the network level.</li>
+<li><strong>Never let applications hold provider keys.</strong> The gateway brokers credentials and scopes them per provider and region.</li>
+<li><strong>Put the tenant in every cache key.</strong> A cache miss costs money; a cross-tenant hit costs trust. Prefer missing to leaking.</li>
+<li><strong>Every call needs a timeout.</strong> A provider that hangs holds a slot and cascades into an outage. Set deadlines at the gateway, not in each caller.</li>
+<li><strong>Retry only idempotent calls, with backoff and jitter.</strong> Blind retries amplify an outage and duplicate side effects.</li>
+<li><strong>Trip the breaker on consecutive failures.</strong> Reject fast, probe occasionally, recover automatically. Do not let a dead provider absorb your capacity.</li>
+<li><strong>Have a real fallback, or degrade honestly.</strong> Cached answer, queued work, or a clear error. A fake fallback is worse than none.</li>
+<li><strong>Enforce quotas where the tokens are consumed.</strong> Token and dollar budgets belong at the gateway, checked before each call.</li>
+<li><strong>Keep the hot path fast.</strong> The gateway is on every request. Keep it stateless, cache aggressively, and avoid synchronous calls to slow control-plane services.</li>
+<li><strong>Make routes config, not code.</strong> Changing a model mapping should be a reviewed config change, with a canary, not a deploy of every application.</li>
+<li><strong>Record cost and tokens per span.</strong> One trace linking tenant, route, model, tokens, latency, and cache status is the difference between a diagnosis and a guess.</li>
+<li><strong>Watch for tenant imbalance.</strong> One noisy tenant can dominate shared capacity. Rate limits and per-tenant quotas are fairness, and fairness is a design input.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-what-is-an-llm-gateway-and-why-have-one"><a class="header" href="#1-what-is-an-llm-gateway-and-why-have-one">1. What is an LLM gateway, and why have one?</a></h3>
+<p><strong>Answer.</strong> A gateway is a single service every model call passes through. It centralises provider credentials, routing, fallback, retries, caching, quotas, and observability, so applications never hold keys or hard-code endpoints. The benefit is consistency: a policy written once applies to all traffic, and one trace explains what any request did and what it cost.</p>
+<p><strong>Follow-up: “Why not a client library everyone imports?”</strong> A library gives you code reuse but not enforcement. It cannot guarantee that every service is updated, holds credentials safely, or shares a quota. A gateway enforces at the boundary.</p>
+<p><strong>Trap.</strong> Building a gateway that only proxies. If it does not own routing, quotas, caching, and observability, it is an extra hop with no payoff.</p>
+<h3 id="2-what-routing-strategies-do-you-use-and-when"><a class="header" href="#2-what-routing-strategies-do-you-use-and-when">2. What routing strategies do you use, and when?</a></h3>
+<p><strong>Answer.</strong> Cost routing picks the cheapest model that clears the quality bar, for high volume with mixed difficulty. Latency routing picks the fastest, for interactive paths. Task routing sends different workloads to different models. Tenant routing applies tiers and SLAs. Context routing picks the smallest model that fits the tokens. Quality routing picks the best for accuracy-critical steps. Cascades combine them: the cheap model first, escalation under a signal.</p>
+<p><strong>Follow-up: “How do you decide the order?”</strong> Hard constraints first — context, region, minimum quality, deadline — because routing to a model that cannot serve the request is a bug, not a trade-off. Then rank the survivors by the strategy.</p>
+<p><strong>Trap.</strong> Routing purely on cost without a quality gate. The bill falls and the quality falls with it, usually without anyone noticing until customers complain.</p>
+<h3 id="3-how-do-you-handle-a-provider-outage"><a class="header" href="#3-how-do-you-handle-a-provider-outage">3. How do you handle a provider outage?</a></h3>
+<p><strong>Answer.</strong> Layered defence. A circuit breaker opens after consecutive failures and stops sending traffic, so the dead provider does not absorb capacity. A fallback chain sends new requests to the next healthy provider. Retries with backoff and jitter handle transient errors. If everything is unhealthy, the gateway degrades deliberately — cached answer, queued work, or a clear error.</p>
+<p><strong>Follow-up: “What is the risk of fallback?”</strong> Fallback models may have different quality, cost, and behaviour. I test the fallback path, not just the primary, and I alert when fallback is active so the drop in quality is visible.</p>
+<p><strong>Trap.</strong> Assuming a fallback exists because it is configured. Untested fallbacks fail exactly when they are needed.</p>
+<h3 id="4-where-should-caching-live-and-what-must-the-key-contain"><a class="header" href="#4-where-should-caching-live-and-what-must-the-key-contain">4. Where should caching live, and what must the key contain?</a></h3>
+<p><strong>Answer.</strong> In the gateway, because one cache benefits all callers and because tenancy must be enforced centrally. The key must include the tenant, the logical model, the normalised prompt, and the parameters. Without the tenant you risk a cross-tenant data leak; without the model or parameters you return the wrong answer for a different request.</p>
+<p><strong>Follow-up: “How do you handle staleness?”</strong> Version the prompt and index, set a TTL, and invalidate on change. A cached answer from an old prompt version is a quality bug disguised as a performance win.</p>
+<p><strong>Trap.</strong> Enabling semantic caching by default. A near-match returns a confidently wrong answer, and the failure is hard to trace.</p>
+<h3 id="5-how-do-you-enforce-budgets-and-fairness-across-tenants"><a class="header" href="#5-how-do-you-enforce-budgets-and-fairness-across-tenants">5. How do you enforce budgets and fairness across tenants?</a></h3>
+<p><strong>Answer.</strong> Per-tenant rate limits and quotas at the gateway. Rate limits cap requests per minute; quotas cap tokens or dollars per period. The gateway estimates the cost of a call before making it and rejects when the remaining budget is insufficient. Combined with tenant-aware routing and isolation, this keeps one tenant from consuming shared capacity.</p>
+<p><strong>Follow-up: “What do you do at the limit?”</strong> Reject with a clear error, or downgrade to a cheaper model if the tenant allows it. What you must not do is silently keep spending.</p>
+<p><strong>Trap.</strong> Accounting after the fact. A monthly report is not a control; by the time it runs, the money is gone.</p>
+<h3 id="6-how-does-the-gateway-help-observability"><a class="header" href="#6-how-does-the-gateway-help-observability">6. How does the gateway help observability?</a></h3>
+<p><strong>Answer.</strong> It is the one place that sees every call, so it can emit one span per request with tenant, logical model, real model and version, tokens in and out, cache status, latency, route taken, and cost. That single record answers the questions that otherwise require joining logs across many services: what happened, which model answered, and what it cost.</p>
+<p><strong>Follow-up: “What do you alert on?”</strong> Error rate and p95 latency per provider, breaker state changes, cache hit rate, fallback activation, and spend versus budget. Spend alerts catch runaway agents before the invoice.</p>
+<p><strong>Trap.</strong> Logging prompts and responses without a privacy plan. Observability must respect data sensitivity; redact or hash what you do not need.</p>
+<h3 id="7-what-are-the-failure-modes-of-a-gateway-itself"><a class="header" href="#7-what-are-the-failure-modes-of-a-gateway-itself">7. What are the failure modes of a gateway itself?</a></h3>
+<p><strong>Answer.</strong> It is a shared chokepoint, so its failure is large: if it is down, nothing reaches a model. It must be replicated and stateless where possible, with breakers and counters in a shared store. Other modes: a cache bug leaking across tenants, a slow control-plane lookup on the hot path, thundering-herd retries, and configuration errors that route everything to one provider.</p>
+<p><strong>Follow-up: “How do you make it highly available?”</strong> Multiple replicas behind a load balancer, no sticky sessions, health checks, local circuit-breaker state with periodic sync, and a tested fallback for the gateway’s own control-plane dependency.</p>
+<p><strong>Trap.</strong> Making the gateway stateful per instance. Then scaling it out breaks routing decisions, because no two replicas agree.</p>
+<h3 id="8-when-would-you-not-use-a-gateway"><a class="header" href="#8-when-would-you-not-use-a-gateway">8. When would you not use a gateway?</a></h3>
+<p><strong>Answer.</strong> Very rarely, and only temporarily. A single developer prototyping offline may call a provider directly, but that is a temporary exception with a plan to move behind the gateway. Any system with more than one caller, real users, or real money needs a gateway, because the moment there are two callers the policies already diverge.</p>
+<p><strong>Follow-up: “What about latency overhead?”</strong> A well-built gateway adds a small, roughly constant hop. Compare that to the cost of unaccounted spend, leaked keys, and manual failover. The overhead is the price of control and is usually worth it.</p>
+<p><strong>Trap.</strong> Skipping the gateway to save latency, then rebuilding it after the first credential leak or the first unaffordable invoice.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>One door for every model call.</strong> Credentials, routing, quotas, caching, and observability live in the gateway, not in each agent.</li>
+<li><strong>Filter by constraints, then rank by strategy.</strong> Never route to a model that cannot serve the request.</li>
+<li><strong>The tenant is always in the cache key.</strong> A miss costs money; a cross-tenant hit costs trust.</li>
+<li><strong>Break, fall back, degrade — in that order.</strong> Trip the breaker, use the fallback chain, and if all else fails, degrade honestly rather than silently.</li>
+<li><strong>Enforce budgets before the spend.</strong> Quotas and rate limits at the gateway are how one tenant stops being everyone’s incident.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-11-ai-systems-architecture/03-choosing-the-approach.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-11-ai-systems-architecture/05-agent-orchestration-and-multi-agent-architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-11-ai-systems-architecture/03-choosing-the-approach.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-11-ai-systems-architecture/05-agent-orchestration-and-multi-agent-architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

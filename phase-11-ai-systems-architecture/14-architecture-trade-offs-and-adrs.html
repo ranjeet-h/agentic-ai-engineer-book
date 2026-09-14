@@ -1,0 +1,577 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Architecture Trade-offs and ADRs - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="architecture-trade-offs-and-adrs"><a class="header" href="#architecture-trade-offs-and-adrs">Architecture Trade-offs and ADRs</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> Architecture is choosing under constraints, so every real decision trades one good thing for another. Name the trades explicitly — cost vs latency, consistency vs availability, build vs buy, isolation vs efficiency, flexibility vs simplicity — and score the options against weighted criteria instead of arguing about adjectives. Separate reversible decisions, which you can simply try and undo, from <strong>one-way doors</strong>, which are expensive to reverse and deserve slow, deliberate analysis. Then record the choice in an <strong>Architecture Decision Record (ADR)</strong>: a short document with context, the decision, the consequences, and a status. ADRs are how a team stops re-litigating the same decision every quarter, and how a new engineer learns why the system is the way it is. An ADR captures the reasoning, not just the answer, so it can be revisited when the context changes.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong></p>
+<p><strong>Verified.</strong> Every runnable example on this page was executed offline in plain Python (Python 3.14). No model or cloud calls were made, and no vendor prices or guarantees are asserted.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>Most architecture debates are not about facts. They are about two people weighting the same facts differently and never saying so. One wants the lowest latency, another wants the lowest cost, and they argue for an hour because neither trade-off was written down.</p>
+<p>The second problem is memory. A decision is made in a meeting, the reasoning lives in someone’s head, that person leaves, and two years later a new team reverses the decision without knowing why it was made. Then the original problem returns, and the cycle repeats.</p>
+<p>Trade-off analysis and ADRs fix both. The analysis makes the criteria and weights explicit, so the disagreement becomes a conversation about weights rather than about whose option is “better”. The ADR records the context, so when the context changes you can deliberately revisit the decision instead of accidentally undoing it.</p>
+<p>For AI systems this matters more than usual, because so many decisions are one-way doors or close to it: choosing a vector store, committing to a model provider, picking an embedding model and its dimension, deciding a fine-tuning strategy. Changing an embedding model means re-embedding the entire corpus. Changing a vector store means a migration. These are decisions you want to make slowly and record well.</p>
+<blockquote>
+<p><strong>The one-sentence purpose.</strong> Name the trade-off, score the options against stated weights, and write down the decision with its context so it can be defended and revisited.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Trade-off</strong></td><td>Giving up some of one quality to get more of another.</td></tr>
+<tr><td><strong>Constraint</strong></td><td>A limit you cannot change, such as budget, latency target, or a regulatory rule.</td></tr>
+<tr><td><strong>Criterion</strong></td><td>A quality you are judging, such as cost, latency, or operational effort.</td></tr>
+<tr><td><strong>Weight</strong></td><td>How much a criterion matters relative to the others, usually summing to 1.</td></tr>
+<tr><td><strong>Score</strong></td><td>How well an option does on a criterion, often 1 to 5.</td></tr>
+<tr><td><strong>Weighted score</strong></td><td>Score times weight, summed across criteria to rank options.</td></tr>
+<tr><td><strong>Trade-off matrix</strong></td><td>A table of options against criteria, with weights and scores.</td></tr>
+<tr><td><strong>Sensitivity</strong></td><td>How much the ranking changes when weights shift.</td></tr>
+<tr><td><strong>Reversibility</strong></td><td>How easily a decision can be undone.</td></tr>
+<tr><td><strong>Two-way door</strong></td><td>A reversible decision: try it, and change your mind cheaply.</td></tr>
+<tr><td><strong>One-way door</strong></td><td>An expensive or impossible decision to reverse; deserves deliberate analysis.</td></tr>
+<tr><td><strong>ADR</strong></td><td>Architecture Decision Record: a short note of one decision and its reasoning.</td></tr>
+<tr><td><strong>Status</strong></td><td>The ADR’s state: proposed, accepted, deprecated, or superseded.</td></tr>
+<tr><td><strong>Context</strong></td><td>The forces and constraints that made the decision necessary.</td></tr>
+<tr><td><strong>Consequences</strong></td><td>What becomes easier and harder because of the decision.</td></tr>
+<tr><td><strong>Superseded</strong></td><td>Replaced by a newer decision; the old record is kept for history.</td></tr>
+<tr><td><strong>Analysis paralysis</strong></td><td>Delaying a decision because you keep gathering more information.</td></tr>
+<tr><td><strong>Build vs buy</strong></td><td>Making a component yourself versus paying a vendor or using open source.</td></tr>
+<tr><td><strong>Lock-in</strong></td><td>The cost of leaving a choice, in money, time, and risk.</td></tr>
+<tr><td><strong>Good enough threshold</strong></td><td>The point where an option meets the requirement and needs no more analysis.</td></tr>
+</tbody></table>
+</div>
+<p>Three distinctions matter most:</p>
+<ul>
+<li><strong>Trade-off vs constraint.</strong> A constraint removes options; a trade-off ranks the remaining ones. Applying a weight to a hard limit is a category error.</li>
+<li><strong>Weight vs score.</strong> The weight says how much you care; the score says how well the option does. Confusing them hides the real disagreement, which is almost always about weights.</li>
+<li><strong>Decision vs documentation.</strong> The ADR does not make the decision; it records it. The decision happens with the people who own the risk.</li>
+</ul>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Think of packing a car for a long trip.</p>
+<p>You cannot take everything. Every item you add takes space and weight, and more weight costs fuel. The boot has a fixed volume, the roof has a load limit, and the passengers need room. You choose against constraints. If you optimise only for “carry the most”, you overload the car and break the suspension. If you optimise only for “use the least fuel”, you leave the essentials behind.</p>
+<p>Architecture is that packing problem at scale. You have a fixed budget, a latency target, a team, and a deadline. Every option takes from one budget to give to another:</p>
+<ul>
+<li><strong>cost vs latency</strong> — faster hardware and more replicas cost more;</li>
+<li><strong>consistency vs availability</strong> — strict agreement between regions can mean refusing writes when they cannot agree;</li>
+<li><strong>build vs buy</strong> — building gives control and costs people; buying is fast and costs money and lock-in;</li>
+<li><strong>isolation vs efficiency</strong> — full per-tenant isolation is safer and wastes resources;</li>
+<li><strong>flexibility vs simplicity</strong> — a general platform serves more use cases and is harder to operate.</li>
+</ul>
+<p>The insight is that <strong>a decision is only defensible when its criteria and weights are visible</strong>. Once they are on the page, the argument changes from “my option is better” to “I weight cost more than you do”, which is a real, resolvable conversation.</p>
+<pre><code class="language-mermaid">flowchart TD
+    A["Decision needed"] --&gt; B["List constraints&lt;br/&gt;budget · latency · team · deadline"]
+    B --&gt; C["List criteria + weights"]
+    C --&gt; D["List options&lt;br/&gt;including 'do nothing'"]
+    D --&gt; E["Score each option per criterion"]
+    E --&gt; F["Weighted total + sensitivity check"]
+    F --&gt; G{"Reversible?"}
+    G --&gt;|"two-way door"| H["Decide fast, time-box, ship a small slice"]
+    G --&gt;|"one-way door"| I["Slow down: more analysis, more reviewers"]
+    H --&gt; J["Write the ADR"]
+    I --&gt; J
+    J --&gt; K["Status: accepted"]
+    K --&gt; L["Revisit when context changes&lt;br/&gt;-&gt; new ADR, old one superseded"]
+</code></pre>
+<p>Two features matter. The first is the reversibility fork: reversible decisions should be made quickly and tested, while one-way doors deserve deliberate review. The second is the loop back — an ADR is revisited when the context changes, and the new decision supersedes the old record rather than deleting it.</p>
+<p>The default trade-off table for an AI system looks like this:</p>
+<div class="table-wrapper"><table><thead><tr><th>Criterion</th><th>What it measures</th><th>Typical tension with</th></tr></thead><tbody>
+<tr><td><strong>Quality</strong></td><td>Task success, accuracy, grounding</td><td>Cost, latency</td></tr>
+<tr><td><strong>Latency</strong></td><td>p50 and p95 response time</td><td>Cost, quality</td></tr>
+<tr><td><strong>Cost</strong></td><td>Per-request and fixed spend</td><td>Latency, quality, control</td></tr>
+<tr><td><strong>Control</strong></td><td>How much you can change and inspect</td><td>Buy, speed</td></tr>
+<tr><td><strong>Reliability</strong></td><td>Availability and error behaviour</td><td>Cost, simplicity</td></tr>
+<tr><td><strong>Operational effort</strong></td><td>What the team must run and page on</td><td>Control, cost</td></tr>
+<tr><td><strong>Compliance</strong></td><td>Residency, audit, oversight</td><td>Cost, latency, simplicity</td></tr>
+<tr><td><strong>Time to market</strong></td><td>How fast you can ship</td><td>Control, cost</td></tr>
+</tbody></table>
+</div>
+<p>Reading down the “tension with” column is most of the analysis: it tells you what you are trading before you start scoring.</p>
+<blockquote>
+<p><strong>The mental model in one line.</strong> Decide with visible criteria and weights, move fast on two-way doors, slow down on one-way doors, and write down the reasoning so it survives the people who made it.</p>
+</blockquote>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
+<li><strong>State the decision as a question.</strong> “Which vector store should we use?” is a decision; “we need RAG” is not. A good question names the options and the outcome.</li>
+<li><strong>Separate constraints from preferences.</strong> Constraints are hard limits (budget, a residency rule, a latency ceiling). Remove options that break a constraint before scoring; do not weight the impossible.</li>
+<li><strong>List the criteria and their weights.</strong> Choose the qualities that matter, then assign weights that sum to 1. Write down why each weight is what it is.</li>
+<li><strong>List the options, including “do nothing”.</strong> Always include the status quo. It is the baseline against which every change must pay for itself.</li>
+<li><strong>Score each option on each criterion.</strong> Use a consistent scale (1 to 5) and define what the numbers mean. Score from evidence where you have it, and mark assumptions where you do not.</li>
+<li><strong>Compute weighted totals and check sensitivity.</strong> Rank the options, then nudge the weights to see whether the winner changes. A winner that flips under small weight changes is a weak decision you should discuss further.</li>
+<li><strong>Classify reversibility.</strong> Is this a two-way door or a one-way door? Reversibility determines how much analysis and review the decision needs.</li>
+<li><strong>Decide with the owners.</strong> The people who own the budget, the risk, and the delivery make the call. Engineering brings the analysis.</li>
+<li><strong>Write the ADR.</strong> Context, decision, consequences, status. Short enough that people read it, specific enough that it is useful. Keep the alternatives you rejected and why.</li>
+<li><strong>Communicate the decision and its consequences.</strong> An ADR nobody reads changes nothing. Link it from the relevant code or design docs.</li>
+<li><strong>Revisit on a trigger, not on a mood.</strong> Reopen a decision when a stated assumption changes, such as a price rise, a new requirement, or a measured result that contradicts the analysis.</li>
+<li><strong>Supersede, do not delete.</strong> Write a new ADR and mark the old one superseded, so the history of reasoning is preserved.</li>
+</ol>
+<blockquote>
+<p><strong>The working rule.</strong> A trade-off you cannot write as a sentence with “in exchange for” is not yet understood.</p>
+</blockquote>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p>These are real production forms. Read them once; each appears in a design doc or a repo.</p>
+<p><strong>1. A weighted decision matrix, in code.</strong> The same table you would draw by hand, made repeatable.</p>
+<pre><code class="language-python">def weighted_scores(options, weights, scores):
+    results = []
+    for opt in options:
+        total = sum(weights[c] * scores[opt][c] for c in weights)
+        results.append({"option": opt, "total": round(total, 2)})
+    return sorted(results, key=lambda x: -x["total"])
+</code></pre>
+<p>Weights sum to 1.0, so the total stays on the same 1-to-5 scale and is comparable across options.</p>
+<p><strong>2. Normalising raw numbers onto a common scale.</strong> Cost and latency are in different units; scores are not.</p>
+<pre><code class="language-python">def minmax_best(values, lower_is_better=True):
+    lo, hi = min(values), max(values)
+    if hi == lo:
+        return [1.0] * len(values)
+    if lower_is_better:
+        return [round((hi - v) / (hi - lo), 3) for v in values]
+    return [round((v - lo) / (hi - lo), 3) for v in values]
+</code></pre>
+<p>The best value maps to 1.0 and the worst to 0.0, so you can mix latency in milliseconds with cost in dollars.</p>
+<p><strong>3. An ADR template.</strong> Four required sections plus a status line.</p>
+<pre><code class="language-markdown"># ADR-0012: Use a managed model API for the support agent
+
+- Status: accepted
+- Date: 2026-09-14
+- Deciders: platform lead, support eng lead, security reviewer
+
+## Context
+We need to ship a support assistant in one quarter with a two-person team.
+We have no GPU operations experience and no 24x7 inference on-call rotation.
+
+## Decision
+Use a managed model API behind our own LLM gateway. Do not self-host a model
+this quarter. Pin model versions and expose a fallback model in the gateway.
+
+## Consequences
+- Faster delivery; no GPU capacity to operate.
+- Per-request cost scales with usage; margin pressure at high volume.
+- Data leaves our boundary; we depend on provider terms and region options.
+- The gateway gives us a swap path, so the provider is replaceable.
+
+## Alternatives considered
+- Self-hosted open model: more control, too slow for this deadline.
+- Fine-tuned small model: needs labelled data we do not have yet.
+</code></pre>
+<p>The alternatives section is what makes an ADR worth reading later: it explains why the obvious option was not chosen.</p>
+<p><strong>4. A reversibility note in the decision.</strong> Say how hard it would be to undo, in time and money.</p>
+<pre><code class="language-text">Reversibility: two-way
+Undo cost: ~2 days (config change + index rebuild on a dev box)
+Trigger to revisit: p95 latency &gt; 1.5s or index &gt; 50M vectors
+
+Reversibility: one-way
+Undo cost: ~6 weeks (re-embed 40M chunks, migrate, re-validate retrieval quality)
+Trigger to revisit: quality regression or a 3x cost change
+</code></pre>
+<p>The undo cost is what makes a door “one-way”, so estimate it rather than labelling by feeling.</p>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p>These examples are plain standard library and print deterministic results.</p>
+<p><strong>Example 1 — a weighted decision matrix.</strong> Three options, four criteria, one ranked total.</p>
+<pre><code class="language-python">def weighted_scores(options, weights, scores):
+    results = []
+    for opt in options:
+        total = sum(weights[c] * scores[opt][c] for c in weights)
+        results.append({"option": opt, "total": round(total, 2)})
+    return sorted(results, key=lambda x: -x["total"])
+
+print(weighted_scores(
+    ["managed-api", "self-hosted", "hybrid"],
+    {"quality": 0.4, "latency": 0.3, "cost": 0.2, "control": 0.1},
+    {
+        "managed-api": {"quality": 5, "latency": 4, "cost": 3, "control": 2},
+        "self-hosted": {"quality": 4, "latency": 3, "cost": 2, "control": 5},
+        "hybrid": {"quality": 4, "latency": 4, "cost": 3, "control": 4},
+    },
+))
+</code></pre>
+<p>Illustrative output:</p>
+<pre><code class="language-text">[{'option': 'managed-api', 'total': 4.0}, {'option': 'hybrid', 'total': 3.8}, {'option': 'self-hosted', 'total': 3.4}]
+</code></pre>
+<p>The managed API wins because quality carries the most weight. <strong>Change <code>latency</code> to 0.2, <code>cost</code> to 0.2, <code>control</code> to 0.5, and <code>quality</code> to 0.1 and self-hosting wins (3.9 versus the hybrid’s 3.8) — which is exactly the argument you want to have out loud.</strong></p>
+<p><strong>Example 2 — normalising cost and latency before scoring.</strong> Raw numbers are in different units; the matrix needs a common scale.</p>
+<pre><code class="language-python">def minmax_best(values, lower_is_better=True):
+    lo, hi = min(values), max(values)
+    if hi == lo:
+        return [1.0] * len(values)
+    if lower_is_better:
+        return [round((hi - v) / (hi - lo), 3) for v in values]
+    return [round((v - lo) / (hi - lo), 3) for v in values]
+
+latency_ms = [400, 900, 250]
+cost_per_million = [12.0, 2.0, 25.0]
+lat_score = minmax_best(latency_ms, lower_is_better=True)
+cost_score = minmax_best(cost_per_million, lower_is_better=True)
+for i, name in enumerate(["A", "B", "C"]):
+    print(name, latency_ms[i], cost_per_million[i],
+          round(0.6 * lat_score[i] + 0.4 * cost_score[i], 3))
+</code></pre>
+<p>Illustrative output:</p>
+<pre><code class="language-text">A 400 12.0 0.687
+B 900 2.0 0.4
+C 250 25.0 0.6
+</code></pre>
+<p>Option A wins because latency is weighted higher than cost. <strong>Normalising makes the weights mean what you think they mean, instead of letting the units decide.</strong></p>
+<p><strong>Example 3 — two-way doors versus one-way doors.</strong> Reversibility decides how much process the decision needs.</p>
+<pre><code class="language-python">def door_type(reversal_cost_days, data_migration, external_commitment):
+    if external_commitment or data_migration:
+        return "one-way"
+    if reversal_cost_days &gt; 5:
+        return "slow two-way"
+    return "two-way"
+
+print("add a read replica:", door_type(1, False, False))
+print("change API auth scheme:", door_type(3, False, True))
+print("choose vector store and migrate 500M vectors:", door_type(20, True, False))
+</code></pre>
+<p>Illustrative output:</p>
+<pre><code class="language-text">add a read replica: two-way
+change API auth scheme: one-way
+choose vector store and migrate 500M vectors: one-way
+</code></pre>
+<p>A read replica is a cheap experiment; a vector-store migration is not. <strong>Spend analysis in proportion to the cost of being wrong.</strong></p>
+<p><strong>Example 4 — validating an ADR.</strong> Required sections keep the record useful and comparable.</p>
+<pre><code class="language-python">ADR_REQUIRED = ["title", "status", "context", "decision", "consequences", "alternatives"]
+
+def adr_gaps(adr):
+    return [f for f in ADR_REQUIRED if not adr.get(f)]
+
+print("complete:", adr_gaps({"title": "T", "status": "accepted", "context": "c",
+                             "decision": "d", "consequences": "x",
+                             "alternatives": "self-hosted rejected"}))
+print("draft:", adr_gaps({"title": "T", "status": "proposed", "decision": "d"}))
+</code></pre>
+<p>Illustrative output:</p>
+<pre><code class="language-text">complete: []
+draft: ['context', 'consequences', 'alternatives']
+</code></pre>
+<p>A record missing context or consequences cannot be revisited later. <strong>An ADR without consequences is an announcement, not a decision record.</strong></p>
+<p><strong>Example 5 — build vs buy break-even.</strong> At what monthly volume does building pay back its cost?</p>
+<pre><code class="language-python">def break_even_months(build_cost, monthly_build_ops, buy_per_unit, monthly_volume):
+    buy_monthly = buy_per_unit * monthly_volume
+    monthly_saving = buy_monthly - monthly_build_ops
+    if monthly_saving &lt;= 0:
+        return None
+    return round(build_cost / monthly_saving, 1)
+
+build_cost, build_ops, buy_unit = 120000, 3000, 0.002
+for vol in (500000, 2000000, 5000000):
+    print(vol, break_even_months(build_cost, build_ops, buy_unit, vol))
+</code></pre>
+<p>Illustrative output:</p>
+<pre><code class="language-text">500000 None
+2000000 120.0
+5000000 17.1
+</code></pre>
+<p>At low volume, buying is cheaper every month and building never pays back. <strong>The break-even volume is the number that turns “build or buy” from a preference into a calculation.</strong></p>
+<p><strong>Example 6 — consistency vs availability, decided by the operation.</strong> The right answer changes per feature, not per company.</p>
+<pre><code class="language-python">def cap_choice(needs_strong_consistency, partition_tolerance_required):
+    if needs_strong_consistency and partition_tolerance_required:
+        return "CP: refuse writes on partition, keep consistency"
+    if not needs_strong_consistency and partition_tolerance_required:
+        return "AP: accept writes, reconcile later"
+    if needs_strong_consistency:
+        return "single-region strong consistency (no partition tolerance)"
+    return "AP: available, eventual consistency"
+
+print(cap_choice(True, True))
+print(cap_choice(False, True))
+print(cap_choice(True, False))
+print(cap_choice(False, False))
+</code></pre>
+<p>Illustrative output:</p>
+<pre><code class="language-text">CP: refuse writes on partition, keep consistency
+AP: accept writes, reconcile later
+single-region strong consistency (no partition tolerance)
+AP: available, eventual consistency
+</code></pre>
+<p>A payments ledger needs CP; a chat-typing indicator is fine with AP. <strong>Choose consistency per operation, because a blanket choice either over-constrains or under-protects part of the system.</strong></p>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>Write the trade-off as a sentence before you score it.</strong> “Strict cross-region consistency in exchange for refusing some writes during a partition” forces the real cost into view. If you cannot write the sentence, you do not yet understand the decision.</li>
+<li><strong>Make weights explicit and challenge them.</strong> Most disagreements are about weights, not facts. Publishing weights turns a two-hour argument into a ten-minute calibration.</li>
+<li><strong>Always include “do nothing” and the status quo.</strong> A change has to beat the current system, including the cost of migrating to it. Skipping this step makes every new option look good.</li>
+<li><strong>Check sensitivity.</strong> Nudge each weight and see whether the winner changes. A decision that flips under small changes is close, so say so and set a trigger to revisit.</li>
+<li><strong>Sort decisions by reversibility, not by loudness.</strong> Cheap, reversible decisions should be made by the team closest to the work and shipped as an experiment. One-way doors deserve senior review and a written record.</li>
+<li><strong>Estimate undo cost concretely.</strong> “Six weeks and a full re-embed” is a one-way door; “two days of config” is not. The label follows the estimate, not the other way around.</li>
+<li><strong>Include the eliminated options in the ADR.</strong> The rejected alternative is the question every future engineer asks. Writing down why it lost saves a repeat discussion.</li>
+<li><strong>State the consequences honestly, including the bad ones.</strong> An ADR that lists only benefits is marketing. Name the cost, the lock-in, and the new operational burden.</li>
+<li><strong>Use a status lifecycle and never delete.</strong> Proposed, accepted, deprecated, superseded. Superseding a record preserves the reasoning chain and shows that the decision was revisited deliberately.</li>
+<li><strong>Revisit on a trigger, not on a feeling.</strong> Define the condition that would reopen the decision, such as a price change, a latency regression, or a new requirement. This prevents both endless reopening and blind drift.</li>
+<li><strong>Keep ADRs short.</strong> One page is the target. A long ADR is read once and never again; a short one becomes part of how the team thinks.</li>
+<li><strong>Decide who owns the outcome.</strong> Analysis does not make decisions. Name the decider and the people consulted, so accountability is as clear as the reasoning.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-how-do-you-compare-architectural-options-objectively"><a class="header" href="#1-how-do-you-compare-architectural-options-objectively">1. How do you compare architectural options objectively?</a></h3>
+<p><strong>Answer.</strong> Turn the comparison into a visible structure: constraints first to remove impossible options, then criteria with explicit weights, then options including the status quo, then scores on a consistent scale. Compute weighted totals, check whether the ranking is sensitive to the weights, and record the result in an ADR. The value is less in the winning number than in the fact that the criteria and weights are now debatable rather than hidden.</p>
+<p><strong>Follow-up: “What if two options score almost the same?”</strong> Treat it as a tie and decide on a tiebreaker: reversibility, team familiarity, or time to market. Say in the ADR that it was close and what would settle it.</p>
+<p><strong>Trap.</strong> Presenting a weighted matrix as objective truth. The weights are judgement. The matrix makes the judgement visible; it does not remove it.</p>
+<h3 id="2-what-is-the-difference-between-a-two-way-door-and-a-one-way-door"><a class="header" href="#2-what-is-the-difference-between-a-two-way-door-and-a-one-way-door">2. What is the difference between a two-way door and a one-way door?</a></h3>
+<p><strong>Answer.</strong> A two-way door is cheap to reverse, so you decide quickly, ship a small sliver, and learn from real feedback. A one-way door is expensive or impossible to reverse — changing an embedding model, migrating a vector store, committing to a provider, changing a public API — so it deserves deliberate analysis, more reviewers, and a written record. The skill is estimating the undo cost in time and money rather than labelling by intuition.</p>
+<p><strong>Follow-up: “Which AI decisions are one-way doors?”</strong> Embedding-model choice, because it forces re-embedding; vector-store choice, because it is a migration; the public model or prompt contract, because clients depend on it; and long-term data retention choices with compliance implications.</p>
+<p><strong>Trap.</strong> Applying heavyweight process to reversible decisions and lightweight process to irreversible ones. That combination maximises delay and risk at the same time.</p>
+<h3 id="3-what-is-an-adr-and-what-goes-in-one"><a class="header" href="#3-what-is-an-adr-and-what-goes-in-one">3. What is an ADR, and what goes in one?</a></h3>
+<p><strong>Answer.</strong> An Architecture Decision Record is a short document capturing one decision: a title, a status, the context and forces that required the decision, the decision itself, its consequences, and often the alternatives considered. It is written for a reader who was not in the room. Its purpose is to preserve reasoning, so a future team can understand the context, honour the decision, or deliberately supersede it.</p>
+<p><strong>Follow-up: “How long should an ADR be?”</strong> About a page. Long enough to carry the context and the trade-offs, short enough to be read. If it needs more, split it into multiple decisions.</p>
+<p><strong>Trap.</strong> Writing an ADR that records only the decision and not the context or consequences. That is a changelog entry, not a decision record, and it cannot be revisited sensibly.</p>
+<h3 id="4-how-do-adrs-prevent-re-litigating-decisions"><a class="header" href="#4-how-do-adrs-prevent-re-litigating-decisions">4. How do ADRs prevent re-litigating decisions?</a></h3>
+<p><strong>Answer.</strong> They put the reasoning somewhere durable and linkable. When someone proposes reversing a decision, the team can read the original context, check whether those conditions still hold, and either point to the ADR and move on or write a new ADR that supersedes it with new evidence. That converts an endless repeating argument into a specific question: has the context changed?</p>
+<p><strong>Follow-up: “What if the context has changed?”</strong> Write a new ADR, mark the old one superseded, and keep both. The history shows the decision was revisited deliberately, and the old reasoning explains why the system looked the way it did until now.</p>
+<p><strong>Trap.</strong> Deleting or rewriting old ADRs. Destroying the reasoning chain makes the same debate return with less information than before.</p>
+<h3 id="5-walk-through-a-build-vs-buy-decision-for-an-ai-component"><a class="header" href="#5-walk-through-a-build-vs-buy-decision-for-an-ai-component">5. Walk through a build-vs-buy decision for an AI component.</a></h3>
+<p><strong>Answer.</strong> Start with constraints: budget, deadline, team skills, compliance, and required latency. Then compare the options on total cost of ownership, not licence price alone — build cost, ongoing operations, on-call, upgrade work, and opportunity cost against buy cost, usage fees, lock-in, and data terms. Compute the break-even volume where building pays back. Then judge reversibility: if the component sits behind your own gateway or interface, you keep a swap path and the buy becomes more reversible. Record the call in an ADR.</p>
+<p><strong>Follow-up: “How do you reduce buy-side lock-in?”</strong> Put the vendor behind your own interface — an LLM gateway, a storage abstraction — so the rest of the system does not depend on vendor-specific APIs. That does not remove lock-in, but it makes the exit cheaper.</p>
+<p><strong>Trap.</strong> Comparing only the visible price. The build side has people and on-call; the buy side has lock-in and usage costs that grow with success.</p>
+<h3 id="6-how-do-you-handle-consistency-versus-availability-in-an-ai-system"><a class="header" href="#6-how-do-you-handle-consistency-versus-availability-in-an-ai-system">6. How do you handle consistency versus availability in an AI system?</a></h3>
+<p><strong>Answer.</strong> Choose per operation. A payments or permissions ledger needs strong consistency, so it should be CP: refuse writes when a partition prevents agreement. A retrieval cache, a typing indicator, or an analytics counter is fine with AP: accept writes and reconcile later. For AI, conversation state and agent memory often sit in the middle — eventual consistency is usually acceptable, but the ordering of tool calls and side effects must be correct, which is a different and stricter requirement.</p>
+<p><strong>Follow-up: “Where does ordering matter more than consistency?”</strong> Agent actions with side effects. Two replicas may both be available, but if a refund and a charge can be reordered or duplicated, the user-visible outcome is wrong even though every node is “up”.</p>
+<p><strong>Trap.</strong> Picking one consistency model for the whole system. It either over-constrains the parts that do not need it or leaves the consequential parts unsafe.</p>
+<h3 id="7-how-do-you-present-a-trade-off-in-a-design-interview"><a class="header" href="#7-how-do-you-present-a-trade-off-in-a-design-interview">7. How do you present a trade-off in a design interview?</a></h3>
+<p><strong>Answer.</strong> State the decision, the constraints, the criteria and their relative weights, the options including doing nothing, and the chosen option with its consequences. Then name the trigger that would change your mind. For example: cost is the primary constraint, so we choose a smaller model with a fallback escalation path; the trade-off is lower quality on hard queries in exchange for lower cost and latency; we would revisit if the escalation rate exceeds a threshold. That shows you understand the decision, not just the diagram.</p>
+<p><strong>Follow-up: “What if the interviewer disagrees with your choice?”</strong> Ask which weight they would change, and show what happens to the ranking. That keeps the discussion about criteria instead of defending an option.</p>
+<p><strong>Trap.</strong> Listing options without choosing. An interview answer that says “it depends” and stops there reads as indecision; say what it depends on and then commit.</p>
+<h3 id="8-when-should-you-revisit-a-decision-and-how"><a class="header" href="#8-when-should-you-revisit-a-decision-and-how">8. When should you revisit a decision, and how?</a></h3>
+<p><strong>Answer.</strong> On a trigger you defined when you made it: an assumption changed, a measured result contradicted the analysis, a price or requirement shifted, or the scale crossed a threshold. Revisiting means writing a new ADR that references the old one, re-running the analysis with current numbers, and marking the old record superseded. Decisions without defined triggers drift silently, and decisions reopened constantly never settle.</p>
+<p><strong>Follow-up: “How do you keep the trigger from being forgotten?”</strong> Write it in the ADR and, where possible, turn it into a monitor or a review item — a latency alert, a cost threshold, or a quarterly architecture review. A trigger nobody watches is a note, not a trigger.</p>
+<p><strong>Trap.</strong> Reopening decisions because a stakeholder prefers a different answer, with no change in context. That is churn, and it erodes the value of having decided at all.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>Name the trade-off explicitly.</strong> “X in exchange for Y” is the sentence that proves you understand the decision.</li>
+<li><strong>Make criteria and weights visible.</strong> Most architecture arguments are about weights, so publish them and the argument becomes productive.</li>
+<li><strong>Sort by reversibility.</strong> Move fast on two-way doors; slow down and write it down for one-way doors.</li>
+<li><strong>An ADR is context, decision, consequences, status.</strong> Keep it to a page, include the rejected options, and never delete it — supersede it.</li>
+<li><strong>Define the trigger to revisit.</strong> A decision with no reopening condition drifts, and one reopened constantly never settles.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-11-ai-systems-architecture/13-compliance-architecture.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-11-ai-systems-architecture/15-failure-mode-analysis-capacity-planning-and-scaling.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-11-ai-systems-architecture/13-compliance-architecture.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-11-ai-systems-architecture/15-failure-mode-analysis-capacity-planning-and-scaling.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
