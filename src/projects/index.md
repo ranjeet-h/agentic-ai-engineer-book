@@ -4,6 +4,15 @@ The projects are where the phases stop being theory. Each one is a real system y
 
 That is deliberate. Reading a finished implementation teaches you what someone else decided; building to a brief forces you to make the decisions, hit the constraints, and debug the failures. That is the skill the interview and the job actually test.
 
+## Read these first
+
+If you are new to building, read the supporting briefs in this order before you pick a project. They turn the six briefs below from a wall of requirements into something a student or a working engineer can actually follow.
+
+1. [Getting started](00-getting-started.md) — who the projects are for, what to install, how to pick one, and how to work through a brief.
+2. [Warm-up projects](warm-up-projects.md) — four small builds (a day or two each) that teach the core skill of the big ones.
+3. [Definition of done](definition-of-done.md) — the shared bar every project must clear, and a five-minute demo script.
+4. [Glossary](glossary.md) — every term used in the briefs, defined in plain language, with the phase to study next.
+
 ## How to use this section
 
 1. **Pick a project** and read its brief end to end before writing anything.
@@ -32,18 +41,22 @@ Every project follows the same method. The briefs add project-specific steps; th
 
 ## The projects
 
+New to this? Do the [warm-up projects](warm-up-projects.md) first — they are a day or two each. Then pick one main project and build it properly rather than starting three.
+
 | # | Project | Builds on | Rough scale |
 | --- | --- | --- | --- |
-| 1 | Production Enterprise RAG Engine | Phases 1, 3, 7, 8 | Medium-large |
-| 2 | Autonomous Enterprise Workflow Agent | Phases 1, 4, 5, 6, 8, 9 | Large |
-| 3 | Open-Source Agent Platform / AI Control Plane | Phases 6, 7, 9, 10, 11, 12 | Large |
-| 4 | Production LLM Gateway | Phases 1, 6, 7, 8, 9 | Medium |
-| 5 | AI Evaluation Platform | Phases 3, 4, 8 | Medium |
-| 6 | Enterprise MCP Gateway | Phases 5, 7, 9 | Medium |
+| 1 | [Production Enterprise RAG Engine](01-production-enterprise-rag-engine.md) | Phases 1, 3, 7, 8 | Medium-large |
+| 2 | [Autonomous Enterprise Workflow Agent](02-autonomous-enterprise-workflow-agent.md) | Phases 1, 4, 5, 6, 8, 9 | Large |
+| 3 | [Open-Source Agent Platform / AI Control Plane](03-open-source-agent-platform.md) | Phases 6, 7, 9, 10, 11, 12 | Large |
+| 4 | [Production LLM Gateway](04-production-llm-gateway.md) | Phases 1, 6, 7, 8, 9 | Medium |
+| 5 | [AI Evaluation Platform](05-ai-evaluation-platform.md) | Phases 3, 4, 8 | Medium |
+| 6 | [Enterprise MCP Gateway](06-enterprise-mcp-gateway.md) | Phases 5, 7, 9 | Medium |
+
+Each brief follows the same shape: goal, what you will build, functional and non-functional requirements, a suggested architecture, milestones, acceptance criteria, what to document, and a step-by-step build plan. The [glossary](glossary.md) explains any term you do not recognise.
 
 ## Requirements that apply to every project
 
-These are not optional extras. A project without them is a demo, not a system, and interviewers probe exactly these.
+These are not optional extras. A project without them is a demo, not a system, and interviewers probe exactly these. The [definition of done](definition-of-done.md) turns them into a checklist you can score yourself against.
 
 - **Configuration.** All settings come from the environment (or a config file), validated at startup. No secrets in code. It runs with one documented command.
 - **Structured logging.** JSON logs with a request id, and no secrets or personal data in them.

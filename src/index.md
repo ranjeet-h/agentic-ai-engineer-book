@@ -34,7 +34,9 @@ Read the phases in order. Each phase has a short checkpoint, and the book ends w
 
 ## Final projects
 
-The book ends with six projects you build yourself. Each has requirements, a suggested architecture, milestones, and acceptance criteria — but no implementation code, so you make the decisions. Start here: [Final Projects](projects/index.md).
+The book ends with six projects you build yourself. Each has requirements, a suggested architecture, milestones, acceptance criteria, and a step-by-step build plan — but no implementation code, so you make the decisions. Start here: [Final Projects](projects/index.md).
+
+New to building? Read [Getting Started](projects/00-getting-started.md) and the four [Warm-Up Projects](projects/warm-up-projects.md) first. The [Definition of Done](projects/definition-of-done.md) and the [Glossary](projects/glossary.md) apply to all six projects.
 
 - [Project 1 — Production Enterprise RAG Engine](projects/01-production-enterprise-rag-engine.md)
 - [Project 2 — Autonomous Enterprise Workflow Agent](projects/02-autonomous-enterprise-workflow-agent.md)
