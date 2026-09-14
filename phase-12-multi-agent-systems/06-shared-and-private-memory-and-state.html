@@ -1,0 +1,542 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Shared and Private Memory and State - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="shared-and-private-memory-and-state"><a class="header" href="#shared-and-private-memory-and-state">Shared and Private Memory and State</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> Multi-agent systems need two kinds of memory. <strong>Private state</strong> — an agent’s scratchpad, reasoning, and partial drafts — lives inside its own context window and is never trusted by anyone else. <strong>Shared state</strong> — the plan, the agreed facts, and the outputs being assembled — lives in one addressable place: a <strong>blackboard</strong> or a <strong>shared graph state</strong> that every agent can read and (if allowed) write. The rule that keeps shared state correct is the <strong>single-writer rule</strong>: each key has exactly one agent allowed to write it, so no two agents update the same field and lose each other’s work. Cross-agent read-modify-write needs <strong>versioning</strong>: a writer states the version it read, and the store rejects a <strong>stale write</strong> with <strong>compare-and-swap</strong>. <strong>Context isolation</strong> means each agent sees only the slice it needs, which improves focus and privacy. Conflicts are detected, resolved, and recorded; shared state is <strong>summarised</strong> before re-injection, because the full state will not fit in any one window.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong></p>
+<p><strong>Verified.</strong> Every runnable pure-Python example on this page was executed on Python 3.14. The compare-and-swap race, the single-writer rule, the blackboard, context isolation, privacy redaction, and state summarisation produced the outputs shown. JSON payloads were parsed with <code>json.loads</code>.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>Two agents working on one job must agree on something. The simplest approach — let both write to one shared document — is also the fastest way to corrupt the job.</p>
+<p>Picture a writer and an editor both holding the same draft. The writer improves the introduction. At the same moment the editor fixes the introduction too. Whoever saves last wins; the other change disappears. Nobody gets an error. The system looks fine and the work is wrong. This is a <strong>lost update</strong>, and it is the defining bug of shared state.</p>
+<p>There is a second, quieter failure: <strong>leakage</strong>. If every agent reads the whole shared state, then the summariser sees the customer’s card number, or a research agent sees the internal pricing plan. Sharing everything is convenient and unsafe.</p>
+<p>And a third: <strong>context bloat</strong>. If shared state is one giant object and every agent re-reads all of it, each agent’s context fills with data it does not need. Focus drops and cost rises.</p>
+<p>The fix is a discipline, not a technology:</p>
+<ul>
+<li><strong>Split state into private and shared.</strong> Keep reasoning private; publish only what others need.</li>
+<li><strong>Give each shared key one writer.</strong> One owner per field removes most races by construction.</li>
+<li><strong>Version shared state.</strong> When read-modify-write is unavoidable, compare versions and reject stale writes.</li>
+<li><strong>Isolate context.</strong> Hand each agent only the slice its role needs.</li>
+<li><strong>Summarise.</strong> Re-inject a short, current summary, not the raw history.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong></p>
+<p><strong>The one-sentence purpose.</strong> Private state is one agent’s working memory; shared state is the team’s agreed record, kept correct with single writers, versions, and isolation.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>State</strong></td><td>Data the system needs to remember while the job runs.</td></tr>
+<tr><td><strong>Memory</strong></td><td>State that outlives one step, and sometimes one run.</td></tr>
+<tr><td><strong>Private state</strong></td><td>State only one agent can see: its scratchpad and reasoning.</td></tr>
+<tr><td><strong>Scratchpad</strong></td><td>An agent’s private working notes for the current task.</td></tr>
+<tr><td><strong>Shared state</strong></td><td>State multiple agents can read, and some can write.</td></tr>
+<tr><td><strong>Blackboard</strong></td><td>A shared store agents post findings to and read from.</td></tr>
+<tr><td><strong>Shared graph state</strong></td><td>A typed, addressable state object passed through a workflow graph.</td></tr>
+<tr><td><strong>Context window</strong></td><td>The token budget one model call can see at once.</td></tr>
+<tr><td><strong>Context isolation</strong></td><td>Each agent gets only the slice of state its role needs.</td></tr>
+<tr><td><strong>Single-writer rule</strong></td><td>Exactly one agent may write a given key.</td></tr>
+<tr><td><strong>Race condition</strong></td><td>Two operations interleave so the result depends on timing.</td></tr>
+<tr><td><strong>Lost update</strong></td><td>A write is overwritten because another writer did not see it.</td></tr>
+<tr><td><strong>Version</strong></td><td>A number that increments on every accepted write.</td></tr>
+<tr><td><strong>Compare-and-swap (CAS)</strong></td><td>Write only if the current version equals the one you read.</td></tr>
+<tr><td><strong>Optimistic concurrency</strong></td><td>Assume no clash, then reject the write if the version moved.</td></tr>
+<tr><td><strong>Write conflict</strong></td><td>Two writers changed the same key from the same base.</td></tr>
+<tr><td><strong>Merge</strong></td><td>Combine non-conflicting changes from several writers.</td></tr>
+<tr><td><strong>Redaction</strong></td><td>Removing secrets or personal data before publishing.</td></tr>
+<tr><td><strong>Namespace</strong></td><td>A partition that keeps one user’s or team’s data separate.</td></tr>
+<tr><td><strong>Summarisation</strong></td><td>Compressing shared state into a short, current form.</td></tr>
+<tr><td><strong>Checkpoint</strong></td><td>A saved snapshot of state at a point in time.</td></tr>
+<tr><td><strong>Event log</strong></td><td>The ordered list of state changes; the source of truth.</td></tr>
+<tr><td><strong>Materialised view</strong></td><td>The current state built by replaying the event log.</td></tr>
+<tr><td><strong>Provenance</strong></td><td>Which agent wrote which value, and when.</td></tr>
+</tbody></table>
+</div>
+<p>Two distinctions decide most designs:</p>
+<ul>
+<li><strong>Private vs shared.</strong> If no other agent needs it to do its job, it stays private. Sharing is a deliberate act with a privacy cost.</li>
+<li><strong>State vs messages.</strong> Messages are events in flight. Shared state is the durable record. The next page schedules the messages; this page stores the state.</li>
+</ul>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Think of a project room.</p>
+<ul>
+<li>Each person has a <strong>notebook</strong>: private reasoning they never have to defend. That is the scratchpad.</li>
+<li>In the middle sits a <strong>whiteboard</strong>. Everyone reads it; each column has one named owner who writes it. That is shared state with single writers.</li>
+<li>The whiteboard is <strong>versioned</strong>. If you copy a column and someone else updates it first, your write is rejected and you re-read. That is compare-and-swap.</li>
+<li>Some columns are <strong>covered</strong> when visitors enter. That is redaction and context isolation.</li>
+<li>At the end of the meeting someone writes a short <strong>summary</strong> on a card and pins it up. That is summarisation.</li>
+</ul>
+<pre><code class="language-mermaid">flowchart TD
+    subgraph Private["Private context (one per agent)"]
+        P1["Planner scratchpad"]
+        W1["Writer scratchpad"]
+        C1["Critic scratchpad"]
+    end
+    subgraph Shared["Shared state (blackboard / graph state) v3"]
+        K1["plan  [writer: planner]"]
+        K2["draft [writer: writer]"]
+        K3["critique [writer: critic]"]
+        K4["facts [writer: researcher]"]
+    end
+    P1 --&gt;|"CAS write plan"| K1
+    W1 --&gt;|"CAS write draft"| K2
+    C1 --&gt;|"CAS write critique"| K3
+    K1 --&gt;|"read slice"| W1
+    K2 --&gt;|"read slice"| C1
+    K4 --&gt;|"read slice"| W1
+    Shared --&gt;|"summarise"| S["Short state summary&lt;br/&gt;injected into each prompt"]
+    S --&gt; P1
+    S --&gt; W1
+    S --&gt; C1
+</code></pre>
+<p>The whiteboard metaphor makes the hard rules obvious:</p>
+<div class="table-wrapper"><table><thead><tr><th>Question</th><th>Private scratchpad</th><th>Shared state</th></tr></thead><tbody>
+<tr><td>Who can read it?</td><td>One agent</td><td>Allowed agents</td></tr>
+<tr><td>Who can write it?</td><td>Its owner</td><td>The single key owner</td></tr>
+<tr><td>Does it need a version?</td><td>No</td><td>Yes, for read-modify-write</td></tr>
+<tr><td>Does it need redaction?</td><td>Not for privacy</td><td>Yes, before publishing</td></tr>
+<tr><td>Is it re-injected wholesale?</td><td>Yes, to its own prompt</td><td>No, summarised first</td></tr>
+<tr><td>Typical contents</td><td>Chain-of-thought, candidate drafts</td><td>Plan, agreed facts, final outputs</td></tr>
+<tr><td>Lifetime</td><td>One step or one run</td><td>The whole job, and often archived</td></tr>
+</tbody></table>
+</div>
+<p>The discipline in one line: <strong>keep reasoning private, publish conclusions under one owner, version every shared write, and inject only what a role needs.</strong></p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
+<li><strong>Draw the boundary.</strong> For each piece of data, ask who must read it. If the answer is “nobody else”, it is private. Publish only conclusions and artifacts, not raw reasoning.</li>
+<li><strong>Name every shared key.</strong> <code>plan</code>, <code>draft</code>, <code>critique</code>, <code>facts</code>. A key is a contract: readers depend on its shape, so changing it is a breaking change.</li>
+<li><strong>Assign one writer per key.</strong> Record the owner in a registry. This is the single-writer rule: it removes most races before they start.</li>
+<li><strong>Stamp a version.</strong> The shared store keeps a monotonic version that increments on every accepted write.</li>
+<li><strong>Read with the version.</strong> A writer reads the key and the version together. The version is its receipt.</li>
+<li><strong>Write with compare-and-swap.</strong> The write includes the expected version. If the store’s version moved, reject the write and make the agent re-read and retry.</li>
+<li><strong>Detect conflicts.</strong> A conflict is a write against a version that no longer matches. Log it; do not silently drop it. Duplicate work often signals overlapping roles.</li>
+<li><strong>Resolve conflicts deterministically.</strong> Retry with a fresh read, merge non-overlapping fields, or escalate to a resolver. Never let wall-clock order decide.</li>
+<li><strong>Isolate context.</strong> Build each agent’s prompt from a role-specific slice: the planner sees <code>plan</code>, the writer sees <code>plan</code> and <code>facts</code>, the critic sees <code>draft</code>.</li>
+<li><strong>Redact before publishing.</strong> Strip secrets and personal data at the boundary. A field that never enters shared state cannot leak from it.</li>
+<li><strong>Summarise before re-injection.</strong> Shared state grows past the context budget, so compress it to a short current summary with the version included.</li>
+<li><strong>Checkpoint and version history.</strong> Save snapshots so a bad write can be rolled back, and keep provenance: who wrote what, when, and from which version.</li>
+</ol>
+<p>Two refinements sit on top:</p>
+<ul>
+<li><strong>Event log plus materialised view.</strong> Append every accepted change to an immutable log, and build the current state by replay. This gives an exact audit trail and lets you rebuild state after a bug.</li>
+<li><strong>Garbage collection by version.</strong> Keep the last few versions for rollback, then archive older ones. Unbounded history is its own memory leak.</li>
+</ul>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p><strong>A versioned shared store with compare-and-swap.</strong> The lock makes each check-and-write atomic; the version check makes stale writes fail.</p>
+<pre><code class="language-python">import copy, threading
+
+class SharedState:
+    def __init__(self):
+        self._data: dict = {}
+        self._version = 0
+        self._lock = threading.Lock()
+
+    def read(self):
+        with self._lock:
+            return copy.deepcopy(self._data), self._version
+
+    def compare_and_swap(self, expected_version: int, writer: str, patch: dict):
+        with self._lock:
+            if expected_version != self._version:
+                raise ValueError(
+                    f"stale write by {writer}: expected v{expected_version}, "
+                    f"actual v{self._version}")
+            self._data = {**self._data, **patch}
+            self._version += 1
+            return self._version
+</code></pre>
+<p><code>read</code> returns a deep copy so a caller cannot mutate the store by accident. <code>compare_and_swap</code> rejects the write if any other writer moved the version.</p>
+<p><strong>Enforce the single-writer rule at the boundary.</strong> A small owner map prevents two roles from writing the same key.</p>
+<pre><code class="language-python">OWNERS = {"plan": "planner", "draft": "writer", "critique": "critic",
+          "facts": "researcher"}
+
+def can_write(agent: str, key: str) -&gt; bool:
+    owner = OWNERS.get(key)
+    if owner is None:
+        return False
+    return owner == agent
+</code></pre>
+<p><strong>A blackboard is shared state with a write gate and a query surface.</strong></p>
+<pre><code class="language-python">class Blackboard:
+    def __init__(self):
+        self.entries: list[dict] = []
+
+    def post(self, agent: str, key: str, value, confidence: float = 1.0):
+        if not can_write(agent, key):
+            raise PermissionError(f"{agent} may not write {key!r}")
+        self.entries.append({"agent": agent, "key": key,
+                             "value": value, "confidence": confidence})
+        return len(self.entries) - 1
+
+    def latest(self, key: str):
+        for e in reversed(self.entries):
+            if e["key"] == key:
+                return e
+        return None
+</code></pre>
+<p><strong>Give each agent only its slice.</strong> Isolation is both a focus tool and a privacy tool.</p>
+<pre><code class="language-python">def private_view(shared: dict, keys: list[str]) -&gt; dict:
+    return {k: shared[k] for k in keys if k in shared}
+</code></pre>
+<p><strong>Redact at the publish boundary.</strong> Secrets never enter shared state in the first place.</p>
+<pre><code class="language-python">SECRET_KEYS = {"secret_key", "api_token", "card_number"}
+
+def redact_for_publish(patch: dict) -&gt; dict:
+    clean = {}
+    for k, v in patch.items():
+        if k in SECRET_KEYS:
+            continue
+        if isinstance(v, str) and v.startswith("sk-"):
+            clean[k] = "[redacted]"
+        else:
+            clean[k] = v
+    return clean
+</code></pre>
+<p><strong>Summarise shared state with a version stamp.</strong> The version ties the summary to the exact state it describes; when the text is truncated, a content hash marks the cut.</p>
+<pre><code class="language-python">import json, hashlib
+
+def summarize(shared: dict, version: int, max_chars: int = 90) -&gt; str:
+    clean = redact_for_publish(shared)     # same boundary rule as publishing
+    parts = []
+    for k in sorted(clean):
+        v = clean[k]
+        text = json.dumps(v, sort_keys=True) if not isinstance(v, str) else v
+        parts.append(f"{k}={text}")
+    joined = "; ".join(parts)
+    stamp = f"v{version}"
+    if len(stamp) + 2 + len(joined) &lt;= max_chars:
+        return f"{stamp}: {joined}"
+    digest = hashlib.sha256(joined.encode()).hexdigest()[:8]
+    keep = max(0, max_chars - len(stamp) - 2)
+    return f"{stamp}: {joined[:keep]}...[+{len(joined)-keep} chars sha={digest}]"
+</code></pre>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p><strong>Example 1 — a stale write is rejected, then accepted after a re-read.</strong></p>
+<pre><code class="language-text">A read version: 0 | B read version: 0
+A writes v: 1
+B rejected: stale write by writer: expected v0, actual v1
+B re-read version: 1 | B writes v: 2
+</code></pre>
+<p>Both agents read version 0. A writes first and the version becomes 1. B’s write, based on version 0, is rejected. B re-reads and succeeds. No update is lost, because the store refused the stale base.</p>
+<p><strong>Example 2 — two writers on the same key, one lost update prevented.</strong></p>
+<pre><code class="language-text">C writes draft v: 3
+lost update prevented: stale write by editor: expected v2, actual v3
+final state: {'plan': ['search', 'draft'], 'draft': 'draft v2'} v 3
+</code></pre>
+<p>C and the editor both read version 2. C writes; the editor’s stale write is refused. Without the version check, the editor’s value would silently overwrite C’s, which is exactly the failure the rule exists to prevent.</p>
+<p><strong>Example 3 — the single-writer rule blocks a hijack.</strong></p>
+<pre><code class="language-text">planner writes plan   : True
+writer  writes plan   : False
+critic  writes critique: True
+who owns draft        : writer
+blackboard rejected: writer may not write 'plan'
+</code></pre>
+<p>Only the planner may write <code>plan</code>. When the writer tries, the blackboard raises. One owner per key means ownership is enforced, not merely documented.</p>
+<p><strong>Example 4 — a blackboard keeps the latest value per key.</strong></p>
+<pre><code class="language-text">latest plan : {'agent': 'planner', 'key': 'plan', 'value': ['search', 'draft'], 'confidence': 1.0}
+latest draft: {'agent': 'writer', 'key': 'draft', 'value': 'refund policy draft v1', 'confidence': 1.0}
+entries     : 2
+</code></pre>
+<p>Each post records the agent, the key, the value, and a confidence. Readers query the latest entry for a key, so writes are an append-only history rather than destructive edits.</p>
+<p><strong>Example 5 — context isolation hides data a role does not need.</strong></p>
+<pre><code class="language-text">writer sees  : {'plan': ['search'], 'draft': 'text'}
+critic sees  : {'draft': 'text'}
+planner sees : {'plan': ['search']}
+secret leaked: False
+</code></pre>
+<p>The writer never sees the secret key, the critic sees only the draft, and the planner sees only the plan. Compare this with passing the full dictionary to everyone, which would leak the secret and waste context.</p>
+<p><strong>Example 6 — summarise shared state before re-injection.</strong></p>
+<pre><code class="language-text">summary: v3: critique=too vague; draft=text; note=[redacted]; plan=["search"]; user_id=u_42
+</code></pre>
+<p>The summary drops the secret key and redacts a secret-looking value hiding under an innocuous key, keeps the keys a reader needs, and fits a small budget. The injected prompt gets the current state, not the entire history, and the <code>v3</code> stamp ties it back to the exact version it describes.</p>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>Default to private.</strong> Publish only conclusions another agent needs to proceed. Raw chain-of-thought in shared state is a privacy leak and a context tax.</li>
+<li><strong>One writer per key, enforced in code.</strong> A documented rule drifts. A permission check fails closed and stops the race before it starts.</li>
+<li><strong>Always version shared state.</strong> Any read-modify-write across agents needs a version and a compare-and-swap, or you will eventually lose an update silently.</li>
+<li><strong>Make writes idempotent and retryable.</strong> A rejected write means “re-read and try again”, not “give up”. Encode the retry so agents do not need custom logic.</li>
+<li><strong>Redact at the boundary.</strong> Remove secrets and personal data before publishing. Once a value is in shared state, every reader can see it forever in the log.</li>
+<li><strong>Do not let the summariser see secrets.</strong> The summary is injected into prompts and may be logged. Treat it as a public artifact.</li>
+<li><strong>Keep the event log immutable.</strong> Append changes; never edit history. The log is what lets you explain a past decision and rebuild state after a bug.</li>
+<li><strong>Bound the history.</strong> Keep a few versions for rollback and archive the rest. Unbounded version history grows the store without limit.</li>
+<li><strong>Detect conflicts, do not hide them.</strong> Log every rejected write with both versions. Repeated conflicts mean two roles are doing overlapping work.</li>
+<li><strong>Namespace by user and tenant.</strong> A missing namespace filter is a cross-user leak. Make the namespace a required argument, not an optional one.</li>
+<li><strong>Treat shared state as untrusted input to every reader.</strong> A compromised agent can poison a shared key. Validate values at the boundary, and keep provenance so a bad write can be traced.</li>
+<li><strong>Snapshot before destructive operations.</strong> A checkpoint turns a catastrophic overwrite into a rollback.</li>
+</ul>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-what-is-the-difference-between-shared-and-private-state"><a class="header" href="#1-what-is-the-difference-between-shared-and-private-state">1. What is the difference between shared and private state?</a></h3>
+<p><strong>Answer.</strong> Private state is one agent’s scratchpad and reasoning: it lives in that agent’s context and no one else depends on it. Shared state is data multiple agents can read, such as the plan, agreed facts, and outputs being assembled. Private state is where thinking happens; shared state is the team’s record. Keep reasoning private and publish only conclusions, because sharing costs context and leaks information.</p>
+<p><strong>Follow-up: “Where does a final answer live?”</strong> In shared state, under a key with one writer, so every consumer reads the same version.</p>
+<p><strong>Trap.</strong> Sharing the whole context. It couples agents, blows the token budget, and leaks private data to peers that do not need it.</p>
+<h3 id="2-why-is-the-single-writer-rule-important"><a class="header" href="#2-why-is-the-single-writer-rule-important">2. Why is the single-writer rule important?</a></h3>
+<p><strong>Answer.</strong> Because it removes races by construction. If exactly one agent may write a given key, then two agents can never interleave read-modify-write on that key and lose an update. The rule also makes ownership explicit: when a value is wrong, you know which agent wrote it. Where genuine multi-writer collaboration is needed, you add versioning or a merge step rather than abandoning the rule.</p>
+<p><strong>Follow-up: “What if two agents really must update one field?”</strong> Then serialize them behind a queue or a lock, or split the field into per-writer sub-fields and merge. Do not let both write blind.</p>
+<p><strong>Trap.</strong> Trusting a convention in a document. Enforce the rule with a permission check so it fails closed.</p>
+<h3 id="3-what-is-a-lost-update-and-how-does-compare-and-swap-prevent-it"><a class="header" href="#3-what-is-a-lost-update-and-how-does-compare-and-swap-prevent-it">3. What is a lost update, and how does compare-and-swap prevent it?</a></h3>
+<p><strong>Answer.</strong> A lost update happens when two writers read the same value, both modify it, and the second write overwrites the first, so one change disappears with no error. Compare-and-swap prevents it by attaching a version to the read. The write succeeds only if the store’s version still equals the version the writer read. If another writer moved the version, the store rejects the write and the agent re-reads.</p>
+<p><strong>Follow-up: “What does the agent do after rejection?”</strong> Re-read the latest state, recompute, and retry with the new version. The write is optimistic; conflicts surface as exceptions, not as silent corruption.</p>
+<p><strong>Trap.</strong> Checking the version but not making the check-and-write atomic. Without a lock or a transaction, two writers can still both pass the check.</p>
+<h3 id="4-why-isolate-context-between-agents"><a class="header" href="#4-why-isolate-context-between-agents">4. Why isolate context between agents?</a></h3>
+<p><strong>Answer.</strong> Two reasons: focus and privacy. Focus, because an agent performs better with only the slice relevant to its role — a critic does not need the research log. Privacy, because an agent that never receives a secret cannot leak it. Context isolation also keeps cost down, since each prompt carries just what it needs instead of the full shared state.</p>
+<p><strong>Follow-up: “Does isolation reduce coordination?”</strong> It can, so the slice must include what the role needs and no more. Design the slice around the decision the agent makes.</p>
+<p><strong>Trap.</strong> Isolating so aggressively that the agent is missing a fact it needs. Isolation is about relevance, not about starving agents.</p>
+<h3 id="5-how-do-you-handle-a-write-conflict-between-agents"><a class="header" href="#5-how-do-you-handle-a-write-conflict-between-agents">5. How do you handle a write conflict between agents?</a></h3>
+<p><strong>Answer.</strong> Detect it with a version check, then resolve it deterministically. Options are: retry after re-reading, merge non-overlapping fields, or escalate to a resolver with a documented policy. Record the conflict and the resolution for audit. The worst response is to let wall-clock arrival order decide, because that makes the outcome non-reproducible.</p>
+<p><strong>Follow-up: “When is merging wrong?”</strong> When the two writes are contradictory, such as two different plans. A merge that unions contradictory claims produces an incoherent state; escalate instead.</p>
+<p><strong>Trap.</strong> Silently dropping the loser’s write. A conflict is a signal that roles overlap or the task design is wrong; log it.</p>
+<h3 id="6-how-do-you-keep-private-data-out-of-shared-state"><a class="header" href="#6-how-do-you-keep-private-data-out-of-shared-state">6. How do you keep private data out of shared state?</a></h3>
+<p><strong>Answer.</strong> Redact at the publish boundary, before the value enters shared state. Maintain a list of sensitive keys and patterns, drop or mask them on publish, and keep the summariser away from raw personal data. Combine that with namespaces per user or tenant and least-privilege reads, so even a leak is scoped.</p>
+<p><strong>Follow-up: “Why redact before the event log rather than after?”</strong> Because the log is append-only and long-lived. A secret that reaches the log can only be masked, not un-known, and every reader with log access has seen it.</p>
+<p><strong>Trap.</strong> Assuming a trusted agent will not publish a secret. Assume it might, and enforce at the store.</p>
+<h3 id="7-why-summarise-shared-state-instead-of-injecting-all-of-it"><a class="header" href="#7-why-summarise-shared-state-instead-of-injecting-all-of-it">7. Why summarise shared state instead of injecting all of it?</a></h3>
+<p><strong>Answer.</strong> Because shared state outgrows any context window. As the job runs, the plan, drafts, critiques, and facts accumulate far past the token budget. Injecting a short, current summary keeps each agent focused and bounds cost, while the full state stays addressable for anyone who needs a specific key. The summary should include the version so it is traceable.</p>
+<p><strong>Follow-up: “What can a summary lose?”</strong> The detail that mattered: an exact error, an order number, a caveat. Keep the raw state and let the summary act as an index, not the only copy.</p>
+<p><strong>Trap.</strong> Summarising with a model and then treating the summary as ground truth. A summary is derived data and can drift; the source of truth is the versioned state.</p>
+<h3 id="8-how-do-you-make-shared-state-auditable-and-recoverable"><a class="header" href="#8-how-do-you-make-shared-state-auditable-and-recoverable">8. How do you make shared state auditable and recoverable?</a></h3>
+<p><strong>Answer.</strong> With an append-only event log plus a materialised view. Every accepted change is appended with its writer, version, timestamp, and previous version. The current state is rebuilt by replaying the log. Checkpoints let you roll back a bad write quickly, and provenance lets you answer “who wrote this value, and from which version.” Immutable history plus snapshots covers both explanation and recovery.</p>
+<p><strong>Follow-up: “How do you keep the log from growing forever?”</strong> Archive or compact old segments after keeping enough versions for rollback and audit, following whatever retention policy applies.</p>
+<p><strong>Trap.</strong> Mutating state in place with no history. When a value is wrong, you cannot tell who changed it or why, and you cannot recover the prior value.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>Private scratchpads for thinking; shared state for agreed facts and outputs.</strong> Publish conclusions, not reasoning.</li>
+<li><strong>One writer per key, enforced in code.</strong> The single-writer rule removes races before they happen.</li>
+<li><strong>Version every shared write and use compare-and-swap.</strong> A stale write is rejected, not silently applied.</li>
+<li><strong>Isolate context per role and redact before publishing.</strong> Isolation gives focus and privacy; redaction gives safety.</li>
+<li><strong>Keep an append-only log and summarise the view.</strong> The log explains and recovers; the summary keeps prompts small.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-12-multi-agent-systems/05-agent-communication-delegation-and-handoffs.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-12-multi-agent-systems/07-agent-scheduling-and-coordination.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-12-multi-agent-systems/05-agent-communication-delegation-and-handoffs.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-12-multi-agent-systems/07-agent-scheduling-and-coordination.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

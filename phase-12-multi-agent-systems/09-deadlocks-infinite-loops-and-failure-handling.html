@@ -1,0 +1,563 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Deadlocks, Infinite Loops, and Failure Handling - Agentic AI Engineering Study Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A production-oriented roadmap from Python foundations to multi-agent systems">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../styles/navigation.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Agentic AI Engineering Study Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ranjeet-h/agentic-ai-engineer-book" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="deadlocks-infinite-loops-and-failure-handling"><a class="header" href="#deadlocks-infinite-loops-and-failure-handling">Deadlocks, Infinite Loops, and Failure Handling</a></h1>
+<blockquote>
+<p><strong>Interview answer (say this first).</strong> Multi-agent systems fail in ways a single agent cannot: two agents wait on each other forever (<strong>deadlock</strong>), two agents keep “making progress” without changing anything (<strong>livelock</strong>), a supervisor spawns far too many workers (<strong>runaway fan-out</strong>), or one failed worker takes down a whole chain (<strong>cascading failure</strong>). You handle all of them with three things: <strong>detection</strong> (a cycle check on the wait-for graph, turn and round caps, and no-progress detection on a state fingerprint), <strong>recovery</strong> (timeouts, cancellation, breaking one edge of the cycle, fallbacks, and compensation), and <strong>design</strong> (deterministic control flow, one owner per resource, and bounded delegation). The key idea: never let a cycle or a loop depend on an agent deciding to stop.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong></p>
+<p><strong>Verified.</strong> Every runnable example on this page was executed offline in plain Python (Python 3.14). No model calls were made and no vendor prices are quoted; any cost or token number is labelled <strong>illustrative</strong>. Each <code>#</code> comment shows the value the code actually prints.</p>
+</blockquote>
+<h2 id="why-this-exists"><a class="header" href="#why-this-exists">Why this exists</a></h2>
+<p>A single agent can hang, but its hang is local: one loop, one bill, one timeout. A multi-agent system turns that local problem into a distributed one. Agents wait on each other, hold shared resources, and delegate recursively. When coordination is wrong, the whole system can stop without a single error being logged.</p>
+<p>Four failure modes cause most of the damage.</p>
+<p><strong>Circular wait (deadlock).</strong> Agent A asked B for a review and is waiting for the reply. B asked A for the original data and is waiting for the reply. Neither will ever move. In code this happens whenever the wait graph has a cycle: A waits on B, B waits on C, C waits on A.</p>
+<p><strong>Infinite loop.</strong> The conversation never terminates. The critic keeps asking for revisions, the writer keeps rewriting, and the pair loops forever because nothing counts the rounds. This is the multi-agent version of the single-agent loop in Phase 4, but it is worse: each round is several model calls, so the cost multiplies.</p>
+<p><strong>Livelock.</strong> The agents are busy but nothing changes. A and B keep handing the same task back and forth with slightly different wording. From the outside the system looks active — messages are flowing, CPU is busy — but the shared state cycles and no goal advances. Livelock is harder to spot than deadlock because there is no waiting; there is activity.</p>
+<p><strong>Runaway fan-out.</strong> A supervisor decides to “be thorough” and spawns fifty workers. Each worker spawns helpers. The breadth explodes, the budget drains, and rate limits trip. Fan-out is a resource decision, not a reasoning decision.</p>
+<p>Here is the shape of a deadlock in a wait-for graph:</p>
+<pre><code class="language-text">A holds lock L1, waits for L2
+B holds lock L2, waits for L1
+A -&gt; B -&gt; A  (cycle, no progress possible)
+</code></pre>
+<p>Nothing in that picture will resolve itself. The system needs an outside observer that can see the cycle, because the agents inside only see their own blocked call.</p>
+<blockquote>
+<p><strong>Note:</strong></p>
+<p><strong>The one-sentence purpose.</strong> Multi-agent failure handling means detecting cycles, loops, and blow-ups that no single agent can see, then recovering by breaking an edge, cancelling, or compensating — never by waiting for an agent to notice.</p>
+</blockquote>
+<h2 id="start-from-zero"><a class="header" href="#start-from-zero">Start from zero</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Word</th><th>Plain meaning</th></tr></thead><tbody>
+<tr><td><strong>Deadlock</strong></td><td>Two or more agents each waiting for the other, so none can proceed.</td></tr>
+<tr><td><strong>Circular wait</strong></td><td>The condition behind deadlock: a cycle in the “who waits for whom” graph.</td></tr>
+<tr><td><strong>Wait-for graph</strong></td><td>A graph whose nodes are agents and whose edge A to B means “A is waiting on B.”</td></tr>
+<tr><td><strong>Cycle</strong></td><td>A path that returns to its start, such as A to B to A.</td></tr>
+<tr><td><strong>Cycle detection</strong></td><td>Finding a cycle in a graph, usually with depth-first search and three colours.</td></tr>
+<tr><td><strong>Livelock</strong></td><td>Agents keep acting, but the shared state repeats and no goal advances.</td></tr>
+<tr><td><strong>Infinite loop</strong></td><td>A conversation or loop that never reaches a stop condition.</td></tr>
+<tr><td><strong>Non-terminating conversation</strong></td><td>A chat between agents that never ends because nobody counts turns.</td></tr>
+<tr><td><strong>Turn</strong></td><td>One agent’s single message or action in a conversation.</td></tr>
+<tr><td><strong>Round</strong></td><td>One full pass where every agent in the group acts once.</td></tr>
+<tr><td><strong>Turn cap / round cap</strong></td><td>A hard maximum on turns or rounds before the system stops.</td></tr>
+<tr><td><strong>Fan-out</strong></td><td>Starting many workers at once from one task.</td></tr>
+<tr><td><strong>Runaway fan-out</strong></td><td>Fan-out that grows without a width or budget limit.</td></tr>
+<tr><td><strong>Fan-in</strong></td><td>Collecting and merging the results of many workers.</td></tr>
+<tr><td><strong>Cascading failure</strong></td><td>One component fails, its callers fail, and the failure spreads.</td></tr>
+<tr><td><strong>Bulkhead</strong></td><td>A limit that isolates one workload so its failure cannot drain the rest.</td></tr>
+<tr><td><strong>Circuit breaker</strong></td><td>A switch that stops calls to a failing dependency for a cooldown once its error rate passes a threshold.</td></tr>
+<tr><td><strong>Thundering herd</strong></td><td>Many agents retrying at once and slamming a dependency the moment it recovers.</td></tr>
+<tr><td><strong>Partial failure</strong></td><td>Some workers succeed and some fail in the same run.</td></tr>
+<tr><td><strong>Timeout</strong></td><td>A maximum time to wait for one operation.</td></tr>
+<tr><td><strong>Deadline</strong></td><td>A maximum time for the whole task; children inherit it.</td></tr>
+<tr><td><strong>Cancellation</strong></td><td>Telling an in-flight agent to stop and abandon its work.</td></tr>
+<tr><td><strong>Cooperative cancellation</strong></td><td>Cancellation that works only when the agent checks a stop flag.</td></tr>
+<tr><td><strong>No-progress detection</strong></td><td>Stopping when the state stops changing even if actions continue.</td></tr>
+<tr><td><strong>State fingerprint</strong></td><td>A hash or summary of the shared state, used to compare states cheaply.</td></tr>
+<tr><td><strong>Progress</strong></td><td>A measurable change: a new fact, a completed task, a smaller error.</td></tr>
+<tr><td><strong>Idempotent</strong></td><td>Safe to run more than once with the same effect.</td></tr>
+<tr><td><strong>Compensation</strong></td><td>An action that undoes a completed step when a later step fails.</td></tr>
+<tr><td><strong>Saga</strong></td><td>A long transaction built from steps, each with a compensating undo.</td></tr>
+<tr><td><strong>Fallback</strong></td><td>A backup path used when the primary agent or tool fails.</td></tr>
+<tr><td><strong>Backpressure</strong></td><td>Slowing or rejecting work when a queue or budget is full.</td></tr>
+<tr><td><strong>Dead-letter</strong></td><td>A place to park work that failed permanently for later inspection.</td></tr>
+</tbody></table>
+</div>
+<p>Two distinctions cause most confusion, so pin them down now:</p>
+<ul>
+<li><strong>Deadlock vs livelock.</strong> Deadlock means no one is moving. Livelock means everyone is moving and nothing is changing. Deadlock is detected by a cycle in waits; livelock is detected by a repeating state fingerprint.</li>
+<li><strong>Stopped vs failed.</strong> A capped conversation that returns a partial result is <em>stopped</em>, not <em>failed</em>. Only an unrecoverable error or a cycle with no safe break is a failure. Conflating them makes healthy runs look broken.</li>
+</ul>
+<h2 id="the-core-idea"><a class="header" href="#the-core-idea">The core idea</a></h2>
+<p>Think about a <strong>four-way intersection with no traffic lights</strong>.</p>
+<p>Two cars arrive at the same moment, each waiting for the other to go, and both sit there. That is a deadlock, and neither driver can solve it alone: each only sees the car in front. A third party — a traffic officer, or a rule like “yield to the right” — is what breaks the tie. Multi-agent systems need the same third party: a detector outside the individual agents.</p>
+<p>Now picture two people who keep saying “after you.” “No, after you.” Both are active and polite, and the doorway stays blocked. That is livelock: motion without progress. The fix is a rule (“the person on the left goes first”) and a clock (“if the doorway is still blocked in ten seconds, one steps back”).</p>
+<p>The mental model is: <strong>the coordination layer, not the agents, owns termination.</strong> Every cycle, cap, and counter lives in deterministic code wrapping the agents.</p>
+<pre><code class="language-mermaid">flowchart TD
+    A["Agent A holds L1&lt;br/&gt;waits for L2"] --&gt; B["Agent B holds L2&lt;br/&gt;waits for L1"]
+    B --&gt; A
+    A -.-&gt; DET["Cycle detector on the&lt;br/&gt;wait-for graph"]
+    B -.-&gt; DET
+    DET --&gt; CYC{"Cycle found?"}
+    CYC --&gt;|"yes"| BREAK["Break the cycle:&lt;br/&gt;timeout, cancel, or abort one agent"]
+    CYC --&gt;|"no"| WATCH["Keep watching:&lt;br/&gt;turn caps, no-progress, budget"]
+    BREAK --&gt; REC["Recover: retry with&lt;br/&gt;fallback, or compensate"]
+    WATCH --&gt;|"cap or no progress"| REC
+    REC --&gt; END["Return partial result + reason"]
+</code></pre>
+<p>Notice that the detector reads the wait-for graph, not the agents’ reasoning. An agent that is blocked cannot report that it is in a cycle, because the information it needs is on the other agent’s side. Detection must be global.</p>
+<p>A second mental model is the <strong>failure ladder</strong>, the multi-agent version of graceful degradation:</p>
+<div class="table-wrapper"><table><thead><tr><th>Stage</th><th>What happens</th><th>Example</th></tr></thead><tbody>
+<tr><td>1. Normal</td><td>All agents respond in time.</td><td>Supervisor plans, workers return results.</td></tr>
+<tr><td>2. Retry within budget</td><td>A worker times out; retry once.</td><td>Retry the analyst with a longer timeout.</td></tr>
+<tr><td>3. Fallback agent</td><td>The specialist is down; a generalist stands in.</td><td>Route to a cheaper worker.</td></tr>
+<tr><td>4. Partial result</td><td>Some workers failed; ship what succeeded.</td><td>Return the answer with a gap flagged.</td></tr>
+<tr><td>5. Compensate</td><td>Undo already-completed side effects.</td><td>Refund the charge, release the stock.</td></tr>
+<tr><td>6. Honest failure</td><td>Nothing safe; return a typed error.</td><td>“Order not placed; nothing charged.”</td></tr>
+</tbody></table>
+</div>
+<p>Every step down is a decision you make in advance. A system with no ladder has two outcomes: perfect, or a deadlock that nobody can explain.</p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<ol>
+<li><strong>Model coordination as a graph.</strong> Nodes are agents and resources; edges are “waits for” and “delegates to.” Deadlock is a cycle in the waits. You cannot detect what you do not model.</li>
+<li><strong>Detect cycles continuously.</strong> Run cycle detection on the wait-for graph whenever an agent blocks. Use depth-first search with three colours: unvisited, on the current path, and finished. A back edge to an “on path” node is the cycle.</li>
+<li><strong>Set turn and round caps before the run starts.</strong> A maximum number of turns per conversation and rounds per run. These are the simplest, cheapest stop conditions and they never depend on the model.</li>
+<li><strong>Set a wall-clock deadline per task and per conversation.</strong> Deadline the whole run in seconds, and pass a smaller inherited deadline to every child. Deadlines catch hangs that no counter sees.</li>
+<li><strong>Add no-progress detection.</strong> Compute a fingerprint of the shared state (facts learned, tasks done, error size) after each round. If the fingerprint repeats for N consecutive observations after the baseline — that is, the same value seen N+1 times in total — stop. This catches livelock and the “novel but useless” loop.</li>
+<li><strong>Bound fan-out by width and budget.</strong> Before spawning, check <code>min(requested, max_width, budget // cost_per_worker)</code>. A supervisor that wants fifty workers can only get what the budget allows.</li>
+<li><strong>Isolate failures with bulkheads.</strong> Give each agent class and each tenant its own concurrency limit and queue. A stuck retriever then cannot consume the writer’s workers.</li>
+<li><strong>Detect a deadlock, then break exactly one edge.</strong> Choose a victim by a deterministic rule (lowest priority, newest task, most budget left). Abort that agent’s wait, release its held resources, and let the others proceed.</li>
+<li><strong>Cancel cooperatively and enforce it with a timeout.</strong> Cancellation is a flag the agent checks between turns. Because a model call cannot be interrupted mid-call, back the flag with a hard timeout that abandons the call.</li>
+<li><strong>Retry only idempotent, transient failures, with backoff and jitter.</strong> A failed worker read can be retried. A failed payment cannot, unless it carries an idempotency key.</li>
+<li><strong>Fall back to a simpler agent.</strong> A failed specialist can be replaced by a generalist agent or a deterministic function. Keep the fallback tested, because an untested fallback is a second failure.</li>
+<li><strong>Compensate completed side effects.</strong> When a saga step fails, run the undo actions for the completed steps in reverse order. Return a partial result plus the compensation log.</li>
+<li><strong>Record a structured outcome per run.</strong> <code>success</code>, <code>partial</code>, <code>failed</code>, plus the stop reason (<code>cycle</code>, <code>turn_cap</code>, <code>deadline</code>, <code>no_progress</code>, <code>budget</code>, <code>cancelled</code>). A reason is what makes the next incident debuggable.</li>
+<li><strong>Feed stops back into the design.</strong> A rising count of “turn cap” stops means the prompts are not converging. A rising count of cycles means the resource ownership is wrong. Stops are signals, not just endings.</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong></p>
+<p><strong>The order that matters.</strong> Detect before you spend: check the cap, the deadline, the cycle, and the fingerprint at the top of each round. A check after the expensive call is a check that already cost you the call.</p>
+</blockquote>
+<h2 id="the-syntax-you-will-use"><a class="header" href="#the-syntax-you-will-use">The syntax you will use</a></h2>
+<p>These are the real production forms. Read them once; later chapters use them.</p>
+<p><strong>Cycle detection on a wait-for graph.</strong> Three colours, returns the cycle path. Recursive form shown; for very deep graphs, convert it to an explicit stack so you do not hit Python’s recursion limit.</p>
+<pre><code class="language-python">def find_cycle(wait_for: dict[str, set[str]]) -&gt; list[str] | None:
+    WHITE, GRAY, BLACK = 0, 1, 2
+    color = {node: WHITE for node in wait_for}
+    stack: list[str] = []
+
+    def visit(node: str) -&gt; list[str] | None:
+        color[node] = GRAY
+        stack.append(node)
+        for nxt in wait_for.get(node, ()):          # edge = "waits on"
+            if color.get(nxt, WHITE) == GRAY:       # back edge -&gt; cycle
+                return stack[stack.index(nxt):] + [nxt]
+            if color.get(nxt, WHITE) == WHITE:
+                found = visit(nxt)
+                if found:
+                    return found
+        stack.pop()
+        color[node] = BLACK
+        return None
+
+    for node in list(wait_for):
+        if color[node] == WHITE:
+            found = visit(node)
+            if found:
+                return found
+    return None
+</code></pre>
+<p>A <code>GRAY</code> node is one on the current path. Reaching a gray node again is the definition of a cycle, and the slice reconstructs the loop.</p>
+<p><strong>A turn and round cap.</strong> The simplest stop condition, checked before every round.</p>
+<pre><code class="language-python">class RoundCap:
+    def __init__(self, max_rounds: int) -&gt; None:
+        self.max_rounds = max_rounds
+        self.used = 0
+
+    def can_continue(self) -&gt; bool:
+        return self.used &lt; self.max_rounds
+
+    def spend_round(self) -&gt; None:
+        self.used += 1
+</code></pre>
+<p><strong>No-progress detection on a state fingerprint.</strong> The same fingerprint repeated N times after the baseline (N+1 sightings in total) means the conversation is stuck even if it is talking.</p>
+<pre><code class="language-python">class ProgressDetector:
+    def __init__(self, patience: int = 3) -&gt; None:
+        self.patience = patience
+        self.fingerprint: str | None = None
+        self.unchanged = 0
+
+    def observe(self, fingerprint: str) -&gt; bool:
+        if self.fingerprint is not None and fingerprint == self.fingerprint:
+            self.unchanged += 1
+        else:
+            self.unchanged = 0
+        self.fingerprint = fingerprint
+        return self.unchanged &gt;= self.patience
+</code></pre>
+<p><strong>Livelock detection by repeated state.</strong> Different messages, same shared state, is the livelock signature.</p>
+<pre><code class="language-python">def repeated_state(states: list[str], repeat_at: int = 2) -&gt; str | None:
+    seen: dict[str, int] = {}
+    for s in states:
+        seen[s] = seen.get(s, 0) + 1
+        if seen[s] &gt;= repeat_at:
+            return s
+    return None
+</code></pre>
+<p><strong>Bound fan-out by width and budget.</strong> Ask for fewer workers when the budget is the binding constraint.</p>
+<pre><code class="language-python">def allowed_fanout(requested: int, max_width: int, budget_usd: float,
+                   est_cost_usd: float) -&gt; int:
+    by_width = min(requested, max_width)
+    by_budget = int(budget_usd // est_cost_usd) if est_cost_usd &gt; 0 else by_width
+    return max(0, min(by_width, by_budget))
+</code></pre>
+<p><strong>Break a cycle with a deterministic victim.</strong> Abort one agent so the others can move.</p>
+<pre><code class="language-python">def break_cycle(wait_for: dict[str, set[str]]) -&gt; str | None:
+    cycle = find_cycle(wait_for)
+    if not cycle:
+        return None
+    victim = max(cycle[:-1])            # deterministic: highest id
+    return f"abort {victim} to break {' -&gt; '.join(cycle)}"
+</code></pre>
+<p><strong>Compensate a failed saga in reverse.</strong> Each completed step has an undo action.</p>
+<pre><code class="language-python">def run_saga(steps, fail_at):
+    completed: list[str] = []
+    compensators = {
+        "reserve_inventory": lambda s: f"released {s}",
+        "charge_card":       lambda s: f"refunded {s}",
+        "ship_order":        lambda s: f"cancelled {s}",
+    }
+    for step in steps:
+        if step == fail_at:
+            return {"status": "failed", "at": step,
+                    "compensated": [compensators[s](s) for s in reversed(completed)]}
+        completed.append(step)
+    return {"status": "ok", "completed": completed, "compensated": []}
+</code></pre>
+<p><strong>Cooperative cancellation with a cap.</strong> The agent checks the flag and the counter between turns.</p>
+<pre><code class="language-python">class Conversation:
+    def __init__(self, max_turns: int = 4) -&gt; None:
+        self.max_turns = max_turns
+        self.cancelled = False
+        self.turns = 0
+
+    def cancel(self) -&gt; None:
+        self.cancelled = True
+
+    def step(self, progress: bool) -&gt; str:
+        if self.cancelled:
+            return "stopped: cancelled"
+        if self.turns &gt;= self.max_turns:
+            return "stopped: turn cap"
+        self.turns += 1
+        return f"turn {self.turns}: progress" if progress else f"turn {self.turns}: no progress"
+</code></pre>
+<h2 id="examples-simple-to-real"><a class="header" href="#examples-simple-to-real">Examples: simple to real</a></h2>
+<p><strong>Example 1 — cycle detection finds a three-agent deadlock.</strong> Verified output:</p>
+<pre><code class="language-text">cycle 1: ['A', 'B', 'C', 'A']
+cycle 2: None
+cycle 3: None
+cycle 4: ['A', 'B', 'A']
+</code></pre>
+<p>Case 1 is a true deadlock: A waits on B, B on C, C on A. Case 2 has a chain (A to B, C to A) but no loop, so it is safe. Case 3 is a plain chain that terminates. Case 4 shows a two-agent cycle hiding inside a wider graph. The detector finds the cycle regardless of which node you start from.</p>
+<p><strong>Example 2 — the round cap stops a runaway conversation.</strong> Verified output:</p>
+<pre><code class="language-text">cap trail: ['round 1', 'round 2', 'round 3', 'stopped: round cap']
+cap used: 3
+</code></pre>
+<p>Five rounds are requested; the cap allows exactly three and then returns a stop. The cap does not need to understand the conversation, which is why it works even when the model will not stop on its own.</p>
+<p><strong>Example 3 — no-progress detection catches a stuck pair.</strong> Verified output:</p>
+<pre><code class="language-text">fingerprint 'facts:0' stuck=False
+fingerprint 'facts:0' stuck=False
+fingerprint 'facts:0' stuck=False
+fingerprint 'facts:0' stuck=True
+fingerprint 'facts:1' stuck=False
+</code></pre>
+<p>The state hash stays <code>facts:0</code> for four observations — the baseline plus three repeats, which is what the default <code>patience=3</code> requires — so the pair is stuck even though messages are still flowing. When a new fact arrives (<code>facts:1</code>) the counter resets. This is what separates livelock from slow-but-real progress.</p>
+<p><strong>Example 4 — livelock: different words, same state.</strong> Verified output:</p>
+<pre><code class="language-text">livelock: draft:A
+progress: None
+</code></pre>
+<p>The first run alternates <code>draft:A</code> and <code>draft:B</code>; the state repeats, so a counter fires. The second run produces three distinct states, which is slow progress, not livelock. The distinction is whether the <em>state</em> repeats, not whether the messages do.</p>
+<p><strong>Example 5 — fan-out bounded by width and budget.</strong> Verified output:</p>
+<pre><code class="language-text">fanout a: 6
+fanout b: 8
+fanout c: 3
+fanout d: 0
+</code></pre>
+<p>Case a asks for 50 workers with an 8-wide limit and a $6 budget at $1 each, so the budget caps it at 6. Case b has plenty of budget, so the width limit caps it at 8. Case c asks for only 3, so the request is the limit. Case d has less than one worker’s cost, so it spawns zero and must escalate. <strong>Fan-out is the minimum of desire, width, and money.</strong></p>
+<p><strong>Example 6 — compensation rolls back a failed saga.</strong> Verified output:</p>
+<pre><code class="language-text">{'status': 'failed', 'at': 'ship_order', 'compensated': ['refunded charge_card', 'released reserve_inventory']}
+{'status': 'ok', 'completed': ['reserve_inventory', 'charge_card', 'ship_order'], 'compensated': []}
+</code></pre>
+<p>When shipping fails, the refund runs before the inventory release — reverse order, so dependencies unwind correctly. When nothing fails, no compensation runs. A partial-failure result that names the failed step and the undos is what lets a human finish the job safely.</p>
+<h2 id="in-production"><a class="header" href="#in-production">In production</a></h2>
+<ul>
+<li><strong>Put termination in the orchestration layer, not in a prompt.</strong> “Stop when you are done” is not a stop condition. Caps, deadlines, cycle checks, and fingerprints are. The model cannot be the referee of its own loop.</li>
+<li><strong>Detect deadlock with a global view.</strong> An agent that is blocked cannot report it. Model the wait-for graph in the coordinator and run cycle detection whenever an agent blocks on another.</li>
+<li><strong>Make one agent the owner of each resource.</strong> Deadlock needs a circular wait, and a circular wait needs shared resources with no ordering. A single writer per resource removes most of the risk before any detector is needed.</li>
+<li><strong>Prefer a timeout to a fix.</strong> For most deadlocks, the fastest safe move is to time out the wait, mark the handoff failed, and let the caller retry or fall back. Detection without a timeout just tells you about the hang.</li>
+<li><strong>Break cycles deterministically.</strong> Pick the victim by a rule (fewest completed steps, highest id, lowest priority) so the same cycle always resolves the same way. Random victims make incidents irreproducible.</li>
+<li><strong>Livelock is a metrics problem.</strong> Because livelock has no error, you need a counter: rounds with an unchanged state fingerprint. Add it to your dashboards, not just your code.</li>
+<li><strong>Cap fan-out at three levels.</strong> A hard width cap, a budget-derived cap, and a global concurrency cap. Each catches a different mistake; a supervisor’s “be thorough” only respects the smallest of the three.</li>
+<li><strong>Cancellation is cooperative or it is nothing.</strong> A model call cannot be interrupted mid-token, so a stop flag is honoured only between turns. Pair every flag with a hard timeout and discard the late result.</li>
+<li><strong>Isolate with bulkheads.</strong> Separate queues and concurrency limits per agent class and per tenant. Without isolation, one hung retriever becomes everyone’s latency.</li>
+<li><strong>Retry only idempotent work, and cap it.</strong> A retried read is cheap. A retried write without an idempotency key can double-charge. Cap attempts and total retry time per task.</li>
+<li><strong>Compensate, do not pretend to roll back.</strong> Distributed steps cannot be truly atomic across agents. Record each completed step and its undo, then run the undos in reverse. Compensation can fail too, so log it and escalate.</li>
+<li><strong>Never swallow the stop reason, and watch the trend of stops.</strong> Return <code>success</code>, <code>partial</code>, or <code>failed</code> with the cause: “round cap reached after 3 rounds with no new facts” is an incident report, “it stopped” is not. A rising rate of cycle stops means resource ownership is wrong; a rising rate of turn-cap stops means a prompt no longer converges. Stops are design feedback.</li>
+</ul>
+<blockquote>
+<p><strong>The hiring signal.</strong> Weak candidates add more retries and a bigger prompt. Strong candidates cap the loop, detect the cycle globally, break one edge, compensate in reverse, and return a named stop reason.</p>
+</blockquote>
+<h2 id="interview-questions"><a class="header" href="#interview-questions">Interview questions</a></h2>
+<h3 id="1-what-is-a-deadlock-in-a-multi-agent-system-and-how-do-you-detect-it"><a class="header" href="#1-what-is-a-deadlock-in-a-multi-agent-system-and-how-do-you-detect-it">1. What is a deadlock in a multi-agent system, and how do you detect it?</a></h3>
+<p><strong>Answer.</strong> A deadlock is a set of agents each waiting for another in a cycle, so none can proceed: A waits on B, B waits on C, C waits on A. You detect it by modelling agents and resources as a wait-for graph, where an edge A to B means “A is waiting on B,” and running cycle detection. Depth-first search with three colours finds a cycle when it reaches a node already on the current path. Because the blocked agents cannot see the cycle themselves, detection must run in the coordinator.</p>
+<p><strong>Follow-up: “What if the deadlock is across services, not just agents?”</strong> The same graph, but the nodes are tasks and the edges cross process boundaries. You need a distributed detector, or you rely on timeouts: each wait expires, the handoff fails, and the coordinator retries with a different order. Timeouts turn a hard deadlock into a recoverable partial failure.</p>
+<p><strong>Trap.</strong> Only checking for errors. A deadlock usually produces no error at all — just silence. If detection waits for an exception, it waits forever.</p>
+<h3 id="2-how-does-a-livelock-differ-from-a-deadlock-and-why-is-it-harder"><a class="header" href="#2-how-does-a-livelock-differ-from-a-deadlock-and-why-is-it-harder">2. How does a livelock differ from a deadlock, and why is it harder?</a></h3>
+<p><strong>Answer.</strong> In a deadlock nothing moves. In a livelock everything moves and nothing changes: agents keep handing work back and forth, the shared state repeats, and no goal advances. Livelock is harder because there is no wait to time out and no error to catch. You detect it with a no-progress check: fingerprint the shared state after each round, and stop when the fingerprint is unchanged for N rounds.</p>
+<p><strong>Follow-up: “What fingerprint do you use?”</strong> A hash of the things that should change with progress: facts learned, plan steps completed, or the size of the remaining error. Do not hash the message text — livelock is exactly the case where the text changes but the state does not.</p>
+<p><strong>Trap.</strong> Treating message flow as progress. A busy conversation is not a successful one.</p>
+<h3 id="3-how-do-you-stop-an-infinite-conversation-between-two-agents"><a class="header" href="#3-how-do-you-stop-an-infinite-conversation-between-two-agents">3. How do you stop an infinite conversation between two agents?</a></h3>
+<p><strong>Answer.</strong> Three independent guards, all outside the model. A turn cap per conversation, a round cap for the whole run, and a wall-clock deadline inherited by every agent. Check them at the top of each round, before spending another call. On a stop, return the best partial result with the reason. Never rely on the agents agreeing that they are done.</p>
+<p><strong>Follow-up: “Why not just let the critic decide when to stop?”</strong> Because the critic is the loop. A critic that always finds something to improve will never approve, and a writer that always accepts feedback will never finish. The counter has to be external and deterministic.</p>
+<p><strong>Trap.</strong> Setting only a turn cap and no deadline. Two very slow turns can blow a time budget that a turn count would never catch.</p>
+<h3 id="4-what-is-runaway-fan-out-and-how-do-you-bound-it"><a class="header" href="#4-what-is-runaway-fan-out-and-how-do-you-bound-it">4. What is runaway fan-out, and how do you bound it?</a></h3>
+<p><strong>Answer.</strong> Runaway fan-out is a supervisor spawning far more workers than the task, budget, or infrastructure can support, often recursively as each worker spawns more. You bound it at three levels: a hard maximum width per fan-out, a budget-derived limit computed as remaining budget divided by estimated cost per worker, and a global concurrency cap. The allowed width is the minimum of the three. Add a delegation-depth cap to stop recursive spawning.</p>
+<p><strong>Follow-up: “What do you do when the allowed width is zero?”</strong> Escalate or degrade: run the task with a single generalist agent, use a cached result, or queue it. Zero workers is a valid answer; over-spawning to look thorough is not.</p>
+<p><strong>Trap.</strong> Treating fan-out as a quality knob. More workers do not improve an answer that is already reachable; they multiply cost, latency, and coordination failure.</p>
+<h3 id="5-what-is-the-difference-between-a-stopped-run-and-a-failed-run"><a class="header" href="#5-what-is-the-difference-between-a-stopped-run-and-a-failed-run">5. What is the difference between a stopped run and a failed run?</a></h3>
+<p><strong>Answer.</strong> A stopped run hit an intentional guard — a turn cap, a deadline, or a no-progress rule — and should return a partial result plus the reason. A failed run hit an unrecoverable error or a cycle with no safe break, and returns a typed error. The distinction matters because a stopped run is often still useful: a caller can retry with more budget, or a human can finish the work. Conflating them makes healthy capped runs look like outages.</p>
+<p><strong>Follow-up: “How do you decide whether to retry a stopped run or escalate?”</strong> Look at the reason. A budget stop with a near-complete result is worth a bigger budget. A no-progress stop usually means a prompt or tool problem, so retrying identically will stop again; change something or escalate.</p>
+<p><strong>Trap.</strong> Returning a generic timeout for every kind of stop. The reason is the most valuable part of the result.</p>
+<h3 id="6-how-do-you-handle-partial-failure-when-some-workers-succeed-and-others-fail"><a class="header" href="#6-how-do-you-handle-partial-failure-when-some-workers-succeed-and-others-fail">6. How do you handle partial failure when some workers succeed and others fail?</a></h3>
+<p><strong>Answer.</strong> Treat each worker result independently, mark each as success, failed, or timed out, and merge what succeeded. Give the caller a result with the gaps named, not a binary pass or fail. If failed workers produced side effects, compensate those steps in reverse order. If the task needs all results, the whole run degrades to a partial result with a typed reason.</p>
+<p><strong>Follow-up: “What is a saga and why does it fit agents?”</strong> A saga is a long-running transaction split into steps, each with a compensating undo. Agent tasks fit because they span services and cannot be atomic. You cannot roll back a sent email, but you can send a correction; recording the compensator makes that explicit.</p>
+<p><strong>Trap.</strong> Assuming compensation is a true rollback. It is an undo that can itself fail or be imperfect. Log it, and escalate when it fails.</p>
+<h3 id="7-how-do-you-recover-from-a-deadlock-safely"><a class="header" href="#7-how-do-you-recover-from-a-deadlock-safely">7. How do you recover from a deadlock safely?</a></h3>
+<p><strong>Answer.</strong> Detect the cycle, then break exactly one edge. Pick a victim by a deterministic rule, abort that agent’s wait, and release the resources it holds so the others can proceed. Combine this with a timeout so a wait cannot last forever even if detection is slow. Retry the aborted work with a different resource order, a fallback agent, or a partial result. Choose the victim deterministically so the same cycle resolves the same way twice.</p>
+<p><strong>Follow-up: “Why not abort every agent in the cycle?”</strong> That discards more work than needed and can cause a <strong>thundering herd</strong> of retries — many agents retrying at once and slamming the dependency the moment it recovers. Breaking one edge is the minimum change that removes the cycle.</p>
+<p><strong>Trap.</strong> Choosing the victim at random. Random resolution makes the incident impossible to reproduce and hides the design flaw that caused the shared circular wait.</p>
+<h3 id="8-what-causes-cascading-failures-between-agents-and-how-do-you-stop-them"><a class="header" href="#8-what-causes-cascading-failures-between-agents-and-how-do-you-stop-them">8. What causes cascading failures between agents, and how do you stop them?</a></h3>
+<p><strong>Answer.</strong> A cascading failure starts when one agent or tool fails, its callers block or retry, and the load or the wait spreads to healthy agents. Common causes: no timeout on handoffs, unbounded retries, shared thread or connection pools, and a supervisor that keeps re-delegating to a dead worker. You stop it with bulkheads per agent class and tenant, a <strong>circuit breaker</strong> in front of a failing dependency (a switch that stops sending calls to a dependency for a cooldown once its error rate passes a threshold), bounded retries with backoff, and fallbacks that route around the failure.</p>
+<p><strong>Follow-up: “Where do you put the bulkhead?”</strong> At every shared pool that different agents compete for: model calls, tool calls, and per-tenant work. The noisiest or stuck agent should hit its own limit, not everyone else’s.</p>
+<p><strong>Trap.</strong> Adding retries as the fix. Retries amplify load on a saturated dependency, which is exactly how one failure becomes a cascade. Retry the transient; shed or degrade the saturated.</p>
+<h2 id="remember-this"><a class="header" href="#remember-this">Remember this</a></h2>
+<ul>
+<li><strong>Detect globally, terminate externally.</strong> Deadlock is a cycle in the wait-for graph; livelock is a repeating state fingerprint; both are found outside the agents, never by asking them.</li>
+<li><strong>Cap everything: turns, rounds, time, fan-out width, budget, and delegation depth.</strong> A cap is the cheapest failure handling in the system.</li>
+<li><strong>Break one edge, and pick the victim deterministically.</strong> Minimum change, reproducible resolution.</li>
+<li><strong>Retry only idempotent transient failures; compensate side effects in reverse.</strong> A saga is an undo list, not a rollback.</li>
+<li><strong>Always return a partial result with a named stop reason.</strong> “Stopped because the round cap was reached with no new facts” is debuggable; “it hung” is not.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../phase-12-multi-agent-systems/08-conflict-resolution-and-consensus.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../phase-12-multi-agent-systems/10-multi-agent-observability-and-evaluation.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../phase-12-multi-agent-systems/08-conflict-resolution-and-consensus.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../phase-12-multi-agent-systems/10-multi-agent-observability-and-evaluation.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/mermaid.min.js"></script>
+        <script src="../theme/mermaid-init.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
