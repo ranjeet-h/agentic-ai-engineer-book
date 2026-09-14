@@ -61,5 +61,21 @@ The control is never a single filter. Injection cannot be reliably detected, so 
 17. [Secure model and MCP gateways](17-secure-model-and-mcp-gateways.md) — the chokepoints that enforce policy.
 18. [Supply-chain and dependency security](18-supply-chain-and-dependency-security.md) — trusting what you install.
 19. [AI governance](19-ai-governance.md) — model, prompt, agent governance and responsible AI.
+20. [Identity: OAuth 2.0, OIDC, mTLS, and sessions](20-identity-oauth-oidc-mtls-and-sessions.md) — proving who a caller is.
+21. [Application security, threat modelling, and supply chain](21-application-security-threat-modelling-and-supply-chain.md) — STRIDE, injection, SSRF, and what you install.
+22. [Privacy, retention, deletion, and compliance controls](22-privacy-retention-deletion-and-compliance-controls.md) — handling personal data across its whole life.
 
 > **How to study this phase.** For every capability, ask the attacker's question: "If I controlled the input, the document, the tool, or the model output, what is the worst I could do?" Then check that a deterministic control — not the model's judgement — bounds the answer.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-09/threat-model/` and an exploit lab against a deliberately vulnerable gateway. | Assets, trust boundaries, abuse cases, controls, and residual risk are documented. |
+| **Measure** | Security-scan results and an SBOM. | CI blocks a vulnerable artifact and controls map to abuse cases. |
+| **Break** | Invalid token, unauthorised tool access, replay, injected tool output, a vulnerable dependency, and tenant deletion. | Each attack is blocked or detected, and the tenant deletion is complete. |
+| **Explain** | Assets, trust boundaries, abuse cases, controls, and residual risk. | You connect AI controls to identity, network, and application controls and answer “why not just a WAF?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

@@ -49,5 +49,19 @@ Each box adds cost and failure modes. The interview question is rarely "how do y
 12. [Distributed multi-agent systems](12-distributed-multi-agent-systems.md) — across machines.
 13. [LangGraph multi-agent patterns](13-langgraph-multi-agent-patterns.md) — the framework view.
 14. [Agent-to-Agent protocol concepts](14-agent-to-agent-protocol-concepts.md) — interoperating across vendors.
+15. [Multi-agent testing, safety, and human factors](15-multi-agent-testing-safety-and-human-factors.md) — coordination failures, escalation, and trust.
 
 > **How to study this phase.** For every pattern, ask: what does the extra agent buy, and what does it cost? Multi-agent is justified by *separate context*, *independent judgement*, or *genuine parallelism* — not by the hope that more agents are smarter.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-12/single-vs-multi/` — the same task as a single-agent workflow and a multi-agent system, with delegation and handoff contract tests. | Both designs run on the same task and dataset. |
+| **Measure** | Quality, latency, cost, failure rate, and coordination failures. | The comparison is on identical inputs and seeds. |
+| **Break** | Deadlock, livelock, duplicate work, and consensus failure. | Each coordination failure is triggered and recovered. |
+| **Explain** | When not to use multi-agent systems. | You justify keeping or rejecting the multi-agent design from the numbers and answer “why not just one bigger prompt?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

@@ -61,5 +61,21 @@ Three planes, one rule: **the control plane decides what may run; the runtime pl
 20. [AWS storage and databases](20-aws-storage-and-databases.md) — S3, RDS, ElastiCache.
 21. [AWS messaging and AI](21-aws-messaging-and-ai.md) — SQS, SNS, Bedrock.
 22. [AWS operations](22-aws-operations.md) — CloudWatch, Secrets Manager, API Gateway.
+23. [Cloud networking, identity, and GitOps](23-cloud-networking-identity-and-gitops.md) — private networks, workload identity, and declarative delivery.
+24. [Kubernetes operations, backup, and restore](24-kubernetes-operations-backup-and-restore.md) — scheduling, disruption, upgrades, and proved restores.
+25. [Supply chain, FinOps, and GPU scheduling](25-supply-chain-finops-and-gpu-scheduling.md) — what is in your images, what you spend, and how GPUs are shared.
 
 > **How to study this phase.** For every component, ask: who owns it, how is it versioned, how is it secured, how does it fail, and how do you roll it back? A platform is judged by those five answers, not by its feature list.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-07/deploy/` — Terraform and Helm that deploy one project from a clean environment, plus GitOps and admission policy. | A platform user deploys without manually changing cluster state. |
+| **Measure** | An operational and cost report with per-service attribution; restore RTO. | Deployment is reproducible and cost is attributed. |
+| **Break** | Canary a bad release, rotate a secret, kill a worker, restore a backup, and roll back an image. | No downtime, and restored data is verified. |
+| **Explain** | Application scaling versus work/queue scaling. | You can defend the self-service path and answer “why not just use the cloud default autoscaler?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

@@ -133,6 +133,34 @@ Each rung keeps everything below it and adds a new axis. You do not leave backen
 | **AI Security** | Can threat-model, least-privilege, and govern AI systems | Phase 9 | Projects 2, 6 |
 | **System Architecture** | Can design end-to-end and defend trade-offs with evidence | Phase 11 | All projects |
 
+## Leadership and architecture evidence
+
+Staff and architect readiness is not a topic you read; it is evidence you produce. Phase 11 requires:
+
+- An **RFC** for a real decision, with at least two alternatives and a recommendation.
+- **ADRs** with a status, consequences, and a "revisit if" trigger.
+- A **design review** you led, including the disagreement and how it was resolved.
+- A **six-month roadmap** with milestones, risks, and adoption metrics.
+- A **TCO** comparison and a build-versus-buy decision with an exit plan.
+- A **migration and deprecation plan** with a compatibility window and a rollback.
+- A **two-minute executive summary** of the same architecture you present technically.
+- An **ownership model** naming who builds, who runs, who pays, and who decides.
+
+See [RFCs, Design Reviews, and Technical Strategy](../phase-11-ai-systems-architecture/16-rfcs-design-reviews-and-technical-strategy.md), [TCO, Vendor Decisions, Migrations, and Deprecation](../phase-11-ai-systems-architecture/17-tco-vendor-decisions-migrations-and-deprecation.md), and [Operating Models, Stakeholders, and Platform Adoption](../phase-11-ai-systems-architecture/18-operating-models-stakeholders-and-platform-adoption.md).
+
+## Interview evidence required
+
+Interview readiness is proven by repetition, not by reading answers. Phase 13 requires you to produce:
+
+- **30 timed coding solutions** with hidden tests.
+- **15 SQL problems**, including indexes and a query plan.
+- **10 backend/distributed design drills** using the 45-minute method.
+- **10 AI system-design drills** with a quality metric, cost estimate, and fallback.
+- **8 behavioural stories** in STAR-L, covering failure, conflict, ambiguity, leadership, mentoring, impact, and disagreement.
+- **One recorded five-minute project presentation** and **one recorded system-design answer**.
+
+Each drill has a prompt, a time limit, a rubric, expected evidence, and follow-up questions. See [Timed Coding, SQL, and Debugging Drills](../phase-13-interview-preparation/14-timed-coding-sql-and-debugging-drills.md), [Backend and Distributed System Design Drills](../phase-13-interview-preparation/15-backend-and-distributed-system-design-drills.md), [AI System Design and Incident Drills](../phase-13-interview-preparation/16-ai-system-design-and-incident-drills.md), and [Behavioural Stories and Project Deep Dives](../phase-13-interview-preparation/17-behavioral-stories-and-project-deep-dives.md).
+
 ## The readiness rubric
 
 A role is not earned by reading. Score yourself honestly; check a box only when you can demonstrate it without notes.
@@ -145,6 +173,10 @@ A role is not earned by reading. Score yourself honestly; check a box only when 
 - [ ] **Operate** — I have run and recovered my system, not only deployed it.
 - [ ] **Secure** — I can state the threat model and the least-privilege design of my system.
 - [ ] **Communicate** — I can walk through my architecture and answer "why not X?" calmly.
+
+## Role tracks
+
+This page maps the roles; the [Role Tracks and Exit Gates](role-tracks.md) page turns that map into a finite study path — required phases, labs, primary project, and exit-gate questions for each role.
 
 ## How the projects map to the ladder
 

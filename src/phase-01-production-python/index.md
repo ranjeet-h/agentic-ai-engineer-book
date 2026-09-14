@@ -65,12 +65,40 @@ Work through these in order. Each topic is one concept, and each assumes the one
 27. [API testing](27-api-testing.md) — testing the service boundary.
 28. [Dockerizing Python applications](28-dockerizing-python-applications.md) — a reproducible runtime.
 29. [CI/CD for Python services](29-cicd-for-python-services.md) — automated build, test, and deploy.
+30. [Linux runtime and networking fundamentals](30-linux-runtime-and-networking-fundamentals.md) — the operating system and the network under your service.
+31. [API lifecycle and software design](31-api-lifecycle-and-software-design.md) — evolving a contract without breaking clients, and drawing clean module boundaries.
+32. [Testing, debugging, and performance engineering](32-testing-debugging-and-performance-engineering.md) — a test strategy that scales, a debugging method, and finding the real bottleneck.
 
 > **Tip:**
 >
 > **How to study this phase.** Read a topic once for the idea, then close the book and try to explain it out loud in two sentences. Then attempt the interview questions *before* reading the answers. Doing this now is far more effective than re-reading.
 
 
+## Studied in a separate book: algorithms, data structures, and system design
+
+This book is about AI engineering, so it does not repeat the general interview-prep material on **algorithms, data structures, and system design**. Those live in the companion book on core computer-science interview preparation, and are assumed here.
+
+Where they touch this book:
+
+- Algorithms and data structures appear as they are *used* in production code — in [API lifecycle and software design](31-api-lifecycle-and-software-design.md), [testing, debugging, and performance engineering](32-testing-debugging-and-performance-engineering.md), and the distributed-systems patterns in Phase 6.
+- System design appears as **AI systems architecture** in [Phase 11 — AI Systems Architecture](../phase-11-ai-systems-architecture/index.md), and as AI-specific design drills in [Phase 13 — Interview Preparation](../phase-13-interview-preparation/index.md).
+
+If your algorithms, data-structures, or general system-design skills are rusty, revise them in the companion book alongside this phase.
+
+
 ## Checkpoint project
 
 At the end of the phase, build the shared foundation used by most of the projects: a tested, containerized FastAPI service with PostgreSQL, Redis, authentication, background jobs, and CI/CD. It is the base layer of [Project 1 — Production Enterprise RAG Engine](../projects/01-production-enterprise-rag-engine.md) and [Project 4 — Production LLM Gateway](../projects/04-production-llm-gateway.md). The point of the checkpoint is to prove the phase end-to-end: if you can build this service without looking things up, Phase 1 is done.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-01/service/` — a typed FastAPI service built from a blank directory, with a versioned API, a PostgreSQL migration, Redis use, structured logs, and unit, integration, and contract tests. | A stranger runs it from the README with one command. |
+| **Measure** | A load-test baseline (p50/p95/p99, throughput, saturation) and one profile. | One deliberate performance fix moves a measured number, and you can name the bottleneck. |
+| **Break** | Remove a required field from a response; stop the database; exhaust a connection pool. | Contract tests catch the break, and the service degrades and recovers instead of crashing. |
+| **Explain** | Walk one request from DNS and TLS through the API to the database. | You can defend the API-versioning decision and answer “why not just change the field?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

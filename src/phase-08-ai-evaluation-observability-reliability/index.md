@@ -58,5 +58,21 @@ The loop matters more than any single technique. **Offline** evaluation decides 
 20. [Model quality monitoring and drift](20-model-quality-monitoring-and-drift.md) — noticing quiet decay.
 21. [SLOs, SLIs, and error budgets](21-slos-slis-and-error-budgets.md) — defining what "healthy" means.
 22. [Incident response for AI systems](22-incident-response-for-ai-systems.md) — when it goes wrong at 3am.
+23. [AI SRE: runbooks, alerts, and on-call](23-ai-sre-runbooks-alerts-and-on-call.md) — operating the system as an owner.
+24. [Load, chaos, and incident drills](24-load-chaos-and-incident-drills.md) — rehearsing failure before it is real.
+25. [Evaluation reliability, drift, and feedback loops](25-evaluation-reliability-drift-and-feedback-loops.md) — keeping the evaluator itself trustworthy.
 
 > **How to study this phase.** Ask of every metric: what decision does it change? A number nobody acts on is cost without benefit. Good AI observability is small, trusted, and wired into a decision — ship, roll back, or investigate.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-08/sre/` — SLOs, alerts, runbooks, and a drill for one project. | Alerts fire on a meaningful signal, not noise. |
+| **Measure** | A load test (p50/p95/p99, throughput, saturation, cost) and the error budget. | Metrics are tied to decisions: ship, investigate, degrade, or roll back. |
+| **Break** | A provider outage, a queue backlog, and one AI-quality regression. | The runbook recovers the service and the regression enters the evaluation dataset. |
+| **Explain** | How each metric maps to a decision. | You can defend the postmortem and answer “why not page on every error?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

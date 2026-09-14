@@ -14,7 +14,19 @@ Each phase is a part of the book. Inside a phase, every topic is a short, self-c
 8. **Interview questions** — model answers with follow-ups and the trap answers interviewers look for.
 9. **Remember this** — the few lines to revise before an interview.
 
-Read the phases in order. Each phase has a short checkpoint, and the book ends with six projects you build yourself.
+Read the phases in order. Each phase ends with a **checkpoint** that produces evidence, and the book ends with six projects you build yourself.
+
+## How to use this book
+
+Reading is the first step, not the last. Every phase runs through the same five-step loop, and every phase index states its checkpoint artifact and pass condition:
+
+1. **Learn** — understand the concept and its vocabulary.
+2. **Build** — implement it yourself, from a blank directory.
+3. **Measure** — state the metric and the baseline you compared against.
+4. **Break** — inject the failure the design claims to survive, and recover.
+5. **Explain** — give the oral answer and handle "why not X?".
+
+A capability is complete only when all five are done. The full rule, the checkpoint record, and the readiness scale are in the [competency and evidence contract](projects/competency-evidence.md).
 
 ## Learning progression
 
@@ -45,7 +57,7 @@ New to building? Read [Getting Started](projects/00-getting-started.md) and the 
 - [Project 5 — AI Evaluation Platform](projects/05-ai-evaluation-platform.md)
 - [Project 6 — Enterprise MCP Gateway](projects/06-enterprise-mcp-gateway.md)
 
-Once you have built a few, read [Career Readiness — Roles and Specializations](career-readiness/index.md) to map your work to the role you want next.
+Once you have built a few, read [Career Readiness — Roles and Specializations](career-readiness/index.md) to map your work to the role you want next, then [Role Tracks and Exit Gates](career-readiness/role-tracks.md) to turn it into a finite study path.
 
 
 ## Phase 1 — Production Python

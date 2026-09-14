@@ -63,6 +63,8 @@ Everything in this phase is one of four concerns: **what the loop does** (planni
 20. [OpenAI Agents SDK](20-openai-agents-sdk.md) — the batteries-included alternative.
 21. [Agent orchestration patterns](21-agent-orchestration-patterns.md) — ReAct, plan-and-execute, supervisor, worker, critic.
 22. [Agent reliability](22-agent-reliability.md) — making agents dependable in production.
+23. [Side-effect safety, replay, and idempotency](23-side-effect-safety-replay-and-idempotency.md) — never acting twice, even after a crash.
+24. [Tool contract testing and bounded autonomy](24-tool-contract-testing-and-bounded-autonomy.md) — testing tools like APIs and capping what an agent may spend.
 
 > **Tip:**
 >
@@ -72,3 +74,16 @@ Everything in this phase is one of four concerns: **what the loop does** (planni
 ## Checkpoint project
 
 At the end of the phase, build [Project 2 — Autonomous Enterprise Workflow Agent](../projects/02-autonomous-enterprise-workflow-agent.md): a LangGraph agent that plans, uses tools, checkpoints, pauses for human approval, resumes durably, and reports. The exact scope lives in the projects part of the book.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-04/agent/` — a durable agent or workflow with effect intent versus completion, idempotency keys, leases, and approval payload binding. | The run survives a restart without losing progress. |
+| **Measure** | Duplicate-effect count and resume latency. | Zero duplicate effects across repeated worker kills. |
+| **Break** | Kill the worker at every side-effect boundary; replay a run; mutate the approved payload. | The run resumes with no duplicate effect and the mutated payload is refused. |
+| **Explain** | Draw the state transition from effect intent to durable effect. | You can defend exactly-once effect modelling and answer “why not just retry?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

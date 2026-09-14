@@ -56,6 +56,7 @@ The **host** is the application. Each **client** is one connection managed by th
 18. [MCP tool versioning and registries](18-mcp-tool-versioning-and-registries.md) — evolving tools safely.
 19. [Agent-to-agent communication and A2A](19-agent-to-agent-communication-and-a2a.md) — agents calling agents.
 20. [Agent capability discovery and interoperability](20-agent-capability-discovery-and-interoperability.md) — finding and trusting peers.
+21. [MCP conformance, contract testing, and schema evolution](21-mcp-conformance-contract-testing-and-schema-evolution.md) — keeping the gateway a contract boundary, not a proxy.
 
 > **Tip:**
 >
@@ -65,3 +66,16 @@ The **host** is the application. Each **client** is one connection managed by th
 ## Checkpoint project
 
 At the end of the phase, build [Project 6 — Enterprise MCP Gateway](../projects/06-enterprise-mcp-gateway.md): a gateway in front of several MCP servers with authentication, authorization, tool allowlists, versioning, audit logging, and monitoring. The exact scope lives in the projects part of the book.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-05/contract-suite/` — a conformance suite covering tools, resources, prompts, errors, and transports across two server versions. | Both server versions pass their declared contracts. |
+| **Measure** | Conformance pass/fail per version; reconnect time. | A compatible change passes and a breaking change is rejected. |
+| **Break** | A server disappears mid-call; a tool result fails validation. | The gateway reconnects, rejects the invalid result, and records the failure. |
+| **Explain** | How a tool evolves without silently changing behaviour. | You can explain version negotiation and answer “why not just add a field?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

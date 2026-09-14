@@ -9,9 +9,11 @@ That is deliberate. Reading a finished implementation teaches you what someone e
 If you are new to building, read the supporting briefs in this order before you pick a project. They turn the six briefs below from a wall of requirements into something a student or a working engineer can actually follow.
 
 1. [Getting started](00-getting-started.md) — who the projects are for, what to install, how to pick one, and how to work through a brief.
-2. [Warm-up projects](warm-up-projects.md) — four small builds (a day or two each) that teach the core skill of the big ones.
-3. [Definition of done](definition-of-done.md) — the shared bar every project must clear, and a five-minute demo script.
-4. [Glossary](glossary.md) — every term used in the briefs, defined in plain language, with the phase to study next.
+2. [Competency and evidence contract](competency-evidence.md) — the learn → build → measure → break → explain loop and the checkpoint record that proves it.
+3. [Warm-up projects](warm-up-projects.md) — four small builds (a day or two each) that teach the core skill of the big ones.
+4. [Definition of done](definition-of-done.md) — the shared bar every project must clear, and a five-minute demo script.
+5. [Portfolio spine](portfolio-spine.md) — how the projects connect into one coherent showcase instead of six disconnected demos.
+6. [Glossary](glossary.md) — every term used in the briefs, defined in plain language, with the phase to study next.
 
 ## How to use this section
 

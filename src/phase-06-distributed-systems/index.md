@@ -65,5 +65,20 @@ Every box is a place where partial failure is normal, and every arrow is a place
 23. [Agent worker pools and scheduling](23-agent-worker-pools-and-scheduling.md) — running many agents.
 24. [Distributed state management](24-distributed-state-management.md) — where the truth lives.
 25. [Long-running workflow reliability](25-long-running-workflow-reliability.md) — surviving for hours or days.
+26. [Load testing, capacity, and saturation](26-load-testing-capacity-and-saturation.md) — finding the knee before production does.
+27. [Invariants, chaos, and recovery testing](27-invariants-chaos-and-recovery-testing.md) — proving the system behaves when parts of it die.
 
 > **How to study this phase.** Ask two questions of every pattern: *what happens when this component fails halfway?* and *what happens when this message is delivered twice?* Nearly every idea here is an answer to one of those two.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-06/load-chaos/` — a load and chaos harness with safety and liveness invariants for each mechanism. | Every mechanism has a named invariant and a test. |
+| **Measure** | Throughput, queue depth, p95, saturation point, RTO, and RPO. | Numbers are recorded at increasing load with a named first bottleneck. |
+| **Break** | Worker death, duplicate delivery, network delay, dependency outage, and clock skew. | Each experiment has an expected result, an observed result, and a follow-up change. |
+| **Explain** | The invariant each reliability mechanism protects. | You connect each mechanism to its test and runbook and answer “why not just add more workers?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

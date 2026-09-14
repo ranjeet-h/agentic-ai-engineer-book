@@ -58,5 +58,22 @@ Almost every strong technical answer follows that shape. It is the same loop you
 11. [AI platform, serving, cost, and reliability](11-ai-platform-serving-cost-and-reliability.md).
 12. [Behavioural interviews](12-behavioral-interviews.md).
 13. [Project deep dives and architecture walkthroughs](13-project-deep-dives-and-architecture-walkthroughs.md).
+14. [Timed coding, SQL, and debugging drills](14-timed-coding-sql-and-debugging-drills.md) — practising the timed parts with a rubric.
+15. [Backend and distributed system design drills](15-backend-and-distributed-system-design-drills.md) — ten prompts and a 45-minute method.
+16. [AI system design and incident drills](16-ai-system-design-and-incident-drills.md) — designing and debugging AI systems under questioning.
+17. [Behavioural stories and project deep dives](17-behavioral-stories-and-project-deep-dives.md) — a reusable story bank and a hostile follow-up tree.
 
 > **The one rule.** Never answer with a definition alone. Say what it is, why it exists, what it costs, and when it breaks. That is the difference between a candidate who read a book and one who has run a system.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-13/` — 30 timed coding solutions, 15 SQL problems, 10 backend/distributed design drills, 10 AI system-design drills, and 8 behavioural stories. | Every drill has a prompt, a time limit, and a rubric. |
+| **Measure** | Timed scores against the rubrics across repeated attempts. | You improve across repetitions, not on one lucky attempt. |
+| **Break** | Hostile follow-ups: “why not X?”, “what breaks first?”, “how would you migrate?” | You answer with a trade-off and a failure mode. |
+| **Explain** | A recorded five-minute project presentation and a recorded system-design answer. | The walkthrough links to your own artifacts and survives the question tree. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

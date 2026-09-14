@@ -6,7 +6,7 @@
 
 A project is not done when it runs on your laptop once. It is done when someone else can start it, use it, break it, and understand why you built it that way. Interviewers and teammates judge you on that, not on whether the happy path worked.
 
-Use this as a checklist. If a box is unticked, the project is still in progress — however impressive the code looks. It covers the common requirements in the [projects index](index.md) and adds the "how to prove it" detail.
+Use this as a checklist. If a box is unticked, the project is still in progress — however impressive the code looks. It covers the common requirements in the [projects index](index.md) and the evidence rules in the [competency and evidence contract](competency-evidence.md), and adds the "how to prove it" detail.
 
 ## The shared bar
 
@@ -32,6 +32,7 @@ Every project must have all of these.
 
 - [ ] Unit tests cover the core logic — not every line, but every decision that matters.
 - [ ] At least a few **integration tests** run against the real boundaries (the API, the database, the queue).
+- [ ] **Contract tests** pin the interfaces other systems depend on, so a change that breaks a caller fails in CI.
 - [ ] At least one **failure-path** test exists (a timeout, a bad input, a provider error).
 - [ ] Tests run with one command and are green.
 - [ ] Tests that need the network or a model are marked and can be skipped, so the suite runs offline.
@@ -48,12 +49,14 @@ Every project must have all of these.
 - [ ] Authentication and authorization are enforced where the brief requires them.
 - [ ] Credentials are least-privilege and come from the environment or a secret store.
 - [ ] Inputs are validated at the boundary.
+- [ ] Dependency and image security checks run in CI (scan, SBOM, or both).
 - [ ] Secrets are not in the repository, the logs, or the error messages.
 - [ ] You can state the threat model in a sentence or two.
 
 ### 6. It is measured
 
-- [ ] You can state **latency** (p50 and p95), **cost**, and the **quality** metric relevant to the project.
+- [ ] You can state **latency** (p50, p95, and p99), **cost**, and the **quality** metric relevant to the project.
+- [ ] You can state **throughput** and the **saturation** point — the load at which the system stops coping.
 - [ ] There is a **small labelled dataset** and a repeatable way to score the system's output against it.
 - [ ] The numbers come from your own system, not from a blog post.
 - [ ] You have a repeatable way to reproduce them (a benchmark script or a load test).
@@ -64,7 +67,9 @@ Every project must have all of these.
 - [ ] Timeouts exist on every external call.
 - [ ] Retries are bounded and use backoff and jitter.
 - [ ] A downstream failure degrades the system rather than crashing it.
+- [ ] State is durable: a restart, a duplicate message, or a worker death does not lose or duplicate work.
 - [ ] You have **actually run** a failure: killed a process, stopped a database, exhausted a queue, exceeded a budget.
+- [ ] You have restored state from a backup or checkpoint and verified the data.
 - [ ] You can tell the recovery story: what broke, how it behaved, how you fixed it.
 
 ### 8. It is documented
@@ -72,6 +77,8 @@ Every project must have all of these.
 - [ ] A README that a stranger can follow: what it is, how to run it, how to test it.
 - [ ] **ADRs** for the two or three hardest decisions, each with the alternatives you rejected and why.
 - [ ] A **failure-mode table**: what can go wrong, the effect, and the mitigation.
+- [ ] A **runbook** for the top failure modes, which you have actually followed during a drill.
+- [ ] A short **postmortem** of one incident you caused on purpose: timeline, impact, cause, and what changed.
 - [ ] A short **cost and latency report** with your real numbers.
 
 ### 9. It is presentable
@@ -99,17 +106,20 @@ Rehearse this out loud before every project review or interview. It is the same 
 For each project, keep these together — in the repo itself or a short PDF:
 
 - [ ] The repository, with a clean history.
-- [ ] The README, ADRs, failure-mode table, and cost/latency report.
+- [ ] The README, ADRs, failure-mode table, runbook, postmortem, and cost/latency report.
+- [ ] The benchmark and load-test scripts, with their baseline results.
+- [ ] The threat model and the security test results.
 - [ ] The architecture diagram.
 - [ ] Screenshots or a short recording of the demo.
-- [ ] A one-page summary you could attach to a job application.
+- [ ] A one-page portfolio summary you could attach to a job application (see the [portfolio spine](portfolio-spine.md)).
 
 ## Self-review before you call it done
 
 Answer these honestly. Any "no" means there is more to do.
 
 - [ ] Could a stranger run this from my README alone?
-- [ ] Can I show a failure and its recovery?
+- [ ] Can I show a failure, its recovery, and a security test?
+- [ ] Can I reproduce my numbers by running the committed benchmark scripts?
 - [ ] Can I state three real numbers about it?
 - [ ] Can I justify every major decision against an alternative?
 - [ ] If the interviewer changed one requirement, do I know what I would change and why?

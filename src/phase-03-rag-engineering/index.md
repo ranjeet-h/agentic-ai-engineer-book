@@ -63,6 +63,8 @@ Everything before the user's query is **offline indexing**; everything from the 
 19. [RAG evaluation and testing](19-rag-evaluation-and-testing.md) — offline suites, regression, and CI gates.
 20. [Multi-tenant RAG](20-multi-tenant-rag.md) — isolation and shared infrastructure.
 21. [RAG security and access control](21-rag-security-and-access-control.md) — retrieval that respects permissions.
+22. [Data contracts, lineage, and quality](22-data-contracts-lineage-and-quality.md) — making the data behind retrieval trustworthy and traceable.
+23. [Incremental ingestion, backfills, and deletion](23-incremental-ingestion-backfills-and-deletion.md) — keeping the knowledge base correct over time.
 
 > **Tip:**
 >
@@ -72,3 +74,16 @@ Everything before the user's query is **offline indexing**; everything from the 
 ## Checkpoint project
 
 At the end of the phase, build [Project 1 — Production Enterprise RAG Engine](../projects/01-production-enterprise-rag-engine.md): ingest PDFs and DOCX, chunk and embed them, serve hybrid search over PostgreSQL with pgvector, rerank, answer with citations, and evaluate retrieval and faithfulness on a labelled dataset. The exact scope lives in the projects part of the book.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-03/ingestion/` — an incremental ingestion pipeline with a data contract, lineage, quality checks, and deletion. | A document ingested twice produces no duplicate chunks. |
+| **Measure** | A freshness and data-quality report; duplicate-chunk count. | Freshness meets the stated SLO and quality checks pass. |
+| **Break** | Delete a document and run an in-flight query; backfill a corrected document. | Deletion reaches source, chunks, vectors, cache, and logs, and live queries stay consistent. |
+| **Explain** | What happens when source truth changes after indexing. | You can defend the backfill and deletion design and answer “why not just reindex everything?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

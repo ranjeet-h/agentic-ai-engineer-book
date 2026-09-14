@@ -32,8 +32,9 @@ Every arrow is a checkpoint, and every step is idempotent and resumable.
 - **Intake.** Accept a ticket reference and fetch its content from your chosen tracker (a GitHub issue is enough).
 - **Investigation tools.** Read files, search code, read git history, query logs or monitoring, and read documentation — each as a scoped tool.
 - **Planning.** Produce a structured plan (a list of steps with intended files/commands) that a human reviews.
-- **Approval gate.** Pause durably for approve / reject / edit; execute the exact approved payload and nothing else.
+- **Approval gate.** Pause durably for approve / reject / edit; bind the approval to a payload hash, and execute the exact approved payload and nothing else (a mutated payload must be refused). See [Side-Effect Safety, Replay, and Idempotency](../phase-04-agentic-ai-engineering/23-side-effect-safety-replay-and-idempotency.md).
 - **Execution.** Create a branch, apply changes, and run the test suite in a sandbox.
+- **Tool contracts.** Every tool declares an argument schema, a result schema, a timeout, and a side-effect class, and has contract tests that include a malformed result and a timeout. See [Tool Contract Testing and Bounded Autonomy](../phase-04-agentic-ai-engineering/24-tool-contract-testing-and-bounded-autonomy.md).
 - **Reflection loop.** On test failure, analyse the failure and attempt a bounded number of fixes.
 - **Delivery.** Open a pull request with a clear description and post a summary back to the ticket.
 - **Resumability.** If the process dies at any step, restarting resumes from the last checkpoint without repeating side effects.
@@ -43,9 +44,10 @@ Every arrow is a checkpoint, and every step is idempotent and resumable.
 ## Non-functional requirements
 
 - **Safety.** Tools are least-privilege: a read token for reads, a scoped write token for the branch, no force-push, no merge.
+- **Identity and threat model.** Service-to-service calls use workload identity or mTLS, and every bearer token is validated (signature, issuer, audience, expiry) before it is trusted. A written STRIDE threat model covers the tools and the approval path (see [Identity: OAuth 2.0, OIDC, mTLS, and Sessions](../phase-09-ai-security-and-governance/20-identity-oauth-oidc-mtls-and-sessions.md) and [Application Security, Threat Modeling, and Supply Chain](../phase-09-ai-security-and-governance/21-application-security-threat-modeling-and-supply-chain.md)).
 - **Isolation.** Code execution happens in a sandbox with no access to production credentials or the network beyond what the task needs.
-- **Idempotency.** Re-running any step does not duplicate a commit, comment, or PR.
-- **Observability.** One trace per run with a span per step and tool; a per-run cost and token report.
+- **Idempotency.** Re-running any step does not duplicate a commit, comment, or PR: each side effect records its intent and completion in a ledger under a deterministic idempotency key, and resume checks the ledger before re-executing.
+- **Observability.** One trace per run with a span per step and tool; a per-run cost and token report, and a recorded stop reason for every run.
 - **Recovery.** A killed worker leaves the run resumable, not corrupted.
 - **Testability.** The agent can run against a disposable demo repository and a mocked tracker.
 
@@ -109,6 +111,8 @@ flowchart TD
 - [ ] Every tool call is visible in a trace and the audit log.
 - [ ] I can state the cost of one run and the token budget it respected.
 - [ ] A rejected plan stops the run and records why.
+- [ ] The design is compared against a single-agent (or deterministic workflow) baseline on quality, latency, cost, and failure rate; if multi-agent is used, the measured benefit justifies the added coordination risk (see [Multi-Agent Testing, Safety, and Human Factors](../phase-12-multi-agent-systems/15-multi-agent-testing-safety-and-human-factors.md)).
+- [ ] Low-confidence outcomes abstain or escalate to a human rather than answering, and that path is tested.
 
 ## Stretch goals
 

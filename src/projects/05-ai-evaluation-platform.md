@@ -22,6 +22,8 @@ A platform that:
 ## Functional requirements
 
 - **Datasets.** Create, version, and diff datasets; label relevance for retrieval evaluation; scrub PII.
+- **Annotation workflows.** Support human labelling with double-labelling, an agreement measure (Cohen's kappa), and an adjudication step, so low agreement is caught before it becomes a metric (see [Classical ML, Generalisation, and Data Quality](../phase-02-llm-fundamentals/27-classical-ml-generalisation-and-data-quality.md)).
+- **Lineage and deletion.** Record lineage from each dataset case back to its source, and honour a deletion request by removing the case and its derivations from datasets, caches, and stored runs (see [Data Contracts, Lineage, and Quality](../phase-03-rag-engineering/22-data-contracts-lineage-and-quality.md)).
 - **Artifacts.** Register prompt, model, and agent versions; every run records the exact set used.
 - **Runners.** Execute a target (a prompt, a RAG pipeline, or an agent) over a dataset in batch; handle retries and partial failures.
 - **Evaluators.** Pluggable evaluators: deterministic checks, retrieval metrics (recall@k, MRR, NDCG), faithfulness/correctness via judge, and pairwise comparison.
@@ -94,6 +96,9 @@ flowchart LR
 - [ ] The CI gate fails a run that drops below a threshold (demonstrate it on a real PR).
 - [ ] Dashboards show quality, cost, and latency per version.
 - [ ] Judge cost per run is reported and cached judgements reduce it.
+- [ ] A judge-provider outage marks a run incomplete rather than scoring it zero, and the run can be re-executed once the provider recovers.
+- [ ] A bad evaluator version can be rolled back, and the last good results remain queryable.
+- [ ] Dataset access is scoped per tenant/project, and deleting a case removes it and its derived results.
 
 ## Stretch goals
 

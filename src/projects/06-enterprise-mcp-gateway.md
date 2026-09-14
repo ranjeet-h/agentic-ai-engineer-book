@@ -21,17 +21,19 @@ A gateway that sits between MCP clients (agents) and MCP servers (capability pro
 ## Functional requirements
 
 - **Server registry.** Register an MCP server (local stdio or remote transport) with its identity, owner, and status.
-- **Discovery.** Connect to a server, list its tools/resources/prompts, and cache the schemas with a version.
+- **Discovery.** Connect to a server, list its tools/resources/prompts, and cache the schemas with a version; treat partial discovery (a server that is slow or down) as a first-class state, not a crash.
 - **Aggregation.** Expose a unified tool list with namespacing to avoid collisions.
-- **Call routing.** Route a tool call to the correct server over the correct transport; validate arguments against the schema.
-- **Authentication.** Identify the calling user/agent (API key or OIDC).
+- **Call routing.** Route a tool call to the correct server over the correct transport; validate arguments against the schema *before* forwarding, and validate the result against its contract *before* the model sees it.
+- **Conformance suite.** Run a contract suite against two server versions: a compatible schema change is accepted, a breaking change is rejected, a server that disappears mid-call is handled with a timeout and a structured error, and a malformed tool result is rejected (see [MCP Conformance, Contract Testing, and Schema Evolution](../phase-05-mcp-tool-ecosystems/21-mcp-conformance-contract-testing-and-schema-evolution.md)).
+- **Authentication.** Identify the calling user/agent; validate bearer tokens fully — signature against the issuer's JWKS, issuer, audience, and expiry — or use mTLS/workload identity for service callers (see [Identity: OAuth 2.0, OIDC, mTLS, and Sessions](../phase-09-ai-security-and-governance/20-identity-oauth-oidc-mtls-and-sessions.md)).
 - **Authorization.** Decide allow/deny per tool from RBAC roles, tenant, and policy; deny by default.
 - **Credential scoping.** Fetch per-server, per-tenant, short-lived credentials from a secret store; never forward the caller's token.
 - **Allowlists and approvals.** Per-tenant tool allowlists; a human approval gate for destructive tools.
+- **Threat model.** A written STRIDE threat model naming assets, trust boundaries, abuse cases, controls, and residual risk, plus a security test suite that tries invalid tokens, replay, unauthorised tool access, and prompt-injected tool output (see [Application Security, Threat Modeling, and Supply Chain](../phase-09-ai-security-and-governance/21-application-security-threat-modeling-and-supply-chain.md)).
 - **Rate limiting and quotas.** Per-tenant and per-tool limits.
 - **Resilience.** Timeouts, retries for transient errors, and circuit breaking per server.
 - **Observability and audit.** Traces per call and an append-only audit record (which tool, who, tenant, arguments hash, decision, result).
-- **Versioning and health.** Detect tool schema changes (rug pulls) and health-check servers.
+- **Versioning and health.** Negotiate protocol and tool versions, detect tool schema changes (rug pulls), pin the version a caller was promised, and health-check servers.
 
 ## Non-functional requirements
 
@@ -102,6 +104,8 @@ flowchart LR
 - [ ] Every call (allow and deny) appears in the audit log with the reason.
 - [ ] A tenant cannot see or call another tenant's tools.
 - [ ] I can state the gateway's added latency per call.
+- [ ] The conformance suite scores the gateway's contract quality, rejects a malformed tool result before the model sees it, and refuses a breaking schema change.
+- [ ] A server that disappears mid-call is handled with a timeout and recovers, and a bad gateway version rolls back without dropping requests.
 
 ## Stretch goals
 

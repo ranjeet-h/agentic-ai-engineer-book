@@ -53,5 +53,20 @@ Every lever in this phase moves one of four numbers: **latency** (how long one r
 12. [Local, cloud, and hybrid models](12-local-cloud-and-hybrid-models.md) — where inference runs.
 13. [LoRA and adapter serving](13-lora-and-adapter-serving.md) — many fine-tunes, one base.
 14. [Serving optimization](14-serving-optimization.md) — cost, throughput, latency, utilization.
+15. [Serving capacity, memory, and benchmarking](15-serving-capacity-memory-and-benchmarking.md) — predicting memory and measuring real capacity.
+16. [Advanced inference, profiling, and safe rollouts](16-advanced-inference-profiling-and-safe-rollouts.md) — prefix caching, speculative decoding, parallelism, and zero-downtime model updates.
 
 > **How to study this phase.** For each idea, ask which of the four numbers it changes and at what cost to the other three. Almost every serving decision is a trade between latency, throughput, memory, and dollars — and the right answer depends on which one your workload is short on.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-10/serving/` — a benchmark harness and two serving configurations. | Memory is predicted before deployment and compared to measured use. |
+| **Measure** | Latency, throughput, quality, GPU utilisation, and cost across a prompt-length distribution. | The benchmark uses representative inputs, not one toy request. |
+| **Break** | Saturate the server; inject a quality regression; drain traffic during a model update. | Draining and rollback drop no requests. |
+| **Explain** | The first bottleneck at low, medium, and saturated load. | You can defend the serving choice with numbers and answer “why not just add a GPU?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

@@ -51,5 +51,21 @@ The loop never really ends: production teaches you something, the requirements s
 13. [Compliance architecture](13-compliance-architecture.md) — designing for the rules.
 14. [Architecture trade-offs and ADRs](14-architecture-trade-offs-and-adrs.md) — deciding and recording why.
 15. [Failure-mode analysis, capacity planning, and scaling](15-failure-mode-analysis-capacity-planning-and-scaling.md) — proving it holds up.
+16. [RFCs, design reviews, and technical strategy](16-rfcs-design-reviews-and-technical-strategy.md) — writing decisions other teams can follow.
+17. [TCO, vendor decisions, migrations, and deprecation](17-tco-vendor-decisions-migrations-and-deprecation.md) — the economics and mechanics of change.
+18. [Operating models, stakeholders, and platform adoption](18-operating-models-stakeholders-and-platform-adoption.md) — who owns what, and getting the platform used.
 
 > **How to study this phase.** For every design question, answer in this order: requirements, estimate, design, trade-off, failure mode. Interviewers are not grading the diagram; they are grading whether your choices follow from the constraints and whether you can name what would make you change your mind.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-11/architecture-package/` — requirements, estimates, two alternatives, a recommendation, ADRs, TCO, a migration plan, an ownership model, a roadmap, and a risk register. | The package shows how multiple teams adopt and operate the design. |
+| **Measure** | Estimates versus measured values where possible; adoption metrics. | Every major estimate is stated with its assumption. |
+| **Break** | Change one requirement (scale, budget, latency) and re-derive the design; model a failed decision and a reversal. | You can state what evidence would change the design. |
+| **Explain** | A five-minute technical and a two-minute executive version. | You can defend the recommendation and answer “why not build it ourselves?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

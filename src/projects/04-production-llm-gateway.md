@@ -104,6 +104,10 @@ flowchart LR
 - [ ] Usage and cost per tenant reconcile with provider responses.
 - [ ] Prompts in logs have PII redacted; no secrets are logged.
 - [ ] I can state the gateway's added latency (p50/p95).
+- [ ] I can state cost per request and cost per tenant from a cost report, and unit economics improve when caching and routing are enabled (see [Supply Chain, FinOps, and GPU Scheduling](../phase-07-ai-platform-engineering/25-supply-chain-finops-and-gpu-scheduling.md)).
+- [ ] A budget alert fires before a tenant reaches its limit, and the tenant is refused at the limit.
+- [ ] A serving configuration is benchmarked on latency, throughput, quality, and cost, with a memory prediction verified against measured use (see [Serving Capacity, Memory, and Benchmarking](../phase-10-model-serving-and-ai-infrastructure/15-serving-capacity-memory-and-benchmarking.md)).
+- [ ] A model update drains and rolls back without dropping in-flight requests, and the previous gateway version is restored by digest.
 
 ## Stretch goals
 

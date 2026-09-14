@@ -120,10 +120,17 @@ flowchart TD
 - [ ] A run flows gateway -> scheduler -> worker -> gateway -> tool and returns a result.
 - [ ] Killing a worker mid-run recovers the run without duplicate effects.
 - [ ] Workers scale on queue depth and scale back down.
+- [ ] A load test records throughput, queue depth, p95, and the first saturation point, with a written capacity plan and stated headroom (see [Load Testing, Capacity, and Saturation](../phase-06-distributed-systems/26-load-testing-capacity-and-saturation.md)).
+- [ ] A chaos run injects duplicate delivery, worker death, network delay, and a dependency outage, and records expected versus observed for each safety and liveness invariant (see [Invariants, Chaos, and Recovery Testing](../phase-06-distributed-systems/27-invariants-chaos-and-recovery-testing.md)).
+- [ ] A restore from backup verifies the recovery point objective, and a runbook is followed end to end.
+- [ ] Serving memory is predicted before deployment and compared with measured use, and a model update drains and rolls back without dropping in-flight requests (see [Serving Capacity, Memory, and Benchmarking](../phase-10-model-serving-and-ai-infrastructure/15-serving-capacity-memory-and-benchmarking.md) and [Advanced Inference, Profiling, and Safe Rollouts](../phase-10-model-serving-and-ai-infrastructure/16-advanced-inference-profiling-and-safe-rollouts.md)).
 - [ ] A tenant cannot exceed its token budget, and cannot see another tenant's data or cost.
 - [ ] A disallowed tool is refused at the gateway (not by the prompt).
 - [ ] A trace shows the full path across gateway, scheduler, and worker.
 - [ ] The platform deploys from Terraform + Helm with one documented pipeline.
+- [ ] A secret is rotated with no downtime, and only signed images are admitted (see [Supply Chain, FinOps, and GPU Scheduling](../phase-07-ai-platform-engineering/25-supply-chain-finops-and-gpu-scheduling.md)).
+- [ ] A backup is restored into a scratch environment, the data is verified, and the measured recovery time meets the RTO (see [Kubernetes Operations, Backup, and Restore](../phase-07-ai-platform-engineering/24-kubernetes-operations-backup-and-restore.md)).
+- [ ] A cost report attributes spend per tenant and service, and a budget alert fires before the limit is hit.
 
 ## Stretch goals
 

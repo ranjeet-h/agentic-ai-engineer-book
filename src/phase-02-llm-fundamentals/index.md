@@ -75,6 +75,13 @@ Work through these in order. Each topic is one concept, and merged roadmap bulle
 23. [Model comparison and selection](23-model-comparison-and-selection.md) — choosing the right model.
 24. [Provider APIs: OpenAI, Anthropic, Gemini](24-provider-apis-openai-anthropic-gemini.md) — the practical interfaces.
 25. [Open-source models and Hugging Face](25-open-source-models-and-hugging-face.md) — running and using open models.
+26. [Statistics and experiment design](26-statistics-and-experiment-design.md) — making honest claims from noisy data.
+27. [Classical ML, generalisation, and data quality](27-classical-ml-generalisation-and-data-quality.md) — leakage, calibration, imbalance, and labels.
+28. [Experiment tracking and reproducibility](28-experiment-tracking-and-reproducibility.md) — making a result you can reproduce.
+
+> **Note:**
+>
+> Topics 26–28 are the **measurement foundation** for everything after them. You can read them now or just before Phase 3 and Phase 8; either way, do not skip them. Without them, "the new model is better" is a guess.
 
 > **Tip:**
 >
@@ -84,3 +91,16 @@ Work through these in order. Each topic is one concept, and merged roadmap bulle
 ## Checkpoint project
 
 At the end of the phase, build the model layer of [Project 4 — Production LLM Gateway](../projects/04-production-llm-gateway.md): call two providers through one interface, produce a structured (validated) answer, stream it, and compare model behaviour on a fixed set of prompts. The exact scope lives in the projects part of the book.
+
+## Checkpoint and evidence
+
+Complete this checkpoint before moving on. It follows the [competency and evidence contract](../projects/competency-evidence.md) — **learn → build → measure → break → explain**. The artifact is the proof; the explanation is the interview rehearsal.
+
+| Step | Artifact | Pass condition |
+| --- | --- | --- |
+| **Build** | `artifacts/phase-02/experiment/` — a controlled model or retrieval experiment on a fixed dataset, with a hypothesis, baseline, metric, confidence interval, variance, and data/code/config/model lineage. | The experiment reproduces from its recorded versions. |
+| **Measure** | The metric with a confidence interval, plus a seeded rerun. | The result is stable across reruns and the lineage is complete. |
+| **Break** | Introduce label leakage, then remove it. | The leaked run scores higher, and after the fix the gain disappears and you can say why. |
+| **Explain** | Why this metric and this test are valid for this problem. | You distinguish noise from a real improvement and answer “why not just compare the two numbers?”. |
+
+> **Evidence tip.** Keep the artifact in your own repository and record it in the [checkpoint record](../projects/competency-evidence.md#the-checkpoint-record). If the artifact does not exist, the phase is not finished.

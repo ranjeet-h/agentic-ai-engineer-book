@@ -28,7 +28,11 @@ A service that:
 - **Query handling.** Rewrite follow-up questions into standalone queries.
 - **Generation.** Grounded answers with inline citations to chunk ids; abstain when the retrieved evidence is insufficient.
 - **Versioning.** Re-ingesting changed documents supersedes old chunks without breaking in-flight queries.
-- **Caching.** Cache embeddings and repeated query results.
+- **Incremental ingestion and deduplication.** Detect source changes, upsert by a stable document id, and skip unchanged content by content hash, so re-ingesting never produces duplicate chunks (see [Incremental Ingestion, Backfills, and Deletion](../phase-03-rag-engineering/23-incremental-ingestion-backfills-and-deletion.md)).
+- **Data contracts and lineage.** Validate each source record at ingest, and record lineage from every chunk back to its source and the transforms applied (see [Data Contracts, Lineage, and Quality](../phase-03-rag-engineering/22-data-contracts-lineage-and-quality.md)).
+- **Backfill and delete.** Backfill a corrected document atomically, and delete a document completely from source, chunks, vectors, and cache — with a test that proves zero retrieval hits afterwards.
+- **Freshness and quality.** Publish a freshness and data-quality report, and alert when a source breaches its freshness SLO.
+- **Caching.** Cache embeddings and repeated query results, keyed by content version.
 - **Evaluation.** A labelled question set with known relevant documents, and a command that prints retrieval and answer metrics.
 
 ## Non-functional requirements
@@ -98,7 +102,8 @@ flowchart LR
 - [ ] The eval command prints retrieval and answer metrics against a labelled set.
 - [ ] A trace shows time spent in embed, search, rerank, and generate.
 - [ ] I can state the cost per query and show caching reduces it.
-- [ ] Killing the model call still returns keyword-only results rather than a 500.
+- [ ] Killing the model call still returns keyword-only results rather than a 500, and the service recovers when the model returns.
+- [ ] Deleting a document removes it from source, chunks, vectors, and cache, and a test proves zero retrieval hits afterwards.
 
 ## Stretch goals
 

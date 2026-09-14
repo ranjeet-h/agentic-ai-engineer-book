@@ -37,6 +37,13 @@
 * API testing
 * Dockerizing Python applications
 * CI/CD for Python services
+* Linux runtime and networking fundamentals
+* API lifecycle and software design
+* Testing, debugging, and performance engineering
+* Algorithms, data structures, and system design: studied in the companion book on core computer-science interview preparation (not repeated here)
+
+
+* Checkpoint: build a typed FastAPI service from a blank directory and demonstrate a backward-compatible API change plus one measured performance fix.
 
 # Phase 2 — LLM and Generative AI Fundamentals
 
@@ -98,6 +105,13 @@
 * Gemini APIs
 * Open-source LLMs
 * Hugging Face ecosystem
+* Statistics and experiment design
+* Confidence intervals and hypothesis tests
+* Classical ML, generalisation, and data quality
+* Experiment tracking and reproducibility
+
+
+* Checkpoint: run a controlled model or retrieval experiment with confidence intervals and full data/code/config lineage; correct one intentionally leaked dataset.
 
 # Phase 3 — RAG Engineering
 
@@ -153,6 +167,19 @@
 * Multi-tenant RAG
 * RAG security
 * Access-controlled retrieval
+* Data contracts
+* Data lineage and provenance
+* Data quality and freshness
+* Incremental ingestion
+* Backfills and replay
+* Deduplication and idempotent indexing
+* Deletion and privacy-aware removal from derived stores
+* Change data capture and event-based indexing
+* Annotation workflows and dataset versioning
+* Data retention and lifecycle
+
+
+* Checkpoint: ingest, backfill, and delete a document with no duplicate chunks and no stale retrieval; publish a freshness and data-quality report.
 
 # Phase 4 — Agentic AI Engineering
 
@@ -216,6 +243,15 @@
 * Evaluator agents
 * Critic agents
 * Agent reliability
+* Side-effect safety, replay, and idempotency
+* Effect intent versus completion
+* Idempotency keys and deduplication
+* Tool contract testing and schema fuzzing
+* Autonomy budgets: steps, tokens, wall-clock, and cost
+* Approval payload binding and rejection
+
+
+* Checkpoint: kill the worker at every side-effect boundary and prove a resumed run produces no duplicate effect; reject a mutated approval payload.
 
 # Phase 5 — MCP and Tool Ecosystems
 
@@ -256,7 +292,16 @@
 * Agent-to-agent communication
 * A2A concepts
 * Agent capability discovery
+* MCP conformance testing
+* Protocol version negotiation
+* Tool schema compatibility and version pinning
+* Tool deprecation and rollback
+* Partial discovery and reconnect behaviour
+* Audit-safe argument hashing and redaction
 * Agent interoperability
+
+
+* Checkpoint: run a two-version MCP contract suite; accept a compatible change, reject a breaking one, and handle a server that disappears mid-call.
 
 # Phase 6 — Distributed Systems for AI
 
@@ -317,6 +362,17 @@
 * Distributed agent scheduling
 * Distributed state management
 * Long-running workflow reliability
+* Load testing and stress testing
+* Capacity planning and saturation
+* Little's Law and queue depth
+* Admission control and backpressure
+* Safety and liveness invariants
+* Chaos engineering and fault injection
+* Recovery time and recovery point objectives
+* Runbooks and game days
+
+
+* Checkpoint: run the worker platform under load and chaos; record the first saturation point, the invariants, and recovery time.
 
 # Phase 7 — AI Platform Engineering
 
@@ -394,6 +450,17 @@
 * CloudWatch
 * Secrets Manager
 * API Gateway
+* Cloud networking and private connectivity
+* Workload identity and OIDC federation
+* GitOps, drift detection, and promotion
+* Kubernetes scheduling, probes, and disruption budgets
+* Stateful workloads, storage, backup, and restore
+* Image provenance, SBOMs, signing, and admission control
+* Queue-depth autoscaling and GPU node pools
+* Cost allocation, tagging, budgets, and FinOps
+
+
+* Checkpoint: deploy one project from a clean environment with Terraform and Helm; canary, rotate a secret, kill a worker, restore a backup, and roll back.
 
 # Phase 8 — AI Evaluation, Observability and Reliability
 
@@ -450,6 +517,17 @@
 * SLIs
 * Error budgets
 * Incident response for AI systems
+* Service ownership and on-call
+* Alert design and error-budget burn rates
+* Runbooks and escalation policies
+* Load, stress, and soak testing
+* Chaos engineering and game days
+* Incident command and blameless postmortems
+* RTO/RPO and capacity review
+* Evaluator drift, judge flakiness, and feedback loops
+
+
+* Checkpoint: define SLOs, run a load test, inject a provider outage and queue backlog, page, follow a runbook, recover, and write a postmortem.
 
 # Phase 9 — AI Security and Governance
 
@@ -493,10 +571,21 @@
 * Supply-chain security
 * Dependency security
 * AI governance
+* OAuth 2.0, OpenID Connect, and JWT validation
+* mTLS, workload identity, and certificate rotation
+* Sessions, CSRF, SSRF, and secure API coding
+* STRIDE, attack trees, and trust boundaries
+* SAST, DAST, dependency scanning, and SBOMs
+* Network segmentation and egress controls
+* Data retention, deletion, residency, and consent
+* Compliance evidence and access review
 * Model governance
 * Prompt governance
 * Agent governance
 * Responsible AI concepts
+
+
+* Checkpoint: threat-model the MCP gateway, attack a deliberately vulnerable test gateway, and prove invalid-token, replay, and tenant-deletion handling.
 
 # Phase 10 — Model Serving and AI Infrastructure
 
@@ -543,6 +632,15 @@
 * Throughput optimization
 * Latency optimization
 * GPU utilization optimization
+* Serving memory and KV cache sizing
+* Prefill, decode, and token latency
+* Serving benchmarking methodology
+* Prefix caching and speculative decoding
+* Multi-GPU placement and interconnect
+* Warmup, draining, and safe model rollouts
+
+
+* Checkpoint: predict serving memory, benchmark two configurations on latency, throughput, quality, and cost, then drain and roll back a model update.
 
 # Phase 11 — AI Systems Architecture
 
@@ -584,6 +682,18 @@
 * Failure-mode analysis
 * Capacity planning
 * Scaling AI workloads
+* RFCs, design docs, and ADRs
+* Design reviews and resolving disagreement
+* Technical strategy, sequencing, and roadmaps
+* Build versus buy and vendor evaluation
+* Total cost of ownership and exit plans
+* Migrations, compatibility windows, and deprecation
+* Operating models, ownership, and RACI
+* Platform as a product, golden paths, and adoption metrics
+* Stakeholders, developer experience, and support boundaries
+
+
+* Checkpoint: produce an architecture package with alternatives, ADRs, TCO, a migration plan, a roadmap, a risk register, and two presentations.
 
 # Phase 12 — Multi-Agent Systems
 
@@ -619,6 +729,16 @@
 * Distributed multi-agent systems
 * LangGraph multi-agent patterns
 * Agent-to-Agent protocol concepts
+* Multi-agent testing strategies by topology
+* Delegation and handoff contract tests
+* Deadlock, livelock, and duplicate-work tests
+* Adversarial inter-agent messages and shared memory
+* Per-agent and per-task cost and latency budgets
+* Human approval, trust calibration, and escalation
+* When a single workflow beats multiple agents
+
+
+* Checkpoint: build one task as a single-agent workflow and as a multi-agent system, and keep multi-agent only if the measured benefit justifies it.
 
 # Phase 13 — Interview Preparation
 
@@ -661,6 +781,18 @@
 * Behavioral interviews
 * Project deep dives
 * Architecture walkthroughs
+* Timed coding and data-structure drills
+* SQL drills with indexes and query plans
+* Debugging drills from failing tests, logs, and traces
+* Low-level design drills
+* High-level system-design drills
+* AI system-design drills
+* AI incident and debugging drills
+* Behavioural story bank (STAR-L)
+* Project deep-dive question tree
+* Mock interviews with a rubric
+
+* Checkpoint: complete 30 coding, 15 SQL, 10 backend/distributed and 10 AI system-design drills, 8 behavioural stories, and recorded walkthroughs.
 
 # Final Projects
 
@@ -944,3 +1076,18 @@ AI Security
 +
 System Architecture
 ```
+
+
+
+# Role Tracks and Exit Gates
+
+Common Core (Phases 1-6, 8, 9) → Primary Role Track → Secondary Specialization → Evidence Portfolio → Role Exit Gate.
+
+* Senior Software Engineer: Phases 1, 6, 8, 9; primary Project 4; exit gate on service, API evolution, profiling, incident.
+* Senior AI Engineer: Phases 2, 3, 8; primary Project 1; secondary Project 5; exit gate on retrieval/generation/data/evaluator isolation and measured quality, latency, cost.
+* Agentic AI Engineer: Phases 4, 5, 12, 9; primary Project 2; secondary Project 6; exit gate on durable effects, bounded autonomy, tool authorisation, and attack tests.
+* AI Platform Engineer: Phases 7, 10, 6, 9; primary Project 3; secondary Project 4; exit gate on self-service deploy, tenancy, rollback, and queue scaling.
+* Staff / Principal AI Engineer: Phase 11 plus breadth; primary Project 3 hardened; secondary Project 5; exit gate on design review, TCO, ADRs, and roadmap.
+* AI Systems Architect: Phase 11 plus all; primary Project 3 connected to two supporting projects; exit gate on the full architecture package and portfolio.
+
+Completing all six final projects is optional. The default path is one primary project plus one secondary capability. See `src/career-readiness/role-tracks.md`.
